@@ -1,0 +1,843 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "E-Commerce Core Public & Client API",
+    "description": "Tài liệu hệ thống API Public dành cho Frontend, ứng dụng di động (Mobile App) và các dịch vụ tích hợp của E-Commerce Core.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API Server mặc định"
+    }
+  ],
+  "paths": {
+    "/public/auth/register": {
+      "post": {
+        "tags": ["Customer Authentication"],
+        "summary": "Đăng ký tài khoản khách hàng mới",
+        "description": "Đăng ký một tài khoản khách hàng mới và trả về access token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "password_confirmation"],
+                "properties": {
+                  "name": { "type": "string", "example": "Nguyễn Văn A" },
+                  "email": { "type": "string", "format": "email", "example": "customer@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "password123", "minLength": 8 },
+                  "password_confirmation": { "type": "string", "format": "password", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng ký thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đăng ký tài khoản thành công." },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "integer", "example": 2 },
+                            "name": { "type": "string", "example": "Nguyễn Văn A" },
+                            "email": { "type": "string", "example": "customer@example.com" }
+                          }
+                        },
+                        "token": { "type": "string", "example": "1|abcdef123456..." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "description": "Dữ liệu đầu vào không hợp lệ (e.g. Email đã trùng lặp)" }
+        }
+      }
+    },
+    "/public/auth/login": {
+      "post": {
+        "tags": ["Customer Authentication"],
+        "summary": "Đăng nhập khách hàng",
+        "description": "Xác thực email và password của khách hàng và trả về Sanctum token để gọi các API được bảo vệ.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "customer@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng nhập thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đăng nhập thành công." },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "integer", "example": 2 },
+                            "name": { "type": "string", "example": "Nguyễn Văn A" },
+                            "email": { "type": "string", "example": "customer@example.com" }
+                          }
+                        },
+                        "token": { "type": "string", "example": "2|ghijk7891011..." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Email hoặc mật khẩu không chính xác" },
+          "403": { "description": "Tài khoản bị khóa" }
+        }
+      }
+    },
+    "/public/auth/me": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Authentication"],
+        "summary": "Lấy thông tin tài khoản hiện tại",
+        "description": "Lấy thông tin khách hàng đang đăng nhập thông qua Bearer Token.",
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 2 },
+                        "name": { "type": "string", "example": "Nguyễn Văn A" },
+                        "email": { "type": "string", "example": "customer@example.com" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chưa đăng nhập hoặc token không hợp lệ" }
+        }
+      }
+    },
+    "/public/auth/logout": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Authentication"],
+        "summary": "Đăng xuất và hủy token",
+        "description": "Đăng xuất tài khoản khách hàng hiện tại và hủy token đang dùng.",
+        "responses": {
+          "200": {
+            "description": "Đăng xuất thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đăng xuất thành công." }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chưa đăng nhập" }
+        }
+      }
+    },
+    "/public/auth/forgot-password": {
+      "post": {
+        "tags": ["Customer Authentication"],
+        "summary": "Yêu cầu khôi phục mật khẩu",
+        "description": "Gửi email chứa liên kết đặt lại mật khẩu cho khách hàng.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "customer@example.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Đã gửi email khôi phục mật khẩu" },
+          "422": { "description": "Dữ liệu không hợp lệ" }
+        }
+      }
+    },
+    "/public/auth/reset-password": {
+      "post": {
+        "tags": ["Customer Authentication"],
+        "summary": "Đặt lại mật khẩu mới",
+        "description": "Đặt lại mật khẩu mới bằng token đã nhận được từ email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "email", "password", "password_confirmation"],
+                "properties": {
+                  "token": { "type": "string", "example": "abcdefabcdef123456..." },
+                  "email": { "type": "string", "format": "email", "example": "customer@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "newpassword123", "minLength": 8 },
+                  "password_confirmation": { "type": "string", "format": "password", "example": "newpassword123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Đặt lại mật khẩu thành công" },
+          "422": { "description": "Dữ liệu không hợp lệ hoặc token hết hạn" }
+        }
+      }
+    },
+    "/public/categories": {
+      "get": {
+        "tags": ["Catalog & Products"],
+        "summary": "Lấy cây danh mục sản phẩm",
+        "description": "Trả về toàn bộ danh mục sản phẩm đang hoạt động, có cấu trúc dạng cây phân cấp cha-con.",
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer", "example": 1 },
+                          "name": { "type": "object", "properties": { "vi": { "type": "string", "example": "Điện thoại" } } },
+                          "slug": { "type": "string", "example": "dien-thoai" },
+                          "parent_id": { "type": "integer", "nullable": true, "example": null },
+                          "children": { "type": "array", "items": { "type": "object" } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/brands": {
+      "get": {
+        "tags": ["Catalog & Products"],
+        "summary": "Lấy danh sách thương hiệu",
+        "description": "Trả về danh sách tất cả các thương hiệu đang hoạt động.",
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer", "example": 1 },
+                          "name": { "type": "string", "example": "Apple" },
+                          "slug": { "type": "string", "example": "apple" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/products": {
+      "get": {
+        "tags": ["Catalog & Products"],
+        "summary": "Danh sách sản phẩm kèm bộ lọc",
+        "description": "Trả về danh sách sản phẩm có phân trang. Hỗ trợ tìm kiếm và lọc theo danh mục, thương hiệu, khoảng giá và sắp xếp.",
+        "parameters": [
+          { "name": "search", "in": "query", "description": "Từ khóa tìm kiếm theo tên sản phẩm", "required": false, "schema": { "type": "string" } },
+          { "name": "category", "in": "query", "description": "Slug của danh mục sản phẩm", "required": false, "schema": { "type": "string" } },
+          { "name": "brand", "in": "query", "description": "Slug của thương hiệu", "required": false, "schema": { "type": "string" } },
+          { "name": "min_price", "in": "query", "description": "Giá tối thiểu", "required": false, "schema": { "type": "number" } },
+          { "name": "max_price", "in": "query", "description": "Giá tối đa", "required": false, "schema": { "type": "number" } },
+          { "name": "sort", "in": "query", "description": "Trường và chiều sắp xếp (price_asc, price_desc, latest)", "required": false, "schema": { "type": "string", "enum": ["price_asc", "price_desc", "latest"] } },
+          { "name": "page", "in": "query", "description": "Số trang hiện tại", "required": false, "schema": { "type": "integer", "default": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer", "example": 1 },
+                          "name": { "type": "object", "properties": { "vi": { "type": "string", "example": "iPhone 15 Pro" } } },
+                          "slug": { "type": "string", "example": "iphone-15-pro" },
+                          "price": { "type": "string", "example": "30000000.00" },
+                          "stock_quantity": { "type": "integer", "example": 10 }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": { "type": "integer", "example": 1 },
+                        "last_page": { "type": "integer", "example": 5 },
+                        "per_page": { "type": "integer", "example": 12 },
+                        "total": { "type": "integer", "example": 60 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/products/{id_or_slug}": {
+      "get": {
+        "tags": ["Catalog & Products"],
+        "summary": "Chi tiết sản phẩm",
+        "description": "Lấy thông tin chi tiết của một sản phẩm qua ID hoặc Slug, bao gồm thông tin chi tiết, các biến thể (variants) và đánh giá bình luận (reviews).",
+        "parameters": [
+          { "name": "id_or_slug", "in": "path", "description": "ID sản phẩm hoặc slug sản phẩm", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "name": { "type": "object" },
+                        "slug": { "type": "string", "example": "iphone-15-pro" },
+                        "price": { "type": "string", "example": "30000000.00" },
+                        "variants": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "integer", "example": 1 },
+                              "name": { "type": "string", "example": "256GB Gold" },
+                              "price": { "type": "string", "example": "32000000.00" }
+                            }
+                          }
+                        },
+                        "reviews": { "type": "array", "items": { "type": "object" } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Sản phẩm không tồn tại hoặc đã ngừng kinh doanh" }
+        }
+      }
+    },
+    "/public/products/{id_or_slug}/reviews": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Catalog & Products"],
+        "summary": "Gửi đánh giá và bình luận sản phẩm",
+        "description": "Gửi đánh giá xếp hạng sao (1-5) và bình luận cho sản phẩm. Chỉ cho phép những khách hàng đã mua sản phẩm này (có đơn hàng không bị hủy). Hỗ trợ cả khách vãng lai và thành viên đã đăng nhập. Đối với thành viên, có thể bỏ qua thông tin cá nhân (tên, email) để lấy thông tin mặc định từ tài khoản.",
+        "parameters": [
+          { "name": "id_or_slug", "in": "path", "description": "ID sản phẩm hoặc slug sản phẩm", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rating"],
+                "properties": {
+                  "customer_name": { "type": "string", "example": "Nguyễn Văn B", "description": "Bắt buộc nếu chưa đăng nhập" },
+                  "customer_email": { "type": "string", "format": "email", "example": "customer.b@example.com", "description": "Bắt buộc nếu chưa đăng nhập" },
+                  "rating": { "type": "integer", "minimum": 1, "maximum": 5, "example": 5 },
+                  "comment": { "type": "string", "example": "Sản phẩm dùng rất tốt, đóng gói cẩn thận." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gửi đánh giá thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Gửi đánh giá thành công." },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "product_id": { "type": "integer", "example": 1 },
+                        "user_id": { "type": "integer", "nullable": true, "example": null },
+                        "customer_name": { "type": "string", "example": "Nguyễn Văn B" },
+                        "customer_email": { "type": "string", "example": "customer.b@example.com" },
+                        "rating": { "type": "integer", "example": 5 },
+                        "comment": { "type": "string", "example": "Sản phẩm dùng rất tốt, đóng gói cẩn thận." },
+                        "is_visible": { "type": "boolean", "example": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Chưa mua sản phẩm này hoặc tính năng review bị tắt" },
+          "404": { "description": "Sản phẩm không tồn tại hoặc đã ngừng kinh doanh" },
+          "422": { "description": "Dữ liệu đầu vào không hợp lệ (e.g. Điểm đánh giá không hợp lệ, thiếu tên/email với khách vãng lai)" }
+        }
+      }
+    },
+    "/public/vouchers/apply": {
+      "post": {
+        "tags": ["Checkout & Orders"],
+        "summary": "Áp dụng mã giảm giá (Voucher)",
+        "description": "Kiểm tra mã giảm giá có hợp lệ hay không và tính toán số tiền chiết khấu.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "subtotal"],
+                "properties": {
+                  "code": { "type": "string", "example": "DISCOUNT100K" },
+                  "subtotal": { "type": "number", "example": 600000.00 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mã giảm giá hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": { "type": "string", "example": "DISCOUNT100K" },
+                        "type": { "type": "string", "example": "fixed" },
+                        "value": { "type": "string", "example": "100000.00" },
+                        "discount_amount": { "type": "number", "example": 100000.00 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "description": "Mã giảm giá không hợp lệ hoặc không đủ điều kiện tối thiểu" }
+        }
+      }
+    },
+    "/public/orders/checkout": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Checkout & Orders"],
+        "summary": "Đặt hàng (Checkout)",
+        "description": "Đặt hàng cho cả khách vãng lai (Guest) và thành viên đã đăng nhập. Nếu gửi kèm token, đơn hàng tự động liên kết với user.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_name", "customer_email", "customer_phone", "shipping_address", "payment_method", "items"],
+                "properties": {
+                  "customer_name": { "type": "string", "example": "Khách mua hàng" },
+                  "customer_email": { "type": "string", "format": "email", "example": "buyer@example.com" },
+                  "customer_phone": { "type": "string", "example": "0988776655" },
+                  "shipping_address": { "type": "string", "example": "123 Đường Lê Lợi, Quận 1, TP. HCM" },
+                  "payment_method": { "type": "string", "enum": ["cod", "bank_transfer"], "example": "cod" },
+                  "voucher_code": { "type": "string", "example": "DISCOUNT100K", "nullable": true },
+                  "shipping_fee": { "type": "number", "example": 30000.00, "default": 0 },
+                  "notes": { "type": "string", "example": "Giao hàng giờ hành chính", "nullable": true },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["product_id", "quantity"],
+                      "properties": {
+                        "product_id": { "type": "integer", "example": 1 },
+                        "variant_id": { "type": "integer", "example": 1, "nullable": true },
+                        "quantity": { "type": "integer", "example": 2 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đặt hàng thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đặt hàng thành công." },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 10 },
+                        "order_number": { "type": "string", "example": "ORD-ABCDE12345" },
+                        "grand_total": { "type": "string", "example": "63930000.00" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin)" }
+        }
+      }
+    },
+    "/public/orders/track": {
+      "get": {
+        "tags": ["Checkout & Orders"],
+        "summary": "Tra cứu trạng thái đơn hàng (Khách vãng lai)",
+        "description": "Cho phép tra cứu thông tin trạng thái đơn hàng nhanh chóng mà không cần đăng nhập bằng mã đơn hàng và số điện thoại/email đăng ký đơn hàng.",
+        "parameters": [
+          { "name": "order_number", "in": "query", "description": "Mã đơn hàng (VD: ORD-ABCDE12345)", "required": true, "schema": { "type": "string" } },
+          { "name": "contact", "in": "query", "description": "Số điện thoại hoặc Email khi đặt hàng", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Không tìm thấy đơn hàng hoặc thông tin xác thực sai" }
+        }
+      }
+    },
+    "/public/orders": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Checkout & Orders"],
+        "summary": "Lịch sử đơn hàng của khách hàng",
+        "description": "Lấy danh sách các đơn hàng đã đặt của khách hàng đang đăng nhập.",
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chưa đăng nhập" }
+        }
+      }
+    },
+    "/public/orders/{order_number}": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Checkout & Orders"],
+        "summary": "Chi tiết đơn hàng thành viên",
+        "description": "Xem chi tiết một đơn hàng cụ thể của khách hàng đăng nhập thông qua mã đơn hàng.",
+        "parameters": [
+          { "name": "order_number", "in": "path", "description": "Mã số đơn hàng", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chưa đăng nhập" },
+          "404": { "description": "Đơn hàng không tồn tại hoặc không thuộc quyền sở hữu của user" }
+        }
+      }
+    },
+    "/public/addresses": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Addresses"],
+        "summary": "Lấy danh sách địa chỉ của khách hàng",
+        "description": "Lấy toàn bộ danh sách địa chỉ giao hàng đã lưu của khách hàng đang đăng nhập.",
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer", "example": 1 },
+                          "user_id": { "type": "integer", "example": 2 },
+                          "customer_name": { "type": "string", "example": "Nguyễn Văn A" },
+                          "customer_phone": { "type": "string", "example": "0988776655" },
+                          "address": { "type": "string", "example": "123 Đường Lê Lợi, Quận 1, TP. HCM" },
+                          "is_default": { "type": "boolean", "example": true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chưa đăng nhập" }
+        }
+      },
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Addresses"],
+        "summary": "Thêm địa chỉ giao hàng mới",
+        "description": "Lưu địa chỉ nhận hàng mới. Nếu là địa chỉ đầu tiên hoặc truyền `is_default => true`, nó sẽ tự động trở thành mặc định.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_name", "customer_phone", "address"],
+                "properties": {
+                  "customer_name": { "type": "string", "example": "Nguyễn Văn A" },
+                  "customer_phone": { "type": "string", "example": "0988776655" },
+                  "address": { "type": "string", "example": "123 Đường Lê Lợi, Quận 1, TP. HCM" },
+                  "is_default": { "type": "boolean", "example": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tạo thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Thêm địa chỉ mới thành công." },
+                    "data": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chưa đăng nhập" },
+          "422": { "description": "Dữ liệu không hợp lệ" }
+        }
+      }
+    },
+    "/public/addresses/{address}": {
+      "put": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Addresses"],
+        "summary": "Cập nhật địa chỉ",
+        "description": "Cập nhật thông tin địa chỉ đã lưu.",
+        "parameters": [
+          { "name": "address", "in": "path", "description": "ID của địa chỉ", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_name", "customer_phone", "address"],
+                "properties": {
+                  "customer_name": { "type": "string", "example": "Nguyễn Văn A" },
+                  "customer_phone": { "type": "string", "example": "0988776655" },
+                  "address": { "type": "string", "example": "456 Đường Trần Hưng Đạo, Quận 5, TP. HCM" },
+                  "is_default": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Cập nhật thành công" },
+          "401": { "description": "Chưa đăng nhập" },
+          "403": { "description": "Không có quyền sửa địa chỉ này hoặc không tồn tại" },
+          "422": { "description": "Dữ liệu không hợp lệ" }
+        }
+      },
+      "delete": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Addresses"],
+        "summary": "Xóa địa chỉ",
+        "description": "Xóa một địa chỉ đã lưu. Nếu địa chỉ bị xóa đang là mặc định, một địa chỉ khác sẽ tự động được chọn làm mặc định.",
+        "parameters": [
+          { "name": "address", "in": "path", "description": "ID của địa chỉ", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Xóa thành công" },
+          "401": { "description": "Chưa đăng nhập" },
+          "403": { "description": "Không có quyền xóa địa chỉ này hoặc không tồn tại" }
+        }
+      }
+    },
+    "/public/addresses/{address}/set-default": {
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "tags": ["Customer Addresses"],
+        "summary": "Thiết lập làm địa chỉ mặc định",
+        "description": "Đặt địa chỉ được chỉ định làm mặc định và hủy mặc định các địa chỉ khác của người dùng.",
+        "parameters": [
+          { "name": "address", "in": "path", "description": "ID của địa chỉ", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Thiết lập mặc định thành công" },
+          "401": { "description": "Chưa đăng nhập" },
+          "403": { "description": "Không có quyền thao tác trên địa chỉ này hoặc không tồn tại" }
+        }
+      }
+    },
+    "/webhooks/ghtk": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Webhook nhận trạng thái từ Giao Hàng Tiết Kiệm (GHTK)",
+        "description": "Đồng bộ trạng thái vận đơn tự động từ hệ thống GHTK gửi về. Cần truyền `token` bảo mật trên query string.",
+        "parameters": [
+          { "name": "token", "in": "query", "description": "Token bảo mật được cấu hình trên shop", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label_id": { "type": "string", "description": "Mã vận đơn của GHTK", "example": "GHTK.123456.789" },
+                  "partner_id": { "type": "string", "description": "Mã đơn hàng tương ứng trên website", "example": "ORD-ABCDE12345" },
+                  "status_id": { "type": "integer", "description": "ID trạng thái giao hàng từ GHTK", "example": 5 },
+                  "action_time": { "type": "string", "example": "2026-06-25 22:00:00" },
+                  "fee": { "type": "number", "description": "Phí ship thực tế GHTK tính", "example": 22000.00 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Đồng bộ trạng thái thành công" },
+          "401": { "description": "Token không hợp lệ" },
+          "404": { "description": "Đơn hàng đối ứng trên hệ thống không tồn tại" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
