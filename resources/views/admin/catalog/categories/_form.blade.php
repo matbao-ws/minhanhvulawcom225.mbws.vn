@@ -2,6 +2,8 @@
     $fallbackLocale = config('app.fallback_locale', config('app.locale'));
     $name = old('name', $category->getTranslation('name', app()->getLocale(), false) ?: $category->getTranslation('name', $fallbackLocale, false));
     $description = old('description', $category->getTranslation('description', app()->getLocale(), false) ?: $category->getTranslation('description', $fallbackLocale, false));
+    $metaTitle = old('meta_title', $category->getTranslation('meta_title', app()->getLocale(), false) ?: $category->getTranslation('meta_title', $fallbackLocale, false));
+    $metaDescription = old('meta_description', $category->getTranslation('meta_description', app()->getLocale(), false) ?: $category->getTranslation('meta_description', $fallbackLocale, false));
 @endphp
 
 <div class="card">
@@ -39,6 +41,14 @@
                 <label class="form-label" for="description">{{ __('catalog.fields.description') }}</label>
                 <textarea class="form-control d-none" id="description" name="description">{{ $description }}</textarea>
                 <div id="description_editor" class="catalog-quill" data-target="description">{!! $description !!}</div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label" for="meta_title">{{ __('catalog.fields.meta_title') }}</label>
+                <input type="text" maxlength="255" class="form-control" id="meta_title" name="meta_title" value="{{ $metaTitle }}" placeholder="{{ __('catalog.placeholders.meta_title') }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label" for="meta_description">{{ __('catalog.fields.meta_description') }}</label>
+                <textarea maxlength="500" class="form-control" id="meta_description" name="meta_description" rows="3" placeholder="{{ __('catalog.placeholders.meta_description') }}">{{ $metaDescription }}</textarea>
             </div>
             <div class="col-12 mb-3">
                 <input type="hidden" name="is_active" value="1">

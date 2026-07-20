@@ -17,6 +17,9 @@ class EnsureUserIsAdmin
     public function handle(Request $request, Closure $next)
     {
         if (! auth()->check() || auth()->user()->role_id === null) {
+            if (session()->has('impersonated_by')) {
+                return redirect('/')->with('error', 'Tài khoản này không có quyền truy cập trang quản trị.');
+            }
             abort(403, 'Unauthorized.');
         }
 

@@ -56,24 +56,12 @@ class NotificationSettingController extends Controller
             $settings[$section] = array_merge($fields, is_array($settings[$section] ?? null) ? $settings[$section] : []);
         }
 
-        $hasActiveSubscription = false;
-        $subscription = \App\Models\ProjectSubscription::query()
-            ->where('status', 'active')
-            ->whereNotNull('package_id')
-            ->where(function ($query) {
-                $query->whereNull('expired_at')
-                    ->orWhere('expired_at', '>=', now()->toDateString());
-            })
-            ->first();
+        $zaloFeatureEnabled = \App\Models\FeatureSetting::query()
+            ->where('feature_code', 'zalo_oa')
+            ->where('is_enabled', true)
+            ->exists();
 
-        if ($subscription) {
-            $hasActiveSubscription = \App\Models\FeatureSetting::query()
-                ->where('feature_code', 'zalo_oa')
-                ->where('is_enabled', true)
-                ->exists();
-        }
-
-        return view('admin.notification_settings.index', compact('settings', 'hasActiveSubscription'));
+        return view('admin.notification_settings.index', compact('settings', 'zaloFeatureEnabled'));
     }
 
     /**
@@ -81,24 +69,12 @@ class NotificationSettingController extends Controller
      */
     public function update(Request $request)
     {
-        $hasActiveSubscription = false;
-        $subscription = \App\Models\ProjectSubscription::query()
-            ->where('status', 'active')
-            ->whereNotNull('package_id')
-            ->where(function ($query) {
-                $query->whereNull('expired_at')
-                    ->orWhere('expired_at', '>=', now()->toDateString());
-            })
-            ->first();
+        $zaloFeatureEnabled = \App\Models\FeatureSetting::query()
+            ->where('feature_code', 'zalo_oa')
+            ->where('is_enabled', true)
+            ->exists();
 
-        if ($subscription) {
-            $hasActiveSubscription = \App\Models\FeatureSetting::query()
-                ->where('feature_code', 'zalo_oa')
-                ->where('is_enabled', true)
-                ->exists();
-        }
-
-        if (!$hasActiveSubscription) {
+        if (! $zaloFeatureEnabled) {
             $tryingToEnable = filter_var($request->input('zalo_oa.enabled'), FILTER_VALIDATE_BOOLEAN)
                 || filter_var($request->input('zalo_personal.enabled'), FILTER_VALIDATE_BOOLEAN);
 

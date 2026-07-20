@@ -8,19 +8,27 @@
             
             <div class="col-md-12">
                 <label class="form-label fw-semibold text-dark mb-3">{{ __('admin.roles.fields.select_permissions') }}</label>
-                <div class="row g-3">
-                    @foreach($permissions as $key => $label)
-                        <div class="col-md-6 col-lg-4">
-                            <div class="p-3 border rounded bg-light d-flex align-items-center">
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ $key }}" id="perm_{{ $key }}"
-                                        @checked(in_array($key, old('permissions', $role->permissions ?? [])) || in_array('*', $role->permissions ?? []))>
-                                    <label class="form-check-label fw-semibold text-dark ms-2" for="perm_{{ $key }}">{{ __('admin.roles.permissions.' . $key) }}</label>
+                @foreach($permissionsByGroup as $group => $permissions)
+                    <div class="border rounded p-3 mb-3">
+                        <h6 class="fw-bold text-dark mb-3">{{ ucfirst(str_replace('_', ' ', $group)) }}</h6>
+                        <div class="row g-3">
+                            @foreach($permissions as $permission)
+                                @php($translationKey = 'admin.roles.permissions.'.$permission->code)
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="p-3 border rounded bg-light d-flex align-items-center h-100">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ $permission->code }}" id="perm_{{ $permission->code }}"
+                                                @checked(in_array($permission->code, old('permissions', $role->permissions ?? [])) || in_array('*', $role->permissions ?? []))>
+                                            <label class="form-check-label fw-semibold text-dark ms-2" for="perm_{{ $permission->code }}">
+                                                {{ \Illuminate\Support\Facades\Lang::has($translationKey) ? __($translationKey) : $permission->name }}
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            @endforeach
                         </div>
-                    @endforeach
-                </div>
+                    </div>
+                @endforeach
             </div>
         </div>
     </div>

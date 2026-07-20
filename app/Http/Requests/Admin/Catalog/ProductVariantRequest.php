@@ -19,13 +19,17 @@ class ProductVariantRequest extends FormRequest
         return [
             'name' => ['nullable', 'string', 'max:255'],
             'sku' => ['required', 'string', 'max:100', Rule::unique('product_variants', 'sku')->ignore($variantId)],
-            'option_names' => ['nullable', 'array'],
-            'option_names.*' => ['nullable', 'string', 'max:100'],
-            'option_values' => ['nullable', 'array'],
-            'option_values.*' => ['nullable', 'string', 'max:100'],
+            'barcode' => ['nullable', 'string', 'max:255'],
+            'option_value_ids' => ['required', 'array', 'min:1', 'max:8'],
+            'option_value_ids.*' => ['required', 'integer', 'distinct', 'exists:product_option_values,id'],
             'price' => ['nullable', 'numeric', 'min:0'],
-            'stock_quantity' => ['nullable', 'integer', 'min:0'],
+            'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'cost_price' => ['nullable', 'numeric', 'min:0'],
+            'image_url' => ['nullable', 'url', 'max:2048'],
+            'weight_grams' => ['nullable', 'integer', 'min:0'],
+            'stock_quantity' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+            'is_default' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }

@@ -7,6 +7,7 @@ use App\Models\FeatureSetting;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Catalog\CategoryService;
+use App\Services\Catalog\ProductOptionService;
 use App\Services\Catalog\ProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -21,10 +22,13 @@ class CatalogCrudTest extends TestCase
     {
         $categoryService = app(CategoryService::class);
         $productService = app(ProductService::class);
+        $optionService = app(ProductOptionService::class);
 
         $category = $categoryService->create([
             'name' => 'Danh muc test',
             'description' => 'Mo ta',
+            'meta_title' => 'SEO danh muc',
+            'meta_description' => 'Mo ta SEO danh muc',
             'is_active' => true,
         ]);
 
@@ -32,25 +36,39 @@ class CatalogCrudTest extends TestCase
             'category_id' => $category->id,
             'name' => 'San pham test',
             'sku' => 'TEST-SKU-1',
+            'meta_title' => 'SEO san pham',
+            'meta_description' => 'Mo ta SEO san pham',
             'price' => 100000,
             'stock_quantity' => 5,
             'manage_stock' => true,
             'is_active' => true,
         ]);
 
+        $optionService->sync($product, [[
+            'name' => 'Color',
+            'display_type' => 'color',
+            'values' => [['label' => 'Red', 'color_hex' => '#ff0000', 'is_active' => true]],
+        ], [
+            'name' => 'Size',
+            'display_type' => 'select',
+            'values' => [['label' => 'M', 'is_active' => true]],
+        ]]);
+        $optionValueIds = $product->fresh()->optionGroups()->with('values')->get()->flatMap->values->pluck('id')->all();
+
         $variant = $productService->createVariant($product, [
             'name' => 'Do / M',
             'sku' => 'TEST-SKU-1-RED-M',
-            'option_names' => ['Color', 'Size'],
-            'option_values' => ['Red', 'M'],
+            'option_value_ids' => $optionValueIds,
             'price' => 110000,
             'stock_quantity' => 2,
             'is_active' => true,
         ]);
 
         $this->assertSame('Danh muc test', $category->getTranslation('name', 'vi'));
+        $this->assertSame('SEO danh muc', $category->getTranslation('meta_title', 'vi'));
         $this->assertSame('San pham test', $product->getTranslation('name', 'vi'));
-        $this->assertSame(['Color' => 'Red', 'Size' => 'M'], $variant->option_values);
+        $this->assertSame('SEO san pham', $product->getTranslation('meta_title', 'vi'));
+        $this->assertSame(['Red', 'M'], $variant->optionValues()->orderBy('id')->get()->map->label->all());
 
         $productService->deleteVariant($variant);
         $productService->delete($product);

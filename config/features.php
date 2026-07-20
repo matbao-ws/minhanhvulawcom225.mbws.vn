@@ -14,7 +14,5 @@ return [
         'menu',
         'multi_admin',
         'inventory_log',
-        'max_products',
-        'max_admin_users',
     ],
 ];

@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\FeatureSetting;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Catalog\ProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,11 +37,6 @@ class FeatureGateAndSuperadminTest extends TestCase
             'is_enabled' => true,
         ]);
 
-        FeatureSetting::query()->create([
-            'feature_code' => 'max_products',
-            'is_enabled' => true,
-            'limit_value' => '50',
-        ]);
     }
 
     public function test_guest_cannot_access_features_settings(): void
@@ -85,10 +82,6 @@ class FeatureGateAndSuperadminTest extends TestCase
         $response = $this->post('/vi/admin/features', [
             'features' => [
                 'multi_admin' => '0',
-                'max_products' => '1',
-            ],
-            'limits' => [
-                'max_products' => '100',
             ]
         ]);
 
@@ -100,11 +93,6 @@ class FeatureGateAndSuperadminTest extends TestCase
             'is_enabled' => false,
         ]);
 
-        $this->assertDatabaseHas('feature_settings', [
-            'feature_code' => 'max_products',
-            'is_enabled' => true,
-            'limit_value' => '100',
-        ]);
     }
 
     public function test_admin_cannot_access_users_management_when_multi_admin_disabled(): void
@@ -121,7 +109,8 @@ class FeatureGateAndSuperadminTest extends TestCase
         $this->actingAs($admin);
 
         $response = $this->get('/vi/admin/users');
-        $response->assertStatus(403);
+        $response->assertRedirect();
+        $response->assertSessionHas('error', \App\Support\FeatureGate::SUPPORT_MESSAGE);
     }
 
     public function test_superadmin_can_access_users_management_even_when_multi_admin_disabled(): void
@@ -220,5 +209,29 @@ class FeatureGateAndSuperadminTest extends TestCase
         ]);
 
         $this->assertFalse(\App\Models\FeatureSetting::where('feature_code', 'multi_admin')->first()->is_enabled);
+    }
+
+    public function test_legacy_product_limit_does_not_block_catalog_creation(): void
+    {
+        FeatureSetting::query()->create([
+            'feature_code' => 'max_products',
+            'is_enabled' => true,
+            'limit_value' => '1',
+        ]);
+        Product::query()->create([
+            'name' => ['vi' => 'Sản phẩm cũ'],
+            'slug' => 'san-pham-cu',
+            'sku' => 'LEGACY-LIMIT-01',
+            'price' => 100000,
+        ]);
+
+        $product = app(ProductService::class)->create([
+            'name' => ['vi' => 'Sản phẩm mới'],
+            'sku' => 'LEGACY-LIMIT-02',
+            'price' => 200000,
+        ]);
+
+        $this->assertSame('san-pham-moi', $product->slug);
+        $this->assertDatabaseCount('products', 2);
     }
 }

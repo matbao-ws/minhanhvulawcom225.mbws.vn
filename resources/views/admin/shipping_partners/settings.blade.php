@@ -4,18 +4,23 @@
 
 @section('content')
     <!-- Header Card -->
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3 d-flex flex-column gap-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-semibold mb-1">{{ __('admin.shipping_partners.setup_connection') }}</h4>
-                    <nav class="py-2" style="--bs-breadcrumb-divider: '&gt;'" aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.shipping-partners.index') }}">{{ __('admin.shipping_partners.title') }}</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">{{ __('admin.shipping_partners.setup_connection') }}: {{ $partner->name }}</li>
-                        </ol>
-                    </nav>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3">
+                    <div class="row align-items-center">
+                        <div class="col-12">
+                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.shipping_partners.setup_connection') }}</h4>
+                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+                            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.shipping-partners.index') }}">{{ __('admin.shipping_partners.title') }}</a></li>
+                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.shipping_partners.setup_connection') }}: {{ $partner->name }}</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -42,6 +47,7 @@
                         $apiToken = data_get($partner->settings, 'api_token', '');
                         $apiUrl = data_get($partner->settings, 'api_url', 'https://services.giaohangtietkiem.vn');
                         $webhookToken = data_get($partner->settings, 'webhook_token', '');
+                        $realtimeTrackingEnabled = (bool) old('realtime_tracking_enabled', data_get($partner->settings, 'realtime_tracking_enabled', filled($webhookToken)));
                     @endphp
                     <div class="row">
                         <div class="col-md-12 mb-3">
@@ -58,6 +64,15 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark d-block">Cập nhật trạng thái realtime</label>
+                            <input type="hidden" name="realtime_tracking_enabled" value="0">
+                            <div class="form-check form-switch pt-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="ghtk_realtime_tracking" name="realtime_tracking_enabled" value="1" @checked($realtimeTrackingEnabled)>
+                                <label class="form-check-label" for="ghtk_realtime_tracking">Nhận webhook trạng thái đơn từ GHTK</label>
+                            </div>
+                            <div class="form-text">Không cần bật để kết nối tài khoản và đẩy đơn sang GHTK.</div>
+                        </div>
+                        <div class="col-md-6 mb-3" id="ghtk-webhook-settings" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
                             <label class="form-label fw-semibold text-dark" for="ghtk_webhook_token">{{ __('admin.shipping_partners.webhook_token_label') }}</label>
                             <div class="input-group">
                                 <input type="text" class="form-control text-dark" id="ghtk_webhook_token" name="webhook_token" 
@@ -68,7 +83,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-12 mb-3">
+                        <div class="col-md-12 mb-3" id="ghtk-webhook-url" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
                             <label class="form-label fw-semibold text-dark">{{ __('admin.shipping_partners.webhook_url_label') }}</label>
                             <div class="input-group">
                                 <input type="text" class="form-control bg-light text-dark font-monospace small" id="ghtk_webhook_url" 
@@ -223,6 +238,12 @@
         document.getElementById('ghtk_webhook_url').value = baseUrl + '?token=' + token;
     }
 
+    function toggleGhtkWebhookSettings() {
+        const enabled = document.getElementById('ghtk_realtime_tracking').checked;
+        document.getElementById('ghtk-webhook-settings').style.display = enabled ? '' : 'none';
+        document.getElementById('ghtk-webhook-url').style.display = enabled ? '' : 'none';
+    }
+
     function copyWebhookUrl() {
         const copyText = document.getElementById("ghtk_webhook_url");
         copyText.select();
@@ -238,5 +259,15 @@
             title: '{{ __('admin.shipping_partners.copied_notification') }}'
         });
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const realtimeToggle = document.getElementById('ghtk_realtime_tracking');
+        const webhookToken = document.getElementById('ghtk_webhook_token');
+        if (!realtimeToggle || !webhookToken) return;
+
+        realtimeToggle.addEventListener('change', toggleGhtkWebhookSettings);
+        webhookToken.addEventListener('input', () => updateWebhookUrl(webhookToken.value));
+        toggleGhtkWebhookSettings();
+    });
 </script>
 @endpush

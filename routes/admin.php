@@ -3,15 +3,17 @@
 use App\Http\Controllers\Admin\Catalog\BrandController;
 use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
+use App\Http\Controllers\Admin\Catalog\ProductOptionController;
 use App\Http\Controllers\Admin\Catalog\ProductVariantController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\SearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])->name('login');
-Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:admin-login')->name('login.store');
 Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
 Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
@@ -21,10 +23,15 @@ Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
+Route::post('/impersonate/leave', [\App\Http\Controllers\Admin\UserController::class, 'leaveImpersonate'])
+    ->middleware('auth')
+    ->name('users.impersonate.leave');
+
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
+    Route::get('search', [SearchController::class, 'search'])->name('search');
 
     Route::get('media', [\App\Http\Controllers\Admin\MediaController::class, 'index'])->name('media.index');
     Route::post('media/upload', [\App\Http\Controllers\Admin\MediaController::class, 'upload'])->name('media.upload');
@@ -38,6 +45,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware('feature:multi_admin')->group(function () {
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->middleware('can:manage_users');
+        Route::patch('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])
+            ->name('users.toggle-status')
+            ->middleware('can:manage_users');
+        Route::post('users/{user}/impersonate', [\App\Http\Controllers\Admin\UserController::class, 'impersonate'])
+            ->name('users.impersonate')
+            ->middleware('can:manage_users');
         Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->middleware('superadmin');
     });
 
@@ -50,6 +63,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware(['feature:voucher', 'can:manage_vouchers'])->group(function () {
         Route::resource('vouchers', \App\Http\Controllers\Admin\VoucherController::class);
+        Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->except(['show']);
     });
 
     Route::middleware(['feature:review', 'can:manage_reviews'])->group(function () {
@@ -81,25 +95,30 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('payment-methods/{payment_method}/settings', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'updateSettings'])->name('payment-methods.update-settings');
         Route::resource('payment-methods', \App\Http\Controllers\Admin\PaymentMethodController::class)->except(['show']);
 
-        // Addons Routes
+        // Integration catalogue. Activation is handled by support; no in-app addon sales.
         Route::get('addons', [\App\Http\Controllers\Admin\AddonController::class, 'index'])->name('addons.index');
-        Route::get('addons/invoices', [\App\Http\Controllers\Admin\AddonController::class, 'invoices'])->name('addons.invoices');
-        Route::post('addons/{addon}/checkout', [\App\Http\Controllers\Admin\AddonController::class, 'checkout'])->name('addons.checkout');
-        Route::get('addons/invoices/{invoice}/status', [\App\Http\Controllers\Admin\AddonController::class, 'checkInvoiceStatus'])->name('addons.invoice-status');
-        Route::get('addons/manage', [\App\Http\Controllers\Admin\AddonController::class, 'manage'])->name('addons.manage');
-        Route::post('addons/{addon}/manage', [\App\Http\Controllers\Admin\AddonController::class, 'updateAddon'])->name('addons.update-addon');
 
-        // Banners Routes
-        Route::middleware('feature:banner')->group(function () {
-            Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)->except(['show']);
-        });
+    });
+
+    Route::middleware(['feature:banner', 'can:manage_banners'])->group(function () {
+        Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)->except(['show']);
+    });
+
+    Route::middleware('can:view_audit_log')->group(function () {
+        Route::get('activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
+    });
+
+    Route::middleware('can:view_customers')->group(function () {
+        Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/profile', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('customers.show');
     });
 
     Route::middleware('feature:catalog')->group(function () {
         Route::middleware('can:manage_orders')->group(function () {
             Route::patch('orders/{order}/status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('orders.update-status');
             Route::post('orders/{order}/push-shipping', [\App\Http\Controllers\Admin\OrderController::class, 'pushShipping'])->name('orders.push-shipping');
-            Route::resource('orders', \App\Http\Controllers\Admin\OrderController::class)->only(['index', 'show']);
+            Route::post('orders/{order}/refund', [\App\Http\Controllers\Admin\OrderController::class, 'refund'])->name('orders.refund');
+            Route::resource('orders', \App\Http\Controllers\Admin\OrderController::class)->only(['index', 'show', 'create', 'store']);
         });
 
         Route::middleware('can:manage_products')->group(function () {
@@ -115,6 +134,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->name('products.template');
             Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
             Route::resource('products', ProductController::class);
+            Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->name('products.options.edit');
+            Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->name('products.options.update');
+            Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->name('products.variants.generate');
             Route::resource('products.variants', ProductVariantController::class)
                 ->except(['index', 'show']);
         });

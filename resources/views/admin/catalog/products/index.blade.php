@@ -3,17 +3,22 @@
 @section('title', __('catalog.products.title'))
 
 @section('content')
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3 d-flex flex-column gap-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-semibold mb-1">{{ __('catalog.products.title') }}</h4>
-                    <nav class="py-2" style="--bs-breadcrumb-divider: '&gt;'" aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">{{ __('catalog.products.title') }}</li>
-                        </ol>
-                    </nav>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3">
+                    <div class="row align-items-center">
+                        <div class="col-12">
+                            <h4 class="fw-semibold mb-1 text-white">{{ __('catalog.products.title') }}</h4>
+                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.products.title') }}</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -116,9 +121,9 @@
                                         <img src="{{ $product->image_url ?: asset('images/icons/default-product.png') }}"
                                              onerror="this.src='{{ asset('images/icons/default-product.png') }}'"
                                              alt="{{ $product->name }}"
-                                             class="rounded border border-2 border-primary-subtle"
+                                             class="rounded-2 object-fit-cover"
                                              width="50" height="50"
-                                             style="object-fit: cover; min-width: 50px;">
+                                             style="min-width: 50px;">
                                         <div>
                                             <h6 class="fw-semibold mb-1 fs-3">
                                                 <a href="{{ route('admin.products.show', $product) }}"
@@ -229,7 +234,7 @@
                                 class="text-danger">*</span></label>
                         <input type="file" class="form-control" name="import_file" id="import_file" accept=".csv,text/csv"
                             required>
-                        <div class="form-text fs-2">Hỗ trợ tệp CSV tối đa 5MB.</div>
+                        <div class="form-text mt-1">Hỗ trợ tệp CSV tối đa 5MB.</div>
                     </div>
                     <div class="mt-4 p-3 bg-light rounded">
                         <h6 class="fw-semibold mb-2 fs-3"><i class="ti ti-download me-1 text-primary"></i>Tải xuống tệp mẫu:

@@ -76,15 +76,19 @@ class PostCrudTest extends TestCase
         $this->get('/vi/admin/post-categories')->assertStatus(403);
     }
 
-    public function test_admin_cannot_access_posts_when_feature_disabled(): void
+    public function test_admin_is_directed_to_support_when_cms_feature_is_disabled(): void
     {
         // Disable cms_page feature
         FeatureSetting::query()->where('feature_code', 'cms_page')->update(['is_enabled' => false]);
 
         $this->actingAs($this->adminUser);
 
-        $this->get('/vi/admin/posts')->assertStatus(403);
-        $this->get('/vi/admin/post-categories')->assertStatus(403);
+        $this->get('/vi/admin/posts')
+            ->assertRedirect('/vi/admin')
+            ->assertSessionHas('error', \App\Support\FeatureGate::SUPPORT_MESSAGE);
+        $this->get('/vi/admin/post-categories')
+            ->assertRedirect('/vi/admin')
+            ->assertSessionHas('error', \App\Support\FeatureGate::SUPPORT_MESSAGE);
     }
 
     public function test_admin_can_view_post_and_category_listings(): void

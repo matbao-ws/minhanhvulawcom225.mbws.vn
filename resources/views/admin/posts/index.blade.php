@@ -4,22 +4,22 @@
 
 @section('content')
     <!-- Header Card -->
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3 d-flex flex-column gap-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-semibold mb-1">{{ __('admin.posts.title') }}</h4>
-                    <nav class="py-2" style="--bs-breadcrumb-divider: '&gt;'" aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">{{ __('admin.posts.title') }}</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div>
-                    <a href="{{ route('admin.posts.create') }}" class="btn btn-primary d-flex align-items-center gap-2">
-                        <i class="ti ti-plus fs-4"></i>{{ __('admin.posts.create') }}
-                    </a>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3">
+                    <div class="row align-items-center">
+                        <div class="col-12">
+                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.posts.title') }}</h4>
+                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.posts.title') }}</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -97,34 +97,34 @@
                             <tr class="text-nowrap">
                                 <td class="ps-4 text-wrap" style="min-width: 250px;">
                                     <div class="d-flex align-items-center gap-3">
-                                        <img src="{{ $post->image_url ?: asset('images/icons/default-blog.png') }}" 
-                                             onerror="this.src='{{ asset('images/icons/default-blog.png') }}'"
+                                        <img src="{{ $post->image_url ?: asset('admin-assets/js/icons/empty.png') }}" 
+                                             onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/empty.png') }}';"
                                              alt="{{ $title }}" 
-                                             class="rounded border border-2 border-primary-subtle" 
-                                             width="60" height="45" 
-                                             style="object-fit: cover; min-width: 60px;">
+                                             class="rounded-2 object-fit-cover" 
+                                             width="45" height="45" 
+                                             style="min-width: 45px;">
                                         <div>
-                                            <h6 class="fw-semibold mb-1 fs-3">
+                                            <h6 class="fw-semibold mb-1">
                                                 <a href="{{ route('admin.posts.edit', $post) }}" class="text-decoration-none text-dark hover-primary">{{ $title }}</a>
                                             </h6>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">{{ $catName }}</span>
+                                    <span class="badge bg-primary-subtle text-primary fw-semibold">{{ $catName }}</span>
                                 </td>
                                 <td>
-                                    <span class="fs-3 text-muted">
+                                    <span class="text-muted" style="font-size: 14.5px !important;">
                                         {{ $post->published_at ? $post->published_at->format('d-m-Y H:i') : __('admin.posts.fields.inactive') }}
                                     </span>
                                 </td>
                                 <td>
                                     @if($post->is_active)
-                                        <span class="badge bg-success-subtle text-success fw-semibold fs-2">
+                                        <span class="badge bg-success-subtle text-success fw-semibold">
                                             {{ __('admin.posts.fields.active') }}
                                         </span>
                                     @else
-                                        <span class="badge bg-warning-subtle text-warning fw-semibold fs-2">
+                                        <span class="badge bg-warning-subtle text-warning fw-semibold">
                                             {{ __('admin.posts.fields.inactive') }}
                                         </span>
                                     @endif

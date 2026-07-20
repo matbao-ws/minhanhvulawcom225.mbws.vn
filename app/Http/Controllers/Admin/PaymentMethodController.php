@@ -118,13 +118,6 @@ class PaymentMethodController extends Controller
      */
     public function toggleStatus(Request $request, string $locale, PaymentMethod $payment_method)
     {
-        if (in_array($payment_method->method_code, ['vnpay', 'sepay', 'stripe']) && !\App\Models\Addon::isPurchased($payment_method->method_code)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cổng thanh toán ' . strtoupper($payment_method->method_code) . ' chưa được mở khóa. Vui lòng mua Addon để sử dụng.'
-            ]);
-        }
-
         $newStatus = $payment_method->status === 'active' ? 'inactive' : 'active';
 
         if ($newStatus === 'active') {
@@ -175,11 +168,6 @@ class PaymentMethodController extends Controller
      */
     public function settings(string $locale, PaymentMethod $payment_method)
     {
-        if (in_array($payment_method->method_code, ['vnpay', 'sepay', 'stripe']) && !\App\Models\Addon::isPurchased($payment_method->method_code)) {
-            return redirect()
-                ->route('admin.payment-methods.index')
-                ->with('error', 'Cổng thanh toán ' . strtoupper($payment_method->method_code) . ' chưa được mở khóa. Vui lòng mua Addon để sử dụng.');
-        }
         return view('admin.payment_methods.settings', ['method' => $payment_method]);
     }
 
@@ -188,12 +176,6 @@ class PaymentMethodController extends Controller
      */
     public function updateSettings(Request $request, string $locale, PaymentMethod $payment_method)
     {
-        if (in_array($payment_method->method_code, ['vnpay', 'sepay', 'stripe']) && !\App\Models\Addon::isPurchased($payment_method->method_code)) {
-            return redirect()
-                ->route('admin.payment-methods.index')
-                ->with('error', 'Cổng thanh toán ' . strtoupper($payment_method->method_code) . ' chưa được mở khóa. Vui lòng mua Addon để sử dụng.');
-        }
-
         if ($payment_method->method_code === 'vnpay') {
             $validated = $request->validate([
                 'tmn_code' => 'required|string|max:255',

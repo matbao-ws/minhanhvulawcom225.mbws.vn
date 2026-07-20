@@ -511,7 +511,7 @@
         "security": [{ "bearerAuth": [] }],
         "tags": ["Checkout & Orders"],
         "summary": "Đặt hàng (Checkout)",
-        "description": "Đặt hàng cho cả khách vãng lai (Guest) và thành viên đã đăng nhập. Nếu gửi kèm token, đơn hàng tự động liên kết với user.",
+        "description": "Đặt hàng cho cả khách vãng lai (Guest) và thành viên đã đăng nhập. Nếu gửi kèm token, đơn hàng tự động liên kết với user. Với sản phẩm có biến thể, gửi một option_value_ids cho mỗi nhóm thuộc tính; hệ thống tự xác định SKU hợp lệ. Campaign/Flash Sale hợp lệ được tự động áp dụng trước, rồi voucher (nếu có) tính trên giá đã khuyến mãi.",
         "requestBody": {
           "required": true,
           "content": {
@@ -526,7 +526,6 @@
                   "shipping_address": { "type": "string", "example": "123 Đường Lê Lợi, Quận 1, TP. HCM" },
                   "payment_method": { "type": "string", "enum": ["cod", "bank_transfer"], "example": "cod" },
                   "voucher_code": { "type": "string", "example": "DISCOUNT100K", "nullable": true },
-                  "shipping_fee": { "type": "number", "example": 30000.00, "default": 0 },
                   "notes": { "type": "string", "example": "Giao hàng giờ hành chính", "nullable": true },
                   "items": {
                     "type": "array",
@@ -535,7 +534,7 @@
                       "required": ["product_id", "quantity"],
                       "properties": {
                         "product_id": { "type": "integer", "example": 1 },
-                        "variant_id": { "type": "integer", "example": 1, "nullable": true },
+                        "option_value_ids": { "type": "array", "description": "Bắt buộc với sản phẩm có biến thể; chọn đúng một value ID từ mỗi option group.", "items": { "type": "integer" }, "example": [11, 24] },
                         "quantity": { "type": "integer", "example": 2 }
                       }
                     }
@@ -560,7 +559,21 @@
                       "properties": {
                         "id": { "type": "integer", "example": 10 },
                         "order_number": { "type": "string", "example": "ORD-ABCDE12345" },
-                        "grand_total": { "type": "string", "example": "63930000.00" }
+                        "grand_total": { "type": "string", "example": "63930000.00" },
+                        "promotion_discount": { "type": "string", "example": "20000.00", "description": "Tổng giảm từ campaign/Flash Sale tự động" },
+                        "discount": { "type": "string", "example": "50000.00", "description": "Tổng giảm, gồm campaign/Flash Sale và voucher" },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "promotion_name": { "type": "string", "nullable": true, "example": "Flash Sale cuối tuần" },
+                              "original_price": { "type": "string", "example": "100000.00" },
+                              "promotion_discount": { "type": "string", "example": "20000.00" },
+                              "price": { "type": "string", "example": "80000.00" }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -836,7 +849,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "bearerFormat": "Sanctum"
       }
     }
   }

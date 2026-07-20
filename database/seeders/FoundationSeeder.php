@@ -3,12 +3,11 @@
 namespace Database\Seeders;
 
 use App\Models\FeatureSetting;
-use App\Models\Package;
 use App\Models\ProjectSetting;
-use App\Models\ProjectSubscription;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class FoundationSeeder extends Seeder
 {
@@ -16,7 +15,8 @@ class FoundationSeeder extends Seeder
     {
         $this->call([
             FeatureSeeder::class,
-            PackageSeeder::class,
+            PermissionSeeder::class,
+            AddonSeeder::class,
         ]);
 
         \App\Models\Category::query()->updateOrCreate(
@@ -35,28 +35,13 @@ class FoundationSeeder extends Seeder
             ]
         );
 
-        $package = Package::query()
-            ->where('code', config('packages.default', 'basic_2m'))
-            ->with('features')
-            ->firstOrFail();
-
-        ProjectSubscription::query()->updateOrCreate(
-            ['id' => 1],
-            [
-                'package_id' => $package->id,
-                'status' => 'active',
-                'started_at' => now()->toDateString(),
-                'expired_at' => null,
-            ]
-        );
-
-        foreach ($package->features as $feature) {
+        foreach (config('features.codes', []) as $featureCode) {
             FeatureSetting::query()->updateOrCreate(
-                ['feature_code' => $feature->code],
+                ['feature_code' => $featureCode],
                 [
-                    'is_enabled' => (bool) $feature->pivot->is_enabled,
-                    'limit_value' => $feature->pivot->limit_value,
-                    'config' => $feature->pivot->config,
+                    'is_enabled' => true,
+                    'limit_value' => null,
+                    'config' => null,
                     'updated_at' => now(),
                 ]
             );
@@ -64,7 +49,7 @@ class FoundationSeeder extends Seeder
 
         $superadminRole = Role::query()->updateOrCreate(
             ['name' => 'Superadmin'],
-            ['permissions' => ['*']]
+            ['permissions' => ['*'], 'is_system' => true]
         );
 
         $adminRole = Role::query()->updateOrCreate(
@@ -72,12 +57,17 @@ class FoundationSeeder extends Seeder
             ['permissions' => ['*']]
         );
 
+        $adminPassword = env('ADMIN_PASSWORD');
+        if (blank($adminPassword) && app()->environment('production')) {
+            throw new RuntimeException('ADMIN_PASSWORD must be set before running the production seed.');
+        }
+
         User::query()->updateOrCreate(
             ['email' => env('ADMIN_EMAIL', 'admin@example.com')],
             [
                 'role_id' => $superadminRole->id,
                 'name' => env('ADMIN_NAME', 'Admin'),
-                'password' => env('ADMIN_PASSWORD', 'password'),
+                'password' => $adminPassword ?: 'password',
                 'is_active' => true,
             ]
         );

@@ -1,3 +1,112 @@
+@push('styles')
+    <style>
+        /* Make editor text color dark and highly readable */
+        .ql-editor {
+            color: #111827 !important; /* Rich charcoal/dark black */
+            font-size: 15.5px !important;
+            line-height: 1.65 !important;
+        }
+        /* Make Quill placeholder dark grey instead of light grey */
+        .ql-editor.ql-blank::before {
+            color: #6b7280 !important;
+            font-style: normal !important;
+        }
+
+        /* Fullscreen editor wrapper styles */
+        #editor_wrapper.quill-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            background: #ffffff !important;
+            padding: 20px 30px !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        #editor_wrapper.quill-fullscreen .ql-toolbar {
+            border-top-left-radius: 8px !important;
+            border-top-right-radius: 8px !important;
+            background-color: #f8f9fa !important;
+        }
+        #editor_wrapper.quill-fullscreen .ql-container {
+            flex-grow: 1 !important;
+            height: calc(100vh - 120px) !important;
+            background-color: #ffffff !important;
+            border-bottom-left-radius: 8px !important;
+            border-bottom-right-radius: 8px !important;
+        }
+
+        /* Custom fonts in editor */
+        .ql-font-arial { font-family: Arial, sans-serif !important; }
+        .ql-font-georgia { font-family: Georgia, serif !important; }
+        .ql-font-impact { font-family: Impact, charcoal, sans-serif !important; }
+        .ql-font-tahoma { font-family: Tahoma, Geneva, sans-serif !important; }
+        .ql-font-times-new-roman { font-family: "Times New Roman", Times, serif !important; }
+        .ql-font-verdana { font-family: Verdana, Geneva, sans-serif !important; }
+        .ql-font-quicksand { font-family: "Quicksand", sans-serif !important; }
+        .ql-font-roboto { font-family: "Roboto", sans-serif !important; }
+
+        /* Custom fonts in toolbar picker label/items */
+        .ql-snow .ql-picker.ql-font .ql-picker-label::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item::before {
+            content: 'Sans Serif' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
+            content: 'Serif' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
+            content: 'Monospace' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
+            content: 'Arial' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
+            content: 'Georgia' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before {
+            content: 'Impact' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="tahoma"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]::before {
+            content: 'Tahoma' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
+            content: 'Times New Roman' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
+            content: 'Verdana' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="quicksand"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="quicksand"]::before {
+            content: 'Quicksand' !important;
+        }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="roboto"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto"]::before {
+            content: 'Roboto' !important;
+        }
+
+        /* Show the preview of the fonts in the dropdown options list */
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"] { font-family: Arial, sans-serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"] { font-family: Georgia, serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"] { font-family: Impact, charcoal, sans-serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"] { font-family: Tahoma, Geneva, sans-serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"] { font-family: "Times New Roman", Times, serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"] { font-family: Verdana, Geneva, sans-serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="quicksand"] { font-family: "Quicksand", sans-serif !important; }
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto"] { font-family: "Roboto", sans-serif !important; }
+    </style>
+@endpush
+
 @push('scripts')
     <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
@@ -47,6 +156,11 @@
                 });
             }
 
+            // Register custom fonts in Quill
+            const Font = Quill.import('formats/font');
+            Font.whitelist = ['sans-serif', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'];
+            Quill.register(Font, true);
+
             // Quill initialization
             let quill = null;
             const editorElement = document.getElementById('content_editor');
@@ -57,10 +171,16 @@
                     theme: 'snow',
                     modules: {
                         toolbar: [
-                            [{ 'header': [2, 3, false] }],
+                            [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],
                             ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['link', 'image', 'clean']
+                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'script': 'sub' }, { 'script': 'super' }],
+                            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                            [{ 'blockquote': true }, { 'code-block': true }],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                            [{ 'align': [] }],
+                            ['link', 'image', 'video'],
+                            ['clean']
                         ]
                     }
                 });
@@ -75,6 +195,36 @@
                     form.addEventListener('submit', function () {
                         contentInput.value = quill.root.innerHTML;
                     });
+                }
+
+                // Fullscreen toggle logic
+                const toggleBtn = document.getElementById('toggle_fullscreen');
+                const editorWrapper = document.getElementById('editor_wrapper');
+                const fullscreenIcon = document.getElementById('fullscreen_icon');
+                const fullscreenText = document.getElementById('fullscreen_text');
+
+                if (toggleBtn && editorWrapper) {
+                    toggleBtn.addEventListener('click', function() {
+                        const isFullscreen = editorWrapper.classList.toggle('quill-fullscreen');
+                        if (isFullscreen) {
+                            fullscreenIcon.className = 'ti ti-minimize fs-4';
+                            fullscreenText.textContent = 'Thu nhỏ';
+                            document.addEventListener('keydown', handleEsc);
+                        } else {
+                            fullscreenIcon.className = 'ti ti-maximize fs-4';
+                            fullscreenText.textContent = 'Phóng to';
+                            document.removeEventListener('keydown', handleEsc);
+                        }
+                    });
+
+                    function handleEsc(e) {
+                        if (e.key === 'Escape') {
+                            editorWrapper.classList.remove('quill-fullscreen');
+                            fullscreenIcon.className = 'ti ti-maximize fs-4';
+                            fullscreenText.textContent = 'Phóng to';
+                            document.removeEventListener('keydown', handleEsc);
+                        }
+                    }
                 }
             }
 

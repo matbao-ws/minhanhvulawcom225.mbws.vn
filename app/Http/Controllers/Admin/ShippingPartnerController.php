@@ -15,6 +15,7 @@ class ShippingPartnerController extends Controller
     public function index()
     {
         $partners = ShippingPartner::all();
+
         return view('admin.shipping_partners.index', compact('partners'));
     }
 
@@ -38,7 +39,7 @@ class ShippingPartnerController extends Controller
             'fee' => 'required|numeric|min:0',
         ]);
 
-        $partnerCode = 'DTGH' . strtoupper(Str::random(8));
+        $partnerCode = 'DTGH'.strtoupper(Str::random(8));
 
         ShippingPartner::create([
             'partner_code' => $partnerCode,
@@ -96,7 +97,7 @@ class ShippingPartnerController extends Controller
             'account_name' => $validated['account_name'],
             'settings' => [
                 'fee' => (float) $validated['fee'],
-            ]
+            ],
         ]);
 
         return redirect()
@@ -127,12 +128,6 @@ class ShippingPartnerController extends Controller
      */
     public function toggleStatus(Request $request, string $locale, ShippingPartner $shipping_partner)
     {
-        if ($shipping_partner->type !== 'custom' && !\App\Models\Addon::isPurchased('shipping_api')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tính năng kết nối API vận chuyển chưa được mở khóa. Vui lòng mua Addon để sử dụng.'
-            ]);
-        }
         $newStatus = $shipping_partner->status === 'active' ? 'inactive' : 'active';
 
         if ($newStatus === 'active') {
@@ -142,42 +137,42 @@ class ShippingPartnerController extends Controller
                 if (empty($settings['api_token']) || empty($settings['api_url'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.shipping_partners.config_required_ghtk')
+                        'message' => __('admin.shipping_partners.config_required_ghtk'),
                     ]);
                 }
             } elseif ($shipping_partner->partner_code === 'DTGH000013') { // GHN
                 if (empty($settings['api_token']) || empty($settings['api_url']) || empty($settings['shop_id'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.shipping_partners.config_required_ghn')
+                        'message' => __('admin.shipping_partners.config_required_ghn'),
                     ]);
                 }
             } elseif ($shipping_partner->partner_code === 'DTGH000014') { // J&T Express
                 if (empty($settings['customerid']) || empty($settings['key']) || empty($settings['eccompanyid'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.shipping_partners.config_required_jt')
+                        'message' => __('admin.shipping_partners.config_required_jt'),
                     ]);
                 }
             } elseif ($shipping_partner->partner_code === 'DTGH000015') { // SPX Express
                 if (empty($settings['api_token']) || empty($settings['api_url'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.shipping_partners.config_required_spx')
+                        'message' => __('admin.shipping_partners.config_required_spx'),
                     ]);
                 }
             } elseif ($shipping_partner->partner_code === 'DTGH000016') { // Viettel Post
                 if (empty($settings['api_token']) || empty($settings['api_url'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.shipping_partners.config_required_viettel')
+                        'message' => __('admin.shipping_partners.config_required_viettel'),
                     ]);
                 }
             } elseif ($shipping_partner->type === 'custom') {
-                if (!isset($settings['fee'])) {
+                if (! isset($settings['fee'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.shipping_partners.config_required_custom')
+                        'message' => __('admin.shipping_partners.config_required_custom'),
                     ]);
                 }
             }
@@ -188,7 +183,7 @@ class ShippingPartnerController extends Controller
         return response()->json([
             'success' => true,
             'status' => $newStatus,
-            'message' => __('admin.shipping_partners.toggle_success', ['name' => $shipping_partner->name])
+            'message' => __('admin.shipping_partners.toggle_success', ['name' => $shipping_partner->name]),
         ]);
     }
 
@@ -197,11 +192,6 @@ class ShippingPartnerController extends Controller
      */
     public function settings(string $locale, ShippingPartner $shipping_partner)
     {
-        if ($shipping_partner->type !== 'custom' && !\App\Models\Addon::isPurchased('shipping_api')) {
-            return redirect()
-                ->route('admin.shipping-partners.index')
-                ->with('error', 'Tính năng kết nối API vận chuyển chưa được mở khóa. Vui lòng mua Addon để sử dụng.');
-        }
         return view('admin.shipping_partners.settings', ['partner' => $shipping_partner]);
     }
 
@@ -210,27 +200,27 @@ class ShippingPartnerController extends Controller
      */
     public function updateSettings(Request $request, string $locale, ShippingPartner $shipping_partner)
     {
-        if ($shipping_partner->type !== 'custom' && !\App\Models\Addon::isPurchased('shipping_api')) {
-            return redirect()
-                ->route('admin.shipping-partners.index')
-                ->with('error', 'Tính năng kết nối API vận chuyển chưa được mở khóa. Vui lòng mua Addon để sử dụng.');
-        }
         if ($shipping_partner->partner_code === 'DTGH000012') { // GHTK
             $validated = $request->validate([
                 'api_token' => 'required|string|max:255',
                 'api_url' => 'required|url|max:255',
+                'realtime_tracking_enabled' => 'nullable|boolean',
                 'webhook_token' => 'nullable|string|max:255',
             ]);
 
-            $webhookToken = $validated['webhook_token'] ?: Str::random(32);
+            $realtimeTrackingEnabled = (bool) ($validated['realtime_tracking_enabled'] ?? false);
+            $webhookToken = $realtimeTrackingEnabled
+                ? ($validated['webhook_token'] ?: data_get($shipping_partner->settings, 'webhook_token') ?: Str::random(32))
+                : null;
 
             $shipping_partner->update([
                 'account_name' => $validated['api_token'] !== 'mock' ? 'GHTK Account' : 'Mock Mode',
                 'settings' => [
                     'api_token' => $validated['api_token'],
                     'api_url' => $validated['api_url'],
+                    'realtime_tracking_enabled' => $realtimeTrackingEnabled,
                     'webhook_token' => $webhookToken,
-                ]
+                ],
             ]);
         } elseif ($shipping_partner->partner_code === 'DTGH000013') { // GHN
             $validated = $request->validate([
@@ -247,7 +237,7 @@ class ShippingPartnerController extends Controller
                     'api_url' => $validated['api_url'],
                     'client_id' => $validated['client_id'] ?? '',
                     'shop_id' => $validated['shop_id'] ?? '',
-                ]
+                ],
             ]);
         } elseif ($shipping_partner->partner_code === 'DTGH000014') { // J&T
             $validated = $request->validate([
@@ -262,7 +252,7 @@ class ShippingPartnerController extends Controller
                     'customerid' => $validated['customerid'],
                     'key' => $validated['key'],
                     'eccompanyid' => $validated['eccompanyid'],
-                ]
+                ],
             ]);
         } elseif ($shipping_partner->partner_code === 'DTGH000015') { // SPX Express
             $validated = $request->validate([
@@ -277,7 +267,7 @@ class ShippingPartnerController extends Controller
                     'api_token' => $validated['api_token'],
                     'api_url' => $validated['api_url'],
                     'partner_id' => $validated['partner_id'] ?? '',
-                ]
+                ],
             ]);
         } elseif ($shipping_partner->partner_code === 'DTGH000016') { // Viettel Post
             $validated = $request->validate([
@@ -292,7 +282,7 @@ class ShippingPartnerController extends Controller
                     'api_token' => $validated['api_token'],
                     'api_url' => $validated['api_url'],
                     'username' => $validated['username'] ?? '',
-                ]
+                ],
             ]);
         } elseif ($shipping_partner->type === 'custom') { // Custom
             $validated = $request->validate([
@@ -302,7 +292,7 @@ class ShippingPartnerController extends Controller
             $shipping_partner->update([
                 'settings' => [
                     'fee' => (float) $validated['fee'],
-                ]
+                ],
             ]);
         }
 

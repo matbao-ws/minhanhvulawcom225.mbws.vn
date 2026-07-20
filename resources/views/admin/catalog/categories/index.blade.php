@@ -19,13 +19,18 @@
 @endpush
 
 @section('content')
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
-            <div>
-                <h4 class="fw-semibold mb-1">{{ __('catalog.categories.title') }}</h4>
-                <div class="text-muted">{{ __('catalog.categories.subtitle') }}</div>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
+                    <div>
+                <h4 class="fw-semibold mb-1 text-white">{{ __('catalog.categories.title') }}</h4>
+                <div class="text-white-50">{{ __('catalog.categories.subtitle') }}</div>
             </div>
             <a href="{{ route('admin.categories.create') }}" class="btn btn-primary">{{ __('catalog.categories.create') }}</a>
+                </div>
+            </div>
         </div>
     </div>
 

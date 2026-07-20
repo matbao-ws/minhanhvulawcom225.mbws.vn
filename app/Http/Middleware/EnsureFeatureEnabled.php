@@ -15,7 +15,21 @@ class EnsureFeatureEnabled
             return $next($request);
         }
 
-        app(FeatureGate::class)->require($feature);
+        $featureGate = app(FeatureGate::class);
+        if (! $featureGate->enabled($feature)) {
+            $message = $featureGate->unavailableMessage();
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 403);
+            }
+
+            return redirect()
+                ->route('admin.dashboard')
+                ->with('error', $message);
+        }
 
         return $next($request);
     }

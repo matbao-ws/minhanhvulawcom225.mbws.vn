@@ -1,0 +1,8 @@
+<div class="row g-2 value-row align-items-end">
+    @if($value)<input type="hidden" name="groups[{{ $groupIndex }}][values][{{ $valueIndex }}][id]" value="{{ $value->id }}">@endif
+    <div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="groups[{{ $groupIndex }}][values][{{ $valueIndex }}][label]" value="{{ old("groups.$groupIndex.values.$valueIndex.label", $value?->label) }}" required></div>
+    <div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="groups[{{ $groupIndex }}][values][{{ $valueIndex }}][color_hex]" value="{{ old("groups.$groupIndex.values.$valueIndex.color_hex", $value?->color_hex) }}" placeholder="#FFFFFF"></div>
+    <div class="col-md-4"><label class="form-label">Ảnh URL</label><input type="url" class="form-control" name="groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]" value="{{ old("groups.$groupIndex.values.$valueIndex.image_url", $value?->image_url) }}"></div>
+    <div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="1" @checked(old("groups.$groupIndex.values.$valueIndex.is_active", $value?->is_active ?? true))><label class="form-check-label">Bật</label></div></div>
+    <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-value">×</button></div>
+</div>

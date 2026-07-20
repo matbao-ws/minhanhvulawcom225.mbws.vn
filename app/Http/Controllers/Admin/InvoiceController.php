@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendInvoiceEmail;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 
@@ -38,8 +39,7 @@ class InvoiceController extends Controller
 
     public function sendEmail(string $locale, Invoice $invoice)
     {
-        \Illuminate\Support\Facades\Mail::to(auth()->user()->email)
-            ->send(new \App\Mail\InvoiceMail($invoice));
+        SendInvoiceEmail::dispatch($invoice->id, auth()->user()->email)->afterCommit();
 
         if (request()->expectsJson() || request()->ajax()) {
             return response()->json([

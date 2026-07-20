@@ -20,15 +20,20 @@
 
 @section('content')
     <!-- Header Card -->
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
-            <div>
-                <h4 class="fw-semibold mb-1">{{ __('admin.blog_categories.title') }}</h4>
-                <div class="text-muted">{{ __('admin.blog_categories.drag_subtitle') }}</div>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
+                    <div>
+                <h4 class="fw-semibold mb-1 text-white">{{ __('admin.blog_categories.title') }}</h4>
+                <div class="text-white-50">{{ __('admin.blog_categories.drag_subtitle') }}</div>
             </div>
             <a href="{{ route('admin.post-categories.create') }}" class="btn btn-primary d-flex align-items-center gap-2">
                 <i class="ti ti-plus fs-4"></i>{{ __('admin.blog_categories.create') }}
             </a>
+                </div>
+            </div>
         </div>
     </div>
 

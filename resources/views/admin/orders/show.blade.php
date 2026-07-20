@@ -95,7 +95,7 @@
             <form action="{{ route('admin.orders.update-status', $order) }}" method="POST" class="row g-3 align-items-end">
                 @csrf
                 @method('PATCH')
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.status') }}</label>
                     <select name="status" class="form-select">
                         <option value="pending" @selected($order->status === 'pending')>{{ __('admin.orders.statuses.pending') }}</option>
@@ -104,13 +104,19 @@
                         <option value="cancelled" @selected($order->status === 'cancelled')>{{ __('admin.orders.statuses.cancelled') }}</option>
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.payment_status') }}</label>
                     <select name="payment_status" class="form-select">
                         <option value="pending" @selected($order->payment_status === 'pending')>{{ __('admin.orders.payment_statuses.pending') }}</option>
                         <option value="paid" @selected($order->payment_status === 'paid')>{{ __('admin.orders.payment_statuses.paid') }}</option>
                         <option value="failed" @selected($order->payment_status === 'failed')>{{ __('admin.orders.payment_statuses.failed') }}</option>
+                        <option value="partially_refunded" @selected($order->payment_status === 'partially_refunded')>Hoàn tiền một phần</option>
+                        <option value="refunded" @selected($order->payment_status === 'refunded')>Đã hoàn tiền</option>
                     </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Ghi chú nội bộ</label>
+                    <input name="note" class="form-control" maxlength="1000">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">
@@ -118,6 +124,30 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4 status-card">
+        <div class="col-lg-7">
+            <div class="card h-100"><div class="card-body">
+                <h5 class="fw-semibold mb-3">Hoàn tiền</h5>
+                @forelse($order->refunds as $refund)
+                    <div class="border-bottom pb-2 mb-2 small"><strong>{{ number_format($refund->amount, 0, ',', '.') }} ₫</strong> — {{ $refund->type === 'full' ? 'Toàn phần' : 'Một phần' }} — {{ $refund->created_at?->format('d/m/Y H:i') }}<br><span class="text-muted">{{ $refund->reason }}</span></div>
+                @empty <p class="text-muted small">Chưa có khoản hoàn tiền.</p>@endforelse
+                @if($order->payment_status !== 'refunded')
+                <form action="{{ route('admin.orders.refund', $order) }}" method="POST" id="refund-form">
+                    @csrf
+                    <div class="row g-2 mb-2"><div class="col-md-4"><select class="form-select" name="type" id="refund-type"><option value="partial">Hoàn một phần</option><option value="full">Hoàn toàn phần</option></select></div><div class="col-md-8"><input class="form-control" name="reason" maxlength="1000" placeholder="Lý do hoàn tiền"></div></div>
+                    <div id="refund-items">@foreach($order->items as $item)<div class="row g-2 align-items-center mb-2"><div class="col-1"><input class="form-check-input refund-check" type="checkbox"></div><div class="col-6 small">{{ $item->product_name }}{{ $item->variant_name ? ' — '.$item->variant_name : '' }}</div><div class="col-3"><input type="hidden" disabled name="items[{{ $item->id }}][order_item_id]" value="{{ $item->id }}"><input type="number" disabled class="form-control form-control-sm refund-qty" min="1" max="{{ $item->quantity }}" name="items[{{ $item->id }}][quantity]" value="1"></div><div class="col-2 text-end small">{{ $item->quantity }} cái</div></div>@endforeach</div>
+                    <button class="btn btn-outline-danger btn-sm">Ghi nhận hoàn tiền</button>
+                </form>
+                @endif
+            </div></div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100"><div class="card-body"><h5 class="fw-semibold mb-3">Lịch sử đơn hàng</h5>
+                @forelse($order->historyEntries as $entry)<div class="border-start border-primary ps-3 pb-3 mb-2"><div class="small fw-semibold">{{ $entry->to_status }} / {{ $entry->to_payment_status }}</div><div class="small text-muted">{{ $entry->created_at?->format('d/m/Y H:i') }} · {{ $entry->changedBy?->name ?? 'Hệ thống' }}</div>@if($entry->note)<div class="small">{{ $entry->note }}</div>@endif</div>@empty<p class="text-muted small">Chưa có lịch sử thay đổi.</p>@endforelse
+            </div></div>
         </div>
     </div>
 
@@ -217,11 +247,19 @@
                                     @if($item->variant_name)
                                         <span class="badge bg-secondary-subtle text-secondary fw-semibold fs-1">{{ $item->variant_name }}</span>
                                     @endif
+                                    @if($item->promotion_name)
+                                        <span class="badge bg-danger-subtle text-danger fw-semibold fs-1">{{ $item->promotion_name }}</span>
+                                    @endif
                                 </td>
                                 <td>
                                     <span class="text-muted fs-3">{{ $item->sku ?: '-' }}</span>
                                 </td>
-                                <td class="text-end fw-semibold">{{ number_format($item->price, 0, ',', '.') }} ₫</td>
+                                <td class="text-end fw-semibold">
+                                    @if($item->original_price !== null && (float) $item->original_price > (float) $item->price)
+                                        <small class="d-block text-muted text-decoration-line-through">{{ number_format($item->original_price, 0, ',', '.') }} ₫</small>
+                                    @endif
+                                    {{ number_format($item->price, 0, ',', '.') }} ₫
+                                </td>
                                 <td class="text-center fw-semibold">{{ $item->quantity }}</td>
                                 <td class="text-end fw-bold text-primary pe-3">{{ number_format($item->total, 0, ',', '.') }} ₫</td>
                             </tr>
@@ -237,9 +275,21 @@
                         <span class="text-muted fs-3">{{ __('admin.orders.subtotal') }}:</span>
                         <span class="fw-semibold fs-3">{{ number_format($order->subtotal, 0, ',', '.') }} ₫</span>
                     </div>
+                    @if((float) $order->promotion_discount > 0)
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted fs-3">Khuyến mãi / Flash Sale:</span>
+                            <span class="fw-semibold text-danger fs-3">-{{ number_format($order->promotion_discount, 0, ',', '.') }} ₫</span>
+                        </div>
+                    @endif
+                    @if((float) $order->discount - (float) $order->promotion_discount > 0)
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted fs-3">Mã giảm giá / giảm thêm:</span>
+                            <span class="fw-semibold text-danger fs-3">-{{ number_format((float) $order->discount - (float) $order->promotion_discount, 0, ',', '.') }} ₫</span>
+                        </div>
+                    @endif
                     <div class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted fs-3">{{ __('admin.orders.discount') }}:</span>
-                        <span class="fw-semibold text-danger fs-3">-{{ number_format($order->discount, 0, ',', '.') }} ₫</span>
+                        <span class="text-muted fs-3">Phí giao hàng:</span>
+                        <span class="fw-semibold fs-3">{{ number_format($order->shipping_fee, 0, ',', '.') }} ₫</span>
                     </div>
                     <div class="d-flex justify-content-between py-3">
                         <span class="fw-bold text-dark fs-4">{{ __('admin.orders.grand_total') }}:</span>
@@ -266,6 +316,10 @@
                                 {{ __('admin.orders.payment_statuses.paid') }}
                             @elseif($order->payment_status === 'pending')
                                 {{ __('admin.orders.payment_statuses.pending') }}
+                            @elseif($order->payment_status === 'partially_refunded')
+                                Hoàn tiền một phần
+                            @elseif($order->payment_status === 'refunded')
+                                Đã hoàn tiền
                             @else
                                 {{ __('admin.orders.payment_statuses.failed') }}
                             @endif
@@ -398,6 +452,25 @@
                         });
                     });
                 });
+            }
+
+            const refundType = document.getElementById('refund-type');
+            const refundItems = document.getElementById('refund-items');
+            const syncRefundInputs = () => {
+                const isPartial = refundType && refundType.value === 'partial';
+                if (refundItems) {
+                    refundItems.classList.toggle('d-none', !isPartial);
+                    refundItems.querySelectorAll('.refund-check').forEach(check => {
+                        const row = check.closest('.row');
+                        const enabled = isPartial && check.checked;
+                        row.querySelectorAll('input[type="hidden"], .refund-qty').forEach(input => input.disabled = !enabled);
+                    });
+                }
+            };
+            if (refundType) {
+                refundType.addEventListener('change', syncRefundInputs);
+                refundItems.querySelectorAll('.refund-check').forEach(check => check.addEventListener('change', syncRefundInputs));
+                syncRefundInputs();
             }
         });
     </script>

@@ -3,22 +3,16 @@
 namespace App\Services\Catalog;
 
 use App\Models\Product;
+use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
-use App\Support\FeatureGate;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class ProductService
 {
     public function create(array $data): Product
     {
-        $limit = app(FeatureGate::class)->limit('max_products');
-
-        if ($limit !== null && Product::query()->count() >= $limit) {
-            throw new RuntimeException(__('catalog.products.limit_reached', ['limit' => $limit]));
-        }
-
         return DB::transaction(fn () => Product::query()->create($this->payload($data)));
     }
 
@@ -38,15 +32,80 @@ class ProductService
 
     public function createVariant(Product $product, array $data): ProductVariant
     {
-        return DB::transaction(fn () => $product->variants()->create($this->variantPayload($data)));
+        return DB::transaction(function () use ($product, $data) {
+            [$values, $signature] = $this->selectedOptionValues($product, $data['option_value_ids'] ?? []);
+            $this->ensureCombinationIsAvailable($product, $signature);
+
+            $variant = $product->variants()->create($this->variantPayload($data, null, $values, $signature));
+            $variant->optionValues()->sync($values->pluck('id')->all());
+            $this->syncDefaultVariant($product, $variant, (bool) ($data['is_default'] ?? false));
+
+            return $variant->refresh();
+        });
     }
 
     public function updateVariant(ProductVariant $variant, array $data): ProductVariant
     {
         return DB::transaction(function () use ($variant, $data) {
-            $variant->update($this->variantPayload($data, $variant));
+            $variant->loadMissing('product');
+            [$values, $signature] = $this->selectedOptionValues($variant->product, $data['option_value_ids'] ?? []);
+            $this->ensureCombinationIsAvailable($variant->product, $signature, $variant->id);
+
+            $variant->update($this->variantPayload($data, $variant, $values, $signature));
+            $variant->optionValues()->sync($values->pluck('id')->all());
+            $this->syncDefaultVariant($variant->product, $variant, (bool) ($data['is_default'] ?? false));
 
             return $variant->refresh();
+        });
+    }
+
+    /** Create every missing combination from the active option values. */
+    public function generateVariants(Product $product): int
+    {
+        return DB::transaction(function () use ($product) {
+            $product->load('optionGroups.values');
+            $groups = $product->optionGroups;
+
+            if ($groups->isEmpty()) {
+                throw new DomainException('Hãy khai báo ít nhất một nhóm thuộc tính trước khi tạo tổ hợp SKU.');
+            }
+
+            $valuesByGroup = $groups->map(function ($group) {
+                $values = $group->values->where('is_active', true)->values();
+                if ($values->isEmpty()) {
+                    throw new DomainException("Nhóm thuộc tính {$group->name} chưa có giá trị đang hoạt động.");
+                }
+
+                return $values;
+            });
+
+            $combinationCount = $valuesByGroup->reduce(fn (int $total, $values) => $total * $values->count(), 1);
+            if ($combinationCount > 300) {
+                throw new DomainException('Có quá nhiều tổ hợp (tối đa 300 SKU trong một lần tạo). Hãy thu hẹp các giá trị thuộc tính.');
+            }
+
+            $created = 0;
+            foreach ($this->cartesian($valuesByGroup->all()) as $values) {
+                $values = collect($values);
+                $signature = ProductVariant::signatureForOptionValueIds($values->pluck('id')->all());
+                if ($product->variants()->where('option_signature', $signature)->exists()) {
+                    continue;
+                }
+
+                $variant = $product->variants()->create([
+                    'name' => $this->variantName($values),
+                    'sku' => $this->generatedSku($product, $values),
+                    'option_signature' => $signature,
+                    'stock_quantity' => 0,
+                    'is_active' => true,
+                    'is_default' => ! $product->variants()->where('is_default', true)->exists(),
+                    'sort_order' => (int) $product->variants()->max('sort_order') + 1,
+                ]);
+                $variant->optionValues()->sync($values->pluck('id')->all());
+                $created++;
+            }
+
+            return $created;
         });
     }
 
@@ -65,10 +124,7 @@ class ProductService
             $defaultCategory = \App\Models\Category::query()->firstOrCreate(
                 ['slug' => 'chua-phan-loai'],
                 [
-                    'name' => [
-                        'vi' => 'Chưa phân loại',
-                        'en' => 'Uncategorized',
-                    ],
+                    'name' => ['vi' => 'Chưa phân loại', 'en' => 'Uncategorized'],
                     'description' => [
                         'vi' => 'Danh mục mặc định cho các sản phẩm chưa được phân loại.',
                         'en' => 'Default category for uncategorized products.',
@@ -88,6 +144,8 @@ class ProductService
             'sku' => $data['sku'] ?? null,
             'short_description' => $this->translationValue($data['short_description'] ?? null, $product, 'short_description'),
             'description' => $this->translationValue($data['description'] ?? null, $product, 'description'),
+            'meta_title' => $this->translationValue($data['meta_title'] ?? null, $product, 'meta_title'),
+            'meta_description' => $this->translationValue($data['meta_description'] ?? null, $product, 'meta_description'),
             'image_url' => $data['image_url'] ?? null,
             'price' => $data['price'] ?? 0,
             'compare_at_price' => $data['compare_at_price'] ?? null,
@@ -100,17 +158,110 @@ class ProductService
         ];
     }
 
-    private function variantPayload(array $data, ?ProductVariant $variant = null): array
+    private function variantPayload(array $data, ?ProductVariant $variant, $optionValues, string $signature): array
     {
+        $name = $data['name'] ?? $this->variantName($optionValues);
+
         return [
-            'name' => $this->translationValue($data['name'] ?? null, $variant, 'name'),
+            'name' => $this->translationValue($name, $variant, 'name'),
             'sku' => $data['sku'],
-            'option_values' => $this->optionValues($data),
+            'barcode' => $data['barcode'] ?? null,
+            'option_signature' => $signature,
             'price' => $data['price'] ?? null,
+            'compare_at_price' => $data['compare_at_price'] ?? null,
+            'cost_price' => $data['cost_price'] ?? null,
+            'image_url' => $data['image_url'] ?? null,
+            'weight_grams' => $data['weight_grams'] ?? null,
             'stock_quantity' => (int) ($data['stock_quantity'] ?? 0),
             'is_active' => (bool) ($data['is_active'] ?? false),
+            'is_default' => (bool) ($data['is_default'] ?? false),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
         ];
+    }
+
+    private function selectedOptionValues(Product $product, array $optionValueIds): array
+    {
+        $ids = collect($optionValueIds)->filter(fn ($id) => is_numeric($id))->map(fn ($id) => (int) $id)->unique()->sort()->values();
+        $groups = $product->optionGroups()->with('values')->get();
+
+        if ($groups->isEmpty()) {
+            throw new DomainException('Sản phẩm chưa có nhóm thuộc tính. Hãy cấu hình thuộc tính trước khi tạo SKU.');
+        }
+
+        if ($ids->count() !== $groups->count()) {
+            throw new DomainException('Mỗi nhóm thuộc tính phải chọn đúng một giá trị.');
+        }
+
+        $values = ProductOptionValue::query()->with('optionGroup')->whereIn('id', $ids)->get()->keyBy('id');
+        if ($values->count() !== $ids->count()) {
+            throw new DomainException('Có giá trị thuộc tính không tồn tại.');
+        }
+
+        foreach ($groups as $group) {
+            $selected = $values->filter(fn (ProductOptionValue $value) => $value->product_option_group_id === $group->id);
+            if ($selected->count() !== 1 || ! $selected->first()->is_active) {
+                throw new DomainException("Nhóm thuộc tính {$group->name} phải chọn một giá trị đang hoạt động.");
+            }
+        }
+
+        return [$values->sortBy('id')->values(), ProductVariant::signatureForOptionValueIds($ids->all())];
+    }
+
+    private function ensureCombinationIsAvailable(Product $product, string $signature, ?int $ignoreVariantId = null): void
+    {
+        $exists = $product->variants()->where('option_signature', $signature)
+            ->when($ignoreVariantId, fn ($query) => $query->whereKeyNot($ignoreVariantId))
+            ->exists();
+
+        if ($exists) {
+            throw new DomainException('Tổ hợp thuộc tính này đã có SKU.');
+        }
+    }
+
+    private function syncDefaultVariant(Product $product, ProductVariant $variant, bool $isDefault): void
+    {
+        if ($isDefault) {
+            $product->variants()->whereKeyNot($variant->id)->update(['is_default' => false]);
+        }
+    }
+
+    private function cartesian(array $sets, array $prefix = []): array
+    {
+        if ($sets === []) {
+            return [$prefix];
+        }
+
+        $first = array_shift($sets);
+        $combinations = [];
+        foreach ($first as $value) {
+            $combinations = [...$combinations, ...$this->cartesian($sets, [...$prefix, $value])];
+        }
+
+        return $combinations;
+    }
+
+    private function generatedSku(Product $product, $optionValues): string
+    {
+        $base = Str::upper(Str::ascii($product->sku ?: 'PRODUCT-'.$product->id));
+        $suffix = $optionValues->map(fn (ProductOptionValue $value) => Str::upper(Str::ascii($value->code)))->implode('-');
+        $candidate = substr(trim($base.'-'.$suffix, '-'), 0, 240) ?: 'SKU-'.Str::upper(Str::random(8));
+        $sku = $candidate;
+        $counter = 2;
+
+        while (ProductVariant::query()->where('sku', $sku)->exists()) {
+            $sku = substr($candidate, 0, 240).'-'.$counter++;
+        }
+
+        return $sku;
+    }
+
+    private function variantName($optionValues): string
+    {
+        return $optionValues
+            ->map(fn (ProductOptionValue $value) => $value->getTranslation('label', app()->getLocale(), false)
+                ?: $value->getTranslation('label', $this->fallbackLocale(), false)
+                ?: $value->label)
+            ->implode(' / ');
     }
 
     private function translationValue(string|array|null $value, Product|ProductVariant|null $model, string $attribute): array
@@ -127,11 +278,9 @@ class ProductService
             }
         } else {
             $value = is_string($value) ? trim($value) : '';
-
             if ($value !== '') {
                 $translations[$locale] = $value;
             }
-
             if ($locale !== $fallbackLocale && $value !== '' && empty($translations[$fallbackLocale])) {
                 $translations[$fallbackLocale] = $value;
             }
@@ -145,34 +294,12 @@ class ProductService
         return config('app.fallback_locale', config('app.locale', 'en'));
     }
 
-    private function optionValues(array $data): array
-    {
-        $names = $data['option_names'] ?? [];
-        $values = $data['option_values'] ?? [];
-        $options = [];
-
-        foreach ($names as $index => $name) {
-            $name = is_string($name) ? trim($name) : '';
-            $value = isset($values[$index]) && is_string($values[$index]) ? trim($values[$index]) : '';
-
-            if ($name !== '' && $value !== '') {
-                $options[$name] = $value;
-            }
-        }
-
-        return $options;
-    }
-
     private function uniqueProductSlug(string $value, ?int $ignoreId = null): string
     {
         $slug = Str::slug($value) ?: Str::random(8);
         $base = $slug;
         $counter = 2;
-
-        while (Product::query()
-            ->where('slug', $slug)
-            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-            ->exists()) {
+        while (Product::query()->where('slug', $slug)->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))->exists()) {
             $slug = $base.'-'.$counter++;
         }
 

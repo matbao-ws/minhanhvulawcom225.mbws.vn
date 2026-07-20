@@ -12,6 +12,14 @@
                               <iconify-icon icon="solar:hamburger-menu-line-duotone" class="fs-6"></iconify-icon>
                           </a>
                       </li>
+                      <li class="nav-item d-none d-xl-flex align-items-center">
+                          <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}" target="_blank" style="padding: 0 8px;">
+                              <span class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                  <iconify-icon icon="solar:home-2-linear" class="fs-6"></iconify-icon>
+                              </span>
+                              <span class="site-name">{{ \App\Models\ProjectSetting::where('setting_key', 'shop_name')->first()->setting_value ?? config('app.name', 'Laravel') }}</span>
+                          </a>
+                      </li>
                       <li class="nav-item d-none d-xl-flex nav-icon-hover-bg rounded-circle">
                           <a class="nav-link" href="javascript:void(0)" data-bs-toggle="modal"
                               data-bs-target="#exampleModal">
@@ -22,138 +30,71 @@
                           <div class="hover-dd">
                               <a class="nav-link" id="drop2" href="javascript:void(0)" aria-haspopup="true"
                                   aria-expanded="false">
-                                  <iconify-icon icon="solar:widget-3-line-duotone" class="fs-6"></iconify-icon>
+                                  <iconify-icon icon="solar:widget-3-linear" class="fs-6"></iconify-icon>
                               </a>
                               <div class="dropdown-menu dropdown-menu-nav dropdown-menu-animate-up py-0 overflow-hidden"
-                                  aria-labelledby="drop2">
-                                  <div class="position-relative">
-                                      <div class="row">
-                                          <div class="col-md-8">
-                                              <div class="p-4 pb-3">
-
-                                                  <div class="row">
-                                                      <div class="col-md-6">
-                                                          <div class="position-relative">
-                                                              <a href="app-chat.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-primary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:chat-line-bold-duotone"
-                                                                          class="fs-7 text-primary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Chat Application</h6>
-                                                                      <span class="fs-11 d-block text-body-color">New
-                                                                          messages arrived</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="{{ route('admin.invoices.index') }}"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-secondary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:bill-list-bold-duotone"
-                                                                          class="fs-7 text-secondary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Invoice App</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Get
-                                                                          latest invoice</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-contact2.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-warning-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon
-                                                                          icon="solar:phone-calling-rounded-bold-duotone"
-                                                                          class="fs-7 text-warning"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Contact Application</h6>
-                                                                      <span class="fs-11 d-block text-body-color">2
-                                                                          Unsaved Contacts</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-email.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-danger-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:letter-bold-duotone"
-                                                                          class="fs-7 text-danger"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Email App</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Get
-                                                                          new emails</span>
-                                                                  </div>
-                                                              </a>
-                                                          </div>
-                                                      </div>
-                                                      <div class="col-md-6">
-                                                          <div class="position-relative">
-                                                              <a href="page-user-profile.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-success-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:user-bold-duotone"
-                                                                          class="fs-7 text-success"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">User Profile</h6>
-                                                                      <span class="fs-11 d-block text-body-color">learn
-                                                                          more information</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-calendar.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-primary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon
-                                                                          icon="solar:calendar-minimalistic-bold-duotone"
-                                                                          class="fs-7 text-primary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Calendar App</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Get
-                                                                          dates</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-contact.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-secondary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon
-                                                                          icon="solar:smartphone-2-bold-duotone"
-                                                                          class="fs-7 text-secondary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Contact List Table</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Add
-                                                                          new contact</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-notes.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-warning-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:notes-bold-duotone"
-                                                                          class="fs-7 text-warning"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Notes Application</h6>
-                                                                      <span class="fs-11 d-block text-body-color">To-do
-                                                                          and Daily tasks</span>
-                                                                  </div>
-                                                              </a>
-                                                          </div>
-                                                      </div>
+                                  aria-labelledby="drop2" style="min-width: 650px !important;">
+                                  <div class="p-4">
+                                      <div class="row g-4 mb-4">
+                                          <!-- Hướng dẫn sử dụng -->
+                                          <div class="col-md-6">
+                                              <a href="https://support.matbao.ws" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f3ebff;">
+                                                      <iconify-icon icon="lucide:life-buoy" class="fs-7" style="color: #8a2be2;"></iconify-icon>
                                                   </div>
-                                              </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Hướng dẫn sử dụng</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Tài liệu hướng dẫn sử dụng</span>
+                                                  </div>
+                                              </a>
                                           </div>
-                                          <div class="col-4 d-none d-lg-flex">
-                                              <img src="{{ asset('admin-assets/images/backgrounds/mega-dd-bg.jpg') }}" alt="mega-dd"
-                                                  class="img-fluid mega-dd-bg">
+                                          
+                                          <!-- support@matbao.ws -->
+                                          <div class="col-md-6">
+                                              <a href="mailto:support@matbao.ws" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fff5e6;">
+                                                      <iconify-icon icon="solar:letter-bold-duotone" class="fs-7" style="color: #ff9900;"></iconify-icon>
+                                                  </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">support@matbao.ws</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Email hỗ trợ kỹ thuật</span>
+                                                  </div>
+                                              </a>
                                           </div>
+
+                                          <!-- Hotline -->
+                                          <div class="col-md-6">
+                                              <a href="tel:02877777999" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #e6f2ff;">
+                                                      <iconify-icon icon="solar:phone-calling-rounded-bold-duotone" class="fs-7" style="color: #0066cc;"></iconify-icon>
+                                                  </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">(028) 7777 7999</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Hotline hỗ trợ 24/7/365</span>
+                                                  </div>
+                                              </a>
+                                          </div>
+
+                                          <!-- UltraViewer -->
+                                          <div class="col-md-6">
+                                              <a href="https://ultraviewer.net/vi/download.html" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #eafaf1;">
+                                                      <iconify-icon icon="lucide:download" class="fs-7" style="color: #2ecc71;"></iconify-icon>
+                                                  </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Tải xuống UltraViewer</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Phần mềm hỗ trợ từ xa</span>
+                                                  </div>
+                                              </a>
+                                          </div>
+                                      </div>
+                                      
+                                      <!-- Footer Row -->
+                                      <div class="pt-3 border-top d-flex align-items-center justify-content-between">
+                                          <span class="text-dark fw-bold fs-3">Cần gặp nhân viên hỗ trợ kỹ thuật?</span>
+                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank" class="btn btn-teal text-white fw-bold px-4 py-2" style="background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
+                                              GỬI YÊU CẦU NGAY
+                                          </a>
                                       </div>
                                   </div>
                               </div>
@@ -178,16 +119,6 @@
                                       type="button" data-bs-toggle="offcanvas" data-bs-target="#mobilenavbar"
                                       aria-controls="offcanvasWithBothOptions">
                                       <iconify-icon icon="solar:sort-line-duotone" class="fs-6"></iconify-icon>
-                                  </a>
-                              </li>
-                              <li class="nav-item">
-                                  <a class="nav-link moon dark-layout nav-icon-hover-bg rounded-circle"
-                                      href="javascript:void(0)">
-                                      <iconify-icon icon="solar:moon-line-duotone" class="moon fs-6"></iconify-icon>
-                                  </a>
-                                  <a class="nav-link sun light-layout nav-icon-hover-bg rounded-circle"
-                                      href="javascript:void(0)" style="display: none">
-                                      <iconify-icon icon="solar:sun-2-line-duotone" class="sun fs-6"></iconify-icon>
                                   </a>
                               </li>
                               <li class="nav-item d-block d-xl-none">
@@ -285,10 +216,7 @@
                                                   {{ __('admin.profile.my_profile') }}
                                               </a>
                                               <a href="{{ route('admin.addons.index') }}" class="p-2 dropdown-item h6 rounded-1">
-                                                  {{ __('admin.profile.my_subscription') }}
-                                              </a>
-                                              <a href="{{ route('admin.addons.invoices') }}" class="p-2 dropdown-item h6 rounded-1">
-                                                  {{ __('admin.profile.my_invoice') }}
+                                                  Tích hợp & hỗ trợ
                                               </a>
                                               <a href="{{ route('admin.settings.index') }}"
                                                   class="p-2 dropdown-item h6 rounded-1">
@@ -323,8 +251,8 @@
                   aria-labelledby="offcanvasWithBothOptionsLabel">
                   <nav class="sidebar-nav scroll-sidebar">
                       <div class="offcanvas-header justify-content-between">
-                          <a href="index.html" class="text-nowrap logo-img">
-                              <img src="{{ asset('admin-assets/images/logos/logo-icon.svg') }}" alt="Logo">
+                          <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
+                               <img src="{{ asset('flaticon.png') }}" alt="Logo" width="35" height="35">
                           </a>
                           <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
                               aria-label="Close"></button>
@@ -335,120 +263,67 @@
                                   <a class="sidebar-link has-arrow ms-0" href="javascript:void(0)"
                                       aria-expanded="false">
                                       <span>
-                                          <iconify-icon icon="solar:slider-vertical-line-duotone"
+                                          <iconify-icon icon="solar:widget-3-line-duotone"
                                               class="fs-7"></iconify-icon>
                                       </span>
-                                      <span class="hide-menu">Apps</span>
+                                      <span class="hide-menu">Hỗ trợ kỹ thuật</span>
                                   </a>
                                   <ul aria-expanded="false" class="collapse first-level my-3 ps-3">
                                       <li class="sidebar-item py-2">
-                                          <a href="app-chat.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-primary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:chat-line-bold-duotone"
-                                                      class="fs-7 text-primary"></iconify-icon>
+                                          <a href="https://support.matbao.ws" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #f3ebff;">
+                                                  <iconify-icon icon="lucide:life-buoy" class="fs-7" style="color: #8a2be2;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Chat Application</h6>
-                                                  <span class="fs-11 d-block text-body-color">New messages
-                                                      arrived</span>
+                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">Hướng dẫn sử dụng</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold">Tài liệu hướng dẫn sử dụng</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="app-invoice.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-secondary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:bill-list-bold-duotone"
-                                                      class="fs-7 text-secondary"></iconify-icon>
+                                          <a href="mailto:support@matbao.ws" class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #fff5e6;">
+                                                  <iconify-icon icon="solar:letter-bold-duotone" class="fs-7" style="color: #ff9900;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Invoice App</h6>
-                                                  <span class="fs-11 d-block text-body-color">Get latest invoice</span>
+                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">support@matbao.ws</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold">Email hỗ trợ kỹ thuật</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="app-contact2.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-warning-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:phone-calling-rounded-bold-duotone"
-                                                      class="fs-7 text-warning"></iconify-icon>
+                                          <a href="tel:02877777999" class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #e6f2ff;">
+                                                  <iconify-icon icon="solar:phone-calling-rounded-bold-duotone" class="fs-7" style="color: #0066cc;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Contact Application</h6>
-                                                  <span class="fs-11 d-block text-body-color">2 Unsaved Contacts</span>
+                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">(028) 7777 7999</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold">Hotline hỗ trợ 24/7/365</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="app-email.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-danger-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:letter-bold-duotone"
-                                                      class="fs-7 text-danger"></iconify-icon>
+                                          <a href="https://ultraviewer.net/vi/download.html" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #eafaf1;">
+                                                  <iconify-icon icon="lucide:download" class="fs-7" style="color: #2ecc71;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Email App</h6>
-                                                  <span class="fs-11 d-block text-body-color">Get new emails</span>
+                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">Tải xuống UltraViewer</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold">Phần mềm hỗ trợ từ xa</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="page-user-profile.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-success-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:user-bold-duotone"
-                                                      class="fs-7 text-success"></iconify-icon>
+                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #e0f8f4;">
+                                                  <iconify-icon icon="solar:pen-new-square-bold-duotone" class="fs-7" style="color: #00b493;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 bg-hover-primary">User Profile</h6>
-                                                  <span class="fs-11 d-block text-body-color">learn more
-                                                      information</span>
+                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">Gửi yêu cầu hỗ trợ</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold">Cần gặp nhân viên hỗ trợ ngay</span>
                                               </div>
                                           </a>
                                       </li>
-                                      <li class="sidebar-item py-2">
-                                          <a href="app-calendar.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-primary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:calendar-minimalistic-bold-duotone"
-                                                      class="fs-7 text-primary"></iconify-icon>
-                                              </div>
-                                              <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Calendar App</h6>
-                                                  <span class="fs-11 d-block text-body-color">Get dates</span>
-                                              </div>
-                                          </a>
-                                      </li>
-                                      <li class="sidebar-item py-2">
-                                          <a href="app-contact.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-secondary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:smartphone-2-bold-duotone"
-                                                      class="fs-7 text-secondary"></iconify-icon>
-                                              </div>
-                                              <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Contact List Table</h6>
-                                                  <span class="fs-11 d-block text-body-color">Add new contact</span>
-                                              </div>
-                                          </a>
-                                      </li>
-                                      <li class="sidebar-item py-2">
-                                          <a href="app-notes.html" class="d-flex align-items-center">
-                                              <div
-                                                  class="bg-warning-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                  <iconify-icon icon="solar:notes-bold-duotone"
-                                                      class="fs-7 text-warning"></iconify-icon>
-                                              </div>
-                                              <div>
-                                                  <h6 class="mb-0 bg-hover-primary">Notes Application</h6>
-                                                  <span class="fs-11 d-block text-body-color">To-do and Daily
-                                                      tasks</span>
-                                              </div>
-                                          </a>
-                                      </li>
-
                                   </ul>
                               </li>
                           </ul>
@@ -467,8 +342,16 @@
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center">
-                          <a href="index.html" class="text-nowrap nav-link">
+                          <a href="{{ route('admin.dashboard') }}" class="text-nowrap nav-link">
                               <img src="{{ asset('admin-assets/images/logos/logo.svg') }}" alt="matdash-img">
+                          </a>
+                      </li>
+                      <li class="nav-item d-none d-xl-flex align-items-center">
+                          <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}" target="_blank" style="padding: 0 8px;">
+                              <span class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                  <iconify-icon icon="solar:home-2-linear" class="fs-6"></iconify-icon>
+                              </span>
+                              <span class="site-name">{{ \App\Models\ProjectSetting::where('setting_key', 'shop_name')->first()->setting_value ?? config('app.name', 'Laravel') }}</span>
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center nav-icon-hover-bg rounded-circle">
@@ -482,138 +365,71 @@
                           <div class="hover-dd">
                               <a class="nav-link" id="drop2" href="javascript:void(0)" aria-haspopup="true"
                                   aria-expanded="false">
-                                  <iconify-icon icon="solar:widget-3-line-duotone" class="fs-6"></iconify-icon>
+                                  <iconify-icon icon="solar:widget-3-linear" class="fs-6"></iconify-icon>
                               </a>
                               <div class="dropdown-menu dropdown-menu-nav dropdown-menu-animate-up py-0 overflow-hidden"
-                                  aria-labelledby="drop2">
-                                  <div class="position-relative">
-                                      <div class="row">
-                                          <div class="col-md-8">
-                                              <div class="p-4 pb-3">
-
-                                                  <div class="row">
-                                                      <div class="col-md-6">
-                                                          <div class="position-relative">
-                                                              <a href="app-chat.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-primary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:chat-line-bold-duotone"
-                                                                          class="fs-7 text-primary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Chat Application</h6>
-                                                                      <span class="fs-11 d-block text-body-color">New
-                                                                          messages arrived</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="{{ route('admin.invoices.index') }}"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-secondary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:bill-list-bold-duotone"
-                                                                          class="fs-7 text-secondary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Invoice App</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Get
-                                                                          latest invoice</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-contact2.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-warning-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon
-                                                                          icon="solar:phone-calling-rounded-bold-duotone"
-                                                                          class="fs-7 text-warning"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Contact Application</h6>
-                                                                      <span class="fs-11 d-block text-body-color">2
-                                                                          Unsaved Contacts</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-email.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-danger-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:letter-bold-duotone"
-                                                                          class="fs-7 text-danger"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Email App</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Get
-                                                                          new emails</span>
-                                                                  </div>
-                                                              </a>
-                                                          </div>
-                                                      </div>
-                                                      <div class="col-md-6">
-                                                          <div class="position-relative">
-                                                              <a href="page-user-profile.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-success-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:user-bold-duotone"
-                                                                          class="fs-7 text-success"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">User Profile</h6>
-                                                                      <span class="fs-11 d-block text-body-color">learn
-                                                                          more information</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-calendar.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-primary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon
-                                                                          icon="solar:calendar-minimalistic-bold-duotone"
-                                                                          class="fs-7 text-primary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Calendar App</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Get
-                                                                          dates</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-contact.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-secondary-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon
-                                                                          icon="solar:smartphone-2-bold-duotone"
-                                                                          class="fs-7 text-secondary"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Contact List Table</h6>
-                                                                      <span class="fs-11 d-block text-body-color">Add
-                                                                          new contact</span>
-                                                                  </div>
-                                                              </a>
-                                                              <a href="app-notes.html"
-                                                                  class="d-flex align-items-center pb-9 position-relative">
-                                                                  <div
-                                                                      class="bg-warning-subtle rounded round-48 me-3 d-flex align-items-center justify-content-center">
-                                                                      <iconify-icon icon="solar:notes-bold-duotone"
-                                                                          class="fs-7 text-warning"></iconify-icon>
-                                                                  </div>
-                                                                  <div>
-                                                                      <h6 class="mb-0">Notes Application</h6>
-                                                                      <span class="fs-11 d-block text-body-color">To-do
-                                                                          and Daily tasks</span>
-                                                                  </div>
-                                                              </a>
-                                                          </div>
-                                                      </div>
+                                  aria-labelledby="drop2" style="min-width: 650px !important;">
+                                  <div class="p-4">
+                                      <div class="row g-4 mb-4">
+                                          <!-- Hướng dẫn sử dụng -->
+                                          <div class="col-md-6">
+                                              <a href="https://support.matbao.ws" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f3ebff;">
+                                                      <iconify-icon icon="lucide:life-buoy" class="fs-7" style="color: #8a2be2;"></iconify-icon>
                                                   </div>
-                                              </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Hướng dẫn sử dụng</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Tài liệu hướng dẫn sử dụng</span>
+                                                  </div>
+                                              </a>
                                           </div>
-                                          <div class="col-4 d-none d-lg-flex">
-                                              <img src="{{ asset('admin-assets/images/backgrounds/mega-dd-bg.jpg') }}" alt="mega-dd"
-                                                  class="img-fluid mega-dd-bg">
+                                          
+                                          <!-- support@matbao.ws -->
+                                          <div class="col-md-6">
+                                              <a href="mailto:support@matbao.ws" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fff5e6;">
+                                                      <iconify-icon icon="solar:letter-bold-duotone" class="fs-7" style="color: #ff9900;"></iconify-icon>
+                                                  </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">support@matbao.ws</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Email hỗ trợ kỹ thuật</span>
+                                                  </div>
+                                              </a>
                                           </div>
+
+                                          <!-- Hotline -->
+                                          <div class="col-md-6">
+                                              <a href="tel:02877777999" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #e6f2ff;">
+                                                      <iconify-icon icon="solar:phone-calling-rounded-bold-duotone" class="fs-7" style="color: #0066cc;"></iconify-icon>
+                                                  </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">(028) 7777 7999</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Hotline hỗ trợ 24/7/365</span>
+                                                  </div>
+                                              </a>
+                                          </div>
+
+                                          <!-- UltraViewer -->
+                                          <div class="col-md-6">
+                                              <a href="https://ultraviewer.net/vi/download.html" target="_blank" class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #eafaf1;">
+                                                      <iconify-icon icon="lucide:download" class="fs-7" style="color: #2ecc71;"></iconify-icon>
+                                                  </div>
+                                                  <div>
+                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Tải xuống UltraViewer</h6>
+                                                      <span class="fs-2 text-muted fw-semibold">Phần mềm hỗ trợ từ xa</span>
+                                                  </div>
+                                              </a>
+                                          </div>
+                                      </div>
+                                      
+                                      <!-- Footer Row -->
+                                      <div class="pt-3 border-top d-flex align-items-center justify-content-between">
+                                          <span class="text-dark fw-bold fs-3">Cần gặp nhân viên hỗ trợ kỹ thuật?</span>
+                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank" class="btn btn-teal text-white fw-bold px-4 py-2" style="background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
+                                              GỬI YÊU CẦU NGAY
+                                          </a>
                                       </div>
                                   </div>
                               </div>
@@ -621,7 +437,7 @@
                       </li>
                   </ul>
                   <div class="d-block d-xl-none">
-                      <a href="index.html" class="text-nowrap nav-link">
+                      <a href="{{ route('admin.dashboard') }}" class="text-nowrap nav-link">
                           <img src="{{ asset('admin-assets/images/logos/logo.svg') }}" alt="matdash-img">
                       </a>
                   </div>
@@ -641,16 +457,6 @@
                                       type="button" data-bs-toggle="offcanvas" data-bs-target="#mobilenavbar"
                                       aria-controls="offcanvasWithBothOptions">
                                       <iconify-icon icon="solar:sort-line-duotone" class="fs-6"></iconify-icon>
-                                  </a>
-                              </li>
-                              <li class="nav-item">
-                                  <a class="nav-link nav-icon-hover-bg rounded-circle moon dark-layout"
-                                      href="javascript:void(0)">
-                                      <iconify-icon icon="solar:moon-line-duotone" class="moon fs-6"></iconify-icon>
-                                  </a>
-                                  <a class="nav-link nav-icon-hover-bg rounded-circle sun light-layout"
-                                      href="javascript:void(0)" style="display: none">
-                                      <iconify-icon icon="solar:sun-2-line-duotone" class="sun fs-6"></iconify-icon>
                                   </a>
                               </li>
                               <li class="nav-item d-block d-xl-none">
@@ -748,10 +554,7 @@
                                                   {{ __('admin.profile.my_profile') }}
                                               </a>
                                               <a href="{{ route('admin.addons.index') }}" class="p-2 dropdown-item h6 rounded-1">
-                                                  {{ __('admin.profile.my_subscription') }}
-                                              </a>
-                                              <a href="{{ route('admin.addons.invoices') }}" class="p-2 dropdown-item h6 rounded-1">
-                                                  {{ __('admin.profile.my_invoice') }}
+                                                  Tích hợp & hỗ trợ
                                               </a>
                                               <a href="{{ route('admin.settings.index') }}"
                                                   class="p-2 dropdown-item h6 rounded-1">

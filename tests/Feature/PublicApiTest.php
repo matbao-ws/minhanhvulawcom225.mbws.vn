@@ -6,6 +6,8 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductOptionGroup;
+use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\Voucher;
@@ -23,11 +25,16 @@ class PublicApiTest extends TestCase
     private Brand $brand;
     private Product $product;
     private ProductVariant $variant;
+    private ProductOptionValue $optionValue;
     private Voucher $voucher;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        \App\Models\PaymentMethod::query()
+            ->where('method_code', 'bank_transfer')
+            ->update(['status' => 'active']);
 
         // Create Category
         $this->category = Category::query()->create([
@@ -58,14 +65,28 @@ class PublicApiTest extends TestCase
             'is_active' => true,
         ]);
 
+        $group = ProductOptionGroup::query()->create([
+            'product_id' => $this->product->id,
+            'name' => ['vi' => 'Dung lượng'],
+            'code' => 'storage',
+        ]);
+        $this->optionValue = ProductOptionValue::query()->create([
+            'product_option_group_id' => $group->id,
+            'label' => ['vi' => '256GB', 'en' => '256GB'],
+            'code' => '256gb',
+            'is_active' => true,
+        ]);
+
         // Create Variant
         $this->variant = ProductVariant::query()->create([
             'product_id' => $this->product->id,
             'name' => '256GB Gold',
             'sku' => 'IPHONE15PRO-256G-GOLD',
+            'option_signature' => ProductVariant::signatureForOptionValueIds([$this->optionValue->id]),
             'price' => 32000000.00,
             'stock_quantity' => 5,
         ]);
+        $this->variant->optionValues()->sync([$this->optionValue->id]);
 
         // Create Voucher
         $this->voucher = Voucher::query()->create([
@@ -152,7 +173,7 @@ class PublicApiTest extends TestCase
             'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'variant_id' => $this->variant->id,
+                    'option_value_ids' => [$this->optionValue->id],
                     'quantity' => 2,
                 ]
             ],
@@ -165,18 +186,59 @@ class PublicApiTest extends TestCase
         $this->product->refresh();
         $this->variant->refresh();
 
-        // 10 - 2 = 8 stock remaining
-        $this->assertEquals(8, $this->product->stock_quantity);
+        // Variant inventory is authoritative; product stock is not decremented too.
+        $this->assertEquals(10, $this->product->stock_quantity);
+        $this->assertEquals(3, $this->variant->stock_quantity);
 
         // Assert order created
         $order = Order::query()->where('customer_email', 'guest@example.com')->first();
         $this->assertNotNull($order);
         $this->assertNull($order->user_id);
         $this->assertEquals(63900000.00, $order->grand_total); // (32M * 2) - 100k discount
+        $this->assertDatabaseHas('inventory_movements', [
+            'order_id' => $order->id,
+            'product_id' => $this->product->id,
+            'product_variant_id' => $this->variant->id,
+            'action' => 'sale',
+            'direction' => 'out',
+            'quantity' => 2,
+            'product_stock_after' => 10,
+            'variant_stock_after' => 3,
+        ]);
+        $this->assertDatabaseHas('payment_transactions', [
+            'order_id' => $order->id,
+            'payment_method' => 'cod',
+            'gateway' => 'cod',
+            'status' => 'pending',
+        ]);
 
         Mail::assertSent(OrderStatusMail::class, function ($mail) use ($order) {
             return $mail->hasTo('guest@example.com');
         });
+    }
+
+    public function test_checkout_rejects_when_variant_stock_is_insufficient(): void
+    {
+        $this->variant->update(['stock_quantity' => 1]);
+
+        $response = $this->postJson('/api/public/orders/checkout', [
+            'customer_name' => 'Guest Customer',
+            'customer_email' => 'guest@example.com',
+            'customer_phone' => '0988776655',
+            'shipping_address' => '789 District 3, HCMC',
+            'payment_method' => 'cod',
+            'items' => [[
+                'product_id' => $this->product->id,
+                'option_value_ids' => [$this->optionValue->id],
+                'quantity' => 2,
+            ]],
+        ]);
+
+        $response->assertStatus(422)->assertJsonFragment(['success' => false]);
+        $this->assertSame(10, $this->product->fresh()->stock_quantity);
+        $this->assertSame(1, $this->variant->fresh()->stock_quantity);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('inventory_movements', 0);
     }
 
     public function test_customer_checkout_links_user(): void
@@ -198,6 +260,7 @@ class PublicApiTest extends TestCase
             'items' => [
                 [
                     'product_id' => $this->product->id,
+                    'option_value_ids' => [$this->optionValue->id],
                     'quantity' => 1,
                 ]
             ]

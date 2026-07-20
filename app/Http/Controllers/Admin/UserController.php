@@ -181,4 +181,77 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.edit', $user);
     }
+
+    public function toggleStatus(string $locale, User $user)
+    {
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', __('admin.users.toggle_status_self_error'));
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        $message = $user->is_active 
+            ? __('admin.users.unlocked') 
+            : __('admin.users.locked');
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', $message);
+    }
+
+    public function impersonate(string $locale, User $user)
+    {
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'Bạn không thể đăng nhập nhanh vào tài khoản của chính mình.');
+        }
+
+        // Save original admin ID in session
+        session()->put('impersonated_by', auth()->id());
+
+        // Login as target user
+        auth()->login($user);
+
+        // Redirect to homepage if target has no admin privileges, else to dashboard
+        if ($user->role_id === null) {
+            return redirect('/')
+                ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò ' . $user->name);
+        }
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò ' . $user->name);
+    }
+
+    public function leaveImpersonate()
+    {
+        if (! session()->has('impersonated_by')) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $adminId = session()->get('impersonated_by');
+        $admin = User::findOrFail($adminId);
+
+        // Login back as admin
+        auth()->login($admin);
+
+        // Forget impersonated session
+        session()->forget('impersonated_by');
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'Đã quay lại tài khoản quản trị viên thành công.');
+    }
 }

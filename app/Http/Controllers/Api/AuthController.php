@@ -47,7 +47,7 @@ class AuthController extends Controller
             'last_login_at' => now(),
         ])->save();
 
-        $token = \App\Support\JwtService::generateToken($user);
+        $token = $user->createToken('admin-api')->plainTextToken;
 
         return ApiResponse::success([
             'token_type' => 'Bearer',
@@ -63,14 +63,15 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return ApiResponse::success([
-            'user' => $request->user(),
+            'user' => $request->user('sanctum'),
         ]);
     }
 
     public function logout(Request $request)
     {
-        if ($request->user() && method_exists($request->user(), 'currentAccessToken') && $request->user()->currentAccessToken()) {
-            $request->user()->currentAccessToken()->delete();
+        $user = $request->user('sanctum');
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
         }
 
         return ApiResponse::success(null, __('auth.logout.success'));

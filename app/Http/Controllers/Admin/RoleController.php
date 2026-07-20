@@ -3,27 +3,21 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
 use App\Models\Role;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
-    /**
-     * Get the list of all system permissions.
-     */
-    private function getAvailablePermissions(): array
+    private function permissionsByGroup()
     {
-        return [
-            'manage_products' => 'Quản lý sản phẩm (Catalog)',
-            'manage_orders' => 'Quản lý đơn hàng',
-            'manage_vouchers' => 'Quản lý mã giảm giá',
-            'manage_reviews' => 'Quản lý bình luận & đánh giá',
-            'manage_posts' => 'Quản lý bài viết (CMS)',
-            'manage_banners' => 'Quản lý Banner',
-            'manage_users' => 'Quản lý tài khoản',
-            'manage_roles' => 'Quản lý vai trò & phân quyền',
-            'manage_settings' => 'Cấu hình website',
-        ];
+        return Permission::query()->orderBy('group')->orderBy('name')->get()->groupBy('group');
+    }
+
+    private function permissionRule(): string
+    {
+        return 'string|in:'.Permission::query()->pluck('code')->implode(',');
     }
 
     /**
@@ -33,7 +27,7 @@ class RoleController extends Controller
     {
         $query = Role::query()->withCount('users');
         if (! auth()->user()->isSuperAdmin()) {
-            $query->where('name', '!=', 'Superadmin');
+            $query->where('is_system', false);
         }
         $roles = $query->orderBy('id')->paginate(15);
 
@@ -46,9 +40,9 @@ class RoleController extends Controller
     public function create()
     {
         $role = new Role();
-        $permissions = $this->getAvailablePermissions();
+        $permissionsByGroup = $this->permissionsByGroup();
 
-        return view('admin.roles.create', compact('role', 'permissions'));
+        return view('admin.roles.create', compact('role', 'permissionsByGroup'));
     }
 
     /**
@@ -59,12 +53,15 @@ class RoleController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:roles,name',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:' . implode(',', array_keys($this->getAvailablePermissions())),
+            'permissions.*' => $this->permissionRule(),
         ]);
 
-        Role::create([
+        $role = Role::create([
             'name' => $validated['name'],
             'permissions' => $validated['permissions'] ?? [],
+        ]);
+        ActivityLogger::log('created', $role, "Tạo vai trò {$role->name}", [
+            'new' => ['name' => $role->name, 'permissions' => $role->permissions],
         ]);
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -84,18 +81,15 @@ class RoleController extends Controller
      */
     public function edit(string $locale, Role $role)
     {
-        if ($role->name === 'Superadmin') {
-            if (! auth()->user()->isSuperAdmin()) {
-                abort(403, 'Unauthorized.');
-            }
+        if ($role->is_system) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể chỉnh sửa vai trò Superadmin tối cao.');
+                ->with('error', 'Không thể chỉnh sửa vai trò hệ thống.');
         }
 
-        $permissions = $this->getAvailablePermissions();
+        $permissionsByGroup = $this->permissionsByGroup();
 
-        return view('admin.roles.edit', compact('role', 'permissions'));
+        return view('admin.roles.edit', compact('role', 'permissionsByGroup'));
     }
 
     /**
@@ -103,24 +97,26 @@ class RoleController extends Controller
      */
     public function update(Request $request, string $locale, Role $role)
     {
-        if ($role->name === 'Superadmin') {
-            if (! auth()->user()->isSuperAdmin()) {
-                abort(403, 'Unauthorized.');
-            }
+        if ($role->is_system) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể chỉnh sửa vai trò Superadmin tối cao.');
+                ->with('error', 'Không thể chỉnh sửa vai trò hệ thống.');
         }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:' . implode(',', array_keys($this->getAvailablePermissions())),
+            'permissions.*' => $this->permissionRule(),
         ]);
 
+        $oldValues = $role->only(['name', 'permissions']);
         $role->update([
             'name' => $validated['name'],
             'permissions' => $validated['permissions'] ?? [],
+        ]);
+        ActivityLogger::log('updated', $role, "Cập nhật vai trò {$role->name}", [
+            'old' => $oldValues,
+            'new' => $role->only(['name', 'permissions']),
         ]);
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -140,13 +136,10 @@ class RoleController extends Controller
      */
     public function destroy(string $locale, Role $role)
     {
-        if ($role->name === 'Superadmin') {
-            if (! auth()->user()->isSuperAdmin()) {
-                abort(403, 'Unauthorized.');
-            }
+        if ($role->is_system) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể xoá vai trò Superadmin tối cao.');
+                ->with('error', 'Không thể xoá vai trò hệ thống.');
         }
 
         if ($role->users()->exists()) {
@@ -155,7 +148,9 @@ class RoleController extends Controller
                 ->with('error', 'Không thể xoá vai trò này vì đang có tài khoản sử dụng.');
         }
 
+        $changes = $role->only(['name', 'permissions']);
         $role->delete();
+        ActivityLogger::log('deleted', $role, "Xóa vai trò {$changes['name']}", ['old' => $changes]);
 
         return redirect()
             ->route('admin.roles.index')

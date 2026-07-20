@@ -66,7 +66,8 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->role && $this->role->name === 'Superadmin';
+        return $this->role
+            && $this->role->hasPermission('*')
+            && ($this->role->is_system || $this->role->name === 'Superadmin');
     }
 }
-

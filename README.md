@@ -1,59 +1,70 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Ecommerce Admin Core
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 admin core for catalog, orders, inventory, payments, shipping settings, CMS, and configurable integrations. The customer storefront is intentionally not included; another project can consume the public API or provide its own frontend.
 
-## About Laravel
+## What is included
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Data-driven roles and permissions, activity logs, and encrypted sensitive settings.
+- Product and variant inventory ledger with idempotent stock deduction and restoration.
+- Order state/history, partial refunds, payment transaction audit, VNPAY IPN handling, and shipping integration configuration.
+- Feature configuration controlled by support. No feature or addon purchase flow is enforced in the application.
+- Admin-only Blade interface at `/{locale}/admin` (default: `/vi/admin`).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Local installation
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Requirements: PHP 8.2+, Composer, and MySQL/MariaDB or SQLite. Configure the database values in `.env` before running the installer.
 
-## Learning Laravel
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan core:install
+php artisan serve
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+`core:install` asks for the initial superadmin name, email, and a password of at least 12 characters. For CI or non-interactive deployment, provide the values explicitly:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+php artisan core:install --no-interaction \
+  --admin-name="Operations Admin" \
+  --admin-email="admin@example.com" \
+  --admin-password="use-a-strong-secret"
+```
 
-## Laravel Sponsors
+The command only runs `migrate` and the idempotent `FoundationSeeder`; it never uses `migrate:fresh` and never inserts demo catalog/order data.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Demo data
 
-### Premium Partners
+Demo data is deliberately separate because some old demo seeders truncate their target tables. Use it only in a disposable local database:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+php artisan db:seed --class=Database\\Seeders\\DemoSeeder
+```
 
-## Contributing
+Do not run that command against a customer database.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Production deployment
 
-## Code of Conduct
+Set `APP_ENV=production`, `APP_DEBUG=false`, a unique `APP_KEY`, correct database credentials, and mail/integration secrets through the deployment environment. Then run:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan core:install --force --no-interaction \
+  --admin-name="Operations Admin" \
+  --admin-email="admin@example.com" \
+  --admin-password="use-a-strong-secret"
+php artisan core:check
+php artisan optimize
+```
 
-## Security Vulnerabilities
+`core:check` verifies the application key, database connection, required core schema, active administrators, and seeded foundation configuration. It performs no writes.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Order, invoice, and store notifications are queued. Run a supervised worker in production (for example, `php artisan queue:work --tries=3`) and keep `QUEUE_AFTER_COMMIT=true`. Schedule `php artisan schedule:run` every minute; it deactivates expired vouchers daily at 00:10. Point the web server document root to `public/`.
 
-## License
+## Verification
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan test
+php composer.phar validate --no-check-publish
+```
+
+The project keeps old package/subscription tables for backwards-compatible historic data, but they do not gate core features or addons.

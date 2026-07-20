@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PublicUserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -18,43 +19,29 @@ class PublicAuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
             return ApiResponse::error('Email không hợp lệ hoặc đã được sử dụng.', 422, $validator->errors()->toArray());
         }
 
-        // Generate a random password
-        $password = \Illuminate\Support\Str::random(10);
-        
-        // Extract name from email
-        $name = explode('@', $request->email)[0];
-        $name = ucwords(str_replace(['.', '_', '-'], ' ', $name));
-
         $user = User::query()->create([
             'role_id' => null, // Customer role
-            'name' => $name,
+            'name' => $request->input('name'),
             'email' => $request->email,
-            'password' => Hash::make($password),
+            'password' => Hash::make($request->input('password')),
             'is_active' => true,
         ]);
 
-        // Send email with password
-        try {
-            \Illuminate\Support\Facades\Mail::raw("Chào bạn,\n\nTài khoản của bạn đã được đăng ký thành công trên website ABCPRO.\n\nThông tin đăng nhập của bạn:\n- Email: {$request->email}\n- Mật khẩu: {$password}\n\nVui lòng đăng nhập và đổi lại mật khẩu của bạn để bảo mật thông tin.\n\nTrân trọng,\nABCPRO Team", function ($message) use ($request) {
-                $message->to($request->email)->subject('Đăng ký tài khoản thành công - ABCPRO');
-            });
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Customer registration email failed: ' . $e->getMessage());
-        }
-
-        $token = \App\Support\JwtService::generateToken($user);
+        $token = $user->createToken('customer-api')->plainTextToken;
 
         return ApiResponse::success([
-            'user' => $user,
+            'user' => new PublicUserResource($user),
             'token' => $token,
-        ], 'Đăng ký tài khoản thành công. Mật khẩu đã được gửi đến email của bạn.');
+        ], 'Đăng ký tài khoản thành công.');
     }
 
     /**
@@ -83,10 +70,10 @@ class PublicAuthController extends Controller
 
         $user->update(['last_login_at' => now()]);
 
-        $token = \App\Support\JwtService::generateToken($user);
+        $token = $user->createToken('customer-api')->plainTextToken;
 
         return ApiResponse::success([
-            'user' => $user,
+            'user' => new PublicUserResource($user),
             'token' => $token,
         ], 'Đăng nhập thành công.');
     }
@@ -96,7 +83,7 @@ class PublicAuthController extends Controller
      */
     public function me(Request $request)
     {
-        return ApiResponse::success($request->user());
+        return ApiResponse::success(new PublicUserResource($request->user('sanctum')));
     }
 
     /**
@@ -104,8 +91,9 @@ class PublicAuthController extends Controller
      */
     public function logout(Request $request)
     {
-        if ($request->user() && method_exists($request->user(), 'currentAccessToken') && $request->user()->currentAccessToken()) {
-            $request->user()->currentAccessToken()->delete();
+        $user = $request->user('sanctum');
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
         }
 
         return ApiResponse::success(null, 'Đăng xuất thành công.');

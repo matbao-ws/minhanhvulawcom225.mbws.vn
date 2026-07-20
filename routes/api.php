@@ -26,44 +26,13 @@ Route::prefix('public')->group(function () {
 
         $inquiry = $request->only(['name', 'phone', 'email', 'message']);
 
-        // Fetch dynamic SMTP config if available
-        $smtpUrl = env('SMTP_EXPORT_URL');
-        if ($smtpUrl) {
-            try {
-                $response = \Illuminate\Support\Facades\Http::timeout(5)->get($smtpUrl);
-                if ($response->successful()) {
-                    $resData = $response->json();
-                    if (isset($resData['ok']) && $resData['ok'] && isset($resData['smtp'])) {
-                        $smtp = $resData['smtp'];
-                        
-                        config([
-                            'mail.default' => 'smtp',
-                            'mail.mailers.smtp.transport' => 'smtp',
-                            'mail.mailers.smtp.host' => $smtp['smtp_host'],
-                            'mail.mailers.smtp.port' => (int) $smtp['smtp_port'],
-                            'mail.mailers.smtp.encryption' => $smtp['smtp_encryption'],
-                            'mail.mailers.smtp.username' => $smtp['smtp_username'],
-                            'mail.mailers.smtp.password' => $smtp['smtp_password'],
-                            'mail.from.address' => $smtp['smtp_username'],
-                            'mail.from.name' => env('MAIL_FROM_NAME', 'abcpro')
-                        ]);
-                        
-                        // Force Laravel to rebuild the mailer with the new configuration
-                        \Illuminate\Support\Facades\Mail::purge('smtp');
-                    }
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Dynamic SMTP configuration failed: ' . $e->getMessage());
-            }
-        }
-
         try {
             \Illuminate\Support\Facades\Mail::to(config('mail.seller'))->send(new \App\Mail\ContactInquiryMail($inquiry));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Contact form email failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra khi gửi email: ' . $e->getMessage()
+                'message' => 'Không thể gửi yêu cầu vào lúc này. Vui lòng thử lại sau.'
             ], 500);
         }
 
@@ -71,7 +40,7 @@ Route::prefix('public')->group(function () {
             'success' => true,
             'message' => 'Yêu cầu báo giá của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!'
         ]);
-    });
+    })->middleware('throttle:public-contact');
 
     // Catalog routes
     Route::get('/categories', [PublicController::class, 'categories']);
@@ -88,13 +57,12 @@ Route::prefix('public')->group(function () {
     Route::post('/vouchers/apply', [PublicController::class, 'applyVoucher']);
 
     // Checkout & Tracking
-    Route::post('/orders/checkout', [PublicController::class, 'checkout']);
-    Route::get('/orders/track', [PublicController::class, 'trackOrder']);
+    Route::post('/orders/checkout', [PublicController::class, 'checkout'])->middleware('throttle:public-checkout');
+    Route::get('/orders/track', [PublicController::class, 'trackOrder'])->middleware('throttle:public-tracking');
     Route::get('/payment/vnpay/ipn', [PublicController::class, 'vnpayIpn'])->name('api.payment.vnpay.ipn');
-    Route::post('/webhooks/sepay-addon', [\App\Http\Controllers\Api\AddonWebhookController::class, 'handleWebhook'])->name('api.webhooks.sepay-addon');
 
     // Customer Authentication
-    Route::prefix('auth')->group(function () {
+    Route::prefix('auth')->middleware('throttle:public-auth')->group(function () {
         Route::post('/register', [\App\Http\Controllers\Api\PublicAuthController::class, 'register']);
         Route::post('/login', [\App\Http\Controllers\Api\PublicAuthController::class, 'login']);
         Route::post('/forgot-password', [\App\Http\Controllers\Api\PublicAuthController::class, 'forgotPassword']);
@@ -121,7 +89,7 @@ Route::prefix('public')->group(function () {
 });
 
 Route::prefix('admin')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:admin-login');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
@@ -129,5 +97,4 @@ Route::prefix('admin')->group(function () {
     });
 });
 
-Route::post('/webhooks/ghtk', [\App\Http\Controllers\Api\WebhookController::class, 'handleGHTK']);
-
+Route::post('/webhooks/ghtk', [\App\Http\Controllers\Api\WebhookController::class, 'handleGHTK'])->middleware('throttle:webhook');

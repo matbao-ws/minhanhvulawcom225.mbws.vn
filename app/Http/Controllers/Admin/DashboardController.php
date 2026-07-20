@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminActivityLog;
 use App\Models\FeatureSetting;
 use App\Models\ProjectSubscription;
 use App\Models\Order;
@@ -14,26 +15,37 @@ class DashboardController extends Controller
     public function index()
     {
         // 1. Key Metrics
-        $totalOrders = Order::query()->count();
-        $totalRevenue = Order::query()->where('status', 'completed')->sum('grand_total');
-        $completedOrders = Order::query()->where('status', 'completed')->count();
-        $processingOrders = Order::query()->whereIn('status', ['pending', 'processing'])->count();
+        $monthlyRevenue = Order::query()
+            ->where('status', 'completed')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->sum('grand_total');
 
-        // 2. Advanced E-commerce Metrics
+        $pendingOrders = Order::query()->where('status', 'pending')->count();
+        $processingOrdersCount = Order::query()->where('status', 'processing')->count();
+        $completedOrdersCount = Order::query()->where('status', 'completed')->count();
+
+        // 2. Subtext/Secondary Metrics
         $todayRevenue = Order::query()
             ->where('status', 'completed')
             ->whereDate('created_at', Carbon::today())
             ->sum('grand_total');
 
-        $todayOrders = Order::query()
+        $todayPendingOrders = Order::query()
+            ->where('status', 'pending')
             ->whereDate('created_at', Carbon::today())
             ->count();
 
-        // AOV = Total Revenue / Completed Orders
-        $aov = $completedOrders > 0 ? ($totalRevenue / $completedOrders) : 0;
+        $todayProcessingOrders = Order::query()
+            ->where('status', 'processing')
+            ->whereDate('created_at', Carbon::today())
+            ->count();
 
-        // Completed Rate = (Completed Orders / Total Orders) * 100%
-        $completedRate = $totalOrders > 0 ? round(($completedOrders / $totalOrders) * 100, 1) : 0;
+        $totalOrders = Order::query()->count();
+        $totalRevenue = Order::query()
+            ->where('status', 'completed')
+            ->sum('grand_total');
+        $completedRate = $totalOrders > 0 ? round(($completedOrdersCount / $totalOrders) * 100, 1) : 0;
 
         // 3. Top Selling Products (Top 5)
         $topProducts = collect();
@@ -55,48 +67,62 @@ class DashboardController extends Controller
         }
 
         // 4. Top Customers (Top 5 VIPs)
-        $topCustomers = Order::query()
+        $registeredTopCustomers = Order::query()
             ->select(
-                'customer_name',
-                'customer_email',
-                'customer_phone',
+                'user_id',
+                DB::raw('MAX(customer_name) as customer_name'),
+                DB::raw('MAX(customer_email) as customer_email'),
+                DB::raw('MAX(customer_phone) as customer_phone'),
                 DB::raw('COUNT(*) as total_orders'),
                 DB::raw('SUM(grand_total) as total_spent')
             )
             ->where('status', 'completed')
-            ->groupBy('customer_name', 'customer_email', 'customer_phone')
-            ->orderByDesc('total_spent')
-            ->limit(5)
+            ->whereNotNull('user_id')
+            ->groupBy('user_id')
             ->get();
-
-        // 5. Revenue & Orders chart data (last 30 days)
-        $startDate = Carbon::now()->subDays(29)->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
-
-        $chartData = Order::query()
+        $guestTopCustomers = Order::query()
             ->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(CASE WHEN status = "completed" THEN grand_total ELSE 0 END) as revenue'),
-                DB::raw('COUNT(*) as order_count')
+                DB::raw('NULL as user_id'),
+                DB::raw('MAX(customer_name) as customer_name'),
+                'customer_email',
+                DB::raw('MAX(customer_phone) as customer_phone'),
+                DB::raw('COUNT(*) as total_orders'),
+                DB::raw('SUM(grand_total) as total_spent')
             )
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
+            ->where('status', 'completed')
+            ->whereNull('user_id')
+            ->groupBy('customer_email')
             ->get();
+        $topCustomers = $registeredTopCustomers
+            ->concat($guestTopCustomers)
+            ->sortByDesc(fn ($customer) => (float) $customer->total_spent)
+            ->take(5)
+            ->values();
 
-        // Fill in missing dates to make a continuous chart
+        // 5. Revenue & Orders chart data (Current week: Monday to Sunday)
         $dates = [];
         $revenueSeries = [];
         $ordersSeries = [];
 
-        $chartDataMap = $chartData->pluck('revenue', 'date')->toArray();
-        $chartCountMap = $chartData->pluck('order_count', 'date')->toArray();
+        $startOfWeek = Carbon::now()->startOfWeek();
 
-        for ($i = 29; $i >= 0; $i--) {
-            $dateStr = Carbon::now()->subDays($i)->format('Y-m-d');
-            $dates[] = Carbon::now()->subDays($i)->format('d/m');
-            $revenueSeries[] = (float) ($chartDataMap[$dateStr] ?? 0);
-            $ordersSeries[] = (int) ($chartCountMap[$dateStr] ?? 0);
+        for ($i = 0; $i < 7; $i++) {
+            $day = (clone $startOfWeek)->addDays($i);
+            $dayStr = $day->format('Y-m-d');
+
+            $dayStats = Order::query()
+                ->select(
+                    DB::raw('SUM(CASE WHEN status = "completed" THEN grand_total ELSE 0 END) as revenue'),
+                    DB::raw('COUNT(*) as order_count')
+                )
+                ->whereDate('created_at', $dayStr)
+                ->first();
+
+            $label = $day->format('d/m');
+
+            $dates[] = $label;
+            $revenueSeries[] = (float) ($dayStats->revenue ?? 0);
+            $ordersSeries[] = (int) ($dayStats->order_count ?? 0);
         }
 
         // 6. Status Breakdown for Pie Chart
@@ -115,17 +141,48 @@ class DashboardController extends Controller
         // 7. Recent Orders
         $recentOrders = Order::query()->orderBy('created_at', 'desc')->take(5)->get();
 
+        // 8. Annual Revenue Report (Current Year)
+        $currentYear = Carbon::now()->year;
+        $annualRevenueSeries = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $monthlyRev = Order::query()
+                ->where('status', 'completed')
+                ->whereYear('created_at', $currentYear)
+                ->whereMonth('created_at', $m)
+                ->sum('grand_total');
+            $annualRevenueSeries[] = (float) $monthlyRev;
+        }
+
+        // 9. Actual admin activity for the last 7 days. A storefront is not part of this core.
+        $activityStart = Carbon::now()->subDays(6)->startOfDay();
+        $activityCounts = AdminActivityLog::query()
+            ->where('created_at', '>=', $activityStart)
+            ->selectRaw('DATE(created_at) as activity_date, COUNT(*) as total')
+            ->groupBy('activity_date')
+            ->pluck('total', 'activity_date');
+        $activityDates = [];
+        $activityData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $day = Carbon::now()->subDays($i);
+            $activityDates[] = $day->format('d/m');
+            $activityData[] = (int) ($activityCounts[$day->toDateString()] ?? 0);
+        }
+
         return view('admin.dashboard.index', [
             'subscription' => ProjectSubscription::query()->with('package')->first(),
             'enabledFeatureCount' => FeatureSetting::query()->where('is_enabled', true)->count(),
             'metrics' => [
                 'total_orders' => $totalOrders,
                 'total_revenue' => $totalRevenue,
-                'completed_orders' => $completedOrders,
-                'processing_orders' => $processingOrders,
+                'completed_orders' => $completedOrdersCount,
+                'processing_orders' => $processingOrdersCount,
+                'monthly_revenue' => $monthlyRevenue,
+                'pending_orders' => $pendingOrders,
+                'processing_orders_count' => $processingOrdersCount,
+                'completed_orders_count' => $completedOrdersCount,
                 'today_revenue' => $todayRevenue,
-                'today_orders' => $todayOrders,
-                'aov' => $aov,
+                'today_pending_orders' => $todayPendingOrders,
+                'today_processing_orders' => $todayProcessingOrders,
                 'completed_rate' => $completedRate,
             ],
             'chart' => [
@@ -145,6 +202,15 @@ class DashboardController extends Controller
             'recentOrders' => $recentOrders,
             'topProducts' => $topProducts,
             'topCustomers' => $topCustomers,
+            'annualChart' => [
+                'year' => $currentYear,
+                'data' => $annualRevenueSeries,
+            ],
+            'activityChart' => [
+                'dates' => $activityDates,
+                'data' => $activityData,
+                'total' => array_sum($activityData),
+            ],
         ]);
     }
 

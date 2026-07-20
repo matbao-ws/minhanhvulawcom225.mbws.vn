@@ -8,6 +8,9 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\Catalog\ProductService;
+use App\Services\Catalog\ProductOptionService;
+use DomainException;
+use Illuminate\Support\Facades\DB;
 use App\Services\Catalog\ProductImportService;
 use RuntimeException;
 
@@ -15,6 +18,7 @@ class ProductController extends Controller
 {
     public function __construct(
         private readonly ProductService $products,
+        private readonly ProductOptionService $options,
         private readonly ProductImportService $importService
     ) {
     }
@@ -67,31 +71,45 @@ class ProductController extends Controller
     {
         try {
             $data = $request->validated();
+            $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
+            unset($data['has_variants'], $data['variant_groups']);
             if ($request->hasFile('image_file')) {
                 $cloudinaryService = app(\App\Services\CloudinaryService::class);
                 $data['image_url'] = $cloudinaryService->uploadFile($request->file('image_file'), 'products');
             }
-            $product = $this->products->create($data);
-        } catch (RuntimeException $exception) {
+            [$product, $variantCount] = DB::transaction(function () use ($data, $variantGroups) {
+                $product = $this->products->create($data);
+                $variantCount = 0;
+
+                if ($variantGroups !== []) {
+                    $this->options->sync($product, $variantGroups);
+                    $variantCount = $this->products->generateVariants($product);
+                }
+
+                return [$product, $variantCount];
+            });
+        } catch (RuntimeException|DomainException $exception) {
             return back()->withInput()->with('error', $exception->getMessage());
         }
 
         return redirect()
             ->route('admin.products.show', $product)
-            ->with('success', __('catalog.products.created'));
+            ->with('success', $variantCount > 0
+                ? __('catalog.products.created')." Đã tạo {$variantCount} SKU tổ hợp."
+                : __('catalog.products.created'));
     }
 
     public function show(string $locale, Product $product)
     {
         return view('admin.catalog.products.show', [
-            'product' => $product->load(['category', 'variants']),
+            'product' => $product->load(['category', 'optionGroups.values', 'variants.optionValues']),
         ]);
     }
 
     public function edit(string $locale, Product $product)
     {
         return view('admin.catalog.products.edit', [
-            'product' => $product,
+            'product' => $product->load(['optionGroups.values', 'variants.optionValues']),
             'categoryOptions' => $this->categoryOptions(),
             'brandOptions' => $this->brandOptions(),
         ]);
@@ -100,15 +118,34 @@ class ProductController extends Controller
     public function update(ProductRequest $request, string $locale, Product $product)
     {
         $data = $request->validated();
+        $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
+        unset($data['has_variants'], $data['variant_groups']);
         if ($request->hasFile('image_file')) {
             $cloudinaryService = app(\App\Services\CloudinaryService::class);
             $data['image_url'] = $cloudinaryService->uploadFile($request->file('image_file'), 'products');
         }
-        $product = $this->products->update($product, $data);
+
+        try {
+            [$product, $variantCount] = DB::transaction(function () use ($product, $data, $variantGroups) {
+                $product = $this->products->update($product, $data);
+                $variantCount = 0;
+
+                if ($variantGroups !== []) {
+                    $this->options->sync($product, $variantGroups);
+                    $variantCount = $this->products->generateVariants($product);
+                }
+
+                return [$product, $variantCount];
+            });
+        } catch (RuntimeException|DomainException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
 
         return redirect()
             ->route('admin.products.show', $product)
-            ->with('success', __('catalog.products.updated'));
+            ->with('success', $variantCount > 0
+                ? __('catalog.products.updated')." Đã tạo {$variantCount} SKU tổ hợp mới."
+                : __('catalog.products.updated'));
     }
 
     public function destroy(string $locale, Product $product)

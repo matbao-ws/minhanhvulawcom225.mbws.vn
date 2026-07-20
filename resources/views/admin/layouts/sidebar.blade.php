@@ -1,62 +1,99 @@
+  <style>
+      /* Override double sidebar styles to create a clean single sidebar layout */
+      .side-mini-panel {
+          width: 240px !important;
+      }
+      .side-mini-panel .nav-logo {
+          left: 0 !important;
+          width: 240px !important;
+          border-right: 1px solid rgba(0, 0, 0, 0.05);
+          padding: 0 20px !important;
+      }
+      .side-mini-panel .sidebarmenu .sidebar-nav {
+          left: 0 !important;
+          display: block !important;
+          width: 240px !important;
+          border-right: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      
+      /* Page wrapper margins */
+      @media (min-width: 1300px) {
+          html[data-layout="vertical"] .topbar {
+              width: calc(100% - 240px) !important;
+          }
+          html[data-layout="vertical"] .page-wrapper {
+              margin-left: 240px !important;
+          }
+      }
+      
+      /* Mobile drawer sidebar position */
+      @media (max-width: 1299px) {
+          .side-mini-panel {
+              left: -240px !important;
+              width: 240px !important;
+          }
+          .show-sidebar .side-mini-panel {
+              left: 0 !important;
+          }
+      }
+      /* Sidebar link font weight, size & alignment */
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link {
+          font-weight: 600 !important;
+          font-size: 15px !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link .hide-menu {
+          font-weight: 600 !important;
+          font-size: 15px !important;
+      }
+      .side-mini-panel .sidebar-nav ul .nav-small-cap .hide-menu {
+          font-weight: 600 !important;
+          font-size: 13px !important;
+          opacity: 0.8;
+      }
+      /* Sidebar icon color, opacity & size */
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link iconify-icon {
+          opacity: 0.95 !important;
+          color: #2a3547 !important;
+          font-size: 19px !important;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link.active iconify-icon,
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link:hover iconify-icon,
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link[aria-expanded="true"] iconify-icon {
+          color: inherit !important;
+          opacity: 1 !important;
+      }
+      /* Sidebar dot styling & anti-distortion */
+      .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .icon-small {
+          background-color: #2a3547 !important;
+          opacity: 0.95 !important;
+          width: 7px !important;
+          height: 7px !important;
+          border-radius: 50% !important;
+          flex-shrink: 0 !important;
+          display: inline-block !important;
+          aspect-ratio: 1 / 1 !important;
+          margin: 0 !important;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .sidebar-link:hover .icon-small,
+      .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .sidebar-link.active .icon-small {
+          background-color: var(--bs-primary) !important;
+          opacity: 1 !important;
+      }
+  </style>
+
   <aside class="side-mini-panel with-vertical">
       <!-- ---------------------------------- -->
       <!-- Start Vertical Layout Sidebar -->
       <!-- ---------------------------------- -->
-      <div class="iconbar">
+      <div>
           <div>
-              <div class="mini-nav">
-                  <div class="brand-logo d-flex align-items-center justify-content-center">
-                      <a class="nav-link sidebartoggler" id="headerCollapse" href="javascript:void(0)">
-                          <iconify-icon icon="solar:hamburger-menu-line-duotone" class="fs-7"></iconify-icon>
-                      </a>
-                  </div>
-                  <ul class="mini-nav-ul" data-simplebar="">
-                      <!-- Icon 1: E-Commerce -->
-                      <li class="mini-nav-item" id="mini-1">
-                          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                              data-bs-placement="right" data-bs-title="{{ __('admin.sidebar.ecommerce') }}">
-                              <iconify-icon icon="solar:cart-large-4-line-duotone" class="fs-7"></iconify-icon>
-                          </a>
-                      </li>
-
-                      <!-- Icon 2: Landingpage -->
-                      <li class="mini-nav-item" id="mini-2">
-                          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                              data-bs-placement="right" data-bs-title="{{ __('admin.sidebar.landingpage') }}">
-                              <iconify-icon icon="solar:notes-line-duotone" class="fs-7"></iconify-icon>
-                          </a>
-                      </li>
-
-                      <!-- Icon 3: Website khác -->
-                      <li class="mini-nav-item" id="mini-3">
-                          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                              data-bs-placement="right" data-bs-title="{{ __('admin.sidebar.other_web') }}">
-                              <iconify-icon icon="solar:layers-line-duotone" class="fs-7"></iconify-icon>
-                          </a>
-                      </li>
-
-                      <!-- Icon 4: Addon -->
-                      <li class="mini-nav-item" id="mini-4">
-                          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                              data-bs-placement="right" data-bs-title="{{ __('admin.sidebar.addon') }}">
-                              <iconify-icon icon="solar:archive-line-duotone" class="fs-7"></iconify-icon>
-                          </a>
-                      </li>
-
-                      <!-- Icon 5: Settings -->
-                      <li class="mini-nav-item" id="mini-5">
-                          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip"
-                              data-bs-placement="right" data-bs-title="{{ __('admin.sidebar.settings') }}">
-                              <iconify-icon icon="solar:settings-line-duotone" class="fs-7"></iconify-icon>
-                          </a>
-                      </li>
-                  </ul>
-              </div>
               <div class="sidebarmenu">
                   <div class="brand-logo d-flex align-items-center nav-logo">
-                      <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
-                          <img src="{{ asset('admin-assets/images/logos/favicon.png') }}" width="35" height="35" alt="Logo">
-                          <span class="fs-4 fw-bold text-dark ms-2">E-Com Core</span>
+                      <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img d-flex align-items-center">
+                          <img src="{{ asset('matbao-ws-logo.png') }}" width="150" alt="Logo" class="img-fluid">
                       </a>
                   </div>
 
@@ -66,7 +103,7 @@
                   <nav class="sidebar-nav" id="menu-right-mini-1" data-simplebar="">
                       <ul class="sidebar-menu" id="sidebarnav">
                           <li class="nav-small-cap">
-                              <span class="hide-menu">E-Commerce</span>
+                              <!-- <span class="hide-menu">E-Commerce</span> -->
                           </li>
                           
                           <!-- Trang quản trị -->
@@ -88,6 +125,15 @@
                               </li>
                               @endcan
                           @endif
+
+                          @can('view_customers')
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.customers.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:users-group-two-rounded-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.menu.customers') }}</span>
+                              </a>
+                          </li>
+                          @endcan
 
                           <!-- Sản phẩm (Products, Categories, Brands) -->
                           @if(app(\App\Support\FeatureGate::class)->enabled('catalog'))
@@ -134,10 +180,14 @@
                           @if(app(\App\Support\FeatureGate::class)->enabled('voucher'))
                               @can('manage_vouchers')
                               <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.vouchers.index') }}" aria-expanded="false">
+                                  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                       <iconify-icon icon="solar:ticket-sale-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.vouchers') }}</span>
+                                      <span class="hide-menu">Khuyến mãi</span>
                                   </a>
+                                  <ul aria-expanded="false" class="collapse first-level">
+                                      <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.vouchers.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.vouchers') }}</a></li>
+                                      <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.promotions.index') }}"><span class="icon-small"></span>Chương trình & Flash Sale</a></li>
+                                  </ul>
                               </li>
                               @endcan
                           @endif
@@ -214,6 +264,41 @@
                                   <span class="hide-menu">{{ __('admin.sidebar.settings') }}</span>
                               </a>
                           </li>
+
+                          <!-- Cấu hình vận chuyển -->
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.shipping-partners.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:delivery-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.shipping_settings') }}</span>
+                              </a>
+                          </li>
+
+                          <!-- Cấu hình thông báo -->
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.notification-settings.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:bell-bing-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.notification_settings') }}</span>
+                              </a>
+                          </li>
+                          @endcan
+
+                          <!-- Cấu hình tính năng -->
+                          @if(auth()->check() && auth()->user()->isSuperAdmin())
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.features.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:widget-add-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.feature_settings') }}</span>
+                              </a>
+                          </li>
+                          @endif
+
+                          @can('view_audit_log')
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.activity-logs.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:history-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">Nhật ký hoạt động</span>
+                              </a>
+                          </li>
                           @endcan
 
                           {{-- <!-- Hóa đơn của tôi -->
@@ -233,162 +318,6 @@
                                   <span class="hide-menu">{{ __('admin.menu.media_library') }}</span>
                               </a>
                           </li>
-                      </ul>
-                  </nav>
-
-                  <!-- ---------------------------------- -->
-                  <!-- Icon 2: Landing Page Panel -->
-                  <!-- ---------------------------------- -->
-                  <nav class="sidebar-nav" id="menu-right-mini-2" style="display: none;" data-simplebar="">
-                      <ul class="sidebar-menu" id="sidebarnav">
-                          <li class="nav-small-cap">
-                              <span class="hide-menu">Landing Page</span>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:notes-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.landing_templates') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.gallery') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:question-circle-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.faq') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:dollar-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.pricing') }}</span>
-                              </a>
-                          </li>
-                      </ul>
-                  </nav>
-
-                  <!-- ---------------------------------- -->
-                  <!-- Icon 3: Website khác Panel -->
-                  <!-- ---------------------------------- -->
-                  <nav class="sidebar-nav" id="menu-right-mini-3" style="display: none;" data-simplebar="">
-                      <ul class="sidebar-menu" id="sidebarnav">
-                          <li class="nav-small-cap">
-                              <span class="hide-menu">{{ __('admin.sidebar.other_web') }}</span>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:cardholder-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.widgets') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:chart-square-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.charts') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a href="#" class="sidebar-link">
-                                  <iconify-icon icon="solar:widget-6-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.ui_components') }}</span>
-                              </a>
-                          </li>
-                      </ul>
-                  </nav>
-
-                  <!-- ---------------------------------- -->
-                  <!-- Icon 4: Addon Panel -->
-                  <!-- ---------------------------------- -->
-                  <nav class="sidebar-nav" id="menu-right-mini-4" style="display: none;" data-simplebar="">
-                      <ul class="sidebar-menu" id="sidebarnav">
-                          <li class="nav-small-cap">
-                              <span class="hide-menu">Cửa hàng tính năng</span>
-                          </li>
-                          @can('manage_settings')
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.addons.index') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:archive-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">Cửa hàng Addons</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.addons.invoices') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:receipt-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">Hóa đơn mua Addons</span>
-                              </a>
-                          </li>
-                          @if(auth()->check() && auth()->user()->isSuperAdmin())
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.addons.manage') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:settings-bold-duotone"></iconify-icon>
-                                  <span class="hide-menu">Quản lý Addons</span>
-                              </a>
-                          </li>
-                          @endif
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ url('/api/docs') }}" target="_blank" aria-expanded="false">
-                                  <iconify-icon icon="solar:document-text-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.api_docs') }}</span>
-                              </a>
-                          </li>
-                          @endcan
-                      </ul>
-                  </nav>
-
-                  <!-- ---------------------------------- -->
-                  <!-- Icon 5: Cấu hình Hệ thống & Kênh bán hàng Panel -->
-                  <!-- ---------------------------------- -->
-                  <nav class="sidebar-nav" id="menu-right-mini-5" style="display: none;" data-simplebar="">
-                      <ul class="sidebar-menu" id="sidebarnav">
-                          <li class="nav-small-cap">
-                              <span class="hide-menu">{{ __('admin.sidebar.settings') }}</span>
-                          </li>
-                          @can('manage_settings')
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.settings.index') }}#general-pane" aria-expanded="false">
-                                  <iconify-icon icon="solar:settings-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.general_settings') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.shipping-partners.index') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:delivery-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.shipping_settings') }}</span>
-                              </a>
-                          </li>
-                          <li class="sidebar-item">
-                               <a class="sidebar-link" href="{{ route('admin.payment-methods.index') }}" aria-expanded="false">
-                                   <iconify-icon icon="solar:card-recive-line-duotone"></iconify-icon>
-                                   <span class="hide-menu">{{ __('admin.sidebar.payment_settings') }}</span>
-                               </a>
-                           </li>
-                           <li class="sidebar-item">
-                               <a class="sidebar-link" href="{{ route('admin.notification-settings.index') }}" aria-expanded="false">
-                                   <iconify-icon icon="solar:bell-bing-line-duotone"></iconify-icon>
-                                   <span class="hide-menu">{{ __('admin.sidebar.notification_settings') }}</span>
-                               </a>
-                           </li>
-                          @endcan
-                          @if(auth()->check() && auth()->user()->isSuperAdmin())
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.features.index') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:widget-add-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.feature_settings') }}</span>
-                              </a>
-                          </li>
-                          @endif
-                          @can('manage_settings')
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.settings.index') }}#social-pane" aria-expanded="false">
-                                  <iconify-icon icon="solar:share-circle-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.sales_channels') }}</span>
-                              </a>
-                          </li>
-                          @endcan
                       </ul>
                   </nav>
               </div>

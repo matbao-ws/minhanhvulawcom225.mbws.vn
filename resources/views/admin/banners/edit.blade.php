@@ -4,23 +4,23 @@
 
 @section('content')
     <!-- Header Card -->
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-semibold mb-1">{{ __('admin.banners.edit') }}</h4>
-                    <nav class="py-2" style="--bs-breadcrumb-divider: '&gt;'" aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.banners.index') }}">{{ __('admin.banners.title') }}</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">{{ __('admin.banners.edit') }}</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div>
-                    <a href="{{ route('admin.banners.index') }}" class="btn btn-outline-primary d-flex align-items-center gap-2">
-                        <i class="ti ti-arrow-left fs-4"></i>{{ __('admin.back') }}
-                    </a>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3">
+                    <div class="row align-items-center">
+                        <div class="col-12">
+                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.banners.edit') }}</h4>
+                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+                            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.banners.index') }}">{{ __('admin.banners.title') }}</a></li>
+                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.banners.edit') }}</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

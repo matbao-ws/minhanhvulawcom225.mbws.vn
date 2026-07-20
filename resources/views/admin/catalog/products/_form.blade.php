@@ -3,6 +3,8 @@
     $name = old('name', $product->getTranslation('name', app()->getLocale(), false) ?: $product->getTranslation('name', $fallbackLocale, false));
     $shortDescription = old('short_description', $product->getTranslation('short_description', app()->getLocale(), false) ?: $product->getTranslation('short_description', $fallbackLocale, false));
     $description = old('description', $product->getTranslation('description', app()->getLocale(), false) ?: $product->getTranslation('description', $fallbackLocale, false));
+    $metaTitle = old('meta_title', $product->getTranslation('meta_title', app()->getLocale(), false) ?: $product->getTranslation('meta_title', $fallbackLocale, false));
+    $metaDescription = old('meta_description', $product->getTranslation('meta_description', app()->getLocale(), false) ?: $product->getTranslation('meta_description', $fallbackLocale, false));
     $cancelUrl = $product->exists ? route('admin.products.show', $product) : route('admin.products.index');
 @endphp
 
@@ -34,11 +36,30 @@
                     <textarea class="form-control" id="short_description" name="short_description" rows="3" placeholder="{{ __('catalog.placeholders.product_short_description') }}">{{ $shortDescription }}</textarea>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label" for="description">{{ __('catalog.fields.description') }}</label>
+                <div class="mb-4 position-relative" id="editor_wrapper">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label mb-0" for="description">{{ __('catalog.fields.description') }}</label>
+                        <button type="button" class="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 py-1 px-2" id="toggle_fullscreen" style="font-size: 12.2px !important; border-radius: 6px;">
+                            <i class="ti ti-maximize fs-4" id="fullscreen_icon"></i>
+                            <span id="fullscreen_text">Phóng to</span>
+                        </button>
+                    </div>
                     <textarea class="form-control d-none" id="description" name="description">{{ $description }}</textarea>
-                    <div id="description_editor" class="catalog-quill" data-target="description">{!! $description !!}</div>
+                    <div id="description_editor" class="catalog-quill" data-target="description" style="height: 350px;">{!! $description !!}</div>
                     <p class="fs-2 mb-0">{{ __('catalog.products.help.description') }}</p>
+                </div>
+                <div class="card border bg-light-subtle mt-4">
+                    <div class="card-body">
+                        <h5 class="mb-3">{{ __('catalog.fields.seo') }}</h5>
+                        <div class="mb-3">
+                            <label class="form-label" for="meta_title">{{ __('catalog.fields.meta_title') }}</label>
+                            <input type="text" maxlength="255" class="form-control" id="meta_title" name="meta_title" value="{{ $metaTitle }}" placeholder="{{ __('catalog.placeholders.meta_title') }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="meta_description">{{ __('catalog.fields.meta_description') }}</label>
+                            <textarea maxlength="500" class="form-control" id="meta_description" name="meta_description" rows="3" placeholder="{{ __('catalog.placeholders.meta_description') }}">{{ $metaDescription }}</textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -56,45 +77,61 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title mb-7">{{ __('catalog.products.sections.variation') }}</h4>
-                <label class="form-label">{{ __('catalog.products.sections.variation_note') }}</label>
-                <div class="email-repeater mb-3">
-                    <div data-repeater-list="preview_variations">
-                        <div data-repeater-item class="row mb-3">
-                            <div class="col-md-4">
-                                <select class="form-select">
-                                    <option>{{ __('catalog.fields.option_color') }}</option>
-                                    <option selected>{{ __('catalog.fields.option_size') }}</option>
-                                    <option>{{ __('catalog.fields.option_material') }}</option>
-                                    <option>{{ __('catalog.fields.option_style') }}</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mt-3 mt-md-0">
-                                <input type="text" class="form-control" placeholder="{{ __('catalog.fields.option_value') }}">
-                            </div>
-                            <div class="col-md-2 mt-3 mt-md-0">
-                                <button data-repeater-delete class="btn bg-danger-subtle text-danger" type="button">
-                                    <i class="ti ti-x fs-5 d-flex"></i>
-                                </button>
-                            </div>
+        @php
+            $variantGroups = old('variant_groups');
+            if ($variantGroups === null && $product->exists) {
+                $variantGroups = $product->optionGroups->map(fn ($group) => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'display_type' => $group->display_type,
+                    'values' => $group->values->map(fn ($value) => [
+                        'id' => $value->id,
+                        'label' => $value->label,
+                        'color_hex' => $value->color_hex,
+                        'image_url' => $value->image_url,
+                        'is_active' => $value->is_active,
+                    ])->all(),
+                ])->all();
+            }
+            $variantGroups ??= [];
+            $hasVariants = (bool) old('has_variants', ! empty($variantGroups));
+        @endphp
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                        <div>
+                            <h4 class="card-title mb-1">Biến thể & SKU</h4>
+                            <p class="fs-2 mb-0">Khai báo hoặc chỉnh sửa nhóm như Màu sắc, Kích thước. Khi lưu, core tạo ngay các tổ hợp SKU còn thiếu.</p>
+                        </div>
+                        <div class="form-check form-switch mt-1">
+                            <input type="hidden" name="has_variants" value="0">
+                            <input class="form-check-input" type="checkbox" name="has_variants" value="1" id="has_variants" @checked($hasVariants)>
+                            <label class="form-check-label" for="has_variants">Có biến thể</label>
                         </div>
                     </div>
-                    <button type="button" data-repeater-create class="btn bg-primary-subtle text-primary">
-                        <span class="fs-4 me-1">+</span>
-                        {{ __('catalog.products.actions.add_variation_row') }}
-                    </button>
+                    <div id="create-variant-setup" @class(['d-none' => ! $hasVariants])>
+                        <div id="create-variant-groups" class="d-flex flex-column gap-3">
+                            @foreach($variantGroups as $groupIndex => $group)
+                                <div class="border rounded p-3 create-variant-group" data-group-index="{{ $groupIndex }}">
+                                    @if(data_get($group, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][id]" value="{{ data_get($group, 'id') }}">@endif
+                                    <div class="row align-items-end mb-3">
+                                        <div class="col-md-6"><label class="form-label">Tên nhóm</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][name]" value="{{ data_get($group, 'name') }}" required></div>
+                                        <div class="col-md-4"><label class="form-label">Kiểu hiển thị</label><select class="form-select" name="variant_groups[{{ $groupIndex }}][display_type]"><option value="select" @selected(data_get($group, 'display_type', 'select') === 'select')>Danh sách</option><option value="color" @selected(data_get($group, 'display_type') === 'color')>Màu sắc</option><option value="image" @selected(data_get($group, 'display_type') === 'image')>Ảnh</option></select></div>
+                                        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-create-group">Xóa nhóm</button></div>
+                                    </div>
+                                    <div class="create-variant-values d-flex flex-column gap-2">
+                                        @foreach(data_get($group, 'values', []) as $valueIndex => $value)
+                                            <div class="row g-2 create-variant-value align-items-end">@if(data_get($value, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][id]" value="{{ data_get($value, 'id') }}">@endif<div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][label]" value="{{ data_get($value, 'label') }}" required></div><div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][color_hex]" value="{{ data_get($value, 'color_hex') }}" placeholder="#FFFFFF"></div><div class="col-md-4"><label class="form-label">Ảnh URL</label><input type="url" class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]" value="{{ data_get($value, 'image_url') }}"></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="1" @checked(data_get($value, 'is_active', true))><label class="form-check-label">Bật</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>
+                                        @endforeach
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-3 add-create-value">+ Thêm giá trị</button>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button type="button" id="add-create-group" class="btn btn-outline-primary mt-3">+ Thêm nhóm thuộc tính</button>
+                    </div>
                 </div>
-                @if($product->exists)
-                    <a href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-primary">
-                        {{ __('catalog.variants.create') }}
-                    </a>
-                @else
-                    <p class="fs-2 mb-0">{{ __('catalog.products.help.variants_after_save') }}</p>
-                @endif
             </div>
-        </div>
 
         <div class="card">
             <div class="card-body">

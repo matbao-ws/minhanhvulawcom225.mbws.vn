@@ -18,6 +18,8 @@ class RoleCrudTest extends TestCase
     {
         parent::setUp();
 
+        (new \Database\Seeders\PermissionSeeder())->run();
+
         FeatureSetting::query()->create([
             'feature_code' => 'multi_admin',
             'is_enabled' => true,

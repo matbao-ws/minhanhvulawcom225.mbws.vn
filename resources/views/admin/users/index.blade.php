@@ -4,17 +4,22 @@
 
 @section('content')
     <!-- Header Card -->
-    <div class="card bg-primary-subtle shadow-none position-relative overflow-hidden mb-4">
-        <div class="card-body px-4 py-3 d-flex flex-column gap-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-semibold mb-1">{{ __('admin.users.title') }}</h4>
-                    <nav class="py-2" style="--bs-breadcrumb-divider: '&gt;'" aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">{{ __('admin.users.title') }}</li>
-                        </ol>
-                    </nav>
+        <!-- Header Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+                <div class="card-body px-4 py-3">
+                    <div class="row align-items-center">
+                        <div class="col-12">
+                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.users.title') }}</h4>
+                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.users.title') }}</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -112,6 +117,33 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <!-- Lock/Unlock Link (prevent self toggle or Superadmin toggle if not superadmin) -->
+                                    @if($userItem->id !== auth()->id() && !$userItem->isSuperAdmin())
+                                        <form method="POST" action="{{ route('admin.users.toggle-status', $userItem) }}" class="d-inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            @if($userItem->is_active)
+                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Khóa tài khoản" onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?')">
+                                                    <i class="ti ti-lock fs-4"></i>
+                                                </button>
+                                            @else
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Mở khóa tài khoản" onclick="return confirm('Bạn có chắc chắn muốn mở khóa tài khoản này?')">
+                                                    <i class="ti ti-lock-open fs-4"></i>
+                                                </button>
+                                            @endif
+                                        </form>
+                                    @endif
+
+                                    <!-- Quick Login (Impersonate) Button (prevent self impersonation) -->
+                                    @if($userItem->id !== auth()->id())
+                                        <form method="POST" action="{{ route('admin.users.impersonate', $userItem) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-info" title="Đăng nhập nhanh" onclick="return confirm('Bạn có muốn đăng nhập nhanh vào tài khoản này?')">
+                                                <i class="ti ti-login fs-4"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     <!-- Edit Link -->
                                     <a href="{{ route('admin.users.edit', $userItem) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
                                         <i class="ti ti-edit fs-4"></i>

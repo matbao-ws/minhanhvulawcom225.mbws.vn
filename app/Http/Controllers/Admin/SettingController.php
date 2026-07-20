@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ProjectSetting;
 use App\Services\CloudinaryService;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
@@ -19,6 +20,12 @@ class SettingController extends Controller
     public function index()
     {
         $settings = ProjectSetting::query()->get()->pluck('setting_value', 'setting_key');
+
+        // Also fetch notification settings for SMTP configurations
+        $notificationSettings = ProjectSetting::query()->where('setting_key', 'notification_settings')->first();
+        if ($notificationSettings) {
+            $settings['notification_settings'] = $notificationSettings->setting_value;
+        }
 
         return view('admin.settings.index', compact('settings'));
     }
@@ -43,6 +50,19 @@ class SettingController extends Controller
             'social_links.youtube' => 'nullable|url|max:255',
             'social_links.instagram' => 'nullable|url|max:255',
             'social_links.tiktok' => 'nullable|url|max:255',
+            // Embed code validation
+            'embed_header' => 'nullable|string',
+            'embed_footer' => 'nullable|string',
+            // SMTP validation
+            'smtp.enabled' => 'nullable|boolean',
+            'smtp.host' => 'nullable|string|max:255',
+            'smtp.port' => 'nullable|integer|min:1|max:65535',
+            'smtp.encryption' => 'nullable|string|in:ssl,tls,none',
+            'smtp.username' => 'nullable|string|max:255',
+            'smtp.password' => 'nullable|string|max:255',
+            'smtp.from_email' => 'nullable|email|max:255',
+            'smtp.from_name' => 'nullable|string|max:255',
+            'smtp.owner_email' => 'nullable|email|max:255',
         ]);
 
         // Update basic and nested JSON columns
@@ -71,6 +91,34 @@ class SettingController extends Controller
             ['setting_value' => $validated['social_links'] ?? []]
         );
 
+        // Update Embed codes
+        ProjectSetting::updateOrCreate(
+            ['setting_key' => 'embed_header'],
+            ['setting_value' => $validated['embed_header'] ?? '']
+        );
+
+        ProjectSetting::updateOrCreate(
+            ['setting_key' => 'embed_footer'],
+            ['setting_value' => $validated['embed_footer'] ?? '']
+        );
+
+        // Update SMTP configuration in notification_settings key to preserve other keys
+        $notificationSettingsRecord = ProjectSetting::firstOrNew(['setting_key' => 'notification_settings']);
+        $notificationSettings = $notificationSettingsRecord->setting_value ?? [];
+        $notificationSettings['smtp'] = [
+            'enabled' => (bool) ($validated['smtp']['enabled'] ?? false),
+            'host' => $validated['smtp']['host'] ?? '',
+            'port' => isset($validated['smtp']['port']) ? (int) $validated['smtp']['port'] : null,
+            'encryption' => $validated['smtp']['encryption'] ?? 'none',
+            'username' => $validated['smtp']['username'] ?? '',
+            'password' => $validated['smtp']['password'] ?? '',
+            'from_email' => $validated['smtp']['from_email'] ?? '',
+            'from_name' => $validated['smtp']['from_name'] ?? '',
+            'owner_email' => $validated['smtp']['owner_email'] ?? '',
+        ];
+        $notificationSettingsRecord->setting_value = $notificationSettings;
+        $notificationSettingsRecord->save();
+
         // Upload logo if uploaded
         if ($request->hasFile('logo')) {
             $logoUrl = $this->cloudinaryService->uploadFile($request->file('logo'), 'settings');
@@ -88,6 +136,21 @@ class SettingController extends Controller
                 ['setting_value' => $faviconUrl]
             );
         }
+
+        ActivityLogger::log('updated', null, 'Cập nhật cấu hình website', [
+            'updated_keys' => array_values(array_filter([
+                'shop_name',
+                'contact',
+                'theme',
+                'seo',
+                'social_links',
+                'embed_header',
+                'embed_footer',
+                isset($validated['smtp']) ? 'smtp' : null,
+                $request->hasFile('logo') ? 'logo_url' : null,
+                $request->hasFile('favicon') ? 'favicon_url' : null,
+            ])),
+        ]);
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

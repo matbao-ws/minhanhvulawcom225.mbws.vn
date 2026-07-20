@@ -112,7 +112,7 @@ fieldset:disabled .btn-primary {
 
 @media (min-width: 1300px) {
     .admin-sticky-actions {
-        left: calc(80px + 240px);
+        left: 240px;
     }
 
     body[data-sidebartype="mini-sidebar"] .admin-sticky-actions {

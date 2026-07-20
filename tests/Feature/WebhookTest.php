@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Mail\OrderStatusMail;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\ProjectSetting;
-use App\Mail\OrderStatusMail;
+use App\Models\ShippingPartner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -15,6 +15,7 @@ class WebhookTest extends TestCase
     use RefreshDatabase;
 
     private Order $order;
+
     private string $webhookToken = 'super-secret-webhook-token-xyz';
 
     protected function setUp(): void
@@ -22,7 +23,7 @@ class WebhookTest extends TestCase
         parent::setUp();
 
         // Seed GHTK settings in shipping_partners table
-        \App\Models\ShippingPartner::query()
+        ShippingPartner::query()
             ->where('partner_code', 'DTGH000012')
             ->first()
             ->update([
@@ -30,8 +31,9 @@ class WebhookTest extends TestCase
                 'settings' => [
                     'api_token' => 'mock',
                     'api_url' => 'https://services.ghtk.vn',
+                    'realtime_tracking_enabled' => true,
                     'webhook_token' => $this->webhookToken,
-                ]
+                ],
             ]);
 
         // Create a test order
@@ -62,7 +64,7 @@ class WebhookTest extends TestCase
 
     public function test_ghtk_webhook_fails_with_invalid_token(): void
     {
-        $response = $this->postJson("/api/webhooks/ghtk?token=wrong-token", [
+        $response = $this->postJson('/api/webhooks/ghtk?token=wrong-token', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.123456',
             'status_id' => 3,
@@ -71,8 +73,25 @@ class WebhookTest extends TestCase
         $response->assertStatus(401);
         $response->assertJson([
             'success' => false,
-            'message' => 'Unauthorized token.'
+            'message' => 'Unauthorized.',
         ]);
+    }
+
+    public function test_ghtk_webhook_is_rejected_when_realtime_tracking_is_disabled(): void
+    {
+        $partner = ShippingPartner::query()
+            ->where('partner_code', 'DTGH000012')
+            ->firstOrFail();
+        $settings = $partner->settings;
+        $settings['realtime_tracking_enabled'] = false;
+        $partner->update(['settings' => $settings]);
+
+        $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+            'partner_id' => $this->order->order_number,
+            'status_id' => 3,
+        ])->assertUnauthorized();
+
+        $this->assertSame('pending', $this->order->fresh()->status);
     }
 
     public function test_ghtk_webhook_fails_with_missing_partner_id(): void
@@ -85,7 +104,7 @@ class WebhookTest extends TestCase
         $response->assertStatus(422);
         $response->assertJson([
             'success' => false,
-            'message' => 'partner_id is required.'
+            'message' => 'partner_id is required.',
         ]);
     }
 
@@ -100,7 +119,7 @@ class WebhookTest extends TestCase
         $response->assertStatus(404);
         $response->assertJson([
             'success' => false,
-            'message' => 'Order not found: ORD-NON-EXISTENT'
+            'message' => 'Order not found: ORD-NON-EXISTENT',
         ]);
     }
 
@@ -119,7 +138,7 @@ class WebhookTest extends TestCase
         $response->assertJson([
             'success' => true,
             'order_status' => 'processing',
-            'payment_status' => 'pending'
+            'payment_status' => 'pending',
         ]);
 
         $this->order->refresh();
@@ -151,7 +170,7 @@ class WebhookTest extends TestCase
         $response->assertJson([
             'success' => true,
             'order_status' => 'completed',
-            'payment_status' => 'paid'
+            'payment_status' => 'paid',
         ]);
 
         $this->order->refresh();
@@ -210,5 +229,18 @@ class WebhookTest extends TestCase
         Mail::assertSent(OrderStatusMail::class, function ($mail) {
             return $mail->hasTo($this->order->customer_email);
         });
+    }
+
+    public function test_ghtk_webhook_ignores_a_stale_status_that_would_reopen_an_order(): void
+    {
+        $this->order->update(['status' => 'processing']);
+
+        $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+            'partner_id' => $this->order->order_number,
+            'label_id' => 'GHTK.ABC123456',
+            'status_id' => 1,
+        ])->assertOk()->assertJson(['order_status' => 'processing']);
+
+        $this->assertSame('processing', $this->order->fresh()->status);
     }
 }

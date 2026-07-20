@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Addon;
 use App\Models\Role;
-use App\Models\User;
 use App\Models\ShippingPartner;
+use App\Models\User;
+use Database\Seeders\AddonSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,6 +15,7 @@ class ShippingPartnerTest extends TestCase
     use RefreshDatabase;
 
     private User $adminUser;
+
     private User $guestUser;
 
     protected function setUp(): void
@@ -37,8 +40,8 @@ class ShippingPartnerTest extends TestCase
             'role_id' => $guestRole->id,
         ]);
 
-        (new \Database\Seeders\AddonSeeder())->run();
-        \App\Models\Addon::query()->update(['is_purchased' => true]);
+        (new AddonSeeder)->run();
+        Addon::query()->update(['is_purchased' => true]);
     }
 
     public function test_guests_cannot_access_shipping_partners(): void
@@ -124,6 +127,7 @@ class ShippingPartnerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->post("/vi/admin/shipping-partners/{$partner->id}/settings", [
             'api_token' => 'mock-token-xyz',
             'api_url' => 'https://services.ghtk.vn',
+            'realtime_tracking_enabled' => 1,
             'webhook_token' => 'custom-webhook-secret',
         ]);
 
@@ -133,6 +137,21 @@ class ShippingPartnerTest extends TestCase
         $partner->refresh();
         $this->assertEquals('mock-token-xyz', $partner->settings['api_token']);
         $this->assertEquals('https://services.ghtk.vn', $partner->settings['api_url']);
+        $this->assertTrue($partner->settings['realtime_tracking_enabled']);
         $this->assertEquals('custom-webhook-secret', $partner->settings['webhook_token']);
+    }
+
+    public function test_admin_can_configure_ghtk_without_realtime_webhook(): void
+    {
+        $partner = ShippingPartner::where('partner_code', 'DTGH000012')->firstOrFail();
+
+        $this->actingAs($this->adminUser)->post("/vi/admin/shipping-partners/{$partner->id}/settings", [
+            'api_token' => 'mock-token-without-webhook',
+            'api_url' => 'https://services.ghtk.vn',
+        ])->assertRedirect('/vi/admin/shipping-partners');
+
+        $partner->refresh();
+        $this->assertFalse($partner->settings['realtime_tracking_enabled']);
+        $this->assertNull($partner->settings['webhook_token']);
     }
 }

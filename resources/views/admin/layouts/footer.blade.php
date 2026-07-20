@@ -157,97 +157,188 @@
       <div class="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header border-bottom">
-            <input type="search" class="form-control" placeholder="Search here" id="search">
+            <input type="search" class="form-control" placeholder="{{ __('admin.dashboard_page.global_search_placeholder') }}" id="search">
             <a href="javascript:void(0)" data-bs-dismiss="modal" class="lh-1">
               <i class="ti ti-x fs-5 ms-3"></i>
             </a>
           </div>
-          <div class="modal-body message-body" data-simplebar="">
-            <h5 class="mb-0 fs-5 p-1">Quick Page Links</h5>
-            <ul class="list mb-0 py-2">
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Analytics</span>
-                  <span class="fs-2 d-block text-body-secondary">/dashboards/dashboard1</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">eCommerce</span>
-                  <span class="fs-2 d-block text-body-secondary">/dashboards/dashboard2</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">CRM</span>
-                  <span class="fs-2 d-block text-body-secondary">/dashboards/dashboard3</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Contacts</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/contacts</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Posts</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/blog/posts</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Detail</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/blog/detail/streaming-video-way-before-it-was-cool-go-dark-tomorrow</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Shop</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/ecommerce/shop</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Modern</span>
-                  <span class="fs-2 d-block text-body-secondary">/dashboards/dashboard1</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Dashboard</span>
-                  <span class="fs-2 d-block text-body-secondary">/dashboards/dashboard2</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Contacts</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/contacts</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Posts</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/blog/posts</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Detail</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/blog/detail/streaming-video-way-before-it-was-cool-go-dark-tomorrow</span>
-                </a>
-              </li>
-              <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
-                <a href="javascript:void(0)">
-                  <span class="text-dark fw-semibold d-block">Shop</span>
-                  <span class="fs-2 d-block text-body-secondary">/apps/ecommerce/shop</span>
-                </a>
-              </li>
-            </ul>
+          <div class="modal-body message-body" data-simplebar="" id="searchModalBody">
+            <div id="quickLinksContainer">
+              <h5 class="mb-0 fs-5 p-1">{{ __('admin.dashboard_page.quick_links') }}</h5>
+              <ul class="list mb-0 py-2">
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.dashboard') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.dashboard') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/dashboard</span>
+                  </a>
+                </li>
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.products.index') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.menu.products') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/catalog/products</span>
+                  </a>
+                </li>
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.orders.index') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.menu.orders') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/orders</span>
+                  </a>
+                </li>
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.categories.index') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.menu.categories') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/catalog/categories</span>
+                  </a>
+                </li>
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.brands.index') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.menu.brands') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/catalog/brands</span>
+                  </a>
+                </li>
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.users.index') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.menu.users') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/users</span>
+                  </a>
+                </li>
+                <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
+                  <a href="{{ route('admin.settings.index') }}" class="text-decoration-none d-block">
+                    <span class="text-dark fw-semibold d-block">{{ __('admin.menu.settings') }}</span>
+                    <span class="fs-2 d-block text-muted">/admin/settings</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div id="searchResultsContainer" style="display: none;"></div>
           </div>
         </div>
       </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('search');
+        const quickLinksContainer = document.getElementById('quickLinksContainer');
+        const searchResultsContainer = document.getElementById('searchResultsContainer');
+        let debounceTimer;
+
+        searchInput.addEventListener('input', function () {
+            const query = searchInput.value.trim();
+
+            clearTimeout(debounceTimer);
+            
+            if (query.length < 2) {
+                quickLinksContainer.style.display = 'block';
+                searchResultsContainer.style.display = 'none';
+                searchResultsContainer.innerHTML = '';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                searchResultsContainer.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <iconify-icon icon="solar:refresh-bold-duotone" class="fs-7 rotate-spinner d-inline-block mb-2"></iconify-icon>
+                        <p class="mb-0 fs-3">{{ __('admin.dashboard_page.searching') }}</p>
+                    </div>
+                `;
+                quickLinksContainer.style.display = 'none';
+                searchResultsContainer.style.display = 'block';
+
+                const locale = document.documentElement.lang || 'vi';
+                fetch(`/${locale}/admin/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.results || data.results.length === 0) {
+                            searchResultsContainer.innerHTML = `
+                                <div class="text-center py-5 text-muted">
+                                    <iconify-icon icon="solar:info-circle-broken" class="fs-9 mb-2 d-inline-block"></iconify-icon>
+                                    <p class="mb-0 fs-4 fw-bold text-dark">${"{{ __('admin.dashboard_page.no_results') }}".replace(':query', query)}</p>
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        let html = '';
+                        data.results.forEach(group => {
+                            html += `
+                                <div class="mb-4">
+                                    <h5 class="mb-2 fs-4 p-1 d-flex align-items-center gap-2 text-primary border-bottom pb-2">
+                                        <iconify-icon icon="${group.icon || 'solar:link-bold-duotone'}" class="fs-5"></iconify-icon>
+                                        <span>${group.category}</span>
+                                    </h5>
+                                    <ul class="list mb-0 py-1" style="list-style: none; padding-left: 0;">
+                            `;
+                            group.items.forEach(item => {
+                                html += `
+                                        <li class="p-2 mb-1 bg-hover-light-black rounded">
+                                            <a href="${item.link}" class="d-flex align-items-center justify-content-between text-decoration-none">
+                                                <div>
+                                                    <span class="text-dark fw-semibold d-block fs-3">${item.title}</span>
+                                                    <span class="fs-2 d-block text-muted">${item.subtitle}</span>
+                                                </div>
+                                                <iconify-icon icon="solar:alt-arrow-right-linear" class="fs-5 text-muted"></iconify-icon>
+                                            </a>
+                                        </li>
+                                `;
+                            });
+                            html += `
+                                    </ul>
+                                </div>
+                            `;
+                        });
+
+                        searchResultsContainer.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error during global search:', error);
+                        searchResultsContainer.innerHTML = `
+                            <div class="text-center py-5 text-danger">
+                                <iconify-icon icon="solar:danger-broken" class="fs-9 mb-2 d-inline-block"></iconify-icon>
+                                <p class="mb-0 fs-4">{{ __('admin.connection_error') }}</p>
+                            </div>
+                        `;
+                    });
+            }, 300);
+        });
+
+        // Reset search when modal is closed
+        const modalElement = document.getElementById('exampleModal');
+        if (modalElement) {
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                searchInput.value = '';
+                quickLinksContainer.style.display = 'block';
+                searchResultsContainer.style.display = 'none';
+                searchResultsContainer.innerHTML = '';
+            });
+            
+            // Auto-focus search input when modal is shown
+            modalElement.addEventListener('shown.bs.modal', function () {
+                searchInput.focus();
+            });
+        }
+    });
+    </script>
+    <style>
+    .rotate-spinner {
+        animation: spinner-rotation 1.3s linear infinite;
+    }
+    @keyframes spinner-rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .bg-hover-light-black:hover {
+        background-color: rgba(0, 0, 0, 0.03) !important;
+    }
+    #search {
+        font-weight: 700 !important;
+    }
+    #search::placeholder {
+        font-weight: 700 !important;
+        color: #5a6a85 !important;
+        opacity: 0.8;
+    }
+    </style>
 
 
   </div>

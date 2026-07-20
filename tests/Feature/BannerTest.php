@@ -179,7 +179,7 @@ class BannerTest extends TestCase
         Storage::disk('public')->assertMissing($path);
     }
 
-    public function test_admin_cannot_access_banners_when_feature_disabled(): void
+    public function test_admin_is_directed_to_support_when_banner_feature_is_disabled(): void
     {
         // Disable banner feature
         \App\Models\FeatureSetting::query()->where('feature_code', 'banner')->update([
@@ -190,6 +190,8 @@ class BannerTest extends TestCase
         $this->actingAs($admin);
 
         $response = $this->get('/vi/admin/banners');
-        $response->assertStatus(403);
+        $response
+            ->assertRedirect('/vi/admin')
+            ->assertSessionHas('error', \App\Support\FeatureGate::SUPPORT_MESSAGE);
     }
 }

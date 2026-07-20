@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\ProjectSubscription;
+use App\Models\AdminActivityLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,11 +92,57 @@ class DashboardTest extends TestCase
         $this->assertEquals(2, $metrics['total_orders']);
         $this->assertEquals(250000, $metrics['total_revenue']);
         $this->assertEquals(1, $metrics['completed_orders']);
-        $this->assertEquals(1, $metrics['processing_orders']);
+        $this->assertEquals(0, $metrics['processing_orders']);
 
         // Check recent orders
         $recentOrders = $response->viewData('recentOrders');
         $this->assertCount(2, $recentOrders);
+    }
+
+    public function test_dashboard_groups_registered_customers_and_uses_actual_admin_activity(): void
+    {
+        $customer = User::factory()->create([
+            'name' => 'Registered Customer',
+            'email' => 'customer@example.com',
+            'role_id' => null,
+        ]);
+        foreach ([100000, 250000] as $index => $amount) {
+            Order::query()->create([
+                'user_id' => $customer->id,
+                'order_number' => 'VIP-'.($index + 1),
+                'customer_name' => 'Checkout Name '.($index + 1),
+                'customer_email' => $customer->email,
+                'customer_phone' => '0912345678',
+                'shipping_address' => '123 Test St',
+                'payment_method' => 'cod',
+                'payment_status' => 'paid',
+                'status' => 'completed',
+                'subtotal' => $amount,
+                'grand_total' => $amount,
+            ]);
+        }
+        AdminActivityLog::query()->create([
+            'user_id' => $this->adminUser->id,
+            'action' => 'updated',
+            'description' => 'Cập nhật cấu hình',
+            'created_at' => now(),
+        ]);
+        AdminActivityLog::query()->create([
+            'user_id' => $this->adminUser->id,
+            'action' => 'created',
+            'description' => 'Tạo đơn hàng',
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get('/vi/admin/dashboard')->assertOk();
+
+        $topCustomer = $response->viewData('topCustomers')->first();
+        $this->assertSame($customer->id, (int) $topCustomer->user_id);
+        $this->assertSame(2, (int) $topCustomer->total_orders);
+        $this->assertSame(350000.0, (float) $topCustomer->total_spent);
+        $activityChart = $response->viewData('activityChart');
+        $this->assertSame(2, $activityChart['total']);
+        $this->assertSame(2, $activityChart['data'][6]);
     }
 
     public function test_admin_can_access_notifications_list_with_pagination(): void

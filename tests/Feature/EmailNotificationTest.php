@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Mail\InvoiceMail;
 use App\Mail\OrderStatusMail;
+use App\Jobs\SendOrderStatusEmail;
 use App\Models\FeatureSetting;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -12,6 +13,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class EmailNotificationTest extends TestCase
@@ -113,6 +115,22 @@ class EmailNotificationTest extends TestCase
             return $mail->hasTo($this->order->customer_email) && 
                    $mail->order->id === $this->order->id &&
                    $mail->order->status === 'processing';
+        });
+    }
+
+    public function test_updating_order_status_queues_the_email_for_a_worker(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)->patch("/vi/admin/orders/{$this->order->id}/status", [
+            'status' => 'processing',
+            'payment_status' => 'pending',
+        ])->assertRedirect();
+
+        Queue::assertPushed(SendOrderStatusEmail::class, function (SendOrderStatusEmail $job): bool {
+            return $job->orderId === $this->order->id
+                && $job->recipient === $this->order->customer_email;
         });
     }
 

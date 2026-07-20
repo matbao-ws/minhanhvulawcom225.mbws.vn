@@ -24,6 +24,7 @@ class Order extends Model
         'status',
         'subtotal',
         'discount',
+        'promotion_discount',
         'grand_total',
         'notes',
     ];
@@ -31,6 +32,7 @@ class Order extends Model
     protected $casts = [
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
+        'promotion_discount' => 'decimal:2',
         'grand_total' => 'decimal:2',
         'shipping_fee' => 'decimal:2',
     ];
@@ -38,5 +40,30 @@ class Order extends Model
     public function items()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function historyEntries()
+    {
+        return $this->hasMany(OrderStatusHistory::class)->latest('created_at');
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(OrderRefund::class)->latest();
+    }
+
+    public function inventoryMovements()
+    {
+        return $this->hasMany(InventoryMovement::class)->latest('created_at');
+    }
+
+    public function paymentTransactions()
+    {
+        return $this->hasMany(PaymentTransaction::class)->latest();
     }
 }

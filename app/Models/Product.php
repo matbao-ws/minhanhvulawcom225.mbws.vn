@@ -13,6 +13,8 @@ class Product extends Model
         'name',
         'short_description',
         'description',
+        'meta_title',
+        'meta_description',
     ];
 
     protected $fillable = [
@@ -23,6 +25,8 @@ class Product extends Model
         'sku',
         'short_description',
         'description',
+        'meta_title',
+        'meta_description',
         'image_url',
         'price',
         'compare_at_price',
@@ -60,8 +64,25 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function optionGroups()
+    {
+        return $this->hasMany(ProductOptionGroup::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function usesVariantInventory(): bool
+    {
+        return $this->relationLoaded('optionGroups')
+            ? $this->optionGroups->isNotEmpty()
+            : $this->optionGroups()->exists();
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function inventoryMovements()
+    {
+        return $this->hasMany(InventoryMovement::class);
     }
 }

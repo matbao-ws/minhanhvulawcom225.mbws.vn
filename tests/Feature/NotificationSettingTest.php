@@ -309,4 +309,24 @@ class NotificationSettingTest extends TestCase
         $this->assertFalse($setting->setting_value['zalo_oa']['enabled']);
         $this->assertFalse($setting->setting_value['zalo_personal']['enabled']);
     }
+
+    public function test_admin_can_enable_zalo_without_subscription_when_feature_is_enabled(): void
+    {
+        \App\Models\ProjectSubscription::query()->delete();
+
+        $response = $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
+            'zalo_oa' => [
+                'enabled' => '1',
+                'app_id' => '12345678',
+                'secret_key' => 'secret_val',
+                'access_token' => 'access_val',
+                'refresh_token' => 'refresh_val',
+                'template_id' => '99999',
+            ],
+            'zalo_personal' => ['enabled' => '0'],
+        ]);
+
+        $response->assertRedirect('/vi/admin/notification-settings');
+        $this->assertTrue(ProjectSetting::query()->firstOrFail()->setting_value['zalo_oa']['enabled']);
+    }
 }

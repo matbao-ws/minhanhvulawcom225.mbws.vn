@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,22 +24,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Support\Facades\Auth::extend('jwt', function ($app, $name, array $config) {
-            return new \Illuminate\Auth\RequestGuard(function ($request) use ($app, $config) {
-                $token = $request->bearerToken();
-                if (!$token) {
-                    return null;
-                }
-
-                $payload = \App\Support\JwtService::decode($token);
-                if (!$payload || empty($payload['sub'])) {
-                    return null;
-                }
-
-                $provider = \Illuminate\Support\Facades\Auth::createUserProvider($config['provider']);
-                return $provider->retrieveById($payload['sub']);
-            }, $app['request']);
-        });
+        RateLimiter::for('public-auth', fn (Request $request) => Limit::perMinute(5)
+            ->by($request->ip().'|'.strtolower((string) $request->input('email'))));
+        RateLimiter::for('public-contact', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
+        RateLimiter::for('public-checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+        RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+        RateLimiter::for('admin-login', fn (Request $request) => Limit::perMinute(5)
+            ->by($request->ip().'|'.strtolower((string) $request->input('email'))));
 
         Paginator::useBootstrapFive();
 
@@ -55,11 +50,7 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
 
-            if ($user->role && in_array('*', $user->role->permissions ?? [])) {
-                return true;
-            }
-
-            if ($user->role && in_array($ability, $user->role->permissions ?? [])) {
+            if ($user->role && $user->role->hasPermission($ability)) {
                 return true;
             }
 

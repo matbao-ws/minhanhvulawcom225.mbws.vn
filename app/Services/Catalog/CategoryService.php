@@ -49,6 +49,8 @@ class CategoryService
             'name' => $name,
             'slug' => $this->uniqueSlug((string) $baseSlug, $category?->id),
             'description' => $this->translationValue($data['description'] ?? null, $category, 'description'),
+            'meta_title' => $this->translationValue($data['meta_title'] ?? null, $category, 'meta_title'),
+            'meta_description' => $this->translationValue($data['meta_description'] ?? null, $category, 'meta_description'),
             'image_url' => $imageUrl,
             'sort_order' => (int) ($data['sort_order'] ?? $category?->sort_order ?? 0),
             'is_active' => (bool) ($data['is_active'] ?? false),

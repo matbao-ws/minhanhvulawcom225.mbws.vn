@@ -20,6 +20,6 @@ class PaymentMethod extends Model
     ];
 
     protected $casts = [
-        'settings' => 'array',
+        'settings' => \App\Casts\EncryptedJson::class,
     ];
 }

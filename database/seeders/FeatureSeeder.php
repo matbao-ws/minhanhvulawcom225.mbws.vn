@@ -22,8 +22,6 @@ class FeatureSeeder extends Seeder
             ['code' => 'menu', 'name' => 'Menu', 'value_type' => 'boolean'],
             ['code' => 'multi_admin', 'name' => 'Multi Admin', 'value_type' => 'boolean'],
             ['code' => 'inventory_log', 'name' => 'Inventory Log', 'value_type' => 'boolean'],
-            ['code' => 'max_products', 'name' => 'Max Products', 'value_type' => 'number'],
-            ['code' => 'max_admin_users', 'name' => 'Max Admin Users', 'value_type' => 'number'],
         ];
 
         foreach ($features as $feature) {

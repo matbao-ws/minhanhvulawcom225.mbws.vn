@@ -31,8 +31,14 @@
                     <textarea class="form-control" id="summary" name="summary" rows="3" placeholder="{{ __('admin.posts.placeholders.summary') }}">{{ $summary }}</textarea>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label" for="content_input">{{ __('admin.posts.fields.content') }} <span class="text-danger">*</span></label>
+                <div class="mb-4 position-relative" id="editor_wrapper">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label mb-0" for="content_input">{{ __('admin.posts.fields.content') }} <span class="text-danger">*</span></label>
+                        <button type="button" class="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 py-1 px-2" id="toggle_fullscreen" style="font-size: 12.2px !important; border-radius: 6px;">
+                            <i class="ti ti-maximize fs-4" id="fullscreen_icon"></i>
+                            <span id="fullscreen_text">Phóng to</span>
+                        </button>
+                    </div>
                     <textarea class="form-control d-none" id="content_input" name="content" required>{{ $content }}</textarea>
                     <div id="content_editor" class="catalog-quill" data-target="content_input" style="height: 350px;">{!! $content !!}</div>
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Jobs\SendStoreOrderNotification;
 use App\Models\Order;
 use App\Models\ProjectSetting;
 use Illuminate\Support\Facades\Http;
@@ -14,6 +15,14 @@ class NotificationHelper
      * Dispatch notifications for new orders (Zalo Bot & SMTP Email).
      */
     public static function sendNewOrderNotification(Order $order): void
+    {
+        SendStoreOrderNotification::dispatch($order->id)->afterCommit();
+    }
+
+    /**
+     * Deliver a store-owner notification from the queue worker.
+     */
+    public static function deliverNewOrderNotification(Order $order): void
     {
         try {
             $settingsRecord = ProjectSetting::query()->where('setting_key', 'notification_settings')->first();
@@ -64,7 +73,7 @@ class NotificationHelper
                         'mail.from.name' => data_get($settings, 'smtp.from_name', 'Cửa hàng'),
                     ]);
 
-                    // Send email to the owner
+                    // Send email to the owner from the queue worker.
                     Mail::to($ownerEmail)->send(new \App\Mail\OrderStatusMail($order));
                 }
             }

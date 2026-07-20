@@ -12,7 +12,9 @@ class VoucherSeeder extends Seeder
      */
     public function run(): void
     {
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
         Voucher::truncate();
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
 
         Voucher::create([
             'code' => 'WINTER10',

@@ -14,7 +14,9 @@ class ReviewSeeder extends Seeder
      */
     public function run(): void
     {
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
         Review::truncate();
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
 
         $products = Product::all();
 
