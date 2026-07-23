@@ -17,7 +17,7 @@
                               <span class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                   <iconify-icon icon="solar:home-2-linear" class="fs-6"></iconify-icon>
                               </span>
-                              <span class="site-name">{{ \App\Models\ProjectSetting::where('setting_key', 'shop_name')->first()->setting_value ?? config('app.name', 'Laravel') }}</span>
+                              <span class="site-name">{{ $siteBranding['name'] }}</span>
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex nav-icon-hover-bg rounded-circle">
@@ -103,7 +103,7 @@
                   </ul>
 
                   <div class="d-block d-lg-none py-9 py-xl-0">
-                      <img src="{{ asset('matbao-ws-logo.png') }}" alt="matbao-img" width="120px">
+                      <img src="{{ $siteBranding['logo_url'] }}" alt="{{ $siteBranding['name'] }}" width="120px">
                   </div>
                   <a class="navbar-toggler p-0 border-0 nav-icon-hover-bg rounded-circle" href="javascript:void(0)"
                       data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav"
@@ -252,7 +252,7 @@
                   <nav class="sidebar-nav scroll-sidebar">
                       <div class="offcanvas-header justify-content-between">
                           <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
-                               <img src="{{ asset('flaticon.png') }}" alt="Logo" width="35" height="35">
+                               <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}" width="35" height="35">
                           </a>
                           <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
                               aria-label="Close"></button>
@@ -351,7 +351,7 @@
                               <span class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                   <iconify-icon icon="solar:home-2-linear" class="fs-6"></iconify-icon>
                               </span>
-                              <span class="site-name">{{ \App\Models\ProjectSetting::where('setting_key', 'shop_name')->first()->setting_value ?? config('app.name', 'Laravel') }}</span>
+                              <span class="site-name">{{ $siteBranding['name'] }}</span>
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center nav-icon-hover-bg rounded-circle">

@@ -45,7 +45,7 @@ class UserAddressApiTest extends TestCase
 
     public function test_user_can_list_their_addresses(): void
     {
-        Sanctum::actingAs($this->user1);
+        Sanctum::actingAs($this->user1, ['customer']);
 
         // Empty list initially
         $response = $this->getJson('/api/public/addresses');
@@ -69,7 +69,7 @@ class UserAddressApiTest extends TestCase
 
     public function test_user_can_create_address_and_resets_defaults(): void
     {
-        Sanctum::actingAs($this->user1);
+        Sanctum::actingAs($this->user1, ['customer']);
 
         // First address should automatically be default
         $response = $this->postJson('/api/public/addresses', [
@@ -111,7 +111,7 @@ class UserAddressApiTest extends TestCase
 
     public function test_user_can_update_their_address(): void
     {
-        Sanctum::actingAs($this->user1);
+        Sanctum::actingAs($this->user1, ['customer']);
 
         $address = UserAddress::query()->create([
             'user_id' => $this->user1->id,
@@ -145,7 +145,7 @@ class UserAddressApiTest extends TestCase
         ]);
 
         // Log in as User 1
-        Sanctum::actingAs($this->user1);
+        Sanctum::actingAs($this->user1, ['customer']);
 
         // Try update
         $this->putJson("/api/public/addresses/{$address->id}", [
@@ -160,7 +160,7 @@ class UserAddressApiTest extends TestCase
 
     public function test_user_can_delete_their_address_and_auto_assign_new_default(): void
     {
-        Sanctum::actingAs($this->user1);
+        Sanctum::actingAs($this->user1, ['customer']);
 
         $addr1 = UserAddress::query()->create([
             'user_id' => $this->user1->id,
@@ -190,7 +190,7 @@ class UserAddressApiTest extends TestCase
 
     public function test_user_can_set_address_as_default_directly(): void
     {
-        Sanctum::actingAs($this->user1);
+        Sanctum::actingAs($this->user1, ['customer']);
 
         $addr1 = UserAddress::query()->create([
             'user_id' => $this->user1->id,

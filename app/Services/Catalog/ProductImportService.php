@@ -133,9 +133,9 @@ class ProductImportService
             'price' => $this->parsePrice($data['price'] ?? 0),
             'compare_at_price' => $this->parsePrice($data['compare_at_price'] ?? null),
             'cost_price' => $this->parsePrice($data['cost_price'] ?? null),
-            'stock_quantity' => (int) ($data['stock_quantity'] ?? 0),
-            'manage_stock' => (bool) ($data['manage_stock'] ?? true),
-            'is_active' => (bool) ($data['is_active'] ?? true),
+            'stock_quantity' => max(0, (int) ($data['stock_quantity'] ?? 0)),
+            'manage_stock' => $this->parseBoolean($data['manage_stock'] ?? true, true),
+            'is_active' => $this->parseBoolean($data['is_active'] ?? true, true),
             'short_description' => [
                 'vi' => $data['short_description_vi'] ?? '',
                 'en' => $data['short_description_en'] ?? '',
@@ -258,6 +258,19 @@ class ProductImportService
         }
 
         return $parentId;
+    }
+
+    private function parseBoolean(mixed $value, bool $default): bool
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        $parsed = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($parsed === null) {
+            throw new RuntimeException('Giá trị boolean không hợp lệ: '.$value);
+        }
+
+        return $parsed;
     }
 
     private function findOrCreateBrand(?string $brandName): ?int

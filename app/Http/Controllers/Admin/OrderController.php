@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendOrderStatusEmail;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderRefundItem;
 use App\Models\OrderStatusHistory;
@@ -15,6 +17,7 @@ use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\PromotionService;
+use App\Services\LocalizedContent;
 use App\Services\ShippingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +31,7 @@ class OrderController extends Controller
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
         private readonly PromotionService $promotionService,
+        private readonly LocalizedContent $localizedContent,
     ) {}
 
     /**
@@ -58,9 +62,14 @@ class OrderController extends Controller
             $query->where('payment_status', $request->input('payment_status'));
         }
 
-        $orders = $query->paginate(10)->withQueryString();
+        if ($request->filled('shipping_status')) {
+            $query->where('shipping_status', $request->input('shipping_status'));
+        }
 
-        return view('admin.orders.index', compact('orders'));
+        $orders = $query->paginate(10)->withQueryString();
+        $shippingStatuses = Order::shippingStatusKeys();
+
+        return view('admin.orders.index', compact('orders', 'shippingStatuses'));
     }
 
     /**
@@ -97,6 +106,10 @@ class OrderController extends Controller
 
                 if (! $statusChanged && ! $paymentChanged) {
                     return ['status_changed' => false];
+                }
+
+                if ($paymentChanged && in_array($validated['payment_status'], ['refunded', 'partially_refunded'], true)) {
+                    throw new \DomainException('Hoàn tiền phải được thực hiện qua chức năng hoàn tiền để đối soát số tiền và tồn kho.');
                 }
 
                 $this->orderStateTransitionService->assertCanTransition(
@@ -150,6 +163,16 @@ class OrderController extends Controller
     public function create()
     {
         return view('admin.orders.create', [
+            'categories' => Category::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(),
+            'brands' => Brand::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(),
             'products' => Product::query()->where('is_active', true)->with(['variants' => fn ($query) => $query->where('is_active', true)])->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::query()->where('status', 'active')->orderBy('name')->get(),
         ]);
@@ -213,9 +236,9 @@ class OrderController extends Controller
                         'product_id' => $product->id,
                         'product_variant_id' => $variant?->id,
                         'promotion_id' => $quote['promotion']?->id,
-                        'product_name' => $product->name,
-                        'variant_name' => $variant?->name,
-                        'promotion_name' => $quote['promotion']?->name,
+                        'product_name' => $this->localizedContent->get($product, 'name'),
+                        'variant_name' => $variant ? $this->localizedContent->get($variant, 'name') : null,
+                        'promotion_name' => $quote['promotion'] ? $this->localizedContent->get($quote['promotion'], 'name') : null,
                         'sku' => $variant?->sku ?: $product->sku,
                         'original_price' => $price,
                         'promotion_discount' => $quote['discount'],
@@ -238,6 +261,7 @@ class OrderController extends Controller
 
                 $order = Order::query()->create([
                     'order_number' => $orderNumber,
+                    'locale' => app()->getLocale(),
                     'customer_name' => $validated['customer_name'],
                     'customer_email' => $validated['customer_email'],
                     'customer_phone' => $validated['customer_phone'],
@@ -291,6 +315,9 @@ class OrderController extends Controller
         try {
             DB::transaction(function () use ($validated, $order): void {
                 $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->id);
+                if (! in_array($lockedOrder->payment_status, ['paid', 'partially_refunded'], true)) {
+                    throw new \DomainException('Chỉ đơn đã thanh toán mới có thể hoàn tiền.');
+                }
                 $alreadyRefunded = (float) $lockedOrder->refunds()->sum('amount');
                 if ($alreadyRefunded >= (float) $lockedOrder->grand_total) {
                     throw new \DomainException('Đơn hàng đã được hoàn tiền toàn bộ.');
@@ -389,13 +416,36 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'carrier' => 'required|in:ghtk',
-            'weight' => 'required|integer|min:1',
+            'weight' => 'required|integer|min:1|max:50000',
             'province' => 'required|string|max:255',
             'district' => 'required|string|max:255',
             'ward' => 'required|string|max:255',
         ]);
 
-        $result = $this->shippingService->pushToGHTK($order, $validated);
+        try {
+            $claimedOrder = DB::transaction(function () use ($order): Order {
+                $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->id);
+                if ($lockedOrder->tracking_number || $lockedOrder->shipping_status === 'shipping_pending') {
+                    throw new \DomainException('Đơn hàng đang hoặc đã được đẩy sang đơn vị vận chuyển.');
+                }
+                if (! Order::canTransitionShippingStatus($lockedOrder->shipping_status ?: 'not_shipped', 'shipping_pending')) {
+                    throw new \DomainException('Trạng thái giao hàng hiện tại không thể đẩy đơn.');
+                }
+                if (! $this->orderStateTransitionService->canTransitionOrderStatus($lockedOrder->status, 'processing')) {
+                    throw new \DomainException('Trạng thái đơn hàng hiện tại không thể đẩy sang giao hàng.');
+                }
+                $lockedOrder->update([
+                    'shipping_status' => 'shipping_pending',
+                    'shipping_status_updated_at' => now(),
+                ]);
+
+                return $lockedOrder->fresh(['items']);
+            }, 3);
+        } catch (\DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
+        }
+
+        $result = $this->shippingService->pushToGHTK($claimedOrder, $validated);
 
         if ($result['success']) {
             try {
@@ -410,8 +460,10 @@ class OrderController extends Controller
                     );
                     $lockedOrder->update([
                         'shipping_carrier' => $validated['carrier'],
-                        'shipping_fee' => $result['fee'],
+                        'carrier_shipping_fee' => $result['fee'],
                         'tracking_number' => $result['tracking_number'],
+                        'shipping_status' => 'shipping_created',
+                        'shipping_status_updated_at' => now(),
                         'status' => 'processing',
                     ]);
 
@@ -429,7 +481,7 @@ class OrderController extends Controller
                     }
                     ActivityLogger::log('shipping_pushed', $lockedOrder, "Đẩy đơn hàng {$lockedOrder->order_number} sang GHTK", [
                         'tracking_number' => $result['tracking_number'],
-                        'shipping_fee' => $result['fee'],
+                        'carrier_shipping_fee' => $result['fee'],
                     ]);
 
                     return $lockedOrder->fresh();
@@ -448,6 +500,13 @@ class OrderController extends Controller
                 'fee' => $result['fee'],
             ]);
         }
+
+        DB::transaction(function () use ($order): void {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if ($lockedOrder->shipping_status === 'shipping_pending' && ! $lockedOrder->tracking_number) {
+                $lockedOrder->update(['shipping_status' => 'not_shipped', 'shipping_status_updated_at' => now()]);
+            }
+        });
 
         return response()->json([
             'success' => false,

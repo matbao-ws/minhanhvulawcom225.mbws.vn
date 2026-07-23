@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Support\Str;
+use App\Services\UserAccessService;
 
 class PublicAuthController extends Controller
 {
@@ -21,7 +24,7 @@ class PublicAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()->symbols()],
         ]);
 
         if ($validator->fails()) {
@@ -32,11 +35,12 @@ class PublicAuthController extends Controller
             'role_id' => null, // Customer role
             'name' => $request->input('name'),
             'email' => $request->email,
+            'preferred_locale' => $request->attributes->get('content_locale', app()->getLocale()),
             'password' => Hash::make($request->input('password')),
             'is_active' => true,
         ]);
 
-        $token = $user->createToken('customer-api')->plainTextToken;
+        $token = $user->createToken('customer-api', ['customer'])->plainTextToken;
 
         return ApiResponse::success([
             'user' => new PublicUserResource($user),
@@ -60,17 +64,16 @@ class PublicAuthController extends Controller
 
         $user = User::query()->where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! $user->is_active || $user->role_id !== null || ! Hash::check($request->password, $user->password)) {
             return ApiResponse::error('Email hoặc mật khẩu không chính xác.', 401);
         }
 
-        if (!$user->is_active) {
-            return ApiResponse::error('Tài khoản đã bị khóa.', 403);
-        }
+        $user->update([
+            'last_login_at' => now(),
+            'preferred_locale' => $request->attributes->get('content_locale', app()->getLocale()),
+        ]);
 
-        $user->update(['last_login_at' => now()]);
-
-        $token = $user->createToken('customer-api')->plainTextToken;
+        $token = $user->createToken('customer-api', ['customer'])->plainTextToken;
 
         return ApiResponse::success([
             'user' => new PublicUserResource($user),
@@ -105,20 +108,19 @@ class PublicAuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Email không tồn tại trên hệ thống.', 422, $validator->errors()->toArray());
+            return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $status = Password::sendResetLink($request->only('email'));
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return ApiResponse::success(null, 'Email khôi phục mật khẩu đã được gửi.');
+        $user = User::query()->where('email', $request->input('email'))->whereNull('role_id')->first();
+        if ($user) {
+            Password::sendResetLink(['email' => $user->email]);
         }
 
-        return ApiResponse::error('Không thể gửi email khôi phục mật khẩu.', 500);
+        return ApiResponse::success(null, 'Nếu email tồn tại, liên kết khôi phục mật khẩu đã được gửi.');
     }
 
     /**
@@ -128,20 +130,26 @@ class PublicAuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'token' => 'required|string',
-            'email' => 'required|email|exists:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'email' => 'required|email',
+            'password' => ['required', 'string', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()->symbols()],
         ]);
 
         if ($validator->fails()) {
             return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
+        if (! User::query()->where('email', $request->input('email'))->whereNull('role_id')->exists()) {
+            return ApiResponse::error('Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.', 400);
+        }
+
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 $user->forceFill([
-                    'password' => Hash::make($password)
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
                 ])->save();
+                app(UserAccessService::class)->revoke($user);
             }
         );
 

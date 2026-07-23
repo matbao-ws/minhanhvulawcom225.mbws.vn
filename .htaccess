@@ -1,0 +1,16 @@
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "(^\.|^(?:artisan|composer\.(?:json|lock|phar)|phpunit\.xml|vite\.config\.js|package(?:-lock)?\.json)$|\.(?:env|log|sql|sqlite|bak|backup|ini|ya?ml|lock)$)">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Only the public directory is a web entry point.
+    RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|tests|vendor)(?:/|$) - [F,L,NC]
+    RewriteRule ^public/(.*)$ public/$1 [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

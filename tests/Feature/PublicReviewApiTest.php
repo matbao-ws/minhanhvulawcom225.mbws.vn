@@ -81,7 +81,7 @@ class PublicReviewApiTest extends TestCase
             'shipping_address' => '123 Test St',
             'payment_method' => 'cod',
             'payment_status' => 'pending',
-            'status' => 'processing',
+            'status' => 'completed',
             'subtotal' => $product->price,
             'discount' => 0.00,
             'grand_total' => $product->price,
@@ -101,13 +101,14 @@ class PublicReviewApiTest extends TestCase
     public function test_guest_can_submit_review_with_valid_data(): void
     {
         // Purchase first
-        $this->createOrderForProduct($this->product, [
+        $order = $this->createOrderForProduct($this->product, [
             'customer_email' => 'guest@example.com'
         ]);
 
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
             'customer_name' => 'Khách Vãng Lai',
             'customer_email' => 'guest@example.com',
+            'order_number' => $order->order_number,
             'rating' => 5,
             'comment' => 'Sản phẩm rất tốt, giao hàng nhanh!',
         ]);
@@ -132,13 +133,14 @@ class PublicReviewApiTest extends TestCase
     public function test_guest_can_submit_review_using_product_slug(): void
     {
         // Purchase first
-        $this->createOrderForProduct($this->product, [
+        $order = $this->createOrderForProduct($this->product, [
             'customer_email' => 'guest.slug@example.com'
         ]);
 
         $response = $this->postJson("/api/public/products/{$this->product->slug}/reviews", [
             'customer_name' => 'Guest User',
             'customer_email' => 'guest.slug@example.com',
+            'order_number' => $order->order_number,
             'rating' => 4,
             'comment' => 'Đánh giá qua slug thành công',
         ]);
@@ -196,7 +198,7 @@ class PublicReviewApiTest extends TestCase
             'user_id' => $user->id
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, ['customer']);
 
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
             'rating' => 5,
@@ -230,7 +232,7 @@ class PublicReviewApiTest extends TestCase
             'user_id' => $user->id
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, ['customer']);
 
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
             'customer_name' => 'Tên Hiển Thị Khác',
@@ -254,6 +256,7 @@ class PublicReviewApiTest extends TestCase
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
             'customer_name' => 'No Purchase',
             'customer_email' => 'no.purchase@example.com',
+            'order_number' => 'ORD-NO-PURCHASE',
             'rating' => 5,
             'comment' => 'Chưa mua hàng mà đòi đánh giá',
         ]);
@@ -268,7 +271,7 @@ class PublicReviewApiTest extends TestCase
     public function test_cannot_submit_review_if_order_is_cancelled(): void
     {
         // Purchase, but cancelled
-        $this->createOrderForProduct($this->product, [
+        $order = $this->createOrderForProduct($this->product, [
             'customer_email' => 'cancelled@example.com',
             'status' => 'cancelled'
         ]);
@@ -276,6 +279,7 @@ class PublicReviewApiTest extends TestCase
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
             'customer_name' => 'Cancelled Guest',
             'customer_email' => 'cancelled@example.com',
+            'order_number' => $order->order_number,
             'rating' => 5,
             'comment' => 'Đơn hàng đã hủy không được đánh giá',
         ]);

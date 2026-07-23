@@ -2,14 +2,29 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Models\PostCategory;
+use App\Services\ActivityLogger;
+use App\Services\CloudinaryService;
+use App\Services\LanguageRegistry;
+use App\Services\LocalizedSlugService;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
+    use HandlesBulkActions;
+
+    public function __construct(
+        private readonly LanguageRegistry $languages,
+        private readonly LocalizedSlugService $localizedSlugs,
+        private readonly HtmlSanitizer $htmlSanitizer,
+    ) {}
+
     /**
      * Display a listing of posts.
      */
@@ -54,48 +69,37 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:posts,slug',
-            'category_id' => 'nullable|exists:post_categories,id',
-            'summary' => 'nullable|string',
-            'content' => 'required|string',
-            'image_file' => 'nullable|image|max:2048',
-            'seo_title' => 'nullable|string|max:255',
-            'seo_description' => 'nullable|string',
-            'seo_keys' => 'nullable|string|max:255',
-        ]);
-
-        $locale = app()->getLocale() ?: 'vi';
-        $title = trim($validated['title']);
-        $slug = isset($validated['slug']) && $validated['slug'] !== '' 
-            ? Str::slug($validated['slug']) 
-            : Str::slug($title);
-
-        $slugCount = Post::query()->where('slug', 'like', "{$slug}%")->count();
-        if ($slugCount > 0) {
-            $slug = $slug . '-' . time();
-        }
+        $this->normalizeLegacyInput($request);
+        $validated = $request->validate($this->rules());
+        $titles = $this->cleanTranslations($validated['title']);
+        $submittedSlugs = $this->cleanTranslations($validated['slug'] ?? []);
+        $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $titles[$this->languages->defaultLocale()];
 
         $imageUrl = null;
         if ($request->hasFile('image_file')) {
-            $cloudinaryService = app(\App\Services\CloudinaryService::class);
+            $cloudinaryService = app(CloudinaryService::class);
             $imageUrl = $cloudinaryService->uploadFile($request->file('image_file'), 'posts');
         }
 
-        $post = Post::create([
-            'category_id' => $validated['category_id'] ?? null,
-            'title' => [$locale => $title],
-            'slug' => $slug,
-            'summary' => isset($validated['summary']) ? [$locale => trim($validated['summary'])] : null,
-            'content' => [$locale => $validated['content']],
-            'image_url' => $imageUrl,
-            'is_active' => $request->has('is_active'),
-            'seo_title' => isset($validated['seo_title']) ? [$locale => trim($validated['seo_title'])] : null,
-            'seo_description' => isset($validated['seo_description']) ? [$locale => trim($validated['seo_description'])] : null,
-            'seo_keys' => $validated['seo_keys'] ?? null,
-            'published_at' => $request->has('is_active') ? now() : null,
-        ]);
+        $post = DB::transaction(function () use ($validated, $titles, $submittedSlugs, $baseSlug, $imageUrl, $request) {
+            $active = $request->boolean('is_active');
+            $post = Post::query()->create([
+                'category_id' => $validated['category_id'] ?? null,
+                'title' => $titles,
+                'slug' => $this->uniqueLegacySlug($baseSlug),
+                'summary' => $this->cleanTranslations($validated['summary'] ?? []),
+                'content' => $this->cleanTranslations($validated['content'], true),
+                'image_url' => $imageUrl,
+                'is_active' => $active,
+                'seo_title' => $this->cleanTranslations($validated['seo_title'] ?? []),
+                'seo_description' => $this->cleanTranslations($validated['seo_description'] ?? []),
+                'seo_keys' => $validated['seo_keys'] ?? null,
+                'published_at' => $active ? now() : null,
+            ]);
+            $this->localizedSlugs->sync($post, $submittedSlugs, $titles);
+
+            return $post;
+        });
 
         return redirect()
             ->route('admin.posts.index')
@@ -116,6 +120,7 @@ class PostController extends Controller
     public function edit(string $locale, Post $post)
     {
         $categories = $this->categoryOptions();
+
         return view('admin.posts.edit', compact('post', 'categories'));
     }
 
@@ -124,69 +129,35 @@ class PostController extends Controller
      */
     public function update(Request $request, string $locale, Post $post)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'slug' => "nullable|string|max:255|unique:posts,slug,{$post->id}",
-            'category_id' => 'nullable|exists:post_categories,id',
-            'summary' => 'nullable|string',
-            'content' => 'required|string',
-            'image_file' => 'nullable|image|max:2048',
-            'seo_title' => 'nullable|string|max:255',
-            'seo_description' => 'nullable|string',
-            'seo_keys' => 'nullable|string|max:255',
-        ]);
-
-        $title = trim($validated['title']);
-        $slug = isset($validated['slug']) && $validated['slug'] !== '' 
-            ? Str::slug($validated['slug']) 
-            : Str::slug($title);
+        $this->normalizeLegacyInput($request);
+        $validated = $request->validate($this->rules());
+        $titles = $this->mergeTranslations($post, 'title', $validated['title']);
+        $submittedSlugs = $this->cleanTranslations($validated['slug'] ?? []);
+        $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $post->slug;
 
         $imageUrl = $post->image_url;
         if ($request->hasFile('image_file')) {
-            $cloudinaryService = app(\App\Services\CloudinaryService::class);
+            $cloudinaryService = app(CloudinaryService::class);
             $imageUrl = $cloudinaryService->uploadFile($request->file('image_file'), 'posts');
         }
 
-        $titleTrans = $post->getTranslations('title');
-        $titleTrans[$locale] = $title;
-
-        $summaryTrans = $post->getTranslations('summary');
-        if (isset($validated['summary']) && trim($validated['summary']) !== '') {
-            $summaryTrans[$locale] = trim($validated['summary']);
-        } else {
-            unset($summaryTrans[$locale]);
-        }
-
-        $contentTrans = $post->getTranslations('content');
-        $contentTrans[$locale] = $validated['content'];
-
-        $seoTitleTrans = $post->getTranslations('seo_title');
-        if (isset($validated['seo_title']) && trim($validated['seo_title']) !== '') {
-            $seoTitleTrans[$locale] = trim($validated['seo_title']);
-        } else {
-            unset($seoTitleTrans[$locale]);
-        }
-
-        $seoDescTrans = $post->getTranslations('seo_description');
-        if (isset($validated['seo_description']) && trim($validated['seo_description']) !== '') {
-            $seoDescTrans[$locale] = trim($validated['seo_description']);
-        } else {
-            unset($seoDescTrans[$locale]);
-        }
-
-        $post->update([
-            'category_id' => $validated['category_id'] ?? null,
-            'title' => $titleTrans,
-            'slug' => $slug,
-            'summary' => $summaryTrans,
-            'content' => $contentTrans,
-            'image_url' => $imageUrl,
-            'is_active' => $request->has('is_active'),
-            'seo_title' => $seoTitleTrans,
-            'seo_description' => $seoDescTrans,
-            'seo_keys' => $validated['seo_keys'] ?? null,
-            'published_at' => $request->has('is_active') ? ($post->published_at ?: now()) : null,
-        ]);
+        DB::transaction(function () use ($post, $validated, $titles, $submittedSlugs, $baseSlug, $imageUrl, $request): void {
+            $active = $request->boolean('is_active');
+            $post->update([
+                'category_id' => $validated['category_id'] ?? null,
+                'title' => $titles,
+                'slug' => $this->uniqueLegacySlug($baseSlug, $post->id),
+                'summary' => $this->mergeTranslations($post, 'summary', $validated['summary'] ?? []),
+                'content' => $this->mergeTranslations($post, 'content', $validated['content'], true),
+                'image_url' => $imageUrl,
+                'is_active' => $active,
+                'seo_title' => $this->mergeTranslations($post, 'seo_title', $validated['seo_title'] ?? []),
+                'seo_description' => $this->mergeTranslations($post, 'seo_description', $validated['seo_description'] ?? []),
+                'seo_keys' => $validated['seo_keys'] ?? null,
+                'published_at' => $active ? ($post->published_at ?: now()) : null,
+            ]);
+            $this->localizedSlugs->sync($post, $submittedSlugs, $titles);
+        });
 
         return redirect()
             ->route('admin.posts.index')
@@ -199,9 +170,46 @@ class PostController extends Controller
     public function destroy(string $locale, Post $post)
     {
         $post->delete();
+
         return redirect()
             ->route('admin.posts.index')
             ->with('success', __('admin.posts.deleted'));
+    }
+
+    public function bulk(Request $request, string $locale)
+    {
+        $validated = $this->validatedBulkAction($request, 'posts');
+        $ids = $validated['ids'];
+
+        if ($validated['action'] === 'delete') {
+            $deleted = DB::transaction(function () use ($ids): int {
+                $posts = Post::query()->whereIn('id', $ids)->lockForUpdate()->get();
+                $posts->each->delete();
+
+                return $posts->count();
+            });
+            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt bài viết', [
+                'model' => Post::class,
+                'ids' => $ids,
+                'count' => $deleted,
+            ]);
+
+            return back()->with('success', 'Đã xóa '.$deleted.' bài viết.');
+        }
+
+        $isActive = $validated['action'] === 'activate';
+        $updated = Post::query()->whereIn('id', $ids)->update([
+            'is_active' => $isActive,
+            'published_at' => $isActive ? DB::raw('COALESCE(published_at, CURRENT_TIMESTAMP)') : null,
+        ]);
+        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt bài viết', [
+            'model' => Post::class,
+            'ids' => $ids,
+            'count' => $updated,
+            'is_active' => $isActive,
+        ]);
+
+        return back()->with('success', 'Đã '.($isActive ? 'xuất bản' : 'tạm ẩn').' '.$updated.' bài viết.');
     }
 
     /**
@@ -234,5 +242,64 @@ class PostController extends Controller
         $flatten($rootCategories);
 
         return $flatOptions;
+    }
+
+    private function rules(): array
+    {
+        $rules = [
+            'title' => ['required', 'array'], 'slug' => ['nullable', 'array'],
+            'summary' => ['nullable', 'array'], 'content' => ['required', 'array'],
+            'seo_title' => ['nullable', 'array'], 'seo_description' => ['nullable', 'array'],
+            'category_id' => ['nullable', 'exists:post_categories,id'], 'image_file' => ['nullable', 'image', 'max:2048'],
+            'seo_keys' => ['nullable', 'string', 'max:255'], 'is_active' => ['nullable', 'boolean'],
+        ];
+        foreach ($this->languages->codes() as $code) {
+            $required = $code === $this->languages->defaultLocale() ? 'required' : 'nullable';
+            $rules["title.$code"] = [$required, 'string', 'max:255'];
+            $rules["slug.$code"] = ['nullable', 'string', 'max:255'];
+            $rules["summary.$code"] = ['nullable', 'string'];
+            $rules["content.$code"] = [$required, 'string'];
+            $rules["seo_title.$code"] = ['nullable', 'string', 'max:255'];
+            $rules["seo_description.$code"] = ['nullable', 'string'];
+        }
+
+        return $rules;
+    }
+
+    private function normalizeLegacyInput(Request $request): void
+    {
+        $locale = $this->languages->resolve((string) ($request->route('locale') ?: app()->getLocale()));
+        foreach (['title', 'slug', 'summary', 'content', 'seo_title', 'seo_description'] as $field) {
+            if (is_string($request->input($field))) {
+                $values = [$locale => $request->input($field)];
+                if ($locale !== $this->languages->defaultLocale()) {
+                    $values[$this->languages->defaultLocale()] = $request->input($field);
+                }
+                $request->merge([$field => $values]);
+            }
+        }
+    }
+
+    private function cleanTranslations(array $values, bool $html = false): array
+    {
+        return collect($values)->filter(fn ($value, $code) => $this->languages->supports((string) $code) && is_string($value) && trim($value) !== '')
+            ->map(fn (string $value) => $html ? $this->htmlSanitizer->clean(trim($value)) : trim($value))->all();
+    }
+
+    private function mergeTranslations(Post $post, string $field, array $values, bool $html = false): array
+    {
+        return [...$post->getTranslations($field), ...$this->cleanTranslations($values, $html)];
+    }
+
+    private function uniqueLegacySlug(string $value, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($value) ?: Str::lower(Str::random(8));
+        $slug = $base;
+        $counter = 2;
+        while (Post::query()->where('slug', $slug)->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))->exists()) {
+            $slug = $base.'-'.$counter++;
+        }
+
+        return $slug;
     }
 }

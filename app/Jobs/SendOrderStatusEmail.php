@@ -42,7 +42,7 @@ class SendOrderStatusEmail implements ShouldQueue
             return;
         }
 
-        Mail::to($this->recipient)->send(new OrderStatusMail($order));
+        Mail::to($this->recipient)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order));
     }
 
     public function failed(Throwable $exception): void

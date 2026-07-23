@@ -69,7 +69,7 @@ class PaymentMethodTest extends TestCase
     public function test_guests_cannot_access_payment_methods(): void
     {
         $response = $this->get('/vi/admin/payment-methods');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_unauthorized_users_cannot_access_payment_methods(): void
@@ -121,7 +121,7 @@ class PaymentMethodTest extends TestCase
         $this->assertEquals('inactive', $method->status);
     }
 
-    public function test_admin_can_toggle_configured_payment_method(): void
+    public function test_admin_cannot_activate_an_unimplemented_payment_gateway(): void
     {
         $method = PaymentMethod::where('method_code', 'stripe')->firstOrFail();
         $method->update([
@@ -135,12 +135,11 @@ class PaymentMethodTest extends TestCase
 
         $response->assertOk();
         $response->assertJson([
-            'success' => true,
-            'status' => 'active',
+            'success' => false,
         ]);
 
         $method->refresh();
-        $this->assertEquals('active', $method->status);
+        $this->assertEquals('inactive', $method->status);
     }
 
     public function test_admin_can_update_payment_method_settings(): void

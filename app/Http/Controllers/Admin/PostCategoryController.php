@@ -3,12 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\PostCategoryRequest;
 use App\Models\PostCategory;
+use App\Services\LanguageRegistry;
+use App\Services\LocalizedSlugService;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class PostCategoryController extends Controller
 {
+    public function __construct(
+        private readonly LanguageRegistry $languages,
+        private readonly LocalizedSlugService $localizedSlugs,
+        private readonly HtmlSanitizer $htmlSanitizer,
+    ) {
+    }
+
     /**
      * Display a listing of categories.
      */
@@ -83,37 +95,22 @@ class PostCategoryController extends Controller
     /**
      * Store a newly created category.
      */
-    public function store(Request $request)
+    public function store(PostCategoryRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:post_categories,slug',
-            'parent_id' => 'nullable|exists:post_categories,id',
-            'description' => 'nullable|string',
-            'sort_order' => 'nullable|integer',
-        ]);
-
-        $locale = app()->getLocale() ?: 'vi';
-        $name = trim($validated['name']);
-        
-        $slug = isset($validated['slug']) && $validated['slug'] !== '' 
-            ? Str::slug($validated['slug']) 
-            : Str::slug($name);
-
-        // Ensure slug is unique
-        $slugCount = PostCategory::query()->where('slug', 'like', "{$slug}%")->count();
-        if ($slugCount > 0) {
-            $slug = $slug . '-' . time();
-        }
-
-        PostCategory::create([
-            'parent_id' => $validated['parent_id'] ?? null,
-            'name' => [$locale => $name],
-            'slug' => $slug,
-            'description' => isset($validated['description']) ? [$locale => trim($validated['description'])] : null,
-            'is_active' => (bool) $request->input('is_active', true),
-            'sort_order' => $validated['sort_order'] ?? 0,
-        ]);
+        $validated = $request->validated();
+        $names = $this->cleanTranslations($validated['name']);
+        $slugs = $this->cleanTranslations($validated['slug'] ?? []);
+        DB::transaction(function () use ($validated, $names, $slugs, $request): void {
+            $category = PostCategory::query()->create([
+                'parent_id' => $validated['parent_id'] ?? null,
+                'name' => $names,
+                'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $names[$this->languages->defaultLocale()]),
+                'description' => $this->cleanTranslations($validated['description'] ?? [], true),
+                'is_active' => $request->boolean('is_active', true),
+                'sort_order' => $validated['sort_order'] ?? 0,
+            ]);
+            $this->localizedSlugs->sync($category, $slugs, $names);
+        });
 
         return redirect()
             ->route('admin.post-categories.index')
@@ -134,39 +131,23 @@ class PostCategoryController extends Controller
     /**
      * Update the category.
      */
-    public function update(Request $request, string $locale, PostCategory $postCategory)
+    public function update(PostCategoryRequest $request, string $locale, PostCategory $postCategory)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => "nullable|string|max:255|unique:post_categories,slug,{$postCategory->id}",
-            'parent_id' => 'nullable|exists:post_categories,id',
-            'description' => 'nullable|string',
-            'sort_order' => 'nullable|integer',
-        ]);
-
-        $name = trim($validated['name']);
-        $slug = isset($validated['slug']) && $validated['slug'] !== '' 
-            ? Str::slug($validated['slug']) 
-            : Str::slug($name);
-
-        $nameTranslations = $postCategory->getTranslations('name');
-        $nameTranslations[$locale] = $name;
-
-        $descTranslations = $postCategory->getTranslations('description');
-        if (isset($validated['description']) && trim($validated['description']) !== '') {
-            $descTranslations[$locale] = trim($validated['description']);
-        } else {
-            unset($descTranslations[$locale]);
-        }
-
-        $postCategory->update([
-            'parent_id' => $validated['parent_id'] ?? null,
-            'name' => $nameTranslations,
-            'slug' => $slug,
-            'description' => $descTranslations,
-            'is_active' => (bool) $request->input('is_active', true),
-            'sort_order' => $validated['sort_order'] ?? 0,
-        ]);
+        $validated = $request->validated();
+        $this->assertNoParentCycle($postCategory, $validated['parent_id'] ?? null);
+        $names = $this->mergeTranslations($postCategory, 'name', $validated['name']);
+        $slugs = $this->cleanTranslations($validated['slug'] ?? []);
+        DB::transaction(function () use ($postCategory, $validated, $names, $slugs, $request): void {
+            $postCategory->update([
+                'parent_id' => $validated['parent_id'] ?? null,
+                'name' => $names,
+                'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $postCategory->slug, $postCategory->id),
+                'description' => $this->mergeTranslations($postCategory, 'description', $validated['description'] ?? [], true),
+                'is_active' => $request->boolean('is_active', true),
+                'sort_order' => $validated['sort_order'] ?? 0,
+            ]);
+            $this->localizedSlugs->sync($postCategory, $slugs, $names);
+        });
 
         return redirect()
             ->route('admin.post-categories.index')
@@ -176,37 +157,22 @@ class PostCategoryController extends Controller
     /**
      * Quick update for Category (via Quick Edit Modal)
      */
-    public function quickUpdate(Request $request, string $locale, PostCategory $postCategory)
+    public function quickUpdate(PostCategoryRequest $request, string $locale, PostCategory $postCategory)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => "nullable|string|max:255|unique:post_categories,slug,{$postCategory->id}",
-            'parent_id' => 'nullable|exists:post_categories,id',
-            'description' => 'nullable|string',
-        ]);
-
-        $name = trim($validated['name']);
-        $slug = isset($validated['slug']) && $validated['slug'] !== '' 
-            ? Str::slug($validated['slug']) 
-            : Str::slug($name);
-
-        $nameTranslations = $postCategory->getTranslations('name');
-        $nameTranslations[$locale] = $name;
-
-        $descTranslations = $postCategory->getTranslations('description');
-        if (isset($validated['description']) && trim($validated['description']) !== '') {
-            $descTranslations[$locale] = trim($validated['description']);
-        } else {
-            unset($descTranslations[$locale]);
-        }
-
-        $postCategory->update([
-            'parent_id' => $validated['parent_id'] ?? null,
-            'name' => $nameTranslations,
-            'slug' => $slug,
-            'description' => $descTranslations,
-            'is_active' => (bool) $request->input('is_active', true),
-        ]);
+        $validated = $request->validated();
+        $this->assertNoParentCycle($postCategory, $validated['parent_id'] ?? null);
+        $names = $this->mergeTranslations($postCategory, 'name', $validated['name']);
+        $slugs = $this->cleanTranslations($validated['slug'] ?? []);
+        DB::transaction(function () use ($postCategory, $validated, $names, $slugs, $request): void {
+            $postCategory->update([
+                'parent_id' => $validated['parent_id'] ?? null,
+                'name' => $names,
+                'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $postCategory->slug, $postCategory->id),
+                'description' => $this->mergeTranslations($postCategory, 'description', $validated['description'] ?? [], true),
+                'is_active' => $request->boolean('is_active', true),
+            ]);
+            $this->localizedSlugs->sync($postCategory, $slugs, $names);
+        });
 
         return redirect()
             ->route('admin.post-categories.index')
@@ -288,5 +254,36 @@ class PostCategoryController extends Controller
         $flatten($rootCategories);
 
         return $flatOptions;
+    }
+
+    private function assertNoParentCycle(PostCategory $category, ?int $parentId): void
+    {
+        $current = $parentId ? PostCategory::find($parentId) : null;
+        while ($current) {
+            if ($current->is($category)) {
+                abort(422, 'Chuyên mục cha không thể là chuyên mục con của chính nó.');
+            }
+            $current = $current->parent_id ? PostCategory::find($current->parent_id) : null;
+        }
+    }
+
+    private function cleanTranslations(array $values, bool $html = false): array
+    {
+        return collect($values)->filter(fn ($value, $code) => $this->languages->supports((string) $code) && is_string($value) && trim($value) !== '')
+            ->map(fn (string $value) => $html ? $this->htmlSanitizer->clean(trim($value)) : trim($value))->all();
+    }
+
+    private function mergeTranslations(PostCategory $category, string $field, array $values, bool $html = false): array
+    {
+        return [...$category->getTranslations($field), ...$this->cleanTranslations($values, $html)];
+    }
+
+    private function uniqueLegacySlug(string $value, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($value) ?: Str::lower(Str::random(8));
+        $slug = $base;
+        $counter = 2;
+        while (PostCategory::query()->where('slug', $slug)->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))->exists()) $slug = $base.'-'.$counter++;
+        return $slug;
     }
 }

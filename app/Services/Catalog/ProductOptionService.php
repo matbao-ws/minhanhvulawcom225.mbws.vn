@@ -8,9 +8,14 @@ use App\Models\ProductOptionValue;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\LanguageRegistry;
 
 class ProductOptionService
 {
+    public function __construct(private readonly LanguageRegistry $languages)
+    {
+    }
+
     /**
      * Synchronise the product option catalogue. Values already used by a SKU can
      * be renamed or disabled, but cannot be silently deleted.
@@ -29,8 +34,8 @@ class ProductOptionService
 
                 $group ??= new ProductOptionGroup(['product_id' => $product->id]);
                 $group->fill([
-                    'name' => $this->translations($input['name']),
-                    'code' => $this->uniqueGroupCode($product, $input['name'], $group->exists ? $group->id : null),
+                    'name' => $this->translations($input['name'], $group->getTranslations('name')),
+                    'code' => $this->uniqueGroupCode($product, $this->defaultValue($input['name']), $group->exists ? $group->id : null),
                     'display_type' => $input['display_type'] ?? 'select',
                     'sort_order' => $groupOrder,
                 ])->save();
@@ -46,8 +51,8 @@ class ProductOptionService
 
                     $value ??= new ProductOptionValue(['product_option_group_id' => $group->id]);
                     $value->fill([
-                        'label' => $this->translations($valueInput['label']),
-                        'code' => $this->uniqueValueCode($group, $valueInput['label'], $value->exists ? $value->id : null),
+                        'label' => $this->translations($valueInput['label'], $value->getTranslations('label')),
+                        'code' => $this->uniqueValueCode($group, $this->defaultValue($valueInput['label']), $value->exists ? $value->id : null),
                         'color_hex' => $valueInput['color_hex'] ?? null,
                         'image_url' => $valueInput['image_url'] ?? null,
                         'sort_order' => $valueOrder,
@@ -71,11 +76,22 @@ class ProductOptionService
         });
     }
 
-    private function translations(string $value): array
+    private function translations(string|array $value, array $existing = []): array
     {
-        $value = trim($value);
+        if (is_string($value)) {
+            $value = trim($value);
+            return [...$existing, ...collect($this->languages->codes())->mapWithKeys(fn (string $locale) => [$locale => $value])->all()];
+        }
 
-        return ['vi' => $value, 'en' => $value];
+        return [...$existing, ...collect($value)
+            ->filter(fn ($translation, $locale) => $this->languages->supports((string) $locale) && is_string($translation) && trim($translation) !== '')
+            ->map(fn (string $translation) => trim($translation))->all()];
+    }
+
+    private function defaultValue(string|array $value): string
+    {
+        if (is_string($value)) return $value;
+        return (string) ($value[$this->languages->defaultLocale()] ?? collect($value)->first() ?? '');
     }
 
     private function uniqueGroupCode(Product $product, string $name, ?int $ignoreId): string

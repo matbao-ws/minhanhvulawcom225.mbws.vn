@@ -9,7 +9,7 @@ class OrderStateTransitionService
     private const ORDER_TRANSITIONS = [
         'pending' => ['processing', 'cancelled'],
         'processing' => ['completed', 'cancelled'],
-        'completed' => ['cancelled'],
+        'completed' => [],
         'cancelled' => [],
     ];
 

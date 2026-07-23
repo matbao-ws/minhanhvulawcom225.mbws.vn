@@ -135,7 +135,7 @@ class VariantV2Test extends TestCase
                     ],
                 ],
             ],
-        ])->assertRedirect();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $product = Product::query()->where('slug', 'ao-thun-variant-v2')->firstOrFail();
         $this->assertSame(2, $product->optionGroups()->count());

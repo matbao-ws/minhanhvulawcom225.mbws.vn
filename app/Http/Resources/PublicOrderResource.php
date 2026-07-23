@@ -13,6 +13,7 @@ class PublicOrderResource extends JsonResource
     {
         return [
             'order_number' => $this->order_number,
+            'locale' => $this->locale,
             'customer_name' => $this->customer_name,
             'customer_email' => $this->customer_email,
             'customer_phone' => $this->customer_phone,
@@ -24,6 +25,7 @@ class PublicOrderResource extends JsonResource
             'discount' => $this->discount,
             'promotion_discount' => $this->promotion_discount,
             'shipping_fee' => $this->shipping_fee,
+            'shipping_status' => $this->shipping_status,
             'grand_total' => $this->grand_total,
             'tracking_number' => $this->tracking_number,
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [

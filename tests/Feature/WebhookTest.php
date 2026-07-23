@@ -64,7 +64,7 @@ class WebhookTest extends TestCase
 
     public function test_ghtk_webhook_fails_with_invalid_token(): void
     {
-        $response = $this->postJson('/api/webhooks/ghtk?token=wrong-token', [
+        $response = $this->withHeader('X-GHTK-Token', 'wrong-token')->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.123456',
             'status_id' => 3,
@@ -86,7 +86,7 @@ class WebhookTest extends TestCase
         $settings['realtime_tracking_enabled'] = false;
         $partner->update(['settings' => $settings]);
 
-        $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'status_id' => 3,
         ])->assertUnauthorized();
@@ -96,21 +96,18 @@ class WebhookTest extends TestCase
 
     public function test_ghtk_webhook_fails_with_missing_partner_id(): void
     {
-        $response = $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $response = $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'label_id' => 'GHTK.123456',
             'status_id' => 3,
         ]);
 
         $response->assertStatus(422);
-        $response->assertJson([
-            'success' => false,
-            'message' => 'partner_id is required.',
-        ]);
+        $response->assertJsonValidationErrors(['partner_id']);
     }
 
     public function test_ghtk_webhook_fails_with_non_existing_order(): void
     {
-        $response = $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $response = $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => 'ORD-NON-EXISTENT',
             'label_id' => 'GHTK.123456',
             'status_id' => 3,
@@ -119,7 +116,7 @@ class WebhookTest extends TestCase
         $response->assertStatus(404);
         $response->assertJson([
             'success' => false,
-            'message' => 'Order not found: ORD-NON-EXISTENT',
+            'message' => 'Order not found.',
         ]);
     }
 
@@ -127,7 +124,7 @@ class WebhookTest extends TestCase
     {
         Mail::fake();
 
-        $response = $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $response = $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.ABC123456',
             'status_id' => 3, // Đã lấy hàng
@@ -139,13 +136,17 @@ class WebhookTest extends TestCase
             'success' => true,
             'order_status' => 'processing',
             'payment_status' => 'pending',
+            'shipping_status' => 'picked_up',
         ]);
 
         $this->order->refresh();
         $this->assertEquals('processing', $this->order->status);
         $this->assertEquals('GHTK.ABC123456', $this->order->tracking_number);
-        $this->assertEquals(28000.00, $this->order->shipping_fee);
+        $this->assertEquals(28000.00, $this->order->carrier_shipping_fee);
+        $this->assertEquals(0.00, $this->order->shipping_fee);
         $this->assertEquals('ghtk', $this->order->shipping_carrier);
+        $this->assertSame('picked_up', $this->order->shipping_status);
+        $this->assertNotNull($this->order->shipping_status_updated_at);
 
         Mail::assertSent(OrderStatusMail::class, function ($mail) {
             return $mail->hasTo($this->order->customer_email);
@@ -159,7 +160,7 @@ class WebhookTest extends TestCase
         // Pretend the order was processing
         $this->order->update(['status' => 'processing']);
 
-        $response = $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $response = $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.ABC123456',
             'status_id' => 5, // Đã giao hàng / Chưa đối soát
@@ -171,12 +172,14 @@ class WebhookTest extends TestCase
             'success' => true,
             'order_status' => 'completed',
             'payment_status' => 'paid',
+            'shipping_status' => 'delivered',
         ]);
 
         $this->order->refresh();
         $this->assertEquals('completed', $this->order->status);
         $this->assertEquals('paid', $this->order->payment_status);
-        $this->assertEquals(32000.00, $this->order->shipping_fee);
+        $this->assertEquals(32000.00, $this->order->carrier_shipping_fee);
+        $this->assertSame('delivered', $this->order->shipping_status);
 
         Mail::assertSent(OrderStatusMail::class, function ($mail) {
             return $mail->hasTo($this->order->customer_email);
@@ -187,7 +190,7 @@ class WebhookTest extends TestCase
     {
         Mail::fake();
 
-        $response = $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $response = $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.ABC123456',
             'status_id' => -1, // Hủy đơn hàng
@@ -197,21 +200,23 @@ class WebhookTest extends TestCase
         $response->assertJson([
             'success' => true,
             'order_status' => 'cancelled',
+            'shipping_status' => 'cancelled',
         ]);
 
         $this->order->refresh();
         $this->assertEquals('cancelled', $this->order->status);
+        $this->assertSame('cancelled', $this->order->shipping_status);
 
         Mail::assertSent(OrderStatusMail::class, function ($mail) {
             return $mail->hasTo($this->order->customer_email);
         });
     }
 
-    public function test_ghtk_webhook_updates_status_to_cancelled_for_failed_pickup(): void
+    public function test_ghtk_webhook_records_failed_pickup_without_cancelling_the_order(): void
     {
         Mail::fake();
 
-        $response = $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $response = $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.ABC123456',
             'status_id' => 7, // Không lấy được hàng
@@ -220,27 +225,45 @@ class WebhookTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
-            'order_status' => 'cancelled',
+            'order_status' => 'pending',
+            'shipping_status' => 'pickup_failed',
         ]);
 
         $this->order->refresh();
-        $this->assertEquals('cancelled', $this->order->status);
+        $this->assertEquals('pending', $this->order->status);
+        $this->assertSame('pickup_failed', $this->order->shipping_status);
 
-        Mail::assertSent(OrderStatusMail::class, function ($mail) {
-            return $mail->hasTo($this->order->customer_email);
-        });
+        Mail::assertNothingSent();
     }
 
     public function test_ghtk_webhook_ignores_a_stale_status_that_would_reopen_an_order(): void
     {
         $this->order->update(['status' => 'processing']);
 
-        $this->postJson("/api/webhooks/ghtk?token={$this->webhookToken}", [
+        $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
             'partner_id' => $this->order->order_number,
             'label_id' => 'GHTK.ABC123456',
             'status_id' => 1,
         ])->assertOk()->assertJson(['order_status' => 'processing']);
 
         $this->assertSame('processing', $this->order->fresh()->status);
+    }
+
+    public function test_ghtk_webhook_does_not_replace_a_terminal_shipping_status_with_a_stale_update(): void
+    {
+        $this->order->update([
+            'status' => 'completed',
+            'shipping_status' => 'delivered',
+        ]);
+
+        $this->withHeader('X-GHTK-Token', $this->webhookToken)->postJson('/api/webhooks/ghtk', [
+            'partner_id' => $this->order->order_number,
+            'status_id' => 4,
+        ])->assertOk()->assertJson([
+            'order_status' => 'completed',
+            'shipping_status' => 'delivered',
+        ]);
+
+        $this->assertSame('delivered', $this->order->fresh()->shipping_status);
     }
 }

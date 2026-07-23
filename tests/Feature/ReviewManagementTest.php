@@ -50,7 +50,7 @@ class ReviewManagementTest extends TestCase
     public function test_guests_cannot_access_reviews(): void
     {
         $response = $this->get('/vi/admin/reviews');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_non_authorized_admins_cannot_access_reviews(): void

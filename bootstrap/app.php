@@ -12,11 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::redirect('/admin', '/'.config('app.locale', 'vi').'/admin');
+            Route::get('/admin', fn () => redirect('/'.app(\App\Services\LanguageRegistry::class)->defaultLocale().'/admin'));
 
             Route::middleware(['web', 'setLocale'])
                 ->prefix('{locale}')
-                ->whereIn('locale', array_keys(config('laravellocalization.supportedLocales', [])))
+                ->where(['locale' => '[a-z]{2,3}'])
                 ->group(function (): void {
                     Route::prefix('admin')
                         ->name('admin.')
@@ -25,11 +25,23 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(\App\Http\Middleware\ValidateLocalizedAdminPath::class);
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request): string {
+            return route('admin.login', [
+                'locale' => $request->route('locale') ?: config('app.locale', 'vi'),
+            ]);
+        });
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'active-api' => \App\Http\Middleware\EnsureActiveApiUser::class,
+            'active-admin-api' => \App\Http\Middleware\EnsureActiveAdminApiUser::class,
+            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
             'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
             'setLocale' => \App\Http\Middleware\SetLocaleFromRoute::class,
+            'apiLocale' => \App\Http\Middleware\ResolveApiLocale::class,
             'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,
             'localizationRedirect' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter::class,
             'localeSessionRedirect' => \Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect::class,

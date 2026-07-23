@@ -66,8 +66,8 @@ class SecurityHardeningTest extends TestCase
         $registration = $this->postJson('/api/public/auth/register', [
             'name' => 'Token Customer',
             'email' => 'token-customer@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123!x',
+            'password_confirmation' => 'Password123!x',
         ])->assertOk();
         $token = $registration->json('data.token');
 

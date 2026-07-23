@@ -73,6 +73,41 @@ class PaymentTransactionTest extends TestCase
         $this->assertDatabaseCount('order_status_histories', 1);
     }
 
+    public function test_vnpay_ipn_cannot_update_an_order_using_a_different_payment_method(): void
+    {
+        PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
+            'name' => 'VNPAY',
+            'type' => 'connected',
+            'status' => 'active',
+            'settings' => [
+                'tmn_code' => 'mock',
+                'hash_secret' => 'mock-secret',
+                'api_url' => 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+            ],
+        ]);
+        $order = Order::query()->create([
+            'order_number' => 'ORD-COD-001',
+            'customer_name' => 'COD Customer',
+            'customer_email' => 'cod@example.com',
+            'customer_phone' => '0900000001',
+            'shipping_address' => 'Ho Chi Minh City',
+            'payment_method' => 'cod',
+            'payment_status' => 'pending',
+            'status' => 'pending',
+            'subtotal' => 150000,
+            'discount' => 0,
+            'grand_total' => 150000,
+        ]);
+
+        $this->getJson('/api/public/payment/vnpay/ipn?'.http_build_query($this->signedVnpayParams($order)))
+            ->assertOk()
+            ->assertJson(['RspCode' => '02']);
+
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertSame('pending', $order->fresh()->status);
+        $this->assertDatabaseCount('payment_transactions', 0);
+    }
+
     private function signedVnpayParams(Order $order): array
     {
         $params = [

@@ -38,28 +38,9 @@ class LoginController extends Controller
             ->where('email', $request->input('email'))
             ->first();
 
-        if (! $user) {
+        if (! $user || ! $user->is_active || $user->role_id === null || ! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => __('auth.login.email_not_found'),
-            ]);
-        }
-
-        if (! $user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.login.inactive'),
-            ]);
-        }
-
-        if ($user->role_id === null) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.login.unauthorized'),
-            ]);
-        }
-
-
-        if (! Hash::check($request->input('password'), $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => __('auth.login.password_incorrect'),
+                'email' => ['Email hoặc mật khẩu không chính xác.'],
             ]);
         }
 

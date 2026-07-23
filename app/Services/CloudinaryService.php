@@ -42,6 +42,10 @@ class CloudinaryService
      */
     public function uploadFile(UploadedFile $file, string $folder = 'general'): string
     {
+        if (! in_array($folder, $this->listFolders(), true)) {
+            throw new \InvalidArgumentException('Invalid media folder.');
+        }
+
         if (!$this->isConfigured()) {
             Log::info("Cloudinary is not configured. Falling back to local storage.");
             $path = $file->store($folder, 'public');
@@ -69,7 +73,7 @@ class CloudinaryService
      */
     public function listFolders(): array
     {
-        return ['products', 'brands', 'categories', 'general'];
+        return ['products', 'brands', 'categories', 'posts', 'banners', 'settings', 'avatars', 'general'];
     }
 
     /**
@@ -112,6 +116,10 @@ class CloudinaryService
      */
     public function deleteResource(string $publicId): bool
     {
+        if (str_contains($publicId, '..') || ! preg_match('#^(products|brands|categories|posts|banners|settings|avatars|general)/[A-Za-z0-9_.\-/]+$#', $publicId)) {
+            return false;
+        }
+
         if (!$this->isConfigured()) {
             // Find and delete the local file if it exists
             // The publicId for local files is stored as folder/filename.ext
@@ -146,7 +154,7 @@ class CloudinaryService
 
         foreach ($files as $file) {
             // Skip system files if any
-            if (str_contains($file, '.gitignore') || str_contains($file, '.DS_Store')) {
+            if (str_contains($file, '.gitignore') || str_contains($file, '.DS_Store') || str_contains($file, '/.') || str_starts_with($file, '.')) {
                 continue;
             }
 

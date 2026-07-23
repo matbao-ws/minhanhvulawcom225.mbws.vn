@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
+use App\Services\VNPAYService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PaymentMethodController extends Controller
 {
@@ -123,25 +125,16 @@ class PaymentMethodController extends Controller
         if ($newStatus === 'active') {
             $settings = $payment_method->settings ?? [];
 
-            if ($payment_method->method_code === 'vnpay') {
+            if (in_array($payment_method->method_code, ['stripe', 'sepay'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('admin.payment_methods.integration_unavailable'),
+                ]);
+            } elseif ($payment_method->method_code === 'vnpay') {
                 if (empty($settings['tmn_code']) || empty($settings['hash_secret']) || empty($settings['api_url'])) {
                     return response()->json([
                         'success' => false,
                         'message' => __('admin.payment_methods.config_required_vnpay')
-                    ]);
-                }
-            } elseif ($payment_method->method_code === 'stripe') {
-                if (empty($settings['secret_key']) || empty($settings['publishable_key'])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => __('admin.payment_methods.config_required_stripe')
-                    ]);
-                }
-            } elseif ($payment_method->method_code === 'sepay') {
-                if (empty($settings['api_key'])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => __('admin.payment_methods.config_required_sepay')
                     ]);
                 }
             } elseif ($payment_method->method_code === 'bank_transfer') {
@@ -180,7 +173,7 @@ class PaymentMethodController extends Controller
             $validated = $request->validate([
                 'tmn_code' => 'required|string|max:255',
                 'hash_secret' => 'required|string|max:255',
-                'api_url' => 'required|url|max:255',
+                'api_url' => ['required', 'url', 'max:255', Rule::in(VNPAYService::allowedGatewayUrls())],
             ]);
 
             $payment_method->update([

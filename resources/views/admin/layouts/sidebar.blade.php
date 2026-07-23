@@ -93,7 +93,7 @@
               <div class="sidebarmenu">
                   <div class="brand-logo d-flex align-items-center nav-logo">
                       <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img d-flex align-items-center">
-                          <img src="{{ asset('matbao-ws-logo.png') }}" width="150" alt="Logo" class="img-fluid">
+                          <img src="{{ $siteBranding['logo_url'] }}" width="150" alt="{{ $siteBranding['name'] }}" class="img-fluid">
                       </a>
                   </div>
 
@@ -284,6 +284,12 @@
 
                           <!-- Cấu hình tính năng -->
                           @if(auth()->check() && auth()->user()->isSuperAdmin())
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.languages.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:global-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">Ngôn ngữ nội dung</span>
+                              </a>
+                          </li>
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.features.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:widget-add-line-duotone"></iconify-icon>

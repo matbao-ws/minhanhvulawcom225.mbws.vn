@@ -5,11 +5,28 @@
         ? $promotion->targets->pluck('quantity_limit')->filter()->unique()->values()
         : collect();
     $targetQuantityLimit = old('target_quantity_limit', $savedTargetLimits->count() === 1 ? $savedTargetLimits->first() : null);
+    $contentLanguages = app(\App\Services\LanguageRegistry::class)->active();
+    $defaultContentLocale = app(\App\Services\LanguageRegistry::class)->defaultLocale();
 @endphp
 <div class="card"><div class="card-body"><div class="row">
-    <div class="col-md-8 mb-3"><label class="form-label">Tên chương trình *</label><input class="form-control" name="name" value="{{ old('name', $promotion->name) }}" required placeholder="VD: Flash Sale cuối tuần"></div>
+    <div class="col-12 mb-3">
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            @foreach($contentLanguages as $language)
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
+                       data-bs-toggle="tab"
+                       href="#promotion-language-{{ $language->code }}"
+                       role="tab"
+                       aria-selected="{{ $language->code === $defaultContentLocale ? 'true' : 'false' }}">
+                        <span><i class="ti ti-language fs-4"></i></span>
+                        <span>{{ $language->native_name }}</span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+        <div class="tab-content">@foreach($contentLanguages as $language)@php($code = $language->code)<div id="promotion-language-{{ $code }}" class="tab-pane fade @if($code === $defaultContentLocale) show active @endif">@if($code !== $defaultContentLocale)<div class="text-end mb-2"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}">Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif<div class="row"><div class="col-md-8 mb-3"><label class="form-label">Tên chương trình @if($code === $defaultContentLocale)*@endif</label><input class="form-control" id="promotion_name_{{ $code }}" name="name[{{ $code }}]" value="{{ old("name.$code", $promotion->getTranslation('name', $code, false)) }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div><div class="col-12 mb-3"><label class="form-label">Mô tả</label><textarea class="form-control" id="promotion_description_{{ $code }}" name="description[{{ $code }}]" rows="2" data-i18n-locale="{{ $code }}" data-i18n-field="description">{{ old("description.$code", $promotion->getTranslation('description', $code, false)) }}</textarea></div></div></div>@endforeach</div>
+    </div>
     <div class="col-md-4 mb-3"><label class="form-label">Loại *</label><select class="form-select" name="kind"><option value="automatic" @selected(old('kind', $promotion->kind) === 'automatic')>Khuyến mãi tự động</option><option value="flash_sale" @selected(old('kind', $promotion->kind) === 'flash_sale')>Flash Sale</option></select></div>
-    <div class="col-12 mb-3"><label class="form-label">Mô tả</label><textarea class="form-control" name="description" rows="2">{{ old('description', $promotion->description) }}</textarea></div>
     <div class="col-md-4 mb-3"><label class="form-label">Cách giảm *</label><select class="form-select" name="discount_type"><option value="percentage" @selected(old('discount_type', $promotion->discount_type) === 'percentage')>Phần trăm</option><option value="fixed_amount" @selected(old('discount_type', $promotion->discount_type) === 'fixed_amount')>Trừ tiền/SKU</option><option value="fixed_price" @selected(old('discount_type', $promotion->discount_type) === 'fixed_price')>Giá chốt/SKU</option></select></div>
     <div class="col-md-4 mb-3"><label class="form-label">Giá trị *</label><input type="number" step="0.01" min="0" class="form-control" name="value" value="{{ old('value', $promotion->value) }}" required></div>
     <div class="col-md-4 mb-3"><label class="form-label">Ưu tiên (số lớn ưu tiên trước)</label><input type="number" min="0" class="form-control" name="priority" value="{{ old('priority', $promotion->priority) }}"></div>
@@ -22,3 +39,4 @@
     <div class="col-12 d-flex gap-4"><div class="form-check"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active" @checked(old('is_active', $promotion->is_active))><label class="form-check-label" for="is_active">Kích hoạt</label></div><span class="text-muted small align-self-center">Mỗi SKU nhận campaign có ưu tiên cao nhất; nếu bằng nhau sẽ lấy giá sau giảm thấp nhất. Mã giảm giá được tính tiếp trên giá đã khuyến mãi.</span></div>
 </div></div></div>
 @include('admin.shared.form-actions', ['cancelUrl' => route('admin.promotions.index')])
+@include('admin.shared.translation-assets')

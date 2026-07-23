@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AdminActivityLog;
+use App\Models\Banner;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\ActivityLogger;
@@ -41,5 +42,27 @@ class ActivityLogTest extends TestCase
         $user = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($user)->get('/vi/admin/activity-logs')->assertForbidden();
+    }
+
+    public function test_bulk_activity_log_is_presented_in_plain_language(): void
+    {
+        $role = Role::query()->create(['name' => 'Auditor', 'permissions' => ['view_audit_log']]);
+        $user = User::factory()->create(['role_id' => $role->id]);
+
+        $this->actingAs($user);
+        ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt banner', [
+            'model' => Banner::class,
+            'ids' => [6, 7],
+            'count' => 2,
+        ]);
+
+        $this->get('/vi/admin/activity-logs')
+            ->assertOk()
+            ->assertSee('Xóa nhiều')
+            ->assertSee('Banner')
+            ->assertSee('Đã xóa 2 banner đã chọn.')
+            ->assertSee('Số lượng đã xóa:')
+            ->assertDontSee('App\\Models\\Banner')
+            ->assertDontSee('&quot;ids&quot;', false);
     }
 }

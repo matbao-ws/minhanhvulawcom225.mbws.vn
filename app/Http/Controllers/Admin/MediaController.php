@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class MediaController extends Controller
 {
@@ -35,8 +36,8 @@ class MediaController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:10240', // 10MB limit
-            'folder' => 'nullable|string',
+            'file' => ['required', 'file', 'max:10240', 'mimetypes:image/jpeg,image/png,image/webp,image/gif,application/pdf'],
+            'folder' => ['nullable', 'string', Rule::in($this->cloudinaryService->listFolders())],
         ]);
 
         $folder = $request->input('folder', 'general');
@@ -59,18 +60,18 @@ class MediaController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => $e->getMessage()
+                    'message' => __('catalog.media.upload_failed')
                 ], 500);
             }
 
-            return redirect()->back()->withErrors(['file' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['file' => __('catalog.media.upload_failed')]);
         }
     }
 
     public function destroy(Request $request)
     {
         $request->validate([
-            'public_id' => 'required|string',
+            'public_id' => ['required', 'string', 'max:255', 'regex:/^(products|brands|categories|posts|banners|settings|avatars|general)\/[A-Za-z0-9_\.\/-]+$/'],
         ]);
 
         $publicId = $request->input('public_id');
@@ -95,11 +96,11 @@ class MediaController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => $e->getMessage()
+                    'message' => __('catalog.media.delete_failed')
                 ], 500);
             }
 
-            return redirect()->back()->withErrors(['public_id' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['public_id' => __('catalog.media.delete_failed')]);
         }
     }
 }

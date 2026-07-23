@@ -37,6 +37,9 @@ class InvoiceMail extends Mailable
     {
         return new Content(
             view: 'emails.invoice',
+            with: [
+                'siteBranding' => app(\App\Services\SiteBranding::class)->current(),
+            ],
         );
     }
 }

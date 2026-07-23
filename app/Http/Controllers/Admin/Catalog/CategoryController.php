@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers\Admin\Catalog;
 
+use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\CategoryRequest;
 use App\Models\Category;
+use App\Services\ActivityLogger;
 use App\Services\Catalog\CategoryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
+    use HandlesBulkActions;
+
     public function __construct(private readonly CategoryService $categories) {}
 
     public function index()
@@ -138,31 +143,59 @@ class CategoryController extends Controller
             return back()->with('error', __('catalog.categories.delete_blocked'));
         }
 
-        // Ensure default "Chưa phân loại" category exists
-        $defaultCategory = Category::query()->firstOrCreate(
-            ['slug' => 'chua-phan-loai'],
-            [
-                'name' => [
-                    'vi' => 'Chưa phân loại',
-                    'en' => 'Uncategorized',
-                ],
-                'description' => [
-                    'vi' => 'Danh mục mặc định cho các sản phẩm chưa được phân loại.',
-                    'en' => 'Default category for uncategorized products.',
-                ],
-                'is_active' => true,
-                'sort_order' => 0,
-            ]
-        );
-
-        // Reassign products to the default category
-        $category->products()->update(['category_id' => $defaultCategory->id]);
+        if ($category->products()->exists()) {
+            return back()->with('error', 'Không thể xóa danh mục đang có sản phẩm. Hãy chuyển sản phẩm sang danh mục khác trước.');
+        }
 
         $this->categories->delete($category);
 
         return redirect()
             ->route('admin.categories.index')
             ->with('success', __('catalog.categories.deleted'));
+    }
+
+    public function bulk(Request $request, string $locale)
+    {
+        $validated = $this->validatedBulkAction($request, 'categories');
+        $ids = $validated['ids'];
+
+        if ($validated['action'] === 'delete') {
+            $blocked = Category::query()
+                ->whereIn('id', $ids)
+                ->where(function ($query): void {
+                    $query->where('slug', 'chua-phan-loai')
+                        ->orWhereHas('children')
+                        ->orWhereHas('products');
+                })
+                ->count();
+            if ($blocked > 0) {
+                return back()->with('error', "Không thể xóa {$blocked} danh mục mặc định, có danh mục con hoặc đang có sản phẩm.");
+            }
+
+            DB::transaction(function () use ($ids): void {
+                Category::query()->whereIn('id', $ids)->lockForUpdate()->get()
+                    ->each(fn (Category $category) => $this->categories->delete($category));
+            });
+
+            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt danh mục', [
+                'model' => Category::class,
+                'ids' => $ids,
+                'count' => count($ids),
+            ]);
+
+            return back()->with('success', 'Đã xóa '.count($ids).' danh mục.');
+        }
+
+        $isActive = $validated['action'] === 'activate';
+        $updated = Category::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
+        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt danh mục', [
+            'model' => Category::class,
+            'ids' => $ids,
+            'count' => $updated,
+            'is_active' => $isActive,
+        ]);
+
+        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' danh mục.');
     }
 
     public function quickUpdate(CategoryRequest $request, string $locale, Category $category)

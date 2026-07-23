@@ -163,11 +163,12 @@
 
             // Quill initialization
             let quill = null;
-            const editorElement = document.getElementById('content_editor');
             const contentInput = document.getElementById('content_input');
 
-            if (editorElement && contentInput) {
-                quill = new Quill(editorElement, {
+            document.querySelectorAll('.catalog-quill').forEach(function (editorElement) {
+                const target = document.getElementById(editorElement.dataset.target);
+                if (!target) return;
+                const editor = new Quill(editorElement, {
                     theme: 'snow',
                     modules: {
                         toolbar: [
@@ -184,16 +185,18 @@
                         ]
                     }
                 });
+                editorElement.__quill = editor;
+                if (editorElement.id === 'content_editor') quill = editor;
 
-                quill.on('text-change', function() {
+                editor.on('text-change', function() {
                     isDirty = true;
-                    contentInput.value = quill.root.innerHTML;
-                    analyzeSEO();
+                    target.value = editor.root.innerHTML;
+                    if (editorElement.id === 'content_editor') analyzeSEO();
                 });
 
                 if (form) {
                     form.addEventListener('submit', function () {
-                        contentInput.value = quill.root.innerHTML;
+                        target.value = editor.root.innerHTML;
                     });
                 }
 
@@ -203,7 +206,7 @@
                 const fullscreenIcon = document.getElementById('fullscreen_icon');
                 const fullscreenText = document.getElementById('fullscreen_text');
 
-                if (toggleBtn && editorWrapper) {
+                if (toggleBtn && editorWrapper && editorElement.id === 'content_editor') {
                     toggleBtn.addEventListener('click', function() {
                         const isFullscreen = editorWrapper.classList.toggle('quill-fullscreen');
                         if (isFullscreen) {
@@ -226,7 +229,7 @@
                         }
                     }
                 }
-            }
+            });
 
             // Local Preview Uploader for Featured Image
             const fileInput = document.getElementById('post_image_file');

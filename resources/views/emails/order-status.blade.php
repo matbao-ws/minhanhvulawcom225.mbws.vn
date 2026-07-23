@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cập nhật đơn hàng #{{ $order->order_number }}</title>
+    <title>{{ __('emails.order.subject', ['number' => $order->order_number]) }}</title>
     <style>
         body {
             font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -152,62 +152,62 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>CẬP NHẬT ĐƠN HÀNG</h1>
-            <p>Mã đơn hàng: #{{ $order->order_number }}</p>
+            <h1>{{ __('emails.order.heading') }}</h1>
+            <p>{{ __('emails.order.order_number') }}: #{{ $order->order_number }}</p>
         </div>
         <div class="content">
             <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-top: 0;">
-                Xin chào {{ $order->customer_name }},
+                {{ __('emails.order.hello', ['name' => $order->customer_name]) }}
             </p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-                Trạng thái đơn hàng của bạn vừa được cập nhật như sau:
+                {{ __('emails.order.intro') }}
             </p>
 
             <div class="order-status-card" style="text-align: center;">
                 @if($order->status === 'pending')
-                    <span class="status-badge status-pending">Chờ xử lý</span>
-                    <p style="margin: 0; color: #475569; font-size: 14px;">Đơn hàng của bạn đã được tiếp nhận và đang chờ xác nhận.</p>
+                    <span class="status-badge status-pending">{{ __('emails.order.status.pending.label') }}</span>
+                    <p style="margin: 0; color: #475569; font-size: 14px;">{{ __('emails.order.status.pending.message') }}</p>
                 @elseif($order->status === 'processing')
-                    <span class="status-badge status-processing">Đang xử lý</span>
-                    <p style="margin: 0; color: #475569; font-size: 14px;">Đơn hàng đang được chuẩn bị và đóng gói để gửi đi.</p>
+                    <span class="status-badge status-processing">{{ __('emails.order.status.processing.label') }}</span>
+                    <p style="margin: 0; color: #475569; font-size: 14px;">{{ __('emails.order.status.processing.message') }}</p>
                 @elseif($order->status === 'completed')
-                    <span class="status-badge status-completed">Đã hoàn thành</span>
-                    <p style="margin: 0; color: #475569; font-size: 14px;">Đơn hàng đã được giao thành công. Cảm ơn bạn đã mua sắm tại cửa hàng chúng tôi!</p>
+                    <span class="status-badge status-completed">{{ __('emails.order.status.completed.label') }}</span>
+                    <p style="margin: 0; color: #475569; font-size: 14px;">{{ __('emails.order.status.completed.message') }}</p>
                 @elseif($order->status === 'cancelled')
-                    <span class="status-badge status-cancelled">Đã hủy</span>
-                    <p style="margin: 0; color: #475569; font-size: 14px;">Đơn hàng đã bị hủy bỏ khỏi hệ thống.</p>
+                    <span class="status-badge status-cancelled">{{ __('emails.order.status.cancelled.label') }}</span>
+                    <p style="margin: 0; color: #475569; font-size: 14px;">{{ __('emails.order.status.cancelled.message') }}</p>
                 @endif
             </div>
 
-            <div class="section-title">Thông tin giao hàng</div>
+            <div class="section-title">{{ __('emails.order.shipping_info') }}</div>
             <table class="info-table">
                 <tr>
-                    <td class="label">Người nhận:</td>
+                    <td class="label">{{ __('emails.order.recipient') }}:</td>
                     <td class="value">{{ $order->customer_name }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Số điện thoại:</td>
+                    <td class="label">{{ __('emails.order.phone') }}:</td>
                     <td class="value">{{ $order->customer_phone }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Địa chỉ nhận:</td>
+                    <td class="label">{{ __('emails.order.address') }}:</td>
                     <td class="value">{{ $order->shipping_address }}</td>
                 </tr>
                 @if($order->notes)
                 <tr>
-                    <td class="label">Ghi chú:</td>
+                    <td class="label">{{ __('emails.order.notes') }}:</td>
                     <td class="value">{{ $order->notes }}</td>
                 </tr>
                 @endif
             </table>
 
-            <div class="section-title">Danh sách sản phẩm</div>
+            <div class="section-title">{{ __('emails.order.items') }}</div>
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th>Sản phẩm</th>
-                        <th class="qty" style="text-align: center;">SL</th>
-                        <th class="price" style="text-align: right;">Giá</th>
+                        <th>{{ __('emails.order.product') }}</th>
+                        <th class="qty" style="text-align: center;">{{ __('emails.order.quantity') }}</th>
+                        <th class="price" style="text-align: right;">{{ __('emails.order.price') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -216,7 +216,7 @@
                             <td>
                                 <strong>{{ $item->product_name }}</strong>
                                 @if($item->variant_name)
-                                    <div style="font-size: 12px; color: #64748b;">Mẫu: {{ $item->variant_name }}</div>
+                                    <div style="font-size: 12px; color: #64748b;">{{ __('emails.order.variant') }}: {{ $item->variant_name }}</div>
                                 @endif
                             </td>
                             <td class="qty" style="text-align: center;">{{ $item->quantity }}</td>
@@ -228,17 +228,17 @@
 
             <div class="totals-box">
                 <div class="total-row">
-                    <span style="color: #64748b;">Tạm tính:</span>
+                    <span style="color: #64748b;">{{ __('emails.order.subtotal') }}:</span>
                     <span style="font-weight: 600; color: #1e293b;">{{ number_format($order->subtotal, 0) }} đ</span>
                 </div>
                 @if($order->discount > 0)
                 <div class="total-row">
-                    <span style="color: #64748b;">Giảm giá:</span>
+                    <span style="color: #64748b;">{{ __('emails.order.discount') }}:</span>
                     <span style="font-weight: 600; color: #dc2626;">-{{ number_format($order->discount, 0) }} đ</span>
                 </div>
                 @endif
                 <div class="total-row grand-total">
-                    <span>Tổng cộng:</span>
+                    <span>{{ __('emails.order.total') }}:</span>
                     <span>{{ number_format($order->grand_total, 0) }} đ</span>
                 </div>
             </div>
@@ -246,8 +246,8 @@
             <div style="clear: both;"></div>
         </div>
         <div class="footer">
-            <p>Hệ thống E-commerce Core - Bản quyền © {{ date('Y') }}</p>
-            <p>Email này được gửi tự động, vui lòng không phản hồi.</p>
+            <p>{{ __('emails.order.copyright', ['year' => date('Y')]) }}</p>
+            <p>{{ __('emails.order.automatic') }}</p>
         </div>
     </div>
 </body>

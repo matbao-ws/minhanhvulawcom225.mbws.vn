@@ -18,12 +18,13 @@ class SearchController extends Controller
         $q = $request->get('q');
         $locale = app()->getLocale();
         $results = [];
+        $user = $request->user();
 
         if (empty($q) || strlen($q) < 2) {
             return response()->json(['results' => []]);
         }
 
-        // 1. Products
+        if ($user->can('manage_products')) {
         $products = Product::query()
             ->where('name', 'like', "%{$q}%")
             ->orWhere('sku', 'like', "%{$q}%")
@@ -45,8 +46,9 @@ class SearchController extends Controller
                 'items' => $items
             ];
         }
+        }
 
-        // 2. Orders
+        if ($user->can('manage_orders')) {
         $orders = Order::query()
             ->where('order_number', 'like', "%{$q}%")
             ->orWhere('customer_name', 'like', "%{$q}%")
@@ -70,8 +72,9 @@ class SearchController extends Controller
                 'items' => $items
             ];
         }
+        }
 
-        // 3. Categories
+        if ($user->can('manage_products')) {
         $categories = Category::query()
             ->where('name', 'like', "%{$q}%")
             ->limit(5)
@@ -114,8 +117,9 @@ class SearchController extends Controller
                 'items' => $items
             ];
         }
+        }
 
-        // 5. Users
+        if ($user->can('manage_users')) {
         $users = User::query()
             ->where('name', 'like', "%{$q}%")
             ->orWhere('email', 'like', "%{$q}%")
@@ -137,8 +141,9 @@ class SearchController extends Controller
                 'items' => $items
             ];
         }
+        }
 
-        // 6. Posts (Blog)
+        if ($user->can('manage_posts')) {
         $posts = Post::query()
             ->where('title', 'like', "%{$q}%")
             ->limit(5)
@@ -158,6 +163,7 @@ class SearchController extends Controller
                 'icon' => 'solar:document-bold-duotone',
                 'items' => $items
             ];
+        }
         }
 
         return response()->json(['results' => $results]);

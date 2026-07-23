@@ -26,6 +26,7 @@ class ShippingService
                 'api_url' => $ghtk ? data_get($ghtk->settings, 'api_url', 'https://services.giaohangtietkiem.vn') : 'https://services.giaohangtietkiem.vn',
                 'name' => $ghtk ? $ghtk->name : 'Giao Hàng Tiết Kiệm (GHTK)',
                 'webhook_token' => $ghtk ? data_get($ghtk->settings, 'webhook_token', '') : '',
+                'pickup' => $ghtk ? data_get($ghtk->settings, 'pickup', []) : [],
             ],
             'flat_rate' => [
                 'enabled' => $flatRate ? ($flatRate->status === 'active') : false,
@@ -53,8 +54,7 @@ class ShippingService
         $apiToken = data_get($ghtkSettings, 'api_token');
         $apiUrl = data_get($ghtkSettings, 'api_url', 'https://services.giaohangtietkiem.vn');
 
-        // Check if token is mock or dummy for sandbox testing
-        if (empty($apiToken) || str_contains(strtolower($apiToken), 'mock') || str_contains(strtolower($apiToken), 'dummy') || str_contains(strtolower($apiToken), 'test')) {
+        if ($apiToken === 'mock' && app()->environment(['local', 'testing'])) {
             Log::info("Using mock integration for GHTK. Order ID: {$order->id}");
             
             $mockFee = 35000;
@@ -68,6 +68,17 @@ class ShippingService
                 'fee' => $mockFee,
                 'message' => 'Đẩy đơn hàng sang GHTK thành công (Môi trường giả lập).'
             ];
+        }
+
+        if (empty($apiToken) || ! in_array($apiUrl, ['https://services.giaohangtietkiem.vn', 'https://services.ghtk.vn'], true)) {
+            return ['success' => false, 'message' => 'Cấu hình GHTK không hợp lệ.'];
+        }
+
+        $pickup = data_get($ghtkSettings, 'pickup', []);
+        foreach (['name', 'tel', 'province', 'district', 'ward', 'address'] as $field) {
+            if (blank(data_get($pickup, $field))) {
+                return ['success' => false, 'message' => 'Thiếu thông tin địa chỉ lấy hàng GHTK.'];
+            }
         }
 
         try {
@@ -87,13 +98,13 @@ class ShippingService
                 'products' => $products,
                 'order' => [
                     'id' => $order->order_number,
-                    'pick_name' => config('app.name', 'My Store'),
+                    'pick_name' => $pickup['name'],
                     'pick_money' => $order->payment_method === 'cod' ? (int) $order->grand_total : 0,
-                    'pick_tel' => '0912345678',
-                    'pick_province' => 'Hà Nội',
-                    'pick_district' => 'Đống Đa',
-                    'pick_ward' => 'Láng Hạ',
-                    'pick_address' => '123 Láng Hạ',
+                    'pick_tel' => $pickup['tel'],
+                    'pick_province' => $pickup['province'],
+                    'pick_district' => $pickup['district'],
+                    'pick_ward' => $pickup['ward'],
+                    'pick_address' => $pickup['address'],
                     'tel' => $order->customer_phone,
                     'name' => $order->customer_name,
                     'address' => $order->shipping_address,
@@ -107,7 +118,7 @@ class ShippingService
                 ]
             ];
 
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->retry(2, 200)->withHeaders([
                 'Token' => $apiToken,
                 'Content-Type' => 'application/json',
             ])->post(rtrim($apiUrl, '/') . '/services/shipment/order', $payload);
@@ -138,7 +149,7 @@ class ShippingService
             Log::error("GHTK push error: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Lỗi kết nối dịch vụ vận chuyển: ' . $e->getMessage()
+                'message' => 'Lỗi kết nối dịch vụ vận chuyển. Vui lòng thử lại sau.'
             ];
         }
     }

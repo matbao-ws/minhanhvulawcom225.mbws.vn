@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hóa đơn thanh toán #{{ $invoice->invoice_number }}</title>
+    <title>{{ $siteBranding['name'] }} - Hóa đơn thanh toán #{{ $invoice->invoice_number }}</title>
     <style>
         body {
             font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -37,6 +37,14 @@
             margin: 8px 0 0;
             font-size: 14px;
             opacity: 0.9;
+        }
+        .header-logo {
+            display: block;
+            width: auto;
+            height: 42px;
+            max-width: 180px;
+            margin: 0 auto 14px;
+            object-fit: contain;
         }
         .content {
             padding: 32px;
@@ -109,15 +117,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>HÓA ĐƠN THANH TOÁN</h1>
-            <p>Mã hóa đơn: #{{ $invoice->invoice_number }}</p>
+            <img class="header-logo" src="{{ $siteBranding['logo_url'] }}" alt="{{ $siteBranding['name'] }}">
+            <h1>{{ $siteBranding['name'] }}</h1>
+            <p>HÓA ĐƠN THANH TOÁN · #{{ $invoice->invoice_number }}</p>
         </div>
         <div class="content">
             <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-top: 0;">
                 Xin chào Quý khách,
             </p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-                Chúng tôi xin gửi thông tin chi tiết hóa đơn cho gói dịch vụ quý khách đã sử dụng trên hệ thống E-commerce Core.
+                Chúng tôi xin gửi thông tin chi tiết hóa đơn cho gói dịch vụ quý khách đã sử dụng trên hệ thống {{ $siteBranding['name'] }}.
             </p>
             
             <div class="invoice-box">
@@ -168,7 +177,10 @@
             </p>
         </div>
         <div class="footer">
-            <p>Hệ thống E-commerce Core - Bản quyền © {{ date('Y') }}</p>
+            <p>{{ $siteBranding['name'] }} - Bản quyền © {{ date('Y') }}</p>
+            @if(filled(data_get($siteBranding, 'contact.email')))
+                <p>Liên hệ hỗ trợ: {{ data_get($siteBranding, 'contact.email') }}</p>
+            @endif
             <p>Email này được gửi tự động, vui lòng không phản hồi.</p>
         </div>
     </div>

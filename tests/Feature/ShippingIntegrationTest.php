@@ -105,7 +105,7 @@ class ShippingIntegrationTest extends TestCase
 
         // 1. Update GHTK settings
         $response = $this->post("/vi/admin/shipping-partners/{$ghtk->id}/settings", [
-            'api_token' => 'mock-token-123',
+            'api_token' => 'mock',
             'api_url' => 'https://services.ghtk.vn',
             'webhook_token' => 'mock-webhook-token-123',
         ]);
@@ -130,7 +130,7 @@ class ShippingIntegrationTest extends TestCase
         $flatRate->refresh();
 
         $this->assertEquals('active', $ghtk->status);
-        $this->assertEquals('mock-token-123', $ghtk->settings['api_token']);
+        $this->assertEquals('mock', $ghtk->settings['api_token']);
         $this->assertEquals('https://services.ghtk.vn', $ghtk->settings['api_url']);
 
         $this->assertEquals('active', $flatRate->status);
@@ -173,7 +173,7 @@ class ShippingIntegrationTest extends TestCase
             ->update([
                 'status' => 'active',
                 'settings' => [
-                    'api_token' => 'mock-test-token',
+                    'api_token' => 'mock',
                     'api_url' => 'https://services.ghtk.vn',
                 ]
             ]);
@@ -203,7 +203,10 @@ class ShippingIntegrationTest extends TestCase
         $this->assertEquals('ghtk', $this->order->shipping_carrier);
         $this->assertNotNull($this->order->tracking_number);
         $this->assertStringContainsString('GHTK.MOCK.', $this->order->tracking_number);
-        $this->assertEquals(35000, $this->order->shipping_fee);
+        $this->assertEquals(35000, $this->order->carrier_shipping_fee);
+        $this->assertEquals(0, $this->order->shipping_fee);
+        $this->assertSame('shipping_created', $this->order->shipping_status);
+        $this->assertNotNull($this->order->shipping_status_updated_at);
         $this->assertEquals('processing', $this->order->status);
     }
 

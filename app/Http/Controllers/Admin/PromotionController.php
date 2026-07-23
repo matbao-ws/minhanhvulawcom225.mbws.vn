@@ -94,15 +94,10 @@ class PromotionController extends Controller
 
     private function payload(array $data, ?Promotion $promotion = null): array
     {
-        $locale = app()->getLocale() ?: 'vi';
         $name = $promotion?->getTranslations('name') ?? [];
         $description = $promotion?->getTranslations('description') ?? [];
-        $name[$locale] = $data['name'];
-        if (! empty($data['description'])) {
-            $description[$locale] = $data['description'];
-        } else {
-            unset($description[$locale]);
-        }
+        $name = [...$name, ...$this->translations($data['name'])];
+        $description = [...$description, ...$this->translations($data['description'] ?? [])];
 
         return [
             'name' => $name,
@@ -157,5 +152,11 @@ class PromotionController extends Controller
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'sku']),
             'variants' => ProductVariant::query()->where('is_active', true)->with('product:id,name')->orderBy('sku')->get(['id', 'product_id', 'name', 'sku']),
         ];
+    }
+
+    private function translations(array $values): array
+    {
+        $languages = app(\App\Services\LanguageRegistry::class);
+        return collect($values)->filter(fn ($value, $locale) => $languages->supports((string) $locale) && is_string($value) && trim($value) !== '')->map(fn (string $value) => trim($value))->all();
     }
 }

@@ -35,7 +35,12 @@ class DashboardTest extends TestCase
         $response = $this->get('/vi/admin/dashboard');
 
         // Guests should be redirected to the login page
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
+    }
+
+    public function test_guests_keep_locale_when_redirected_from_admin_root(): void
+    {
+        $this->get('/vi/admin')->assertRedirect('/vi/admin/login');
     }
 
     public function test_admin_can_access_dashboard_with_statistics(): void

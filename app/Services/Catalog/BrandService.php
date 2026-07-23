@@ -3,25 +3,40 @@
 namespace App\Services\Catalog;
 
 use App\Models\Brand;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\LanguageRegistry;
+use App\Services\LocalizedSlugService;
+use Illuminate\Support\Facades\DB;
 
 class BrandService
 {
-    public function __construct(private readonly \App\Services\CloudinaryService $cloudinaryService)
+    public function __construct(
+        private readonly \App\Services\CloudinaryService $cloudinaryService,
+        private readonly HtmlSanitizer $htmlSanitizer,
+        private readonly LocalizedSlugService $localizedSlugs,
+        private readonly LanguageRegistry $languages,
+    )
     {
     }
     public function create(array $data): Brand
     {
-        return Brand::query()->create($this->payload($data));
+        return DB::transaction(function () use ($data) {
+            $brand = Brand::query()->create($this->payload($data));
+            $this->localizedSlugs->sync($brand, $this->localizedValues($data['slug'] ?? []), $brand->getTranslations('name'));
+            return $brand->refresh();
+        });
     }
 
     public function update(Brand $brand, array $data): Brand
     {
-        $brand->update($this->payload($data, $brand));
-
-        return $brand->refresh();
+        return DB::transaction(function () use ($brand, $data) {
+            $brand->update($this->payload($data, $brand));
+            $this->localizedSlugs->sync($brand, $this->localizedValues($data['slug'] ?? []), $brand->getTranslations('name'));
+            return $brand->refresh();
+        });
     }
 
     public function delete(Brand $brand): void
@@ -41,7 +56,8 @@ class BrandService
     private function payload(array $data, ?Brand $brand = null): array
     {
         $name = $this->translationValue($data['name'] ?? null, $brand, 'name');
-        $baseSlug = ($data['slug'] ?? null) ?: ($name[app()->getLocale()] ?? $name[$this->fallbackLocale()] ?? reset($name));
+        $submittedSlugs = $this->localizedValues($data['slug'] ?? []);
+        $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $submittedSlugs[app()->getLocale()] ?? ($name[$this->languages->defaultLocale()] ?? $name[$this->fallbackLocale()] ?? reset($name));
         $imageUrl = $this->imageUrl($data['image_file'] ?? null, $brand);
 
         return [
@@ -63,19 +79,22 @@ class BrandService
         return $this->cloudinaryService->uploadFile($file, 'brands');
     }
 
-    private function translationValue(?string $value, ?Brand $brand, string $attribute): array
+    private function translationValue(string|array|null $value, ?Brand $brand, string $attribute): array
     {
         $translations = $brand?->getTranslations($attribute) ?? [];
         $locale = app()->getLocale() ?: $this->fallbackLocale();
         $fallbackLocale = $this->fallbackLocale();
-        $value = is_string($value) ? trim($value) : '';
-
-        if ($value !== '') {
-            $translations[$locale] = $value;
-        }
-
-        if ($locale !== $fallbackLocale && $value !== '' && empty($translations[$fallbackLocale])) {
-            $translations[$fallbackLocale] = $value;
+        if (is_array($value)) {
+            foreach ($value as $lang => $translation) {
+                if ($this->languages->supports((string) $lang) && is_string($translation) && trim($translation) !== '') {
+                    $translations[$lang] = $attribute === 'description' ? $this->htmlSanitizer->clean(trim($translation)) : trim($translation);
+                }
+            }
+        } else {
+            $value = is_string($value) ? trim($value) : '';
+            if ($attribute === 'description') $value = $this->htmlSanitizer->clean($value);
+            if ($value !== '') $translations[$locale] = $value;
+            if ($locale !== $fallbackLocale && $value !== '' && empty($translations[$fallbackLocale])) $translations[$fallbackLocale] = $value;
         }
 
         return array_filter($translations, fn ($translation) => $translation !== null && $translation !== '');
@@ -83,7 +102,13 @@ class BrandService
 
     private function fallbackLocale(): string
     {
-        return config('app.fallback_locale', config('app.locale', 'en'));
+        return $this->languages->fallbackLocale();
+    }
+
+    private function localizedValues(string|array|null $value): array
+    {
+        if (is_array($value)) return collect($value)->filter(fn ($item, $locale) => $this->languages->supports((string) $locale) && is_string($item) && trim($item) !== '')->map(fn (string $item) => trim($item))->all();
+        return is_string($value) && trim($value) !== '' ? [app()->getLocale() => trim($value)] : [];
     }
 
     private function uniqueSlug(string $value, ?int $ignoreId = null): string

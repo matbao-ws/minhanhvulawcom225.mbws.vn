@@ -44,7 +44,7 @@ class SettingControllerTest extends TestCase
     public function test_guests_cannot_access_settings(): void
     {
         $response = $this->get('/vi/admin/settings');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_non_admins_cannot_access_settings(): void
@@ -66,6 +66,45 @@ class SettingControllerTest extends TestCase
         $response->assertSee('Test Shop Name');
         $response->assertSee('123456789');
         $response->assertSee('contact@test.com');
+        $response->assertDontSee('Cấu hình Giao diện');
+        $response->assertDontSee('Cấu hình đa ngôn ngữ');
+        $response->assertDontSee('Cấu hình Email (SMTP)');
+    }
+
+    public function test_admin_layout_uses_the_configured_favicon(): void
+    {
+        ProjectSetting::query()->create([
+            'setting_key' => 'favicon_url',
+            'setting_value' => 'https://cdn.example.test/settings/site-icon.ico',
+        ]);
+
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->get('/vi/admin/settings')
+            ->assertOk()
+            ->assertSee('https://cdn.example.test/settings/site-icon.ico');
+    }
+
+    public function test_updating_website_settings_does_not_modify_notification_smtp_settings(): void
+    {
+        $smtpSettings = ProjectSetting::query()->create([
+            'setting_key' => 'notification_settings',
+            'setting_value' => [
+                'smtp' => [
+                    'enabled' => true,
+                    'host' => 'smtp.example.test',
+                ],
+            ],
+        ]);
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->post('/vi/admin/settings', ['shop_name' => 'Updated Shop Name'])
+            ->assertRedirect('/vi/admin/settings');
+
+        $this->assertSame('smtp.example.test', $smtpSettings->fresh()->setting_value['smtp']['host']);
+        $this->assertTrue($smtpSettings->fresh()->setting_value['smtp']['enabled']);
     }
 
     public function test_admin_can_update_settings(): void
@@ -81,10 +120,6 @@ class SettingControllerTest extends TestCase
                 'phone' => '987654321',
                 'email' => 'updated@test.com',
                 'address' => 'Updated Address',
-            ],
-            'theme' => [
-                'primary_color' => '#ff0000',
-                'layout' => 'compact',
             ],
             'seo' => [
                 'title' => 'Updated SEO Title',
@@ -106,10 +141,6 @@ class SettingControllerTest extends TestCase
         $contact = ProjectSetting::where('setting_key', 'contact')->first()->setting_value;
         $this->assertEquals('987654321', $contact['phone']);
         $this->assertEquals('updated@test.com', $contact['email']);
-
-        $theme = ProjectSetting::where('setting_key', 'theme')->first()->setting_value;
-        $this->assertEquals('#ff0000', $theme['primary_color']);
-        $this->assertEquals('compact', $theme['layout']);
 
         $logoUrl = ProjectSetting::where('setting_key', 'logo_url')->first()->setting_value;
         $this->assertNotNull($logoUrl);

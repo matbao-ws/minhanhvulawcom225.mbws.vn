@@ -217,6 +217,11 @@ class OrderLifecycleTest extends TestCase
         $this->assertSame(3, $this->product->fresh()->stock_quantity);
         $this->assertSame(1, $this->variant->fresh()->stock_quantity);
 
+        $this->actingAs($this->admin)->patch("/vi/admin/orders/{$order->id}/status", [
+            'status' => 'pending',
+            'payment_status' => 'paid',
+        ])->assertRedirect();
+
         $this->actingAs($this->admin)->post("/vi/admin/orders/{$order->id}/refund", [
             'type' => 'partial',
             'items' => [['order_item_id' => $orderItem->id, 'quantity' => 1]],

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('admin-assets/images/logos/favicon.png') }}">
+    <link rel="icon" href="{{ $siteBranding['favicon_url'] }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/css/styles.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/css/core-controls.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.css') }}">
@@ -16,6 +16,9 @@
         }
         
         /* Global typography & readability improvements for Admin */
+        body, p, .text-muted, .description, .card-subtitle, .form-text, .fs-12, .fs-13, .fs-14 {
+            font-weight: 500 !important;
+        }
         .text-muted {
             color: #5a6a85 !important;
             font-size: 13.5px !important;
@@ -109,6 +112,32 @@
         .select2-container--default .select2-results__option[aria-selected="true"] {
             background-color: #f8f9fa !important;
             color: #2a3547 !important;
+        }
+
+        /* Global Nav Tabs styling matching Settings page */
+        .nav-tabs {
+            border-bottom: 2px solid var(--bs-primary) !important;
+            gap: 8px;
+        }
+        .nav-tabs .nav-link {
+            border: 1px solid var(--bs-primary) !important;
+            border-bottom: none !important;
+            color: var(--bs-primary) !important;
+            background-color: #fff !important;
+            font-weight: 700 !important;
+            border-radius: 6px 6px 0 0 !important;
+            padding: 10px 24px !important;
+            transition: all 0.2s ease-in-out;
+            font-size: 15px;
+        }
+        .nav-tabs .nav-link.active {
+            color: #fff !important;
+            background-color: var(--bs-primary) !important;
+            border: 1px solid var(--bs-primary) !important;
+            border-bottom: none !important;
+        }
+        .nav-tabs .nav-link:hover:not(.active) {
+            background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
         }
 
         /* Quill picker/dropdown overrides */
@@ -374,7 +403,7 @@
             color: #c01e25 !important;
         }
     </style>
-    <title>@yield('title', 'Admin') - {{ config('app.name', 'Laravel Ecommerce Core') }}</title>
+    <title>@yield('title', 'Admin') - {{ $siteBranding['name'] }}</title>
     @stack('styles')
 </head>
 
@@ -395,7 +424,7 @@
     @endif
 
     <div class="preloader">
-        <img src="{{ asset('admin-assets/images/logos/favicon.png') }}" alt="loader" class="lds-ripple img-fluid">
+        <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}" class="lds-ripple img-fluid">
     </div>
 
     <div id="main-wrapper">

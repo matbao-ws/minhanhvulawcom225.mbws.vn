@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Invoice;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,7 +40,7 @@ class InvoiceCrudTest extends TestCase
     public function test_guests_cannot_access_invoices(): void
     {
         $response = $this->get('/vi/admin/invoices');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_users_without_admin_role_cannot_access_invoices(): void
@@ -87,6 +88,26 @@ class InvoiceCrudTest extends TestCase
         $response->assertSee('INV-TEST-999');
         $response->assertSee('Test Package Plan');
         $response->assertSee('120.000 ₫');
+    }
+
+    public function test_invoice_uses_the_configured_website_name_and_logo(): void
+    {
+        ProjectSetting::query()->create([
+            'setting_key' => 'shop_name',
+            'setting_value' => 'Cửa hàng kiểm thử',
+        ]);
+        ProjectSetting::query()->create([
+            'setting_key' => 'logo_url',
+            'setting_value' => 'https://cdn.example.test/settings/store-logo.png',
+        ]);
+
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->get('/vi/admin/invoices/' . $this->invoice->id)
+            ->assertOk()
+            ->assertSee('Cửa hàng kiểm thử')
+            ->assertSee('https://cdn.example.test/settings/store-logo.png');
     }
 
     public function test_admin_can_filter_and_search_invoices(): void

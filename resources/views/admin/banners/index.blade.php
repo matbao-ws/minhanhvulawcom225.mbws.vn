@@ -66,10 +66,16 @@
         </div>
 
         <div class="card-body p-0">
+            @include('admin.shared.bulk-actions', [
+                'bulkFormId' => 'bulk-banners-form',
+                'bulkActionUrl' => route('admin.banners.bulk'),
+                'bulkItemLabel' => 'banner',
+            ])
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap text-muted">
+                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-banners-form" aria-label="Chọn tất cả banner"></th>
                             <th class="ps-4 fw-semibold small" style="width: 180px;">{{ __('admin.banners.fields.image') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.title') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.position') }}</th>
@@ -81,6 +87,7 @@
                     <tbody>
                         @forelse($banners as $banner)
                             <tr class="text-nowrap">
+                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $banner->id }}" form="bulk-banners-form" data-bulk-select="bulk-banners-form" aria-label="Chọn {{ $banner->title ?: 'banner' }}"></td>
                                 <td class="ps-4">
                                     <div class="rounded border p-1 bg-light d-inline-block">
                                         <img src="{{ $banner->image_url }}" 
@@ -138,7 +145,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
+                                <td colspan="7" class="text-center py-5 text-muted">
                                     <i class="ti ti-photo-off fs-8 text-muted mb-2 d-inline-block"></i>
                                     <p class="text-muted mb-0 fs-3">Không tìm thấy banner nào.</p>
                                 </td>

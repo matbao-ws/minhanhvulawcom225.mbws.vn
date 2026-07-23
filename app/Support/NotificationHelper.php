@@ -74,7 +74,7 @@ class NotificationHelper
                     ]);
 
                     // Send email to the owner from the queue worker.
-                    Mail::to($ownerEmail)->send(new \App\Mail\OrderStatusMail($order));
+                    Mail::to($ownerEmail)->locale($order->locale ?: 'vi')->send(new \App\Mail\OrderStatusMail($order));
                 }
             }
 

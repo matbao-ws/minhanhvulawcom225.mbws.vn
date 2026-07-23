@@ -34,7 +34,7 @@ class RoleCrudTest extends TestCase
     public function test_guests_cannot_access_roles(): void
     {
         $response = $this->get('/vi/admin/roles');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_non_admins_cannot_access_roles(): void

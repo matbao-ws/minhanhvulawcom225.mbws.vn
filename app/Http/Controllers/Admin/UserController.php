@@ -6,13 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
+use App\Services\UserAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function __construct(private readonly CloudinaryService $cloudinaryService)
+    public function __construct(
+        private readonly CloudinaryService $cloudinaryService,
+        private readonly UserAccessService $userAccessService,
+    )
     {
     }
 
@@ -20,9 +25,24 @@ class UserController extends Controller
     {
         $query = Role::query();
         if (! auth()->user()->isSuperAdmin()) {
-            $query->where('name', '!=', 'Superadmin');
+            $query->where('is_system', false)
+                ->whereJsonDoesntContain('permissions', '*');
         }
         return $query->get();
+    }
+
+    private function assertCanManage(User $user): void
+    {
+        if ($user->hasPrivilegedRole() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+    }
+
+    private function assertCanAssignRole(?Role $role): void
+    {
+        if (! $role || ($role->is_system || in_array('*', $role->permissions ?? [], true)) && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
     }
 
     public function index(Request $request)
@@ -32,7 +52,8 @@ class UserController extends Controller
 
         if (! auth()->user()->isSuperAdmin()) {
             $query->whereHas('role', function ($q) {
-                $q->where('name', '!=', 'Superadmin');
+                $q->where('is_system', false)
+                    ->whereJsonDoesntContain('permissions', '*');
             });
         }
 
@@ -73,12 +94,7 @@ class UserController extends Controller
 
     public function store(UserRequest $request)
     {
-        if ($request->filled('role_id')) {
-            $selectedRole = Role::find($request->input('role_id'));
-            if ($selectedRole && $selectedRole->name === 'Superadmin' && !auth()->user()->isSuperAdmin()) {
-                abort(403, 'Unauthorized.');
-            }
-        }
+        $this->assertCanAssignRole(Role::find($request->input('role_id')));
 
         $data = $request->validated();
         
@@ -89,7 +105,8 @@ class UserController extends Controller
         $data['password'] = Hash::make($data['password']);
         $data['is_active'] = (bool) ($request->input('is_active', false));
 
-        User::query()->create($data);
+        $user = User::query()->create($data);
+        ActivityLogger::log('created', $user, "Tạo tài khoản {$user->email}", ['new' => $user->only(['name', 'email', 'role_id', 'is_active'])]);
 
         return redirect()
             ->route('admin.users.index')
@@ -98,9 +115,7 @@ class UserController extends Controller
 
     public function edit(string $locale, User $user)
     {
-        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
+        $this->assertCanManage($user);
 
         return view('admin.users.edit', [
             'user' => $user,
@@ -110,18 +125,15 @@ class UserController extends Controller
 
     public function update(UserRequest $request, string $locale, User $user)
     {
-        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
+        $this->assertCanManage($user);
+        $this->assertCanAssignRole(Role::find($request->input('role_id')));
 
-        if ($request->filled('role_id')) {
-            $selectedRole = Role::find($request->input('role_id'));
-            if ($selectedRole && $selectedRole->name === 'Superadmin' && !auth()->user()->isSuperAdmin()) {
-                abort(403, 'Unauthorized.');
-            }
+        if ($user->is(auth()->user()) && ((int) $request->input('role_id') !== (int) $user->role_id || (bool) $request->input('is_active', false) !== $user->is_active)) {
+            abort(403, 'You cannot change your own role or account status.');
         }
 
         $data = $request->validated();
+        $oldValues = $user->only(['name', 'email', 'role_id', 'is_active']);
 
         if ($request->hasFile('avatar_file')) {
             // Delete old avatar if it exists (optional)
@@ -141,7 +153,18 @@ class UserController extends Controller
 
         $data['is_active'] = (bool) ($request->input('is_active', false));
 
+        $accessChanged = array_key_exists('password', $data)
+            || (int) $data['role_id'] !== (int) $user->role_id
+            || (bool) $data['is_active'] !== $user->is_active;
+
         $user->update($data);
+        if ($accessChanged) {
+            $this->userAccessService->revoke($user, $user->is(auth()->user()) ? $request->session()->getId() : null);
+        }
+        ActivityLogger::log('updated', $user, "Cập nhật tài khoản {$user->email}", [
+            'old' => $oldValues,
+            'new' => $user->only(['name', 'email', 'role_id', 'is_active']),
+        ]);
 
         return redirect()
             ->route('admin.users.index')
@@ -150,9 +173,7 @@ class UserController extends Controller
 
     public function destroy(string $locale, User $user)
     {
-        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
+        $this->assertCanManage($user);
 
         if ($user->id === auth()->id()) {
             return redirect()
@@ -166,7 +187,10 @@ class UserController extends Controller
             $this->cloudinaryService->deleteResource($path);
         }
 
+        $oldValues = $user->only(['name', 'email', 'role_id', 'is_active']);
+        $this->userAccessService->revoke($user);
         $user->delete();
+        ActivityLogger::log('deleted', $user, "Xóa tài khoản {$oldValues['email']}", ['old' => $oldValues]);
 
         return redirect()
             ->route('admin.users.index')
@@ -175,18 +199,14 @@ class UserController extends Controller
 
     public function show(string $locale, User $user)
     {
-        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
+        $this->assertCanManage($user);
 
         return redirect()->route('admin.users.edit', $user);
     }
 
     public function toggleStatus(string $locale, User $user)
     {
-        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
+        $this->assertCanManage($user);
 
         if ($user->id === auth()->id()) {
             return redirect()
@@ -194,8 +214,12 @@ class UserController extends Controller
                 ->with('error', __('admin.users.toggle_status_self_error'));
         }
 
-        $user->is_active = !$user->is_active;
+        $user->is_active = ! $user->is_active;
         $user->save();
+        $this->userAccessService->revoke($user);
+        ActivityLogger::log('status_changed', $user, "Thay đổi trạng thái tài khoản {$user->email}", [
+            'new' => ['is_active' => $user->is_active],
+        ]);
 
         $message = $user->is_active 
             ? __('admin.users.unlocked') 
@@ -206,23 +230,23 @@ class UserController extends Controller
             ->with('success', $message);
     }
 
-    public function impersonate(string $locale, User $user)
+    public function impersonate(Request $request, string $locale, User $user)
     {
-        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
-
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('admin.users.index')
                 ->with('error', 'Bạn không thể đăng nhập nhanh vào tài khoản của chính mình.');
         }
 
-        // Save original admin ID in session
-        session()->put('impersonated_by', auth()->id());
+        if (! $user->is_active || $user->hasPrivilegedRole()) {
+            abort(403, 'Only active non-privileged accounts can be impersonated.');
+        }
 
-        // Login as target user
+        $originalAdminId = auth()->id();
         auth()->login($user);
+        $request->session()->regenerate();
+        $request->session()->put('impersonated_by', $originalAdminId);
+        ActivityLogger::log('impersonated', $user, "Đăng nhập nhanh vào tài khoản {$user->email}");
 
         // Redirect to homepage if target has no admin privileges, else to dashboard
         if ($user->role_id === null) {
@@ -235,7 +259,7 @@ class UserController extends Controller
             ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò ' . $user->name);
     }
 
-    public function leaveImpersonate()
+    public function leaveImpersonate(Request $request)
     {
         if (! session()->has('impersonated_by')) {
             abort(403, 'Unauthorized.');
@@ -243,12 +267,11 @@ class UserController extends Controller
 
         $adminId = session()->get('impersonated_by');
         $admin = User::findOrFail($adminId);
+        abort_unless($admin->is_active && $admin->isSuperAdmin(), 403, 'Unauthorized.');
 
-        // Login back as admin
         auth()->login($admin);
-
-        // Forget impersonated session
-        session()->forget('impersonated_by');
+        $request->session()->regenerate();
+        $request->session()->forget('impersonated_by');
 
         return redirect()
             ->route('admin.users.index')

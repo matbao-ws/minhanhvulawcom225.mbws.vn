@@ -27,10 +27,18 @@
     </form>
 
     <template id="order-item-template"><div class="row g-2 align-items-end border-bottom pb-3 mb-3 order-item">
-        <div class="col-md-5"><label class="form-label">Sản phẩm</label><select name="items[__INDEX__][product_id]" class="form-select product-select" required><option value="">Chọn sản phẩm</option>@foreach($products as $product)<option value="{{ $product->id }}">{{ $product->name }} ({{ $product->sku }})</option>@endforeach</select></div>
-        <div class="col-md-4"><label class="form-label">Biến thể (tuỳ chọn)</label><select name="items[__INDEX__][variant_id]" class="form-select variant-select"><option value="">Không chọn biến thể</option>@foreach($products as $product)@foreach($product->variants as $variant)<option value="{{ $variant->id }}" data-product="{{ $product->id }}">{{ $variant->name }}{{ $variant->sku ? ' — '.$variant->sku : '' }}</option>@endforeach@endforeach</select></div>
-        <div class="col-md-2"><label class="form-label">Số lượng</label><input type="number" min="1" name="items[__INDEX__][quantity]" value="1" class="form-control" required></div>
-        <div class="col-md-1"><button type="button" class="btn btn-outline-danger remove-item w-100">×</button></div>
+        <div class="col-md-2"><label class="form-label">Danh mục</label><select class="form-select category-select" required><option value="">Chọn danh mục</option>@foreach($categories as $category)<option value="{{ $category->id }}">{{ $category->name }}</option>@endforeach<option value="uncategorized">Chưa phân loại</option></select></div>
+        <div class="col-md-2"><label class="form-label">Thương hiệu</label><select class="form-select brand-select"><option value="">Tất cả thương hiệu</option>@foreach($brands as $brand)<option value="{{ $brand->id }}">{{ $brand->name }}</option>@endforeach<option value="unbranded">Không thương hiệu</option></select></div>
+        <div class="col-md-3"><label class="form-label">Sản phẩm</label><select name="items[__INDEX__][product_id]" class="form-select product-select" required disabled><option value="">Chọn danh mục trước</option>@foreach($products as $product)<option value="{{ $product->id }}" data-category="{{ $product->category_id ?? 'uncategorized' }}" data-brand="{{ $product->brand_id ?? 'unbranded' }}">{{ $product->name }} ({{ $product->sku }})</option>@endforeach</select></div>
+        <div class="col-md-3"><label class="form-label">Biến thể (tuỳ chọn)</label><select name="items[__INDEX__][variant_id]" class="form-select variant-select" disabled><option value="">Chọn sản phẩm trước</option>
+            @foreach($products as $product)
+                @foreach($product->variants as $variant)
+                    <option value="{{ $variant->id }}" data-product="{{ $product->id }}">{{ $variant->name }}{{ $variant->sku ? ' — '.$variant->sku : '' }}</option>
+                @endforeach
+            @endforeach
+        </select></div>
+        <div class="col-md-1"><label class="form-label">Số lượng</label><input type="number" min="1" name="items[__INDEX__][quantity]" value="1" class="form-control" required></div>
+        <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger remove-item d-inline-flex align-items-center justify-content-center p-0" style="width: 38px; height: 38px;" title="Xóa sản phẩm" aria-label="Xóa sản phẩm">×</button></div>
     </div></template>
 @endsection
 
@@ -43,10 +51,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const addItem = () => {
         container.insertAdjacentHTML('beforeend', template.replaceAll('__INDEX__', index++));
         const row = container.lastElementChild;
+        const category = row.querySelector('.category-select');
+        const brand = row.querySelector('.brand-select');
         const product = row.querySelector('.product-select');
         const variants = row.querySelector('.variant-select');
-        const filterVariants = () => [...variants.options].forEach(option => option.hidden = option.dataset.product && option.dataset.product !== product.value);
+        const productPlaceholder = product.querySelector('option[value=""]');
+        const variantPlaceholder = variants.querySelector('option[value=""]');
+        const filterProducts = () => {
+            const selectedCategory = category.value;
+            const selectedBrand = brand.value;
+            product.disabled = !selectedCategory;
+            productPlaceholder.textContent = selectedCategory ? 'Chọn sản phẩm' : 'Chọn danh mục trước';
+            [...product.options].forEach(option => {
+                const isVisible = !option.value || (option.dataset.category === selectedCategory && (!selectedBrand || option.dataset.brand === selectedBrand));
+                option.hidden = !isVisible;
+                option.disabled = !isVisible;
+            });
+        };
+        const filterVariants = () => {
+            variants.disabled = !product.value;
+            variantPlaceholder.textContent = product.value ? 'Không chọn biến thể' : 'Chọn sản phẩm trước';
+            [...variants.options].forEach(option => {
+                const isVisible = !option.value || option.dataset.product === product.value;
+                option.hidden = !isVisible;
+                option.disabled = !isVisible;
+            });
+        };
+        category.addEventListener('change', () => {
+            product.value = '';
+            variants.value = '';
+            filterProducts();
+            filterVariants();
+        });
+        brand.addEventListener('change', () => {
+            product.value = '';
+            variants.value = '';
+            filterProducts();
+            filterVariants();
+        });
         product.addEventListener('change', () => { variants.value = ''; filterVariants(); });
+        filterProducts();
         filterVariants();
         row.querySelector('.remove-item').addEventListener('click', () => row.remove());
     };

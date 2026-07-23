@@ -61,7 +61,7 @@ class OrderCrudTest extends TestCase
     public function test_guests_cannot_access_orders(): void
     {
         $response = $this->get('/vi/admin/orders');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_users_without_admin_role_cannot_access_orders(): void
@@ -131,6 +131,7 @@ class OrderCrudTest extends TestCase
             'payment_method' => 'online',
             'payment_status' => 'paid',
             'status' => 'completed',
+            'shipping_status' => 'delivered',
             'subtotal' => 300000.00,
             'discount' => 0,
             'grand_total' => 300000.00,
@@ -156,6 +157,13 @@ class OrderCrudTest extends TestCase
         $ordersFilterPayment = $responseFilterPayment->viewData('orders');
         $this->assertTrue($ordersFilterPayment->contains($completedOrder));
         $this->assertFalse($ordersFilterPayment->contains($this->order));
+
+        // 4. Filter by shipping status = delivered
+        $responseShippingStatus = $this->get('/vi/admin/orders?shipping_status=delivered');
+        $responseShippingStatus->assertOk();
+        $ordersShippingStatus = $responseShippingStatus->viewData('orders');
+        $this->assertTrue($ordersShippingStatus->contains($completedOrder));
+        $this->assertFalse($ordersShippingStatus->contains($this->order));
     }
 
     public function test_admin_can_update_order_status(): void

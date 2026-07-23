@@ -1,6 +1,6 @@
 @php
-    $fallbackLocale = config('app.fallback_locale', config('app.locale'));
-    $name = old('name', $variant->getTranslation('name', app()->getLocale(), false) ?: $variant->getTranslation('name', $fallbackLocale, false));
+    $contentLanguages = app(\App\Services\LanguageRegistry::class)->active();
+    $defaultContentLocale = app(\App\Services\LanguageRegistry::class)->defaultLocale();
     $selectedOptionIds = collect(old('option_value_ids', $variant->relationLoaded('optionValues') ? $variant->optionValues->modelKeys() : []))->map(fn ($id) => (int) $id)->all();
 @endphp
 
@@ -37,9 +37,22 @@
     <div class="card mt-4">
         <div class="card-body">
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label" for="name">Tên hiển thị (tùy chọn)</label>
-                    <input type="text" class="form-control" id="name" name="name" value="{{ $name }}" placeholder="Để trống để tự lấy từ tổ hợp">
+                <div class="col-12 mb-3">
+                    <ul class="nav nav-tabs mb-4" role="tablist">
+                        @foreach($contentLanguages as $language)
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
+                                   data-bs-toggle="tab"
+                                   href="#variant-language-{{ $language->code }}"
+                                   role="tab"
+                                   aria-selected="{{ $language->code === $defaultContentLocale ? 'true' : 'false' }}">
+                                    <span><i class="ti ti-language fs-4"></i></span>
+                                    <span>{{ $language->native_name }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="tab-content">@foreach($contentLanguages as $language)@php($code = $language->code)<div id="variant-language-{{ $code }}" class="tab-pane fade @if($code === $defaultContentLocale) show active @endif">@if($code !== $defaultContentLocale)<div class="text-end mb-2"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}">Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif<label class="form-label">Tên hiển thị (tùy chọn)</label><input class="form-control" id="variant_name_{{ $code }}" name="name[{{ $code }}]" value="{{ old("name.$code", $variant->getTranslation('name', $code, false)) }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" placeholder="Để trống để tự lấy từ tổ hợp"></div>@endforeach</div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label" for="sku">SKU</label>
@@ -94,4 +107,5 @@
     </div>
 
     @include('admin.shared.form-actions', ['cancelUrl' => route('admin.products.show', $product)])
+    @include('admin.shared.translation-assets')
 @endif

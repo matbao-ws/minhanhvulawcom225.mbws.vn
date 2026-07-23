@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\LocalizedContent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,18 +11,20 @@ class PublicProductVariantResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $content = app(LocalizedContent::class);
+
         return [
             'id' => $this->id,
-            'name' => $this->getTranslations('name'),
+            'name' => $content->get($this->resource, 'name'),
             'sku' => $this->sku,
             'barcode' => $this->barcode,
             'options' => $this->whenLoaded('optionValues', fn () => $this->optionValues->map(fn ($value) => [
                 'value_id' => $value->id,
-                'value' => $value->label,
+                'value' => $content->get($value, 'label'),
                 'code' => $value->code,
                 'group' => [
                     'id' => $value->optionGroup?->id,
-                    'name' => $value->optionGroup?->name,
+                    'name' => $value->optionGroup ? $content->get($value->optionGroup, 'name') : null,
                     'code' => $value->optionGroup?->code,
                 ],
             ])),

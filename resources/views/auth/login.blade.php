@@ -4,15 +4,24 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('admin-assets/images/logos/favicon.png') }}">
+    <link rel="icon" href="{{ $siteBranding['favicon_url'] }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/css/styles.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/css/core-controls.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.css') }}">
-    <title>{{ __('auth.login.title') }} - {{ config('app.name', 'Laravel Ecommerce Core') }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body, h1, h2, h3, h4, h5, h6, input, button, select, textarea, label, .form-control, * {
+            font-family: 'Quicksand', sans-serif !important;
+        }
+        body, p, .text-muted, .fs-12, .form-label, .form-text, .description {
+            font-weight: 500 !important;
+        }
+    </style>
+    <title>{{ __('auth.login.title') }} - {{ $siteBranding['name'] }}</title>
 </head>
 <body>
 <div class="preloader">
-    <img src="{{ asset('admin-assets/images/logos/favicon.png') }}" alt="loader" class="lds-ripple img-fluid">
+    <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}" class="lds-ripple img-fluid">
 </div>
 
 <div id="main-wrapper">
@@ -27,7 +36,7 @@
                                     <div class="col-lg-11">
                                         <div class="card-body">
                                             <a href="{{ route('admin.login') }}" class="text-nowrap logo-img d-block mb-4 w-100">
-                                                <img src="{{ asset('matbao-ws-logo.png') }}" width="140" class="dark-logo" alt="Logo">
+                                                <img src="{{ $siteBranding['logo_url'] }}" width="140" class="dark-logo" alt="{{ $siteBranding['name'] }}">
                                             </a>
                                             <h2 class="lh-base mb-4">{{ __('auth.login.heading') }}</h2>
 
@@ -51,12 +60,20 @@
                                                         <label for="password" class="form-label">{{ __('auth.login.password') }}</label>
                                                         <a class="text-primary link-dark fs-3" href="{{ route('admin.password.request') }}">{{ __('auth.login.forgot_password') }}</a>
                                                     </div>
-                                                    <input type="password"
-                                                           name="password"
-                                                           class="form-control"
-                                                           id="password"
-                                                           placeholder="{{ __('auth.login.password_placeholder') }}"
-                                                           autocomplete="current-password">
+                                                    <div class="position-relative">
+                                                        <input type="password"
+                                                               name="password"
+                                                               class="form-control pe-5"
+                                                               id="password"
+                                                               placeholder="{{ __('auth.login.password_placeholder') }}"
+                                                               autocomplete="current-password">
+                                                        <button type="button"
+                                                                class="btn btn-link text-muted position-absolute end-0 top-50 translate-middle-y pe-3 text-decoration-none border-0 shadow-none d-flex align-items-center"
+                                                                id="toggle-password"
+                                                                tabindex="-1">
+                                                            <iconify-icon id="toggle-password-icon" icon="solar:eye-closed-line-duotone" class="fs-6"></iconify-icon>
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -124,6 +141,17 @@
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('login-form');
         const submitButton = document.getElementById('login-submit');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('toggle-password');
+        const togglePasswordIcon = document.getElementById('toggle-password-icon');
+
+        if (togglePasswordBtn && passwordInput && togglePasswordIcon) {
+            togglePasswordBtn.addEventListener('click', function () {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                togglePasswordIcon.setAttribute('icon', isPassword ? 'solar:eye-line-duotone' : 'solar:eye-closed-line-duotone');
+            });
+        }
         const submitText = submitButton.querySelector('.login-submit-text');
         const submitSpinner = submitButton.querySelector('.spinner-border');
         const toast = Swal.mixin({

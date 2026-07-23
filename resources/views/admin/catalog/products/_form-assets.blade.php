@@ -143,6 +143,7 @@
                         ]
                     }
                 });
+                editorElement.__quill = quill;
 
                 quill.on('text-change', function() {
                     isDirty = true;

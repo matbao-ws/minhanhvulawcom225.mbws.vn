@@ -26,7 +26,7 @@ class OrderStatusMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Cập nhật trạng thái đơn hàng #' . $this->order->order_number,
+            subject: __('emails.order.subject', ['number' => $this->order->order_number]),
         );
     }
 

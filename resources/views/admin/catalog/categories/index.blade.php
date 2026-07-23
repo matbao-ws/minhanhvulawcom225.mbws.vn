@@ -35,10 +35,16 @@
     </div>
 
     <div class="card">
+        @include('admin.shared.bulk-actions', [
+            'bulkFormId' => 'bulk-categories-form',
+            'bulkActionUrl' => route('admin.categories.bulk'),
+            'bulkItemLabel' => 'danh mục',
+        ])
         <div class="table-responsive">
             <table class="table text-nowrap mb-0 align-middle" id="category-table-sortable" data-start-order="{{ max(0, ($categories->firstItem() ?? 1) - 1) }}">
                 <thead class="text-dark fs-4">
                 <tr>
+                    <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-categories-form" aria-label="Chọn tất cả danh mục"></th>
                     <th>
                         <h6 class="fs-4 fw-semibold mb-0">{{ __('catalog.fields.category') }}</h6>
                     </th>
@@ -70,6 +76,7 @@
                         <tbody class="category-group-sortable" data-category-id="{{ $category->id }}">
                     @endif
                     <tr data-category-id="{{ $category->id }}" data-depth="{{ $category->depth ?? 0 }}">
+                        <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $category->id }}" form="bulk-categories-form" data-bulk-select="bulk-categories-form" aria-label="Chọn {{ $categoryName }}"></td>
                         <td>
                             <div class="d-flex align-items-center" style="padding-left: {{ ($category->depth ?? 0) * 32 }}px;">
                                 @if(($category->depth ?? 0) > 0)
@@ -158,7 +165,7 @@
                 @empty
                     <tbody id="category-empty-body">
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <img src="{{ asset('admin-assets/images/icons/emptydata.png') }}" alt="No data" class="img-fluid mb-2" style="max-height: 60px;">
                                 <p class="text-muted fw-bold mb-0">{{ __('catalog.common.no_data') }}</p>
                             </td>

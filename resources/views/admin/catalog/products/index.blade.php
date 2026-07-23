@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <div class="d-flex gap-2 align-items-center justify-content-end mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end mb-4">
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importProductsModal">
             <i class="ti ti-upload me-1 fs-4"></i>{{ __('catalog.products.import') }}
         </button>
@@ -99,10 +99,16 @@
             </form>
         </div>
         <div class="card-body p-0">
+            @include('admin.shared.bulk-actions', [
+                'bulkFormId' => 'bulk-products-form',
+                'bulkActionUrl' => route('admin.products.bulk'),
+                'bulkItemLabel' => 'sản phẩm',
+            ])
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
+                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-products-form" aria-label="Chọn tất cả sản phẩm"></th>
                             <th class="ps-4">{{ __('catalog.fields.name') }}</th>
                             <th>{{ __('catalog.fields.category') }}</th>
                             <th>{{ __('catalog.fields.brand') }}</th>
@@ -116,6 +122,7 @@
                     <tbody>
                         @forelse($products as $product)
                             <tr class="text-nowrap">
+                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $product->id }}" form="bulk-products-form" data-bulk-select="bulk-products-form" aria-label="Chọn {{ $product->name }}"></td>
                                 <td class="ps-4 text-wrap" style="min-width: 300px;">
                                     <div class="d-flex align-items-center gap-3">
                                         <img src="{{ $product->image_url ?: asset('images/icons/default-product.png') }}"
@@ -194,7 +201,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-5">
+                                <td colspan="9" class="text-center py-5">
                                     <img src="{{ asset('admin-assets/images/icons/emptydata.png') }}" alt="No data"
                                         class="img-fluid mb-2" style="max-height: 60px;">
                                     <p class="text-muted fw-bold mb-0">{{ __('catalog.common.no_data') }}</p>

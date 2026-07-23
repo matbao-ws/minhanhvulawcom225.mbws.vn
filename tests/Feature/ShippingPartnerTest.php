@@ -47,7 +47,7 @@ class ShippingPartnerTest extends TestCase
     public function test_guests_cannot_access_shipping_partners(): void
     {
         $response = $this->get('/vi/admin/shipping-partners');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_unauthorized_users_cannot_access_shipping_partners(): void
@@ -125,7 +125,7 @@ class ShippingPartnerTest extends TestCase
         $partner = ShippingPartner::where('partner_code', 'DTGH000012')->firstOrFail();
 
         $response = $this->actingAs($this->adminUser)->post("/vi/admin/shipping-partners/{$partner->id}/settings", [
-            'api_token' => 'mock-token-xyz',
+            'api_token' => 'mock',
             'api_url' => 'https://services.ghtk.vn',
             'realtime_tracking_enabled' => 1,
             'webhook_token' => 'custom-webhook-secret',
@@ -135,7 +135,7 @@ class ShippingPartnerTest extends TestCase
         $response->assertSessionHas('success');
 
         $partner->refresh();
-        $this->assertEquals('mock-token-xyz', $partner->settings['api_token']);
+        $this->assertEquals('mock', $partner->settings['api_token']);
         $this->assertEquals('https://services.ghtk.vn', $partner->settings['api_url']);
         $this->assertTrue($partner->settings['realtime_tracking_enabled']);
         $this->assertEquals('custom-webhook-secret', $partner->settings['webhook_token']);
@@ -146,7 +146,7 @@ class ShippingPartnerTest extends TestCase
         $partner = ShippingPartner::where('partner_code', 'DTGH000012')->firstOrFail();
 
         $this->actingAs($this->adminUser)->post("/vi/admin/shipping-partners/{$partner->id}/settings", [
-            'api_token' => 'mock-token-without-webhook',
+            'api_token' => 'mock',
             'api_url' => 'https://services.ghtk.vn',
         ])->assertRedirect('/vi/admin/shipping-partners');
 

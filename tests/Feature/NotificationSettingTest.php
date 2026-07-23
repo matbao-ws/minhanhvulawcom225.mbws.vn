@@ -67,7 +67,7 @@ class NotificationSettingTest extends TestCase
     public function test_guests_cannot_access_notification_settings(): void
     {
         $response = $this->get('/vi/admin/notification-settings');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_unauthorized_users_cannot_access_notification_settings(): void

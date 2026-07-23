@@ -24,11 +24,12 @@ class FeatureGateAndSuperadminTest extends TestCase
         $this->superadminRole = Role::query()->create([
             'name' => 'Superadmin',
             'permissions' => ['*'],
+            'is_system' => true,
         ]);
 
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['*'],
+            'permissions' => ['manage_users', 'manage_products'],
         ]);
 
         // Seed some feature settings
@@ -42,7 +43,7 @@ class FeatureGateAndSuperadminTest extends TestCase
     public function test_guest_cannot_access_features_settings(): void
     {
         $response = $this->get('/vi/admin/features');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_standard_admin_cannot_access_features_settings(): void

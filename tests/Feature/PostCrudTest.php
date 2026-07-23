@@ -63,8 +63,8 @@ class PostCrudTest extends TestCase
 
     public function test_guests_cannot_access_posts_or_categories(): void
     {
-        $this->get('/vi/admin/posts')->assertRedirect('/login');
-        $this->get('/vi/admin/post-categories')->assertRedirect('/login');
+        $this->get('/vi/admin/posts')->assertRedirect('/vi/admin/login');
+        $this->get('/vi/admin/post-categories')->assertRedirect('/vi/admin/login');
     }
 
     public function test_regular_users_cannot_access_posts_or_categories(): void

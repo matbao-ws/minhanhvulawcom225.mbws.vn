@@ -21,6 +21,9 @@ class PermissionSeeder extends Seeder
             ['code' => 'manage_users', 'name' => 'Quản lý tài khoản', 'group' => 'users'],
             ['code' => 'manage_roles', 'name' => 'Quản lý vai trò và phân quyền', 'group' => 'users'],
             ['code' => 'manage_settings', 'name' => 'Cấu hình website', 'group' => 'settings'],
+            ['code' => 'manage_media', 'name' => 'Quản lý thư viện tệp', 'group' => 'system'],
+            ['code' => 'manage_languages', 'name' => 'Quản lý ngôn ngữ', 'group' => 'settings'],
+            ['code' => 'translate_content', 'name' => 'Dịch nội dung tự động', 'group' => 'system'],
         ];
 
         foreach ($permissions as $permission) {

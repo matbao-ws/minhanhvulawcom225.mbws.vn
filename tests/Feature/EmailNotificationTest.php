@@ -9,6 +9,7 @@ use App\Models\FeatureSetting;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +93,24 @@ class EmailNotificationTest extends TestCase
         Mail::assertSent(InvoiceMail::class, function ($mail) use ($admin) {
             return $mail->hasTo($admin->email) && $mail->invoice->id === $this->invoice->id;
         });
+    }
+
+    public function test_invoice_email_uses_the_configured_website_name_and_logo(): void
+    {
+        ProjectSetting::query()->create([
+            'setting_key' => 'shop_name',
+            'setting_value' => 'Cửa hàng email',
+        ]);
+        ProjectSetting::query()->create([
+            'setting_key' => 'logo_url',
+            'setting_value' => 'https://cdn.example.test/settings/email-logo.png',
+        ]);
+
+        $mail = new InvoiceMail($this->invoice);
+        $rendered = $mail->render();
+
+        $this->assertStringContainsString('Cửa hàng email', $rendered);
+        $this->assertStringContainsString('https://cdn.example.test/settings/email-logo.png', $rendered);
     }
 
     public function test_updating_order_status_triggers_order_status_email(): void

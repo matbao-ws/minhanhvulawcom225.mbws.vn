@@ -130,7 +130,6 @@
         <form action="{{ route('vnpay.mock.submit') }}" method="POST" class="d-flex flex-column gap-3">
             @csrf
             <input type="hidden" name="order_id" value="{{ $order->order_number }}">
-            <input type="hidden" name="amount" value="{{ $order->grand_total }}">
             <input type="hidden" name="redirect_url" value="{{ $redirectUrl }}">
             
             <button type="submit" name="status" value="success" class="btn btn-success-gradient w-100">

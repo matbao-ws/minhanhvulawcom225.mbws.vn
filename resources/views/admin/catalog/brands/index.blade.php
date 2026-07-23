@@ -34,10 +34,16 @@
                 </div>
             </form>
         </div>
+        @include('admin.shared.bulk-actions', [
+            'bulkFormId' => 'bulk-brands-form',
+            'bulkActionUrl' => route('admin.brands.bulk'),
+            'bulkItemLabel' => 'thương hiệu',
+        ])
         <div class="table-responsive">
             <table class="table text-nowrap mb-0 align-middle">
                 <thead class="text-dark fs-4">
                 <tr>
+                    <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-brands-form" aria-label="Chọn tất cả thương hiệu"></th>
                     <th>
                         <h6 class="fs-4 fw-semibold mb-0">{{ __('catalog.fields.name') }}</h6>
                     </th>
@@ -57,6 +63,7 @@
                         $brandDescription = $brand->getTranslation('description', app()->getLocale(), false) ?: '';
                     @endphp
                     <tr data-brand-id="{{ $brand->id }}">
+                        <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $brand->id }}" form="bulk-brands-form" data-bulk-select="bulk-brands-form" aria-label="Chọn {{ $brandName }}"></td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <span class="catalog-drag-handle me-2" title="{{ __('catalog.actions.drag_sort') }}" style="cursor: grab;">
@@ -123,7 +130,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center py-5">
+                        <td colspan="5" class="text-center py-5">
                             <img src="{{ asset('admin-assets/images/icons/emptydata.png') }}" alt="No data" class="img-fluid mb-2" style="max-height: 60px;">
                             <p class="text-muted fw-bold mb-0">{{ __('catalog.common.no_data') }}</p>
                         </td>

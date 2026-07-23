@@ -23,6 +23,7 @@ class User extends Authenticatable
         'role_id',
         'name',
         'email',
+        'preferred_locale',
         'avatar_url',
         'password',
         'is_active',
@@ -69,5 +70,11 @@ class User extends Authenticatable
         return $this->role
             && $this->role->hasPermission('*')
             && ($this->role->is_system || $this->role->name === 'Superadmin');
+    }
+
+    public function hasPrivilegedRole(): bool
+    {
+        return $this->role !== null
+            && ($this->role->is_system || in_array('*', $this->role->permissions ?? [], true));
     }
 }

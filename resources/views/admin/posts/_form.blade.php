@@ -1,10 +1,7 @@
 @php
-    $fallbackLocale = config('app.fallback_locale', config('app.locale', 'vi'));
-    $title = old('title', $post->getTranslation('title', app()->getLocale(), false) ?: $post->getTranslation('title', $fallbackLocale, false));
-    $summary = old('summary', $post->getTranslation('summary', app()->getLocale(), false) ?: $post->getTranslation('summary', $fallbackLocale, false));
-    $content = old('content', $post->getTranslation('content', app()->getLocale(), false) ?: $post->getTranslation('content', $fallbackLocale, false));
-    $seoTitle = old('seo_title', $post->getTranslation('seo_title', app()->getLocale(), false) ?: $post->getTranslation('seo_title', $fallbackLocale, false));
-    $seoDesc = old('seo_description', $post->getTranslation('seo_description', app()->getLocale(), false) ?: $post->getTranslation('seo_description', $fallbackLocale, false));
+    $contentLanguages = app(\App\Services\LanguageRegistry::class)->active();
+    $defaultContentLocale = app(\App\Services\LanguageRegistry::class)->defaultLocale();
+    $fallbackLocale = app(\App\Services\LanguageRegistry::class)->fallbackLocale();
     $cancelUrl = route('admin.posts.index');
 @endphp
 
@@ -14,33 +11,42 @@
         <!-- General Info Card -->
         <div class="card">
             <div class="card-body">
-                <h4 class="card-title mb-7">{{ __('admin.posts.sections.general') }}</h4>
-                
-                <div class="mb-4">
-                    <label class="form-label" for="title">{{ __('admin.posts.fields.title') }} <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="title" name="title" value="{{ $title }}" placeholder="{{ __('admin.posts.placeholders.title') }}" required>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="slug">{{ __('admin.posts.fields.slug') }}</label>
-                    <input type="text" class="form-control" id="slug" name="slug" value="{{ old('slug', $post->slug) }}" placeholder="{{ __('admin.posts.placeholders.slug') }}">
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="summary">{{ __('admin.posts.fields.summary') }}</label>
-                    <textarea class="form-control" id="summary" name="summary" rows="3" placeholder="{{ __('admin.posts.placeholders.summary') }}">{{ $summary }}</textarea>
-                </div>
-
-                <div class="mb-4 position-relative" id="editor_wrapper">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <label class="form-label mb-0" for="content_input">{{ __('admin.posts.fields.content') }} <span class="text-danger">*</span></label>
-                        <button type="button" class="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 py-1 px-2" id="toggle_fullscreen" style="font-size: 12.2px !important; border-radius: 6px;">
-                            <i class="ti ti-maximize fs-4" id="fullscreen_icon"></i>
-                            <span id="fullscreen_text">Phóng to</span>
-                        </button>
-                    </div>
-                    <textarea class="form-control d-none" id="content_input" name="content" required>{{ $content }}</textarea>
-                    <div id="content_editor" class="catalog-quill" data-target="content_input" style="height: 350px;">{!! $content !!}</div>
+                <div class="d-flex justify-content-between align-items-center mb-4"><h4 class="card-title mb-0">{{ __('admin.posts.sections.general') }}</h4></div>
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    @foreach($contentLanguages as $language)
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
+                               data-bs-toggle="tab"
+                               href="#post-language-{{ $language->code }}"
+                               role="tab"
+                               aria-selected="{{ $language->code === $defaultContentLocale ? 'true' : 'false' }}">
+                                <span><i class="ti ti-language fs-4"></i></span>
+                                <span>{{ $language->native_name }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="tab-content">
+                    @foreach($contentLanguages as $language)
+                        @php
+                            $code = $language->code;
+                            $title = old("title.$code", $post->getTranslation('title', $code, false));
+                            $slug = old("slug.$code", $post->localizedSlug($code) ?: ($code === $defaultContentLocale ? $post->slug : ''));
+                            $summary = old("summary.$code", $post->getTranslation('summary', $code, false));
+                            $content = old("content.$code", $post->getTranslation('content', $code, false));
+                            $seoTitle = old("seo_title.$code", $post->getTranslation('seo_title', $code, false));
+                            $seoDesc = old("seo_description.$code", $post->getTranslation('seo_description', $code, false));
+                            $defaultTab = $code === $defaultContentLocale;
+                        @endphp
+                        <div class="tab-pane fade @if($defaultTab) show active @endif" id="post-language-{{ $code }}">
+                            @if(!$defaultTab)<div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif
+                            <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'title' : 'title_'.$code }}">{{ __('admin.posts.fields.title') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="{{ $defaultTab ? 'title' : 'title_'.$code }}" name="title[{{ $code }}]" value="{{ $title }}" data-i18n-locale="{{ $code }}" data-i18n-field="title" @required($defaultTab)></div>
+                            <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'slug' : 'slug_'.$code }}">{{ __('admin.posts.fields.slug') }}</label><input type="text" class="form-control" id="{{ $defaultTab ? 'slug' : 'slug_'.$code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="Tự tạo từ tiêu đề"></div>
+                            <div class="mb-4"><label class="form-label" for="summary_{{ $code }}">{{ __('admin.posts.fields.summary') }}</label><textarea class="form-control" id="summary_{{ $code }}" name="summary[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="summary">{{ $summary }}</textarea></div>
+                            <div class="mb-4 position-relative" @if($defaultTab) id="editor_wrapper" @endif><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="catalog-quill" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" style="height:350px">{!! app(\App\Support\HtmlSanitizer::class)->clean($content) !!}</div></div>
+                            <div class="border rounded p-3 bg-light-subtle"><div class="mb-3"><label class="form-label" for="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}">{{ __('admin.posts.fields.seo_title') }}</label><input class="form-control" id="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}" name="seo_title[{{ $code }}]" value="{{ $seoTitle }}" data-i18n-locale="{{ $code }}" data-i18n-field="seo_title"></div><div><label class="form-label" for="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}">{{ __('admin.posts.fields.seo_description') }}</label><textarea class="form-control" id="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}" name="seo_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="seo_description">{{ $seoDesc }}</textarea></div></div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -56,15 +62,6 @@
                     <p class="fs-2 text-muted mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label" for="seo_title">{{ __('admin.posts.fields.seo_title') }}</label>
-                    <input type="text" class="form-control" id="seo_title" name="seo_title" value="{{ $seoTitle }}" placeholder="{{ __('admin.posts.placeholders.seo_title') }}">
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="seo_description">{{ __('admin.posts.fields.seo_description') }}</label>
-                    <textarea class="form-control" id="seo_description" name="seo_description" rows="3" placeholder="{{ __('admin.posts.placeholders.seo_description') }}">{{ $seoDesc }}</textarea>
-                </div>
             </div>
         </div>
 
@@ -214,3 +211,4 @@
         </div>
     </div>
 </div>
+@include('admin.shared.translation-assets')

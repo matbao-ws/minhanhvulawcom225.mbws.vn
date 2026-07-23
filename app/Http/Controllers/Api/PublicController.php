@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PublicBrandResource;
+use App\Http\Resources\PublicCategoryResource;
 use App\Http\Resources\PublicOrderResource;
+use App\Http\Resources\PublicPostResource;
 use App\Http\Resources\PublicProductResource;
 use App\Http\Resources\PublicReviewResource;
 use App\Jobs\SendOrderStatusEmail;
@@ -12,11 +15,19 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\PaymentMethod;
+use App\Models\Post;
+use App\Models\PostCategory;
 use App\Models\Product;
 use App\Models\ProjectSetting;
 use App\Models\Review;
 use App\Models\Voucher;
+use App\Models\VoucherUsage;
 use App\Services\Catalog\ProductVariantResolver;
+use App\Services\LanguageRegistry;
+use App\Services\LocalizedContent;
+use App\Services\LocalizedSlugService;
+use App\Services\MultilingualSettings;
+use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\PromotionService;
@@ -34,9 +45,13 @@ class PublicController extends Controller
 {
     public function __construct(
         private readonly OrderStockService $orderStockService,
+        private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
         private readonly ProductVariantResolver $variantResolver,
         private readonly PromotionService $promotionService,
+        private readonly LocalizedSlugService $localizedSlugs,
+        private readonly LocalizedContent $localizedContent,
+        private readonly MultilingualSettings $multilingual,
     ) {}
 
     /**
@@ -75,7 +90,21 @@ class PublicController extends Controller
             ->pluck('setting_value', 'setting_key')
             ->all();
 
+        $settings['multilingual'] = $this->multilingual->publicConfig();
+
         return ApiResponse::success($settings);
+    }
+
+    public function languages(LanguageRegistry $languages)
+    {
+        return ApiResponse::success($languages->active()->map(fn ($language) => [
+            'code' => $language->code,
+            'name' => $language->name,
+            'native_name' => $language->native_name,
+            'regional' => $language->regional,
+            'is_default' => (bool) $language->is_default,
+            'is_content_fallback' => (bool) $language->is_content_fallback,
+        ])->values());
     }
 
     /**
@@ -86,14 +115,14 @@ class PublicController extends Controller
         $categories = Category::query()
             ->whereNull('parent_id')
             ->where('is_active', true)
-            ->with(['children' => function ($q) {
-                $q->where('is_active', true)->orderBy('sort_order')->orderBy('id');
+            ->with(['localizedSlugs', 'children' => function ($q) {
+                $q->where('is_active', true)->with('localizedSlugs')->orderBy('sort_order')->orderBy('id');
             }])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
-        return ApiResponse::success($categories);
+        return ApiResponse::success(PublicCategoryResource::collection($categories));
     }
 
     /**
@@ -103,11 +132,12 @@ class PublicController extends Controller
     {
         $brands = Brand::query()
             ->where('is_active', true)
+            ->with('localizedSlugs')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
-        return ApiResponse::success($brands);
+        return ApiResponse::success(PublicBrandResource::collection($brands));
     }
 
     /**
@@ -115,30 +145,27 @@ class PublicController extends Controller
      */
     public function products(Request $request)
     {
-        $query = Product::query()->where('is_active', true);
+        $query = Product::query()->where('is_active', true)->with('localizedSlugs');
 
         // Filter by Category
         if ($request->filled('category')) {
-            $cat = $request->input('category');
-            $query->whereHas('category', function ($q) use ($cat) {
-                $q->where('id', $cat)->orWhere('slug', $cat);
-            });
+            $category = $this->localizedSlugs->find(Category::class, $request->input('category'), app()->getLocale());
+            $query->where('category_id', $category?->id ?? 0);
         }
 
         // Filter by Brand
         if ($request->filled('brand')) {
-            $brand = $request->input('brand');
-            $query->whereHas('brand', function ($q) use ($brand) {
-                $q->where('id', $brand)->orWhere('slug', $brand);
-            });
+            $brand = $this->localizedSlugs->find(Brand::class, $request->input('brand'), app()->getLocale());
+            $query->where('brand_id', $brand?->id ?? 0);
         }
 
         // Search by keyword
         if ($request->filled('q')) {
             $q = $request->input('q');
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%")
+            $locale = app()->getLocale();
+            $query->where(function ($sub) use ($q, $locale) {
+                $sub->where("name->{$locale}", 'like', "%{$q}%")
+                    ->orWhere("description->{$locale}", 'like', "%{$q}%")
                     ->orWhere('sku', 'like', "%{$q}%");
             });
         }
@@ -176,25 +203,84 @@ class PublicController extends Controller
      */
     public function productDetail($idOrSlug)
     {
-        $product = Product::query()
-            ->where('is_active', true)
-            ->where(function ($q) use ($idOrSlug) {
-                $q->where('id', $idOrSlug)->orWhere('slug', $idOrSlug);
-            })
-            ->with(['category', 'brand', 'optionGroups.values' => function ($q) {
+        $product = $this->localizedSlugs->find(Product::class, $idOrSlug, app()->getLocale());
+        if ($product && $product->is_active) {
+            $product->load(['localizedSlugs', 'category.localizedSlugs', 'brand.localizedSlugs', 'optionGroups.values' => function ($q) {
                 $q->where('is_active', true);
             }, 'variants.optionValues.optionGroup', 'variants' => function ($q) {
                 $q->where('is_active', true);
             }, 'reviews' => function ($q) {
                 $q->where('is_visible', true)->latest();
-            }])
-            ->first();
+            }]);
+        } else {
+            $product = null;
+        }
 
         if (! $product) {
             return ApiResponse::error('Sản phẩm không tồn tại.', 404);
         }
 
         return ApiResponse::success(new PublicProductResource($product));
+    }
+
+    public function postCategories()
+    {
+        $content = $this->localizedContent;
+        $categories = PostCategory::query()
+            ->where('is_active', true)
+            ->with('localizedSlugs')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (PostCategory $category) => [
+                'id' => $category->id,
+                'parent_id' => $category->parent_id,
+                'name' => $content->get($category, 'name'),
+                'slug' => $category->canonicalSlug(),
+                'description' => $content->get($category, 'description'),
+            ]);
+
+        return ApiResponse::success($categories);
+    }
+
+    public function posts(Request $request)
+    {
+        $query = Post::query()
+            ->where('is_active', true)
+            ->where(fn ($query) => $query->whereNull('published_at')->orWhere('published_at', '<=', now()))
+            ->with('localizedSlugs');
+
+        if ($request->filled('category')) {
+            $category = $this->localizedSlugs->find(PostCategory::class, $request->input('category'), app()->getLocale());
+            $query->where('category_id', $category?->id ?? 0);
+        }
+        if ($request->filled('q')) {
+            $keyword = $request->input('q');
+            $locale = app()->getLocale();
+            $query->where(fn ($query) => $query->where("title->{$locale}", 'like', "%{$keyword}%")
+                ->orWhere("summary->{$locale}", 'like', "%{$keyword}%"));
+        }
+
+        $posts = $query->latest('published_at')->paginate(12)->withQueryString();
+
+        return ApiResponse::success(PublicPostResource::collection($posts->items()), null, [
+            'current_page' => $posts->currentPage(),
+            'last_page' => $posts->lastPage(),
+            'per_page' => $posts->perPage(),
+            'total' => $posts->total(),
+        ]);
+    }
+
+    public function postDetail(string $idOrSlug)
+    {
+        $post = $this->localizedSlugs->find(Post::class, $idOrSlug, app()->getLocale());
+        if (! $post || ! $post->is_active || ($post->published_at && $post->published_at->isFuture())) {
+            return ApiResponse::error('Bài viết không tồn tại.', 404);
+        }
+
+        $post->load(['localizedSlugs', 'category.localizedSlugs']);
+
+        return ApiResponse::success(new PublicPostResource($post));
     }
 
     /**
@@ -234,6 +320,12 @@ class PublicController extends Controller
 
         if ($voucher->quantity !== null && $voucher->used_count >= $voucher->quantity) {
             return ApiResponse::error('Mã giảm giá đã hết lượt sử dụng.', 422);
+        }
+
+        $apiUser = $request->user('sanctum');
+        $customerId = ($apiUser && $apiUser->role_id === null) ? $apiUser->id : null;
+        if ($voucher->reachedPerUserLimit($customerId, null)) {
+            return ApiResponse::error('Bạn đã sử dụng hết số lượt cho phép của mã giảm giá này.', 422);
         }
 
         if ($subtotal < (float) $voucher->min_order_amount) {
@@ -283,13 +375,21 @@ class PublicController extends Controller
         if (! $paymentMethod) {
             return ApiResponse::error('Phương thức thanh toán chưa được kích hoạt hoặc không tồn tại.', 422);
         }
+        if ($paymentMethod->type === 'connected' && $paymentMethod->method_code !== 'vnpay') {
+            return ApiResponse::error('Cổng thanh toán này chưa được tích hợp cho checkout.', 422);
+        }
 
         $shipping = app(ShippingService::class)->getSettings();
         $shippingFee = data_get($shipping, 'flat_rate.enabled')
             ? (float) data_get($shipping, 'flat_rate.fee', 0)
             : 0.0;
 
-        $customerId = $request->user('sanctum')?->id;
+        $apiUser = $request->user('sanctum');
+        if ($apiUser && $apiUser->role_id !== null) {
+            return ApiResponse::error('Tài khoản quản trị không thể dùng để tạo đơn hàng khách.', 403);
+        }
+
+        $customerId = $apiUser?->id;
         try {
             $order = DB::transaction(function () use ($request, $customerId, $shippingFee) {
                 $subtotal = 0.0;
@@ -326,9 +426,9 @@ class PublicController extends Controller
                             'product_id' => $product->id,
                             'product_variant_id' => $variant?->id,
                             'promotion_id' => $quote['promotion']?->id,
-                            'product_name' => $product->name,
-                            'variant_name' => $variant?->name,
-                            'promotion_name' => $quote['promotion']?->name,
+                            'product_name' => $this->localizedContent->get($product, 'name'),
+                            'variant_name' => $variant ? $this->localizedContent->get($variant, 'name') : null,
+                            'promotion_name' => $quote['promotion'] ? $this->localizedContent->get($quote['promotion'], 'name') : null,
                             'sku' => $variant?->sku ?: $product->sku,
                             'original_price' => $price,
                             'promotion_discount' => $quote['discount'],
@@ -347,7 +447,7 @@ class PublicController extends Controller
                         ->where('code', strtoupper($request->input('voucher_code')))
                         ->lockForUpdate()
                         ->first();
-                    if (! $voucher || ! $voucher->isValidForOrder($discountableSubtotal)) {
+                    if (! $voucher || ! $voucher->isValidForOrder($discountableSubtotal, $customerId, $request->input('customer_email'))) {
                         throw new \DomainException('Mã giảm giá không hợp lệ cho đơn hàng này.');
                     }
                     $voucherDiscount = $voucher->calculateDiscount($discountableSubtotal);
@@ -360,6 +460,7 @@ class PublicController extends Controller
 
                 $order = Order::query()->create([
                     'order_number' => $orderNumber,
+                    'locale' => $request->attributes->get('content_locale', app()->getLocale()),
                     'customer_name' => $request->customer_name,
                     'customer_email' => $request->customer_email,
                     'customer_phone' => $request->customer_phone,
@@ -393,6 +494,13 @@ class PublicController extends Controller
 
                 if ($voucher) {
                     $voucher->increment('used_count');
+                    VoucherUsage::query()->create([
+                        'voucher_id' => $voucher->id,
+                        'user_id' => $customerId,
+                        'order_id' => $order->id,
+                        'customer_email' => $order->customer_email,
+                        'used_at' => now(),
+                    ]);
                 }
 
                 return $order->load('items');
@@ -431,6 +539,7 @@ class PublicController extends Controller
                                 ->where('code', strtoupper($request->input('voucher_code')))
                                 ->where('used_count', '>', 0)
                                 ->decrement('used_count');
+                            VoucherUsage::query()->where('order_id', $lockedOrder->id)->delete();
                         }
                     });
                 } catch (\Throwable $ex) {
@@ -530,12 +639,10 @@ class PublicController extends Controller
      */
     public function storeReview(Request $request, $idOrSlug)
     {
-        $product = Product::query()
-            ->where('is_active', true)
-            ->where(function ($q) use ($idOrSlug) {
-                $q->where('id', $idOrSlug)->orWhere('slug', $idOrSlug);
-            })
-            ->first();
+        $product = $this->localizedSlugs->find(Product::class, $idOrSlug, app()->getLocale());
+        if ($product && ! $product->is_active) {
+            $product = null;
+        }
 
         if (! $product) {
             return ApiResponse::error('Sản phẩm không tồn tại.', 404);
@@ -551,6 +658,7 @@ class PublicController extends Controller
         if (! $user) {
             $rules['customer_name'] = 'required|string|max:255';
             $rules['customer_email'] = 'required|email|max:255';
+            $rules['order_number'] = 'required|string|max:100';
         } else {
             $rules['customer_name'] = 'nullable|string|max:255';
             $rules['customer_email'] = 'nullable|email|max:255';
@@ -573,15 +681,16 @@ class PublicController extends Controller
                     $q->where('user_id', $user->id)
                         ->orWhere('customer_email', $user->email);
                 })
-                ->where('status', '!=', 'cancelled')
+                ->where('status', 'completed')
                 ->whereHas('items', function ($q) use ($product) {
                     $q->where('product_id', $product->id);
                 })
                 ->exists();
         } else {
             $hasPurchased = Order::query()
+                ->where('order_number', $request->input('order_number'))
                 ->where('customer_email', $customerEmail)
-                ->where('status', '!=', 'cancelled')
+                ->where('status', 'completed')
                 ->whereHas('items', function ($q) use ($product) {
                     $q->where('product_id', $product->id);
                 })
@@ -603,6 +712,65 @@ class PublicController extends Controller
         ]);
 
         return ApiResponse::success(new PublicReviewResource($review), 'Gửi đánh giá thành công.');
+    }
+
+    /**
+     * Handle the browser return from VNPAY.
+     *
+     * This only verifies data integrity (signature) and reports the outcome. It never
+     * mutates the order — the IPN callback is the single source of truth for the payment
+     * state. When a validated client redirect is supplied, the customer is bounced back to
+     * the storefront with a sanitized result; otherwise a JSON payload is returned.
+     */
+    public function vnpayReturn(Request $request)
+    {
+        // Only vnp_* fields are signed; strip everything else before verifying.
+        $vnpParams = collect($request->query())
+            ->filter(fn ($value, $key) => str_starts_with((string) $key, 'vnp_'))
+            ->all();
+
+        $vnpayService = app(VNPAYService::class);
+        $verified = $vnpParams !== [] && $vnpayService->verifyIpnSignature($vnpParams);
+
+        $orderNumber = $vnpParams['vnp_TxnRef'] ?? null;
+        $responseCode = $vnpParams['vnp_ResponseCode'] ?? null;
+        $order = ($verified && $orderNumber)
+            ? Order::query()->where('order_number', $orderNumber)->first()
+            : null;
+
+        if (! $verified) {
+            $outcome = 'invalid';
+        } elseif ($responseCode === '00') {
+            $outcome = 'success';
+        } else {
+            $outcome = 'failed';
+        }
+
+        // Bounce back to the storefront when a validated redirect target is provided.
+        $clientRedirect = $vnpayService->safeReturnUrl($request->query('redirect_url'));
+        if ($request->filled('redirect_url') && $clientRedirect !== url('/')) {
+            $separator = str_contains($clientRedirect, '?') ? '&' : '?';
+
+            return redirect()->away($clientRedirect.$separator.http_build_query(array_filter([
+                'payment' => $outcome,
+                'order_number' => $orderNumber,
+                'vnp_response_code' => $responseCode,
+            ], fn ($value) => $value !== null)));
+        }
+
+        if (! $verified) {
+            return ApiResponse::error('Chữ ký VNPAY không hợp lệ.', 400, ['payment' => 'invalid']);
+        }
+
+        if (! $order) {
+            return ApiResponse::error('Không tìm thấy đơn hàng.', 404, ['payment' => $outcome]);
+        }
+
+        return ApiResponse::success([
+            'payment' => $outcome,
+            'response_code' => $responseCode,
+            'order' => new PublicOrderResource($order),
+        ], $outcome === 'success' ? 'Thanh toán thành công.' : 'Thanh toán chưa hoàn tất hoặc đã bị hủy.');
     }
 
     /**
@@ -645,6 +813,14 @@ class PublicController extends Controller
                 'Message' => 'Order not found',
             ]);
         }
+        if ($order->payment_method !== 'vnpay') {
+            Log::warning("VNPAY IPN payment method mismatch for order {$orderNumber}.");
+
+            return response()->json([
+                'RspCode' => '02',
+                'Message' => 'Order payment method mismatch',
+            ]);
+        }
 
         // Check if the order amount matches the VNPAY transaction amount (vnp_Amount is multiplied by 100)
         $vnpAmount = (int) ($params['vnp_Amount'] ?? 0);
@@ -663,6 +839,33 @@ class PublicController extends Controller
         try {
             $result = DB::transaction(function () use ($order, $params, $paymentSucceeded): array {
                 $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+                if ($lockedOrder->payment_status === 'paid') {
+                    return [
+                        'RspCode' => '02',
+                        'Message' => 'Order already confirmed',
+                        'order' => $lockedOrder,
+                        'status_changed' => false,
+                    ];
+                }
+
+                if (! in_array($lockedOrder->payment_status, ['pending', 'failed'], true)) {
+                    return [
+                        'RspCode' => '02',
+                        'Message' => 'Order payment state cannot be updated',
+                        'order' => $lockedOrder,
+                        'status_changed' => false,
+                    ];
+                }
+
+                if ($paymentSucceeded && $lockedOrder->status === 'cancelled') {
+                    return [
+                        'RspCode' => '02',
+                        'Message' => 'Order already cancelled',
+                        'order' => $lockedOrder,
+                        'status_changed' => false,
+                    ];
+                }
+
                 $paymentTransaction = $this->paymentTransactionService->recordVnpayIpn(
                     $lockedOrder,
                     $params,
@@ -678,28 +881,16 @@ class PublicController extends Controller
                     ];
                 }
 
-                if ($lockedOrder->payment_status === 'paid') {
-                    return [
-                        'RspCode' => '02',
-                        'Message' => 'Order already confirmed',
-                        'order' => $lockedOrder,
-                        'status_changed' => false,
-                    ];
-                }
-
-                if ($paymentSucceeded && $lockedOrder->status === 'cancelled') {
-                    return [
-                        'RspCode' => '02',
-                        'Message' => 'Order already cancelled',
-                        'order' => $lockedOrder,
-                        'status_changed' => false,
-                    ];
-                }
-
                 $oldStatus = $lockedOrder->status;
                 $oldPaymentStatus = $lockedOrder->payment_status;
                 $newStatus = $paymentSucceeded && $oldStatus === 'pending' ? 'processing' : $oldStatus;
                 $newPaymentStatus = $paymentSucceeded ? 'paid' : 'failed';
+                $this->orderStateTransitionService->assertCanTransition(
+                    $oldStatus,
+                    $newStatus,
+                    $oldPaymentStatus,
+                    $newPaymentStatus,
+                );
                 $lockedOrder->update([
                     'status' => $newStatus,
                     'payment_status' => $newPaymentStatus,
@@ -752,15 +943,18 @@ class PublicController extends Controller
      */
     public function vnpayMockPayment(Request $request)
     {
-        $orderId = $request->query('order_id');
-        $amount = $request->query('amount');
-        $redirectUrl = $request->query('redirect_url');
+        abort_unless(config('app.payment_mock_enabled') && app()->environment(['local', 'testing']), 404);
 
-        $order = Order::where('order_number', $orderId)->firstOrFail();
+        $validated = $request->validate([
+            'order_id' => ['required', 'string', 'max:100'],
+            'redirect_url' => ['nullable', 'url', 'max:2048'],
+        ]);
+
+        $order = Order::where('order_number', $validated['order_id'])->firstOrFail();
+        $redirectUrl = app(VNPAYService::class)->safeReturnUrl($validated['redirect_url'] ?? null);
 
         return view('vnpay_mock', [
             'order' => $order,
-            'amount' => $amount,
             'redirectUrl' => $redirectUrl,
         ]);
     }
@@ -770,15 +964,28 @@ class PublicController extends Controller
      */
     public function vnpayMockSubmit(Request $request)
     {
-        $orderId = $request->input('order_id');
-        $amount = $request->input('amount');
-        $status = $request->input('status'); // 'success' or 'cancel'
-        $redirectUrl = $request->input('redirect_url');
+        abort_unless(config('app.payment_mock_enabled') && app()->environment(['local', 'testing']), 404);
+
+        $validated = $request->validate([
+            'order_id' => ['required', 'string', 'max:100'],
+            'status' => ['required', 'in:success,cancel'],
+            'redirect_url' => ['nullable', 'url', 'max:2048'],
+        ]);
+
+        $order = Order::query()->where('order_number', $validated['order_id'])->firstOrFail();
+        abort_if($order->payment_method !== 'vnpay' || $order->payment_status !== 'pending', 409);
+
+        $orderId = $order->order_number;
+        $amount = (int) round($order->grand_total);
+        $status = $validated['status'];
+        $redirectUrl = app(VNPAYService::class)->safeReturnUrl($validated['redirect_url'] ?? null);
 
         $paymentMethod = PaymentMethod::where('method_code', 'vnpay')->firstOrFail();
         $settings = $paymentMethod->settings;
-        $tmnCode = $settings['tmn_code'] ?? 'mock';
-        $hashSecret = $settings['hash_secret'] ?? 'mock';
+        abort_unless(($settings['tmn_code'] ?? null) === 'mock', 404);
+        $tmnCode = 'mock';
+        $hashSecret = (string) ($settings['hash_secret'] ?? '');
+        abort_if($hashSecret === '', 422, 'Mock hash secret is not configured.');
 
         $ipnParams = [
             'vnp_TmnCode' => $tmnCode,

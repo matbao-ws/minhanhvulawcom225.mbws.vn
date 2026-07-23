@@ -18,28 +18,9 @@ class AuthController extends Controller
             ->where('email', $request->input('email'))
             ->first();
 
-        if (! $user) {
+        if (! $user || ! $user->is_active || $user->role_id === null || ! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => __('auth.login.email_not_found'),
-            ]);
-        }
-
-        if (! $user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.login.inactive'),
-            ]);
-        }
-
-        if ($user->role_id === null) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.login.unauthorized'),
-            ]);
-        }
-
-
-        if (! Hash::check($request->input('password'), $user->password)) {
-            throw ValidationException::withMessages([
-                'password' => __('auth.login.password_incorrect'),
+                'email' => ['Email hoặc mật khẩu không chính xác.'],
             ]);
         }
 
@@ -47,7 +28,7 @@ class AuthController extends Controller
             'last_login_at' => now(),
         ])->save();
 
-        $token = $user->createToken('admin-api')->plainTextToken;
+        $token = $user->createToken('admin-api', ['admin'])->plainTextToken;
 
         return ApiResponse::success([
             'token_type' => 'Bearer',
@@ -63,7 +44,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return ApiResponse::success([
-            'user' => $request->user('sanctum'),
+            'user' => $request->user('sanctum')->only(['id', 'name', 'email', 'last_login_at']),
         ]);
     }
 

@@ -158,11 +158,15 @@
             <div class="row align-items-start mb-5 gap-4 gap-md-0">
                 <div class="col-md-7">
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <img src="{{ asset('admin-assets/images/logos/favicon.png') }}" alt="logo" width="35" height="35">
-                        <span class="fs-6 fw-bold text-primary">{{ strtoupper(config('app.name', 'Laravel Ecommerce Store')) }}</span>
+                        <img src="{{ $siteBranding['logo_url'] }}" alt="{{ $siteBranding['name'] }}" style="width: auto; height: 35px; max-width: 160px; object-fit: contain;">
+                        <span class="fs-6 fw-bold text-primary">{{ strtoupper($siteBranding['name']) }}</span>
                     </div>
-                    <p class="text-muted mb-0 fs-3">Địa chỉ: Cửa hàng trực tuyến chính thức</p>
-                    <p class="text-muted mb-0 fs-3">Email liên hệ: support@store.com</p>
+                    @if(filled(data_get($siteBranding, 'contact.address')))
+                        <p class="text-muted mb-0 fs-3">Địa chỉ: {{ data_get($siteBranding, 'contact.address') }}</p>
+                    @endif
+                    @if(filled(data_get($siteBranding, 'contact.email')))
+                        <p class="text-muted mb-0 fs-3">Email liên hệ: {{ data_get($siteBranding, 'contact.email') }}</p>
+                    @endif
                 </div>
                 <div class="col-md-5 text-md-end">
                     <h1 class="text-primary fw-bolder mb-3 fs-8">{{ __('admin.orders.order_details') }}</h1>
@@ -192,6 +196,9 @@
                     <p class="text-muted mb-3 fs-3"><strong>{{ __('admin.orders.fields.shipping_address') }}:</strong> {{ $order->shipping_address }}</p>
 
                     <h6 class="fw-semibold text-muted mb-3 fs-2 uppercase text-uppercase">{{ __('admin.orders.carrier_info') }}</h6>
+                    <p class="text-dark mb-1 fs-3"><strong>{{ __('admin.orders.fields.shipping_status') }}:</strong>
+                        <span class="badge {{ $order->shippingStatusBadgeClass() }} fw-semibold fs-2">{{ $order->shippingStatusLabel() }}</span>
+                    </p>
                     @if($order->tracking_number)
                         <p class="text-dark mb-1 fs-3"><strong>{{ __('admin.orders.carrier') }}:</strong> 
                             <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">{{ strtoupper($order->shipping_carrier) }}</span>

@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PromotionRequest extends FormRequest
 {
+    use NormalizesLocalizedInput;
+
     public function authorize(): bool
     {
         return true;
@@ -14,8 +17,8 @@ class PromotionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
+            ...$this->localizedStringRules('name', true, 255),
+            ...$this->localizedStringRules('description', false, 1000),
             'kind' => ['required', 'in:automatic,flash_sale'],
             'applies_to' => ['required', 'in:all_products,selected'],
             'discount_type' => ['required', 'in:percentage,fixed_amount,fixed_price'],
@@ -40,6 +43,11 @@ class PromotionRequest extends FormRequest
             'target_variant_ids' => ['nullable', 'array'],
             'target_variant_ids.*' => ['integer', 'distinct', 'exists:product_variants,id'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeLocalizedInput(['name', 'description']);
     }
 
     public function after(): array

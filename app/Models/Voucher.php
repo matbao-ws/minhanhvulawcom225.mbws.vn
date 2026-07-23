@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
 class Voucher extends Model
@@ -23,6 +24,7 @@ class Voucher extends Model
         'min_order_amount',
         'max_discount_amount',
         'quantity',
+        'per_user_limit',
         'used_count',
         'start_date',
         'end_date',
@@ -35,17 +37,25 @@ class Voucher extends Model
         'min_order_amount' => 'decimal:2',
         'max_discount_amount' => 'decimal:2',
         'quantity' => 'integer',
+        'per_user_limit' => 'integer',
         'used_count' => 'integer',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
     ];
 
+    public function usages(): HasMany
+    {
+        return $this->hasMany(VoucherUsage::class);
+    }
+
     /**
      * Check if the voucher is valid and can be applied to an order.
+     *
+     * When $userId or $email is provided, the per-user usage limit is enforced.
      */
-    public function isValidForOrder(float $orderSubtotal): bool
+    public function isValidForOrder(float $orderSubtotal, ?int $userId = null, ?string $email = null): bool
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 
@@ -65,7 +75,43 @@ class Voucher extends Model
             return false;
         }
 
+        if ($this->reachedPerUserLimit($userId, $email)) {
+            return false;
+        }
+
         return true;
+    }
+
+    /**
+     * Number of times a given customer (by account id, else email) has already used this voucher.
+     */
+    public function usageCountForCustomer(?int $userId = null, ?string $email = null): int
+    {
+        if ($userId === null && ($email === null || $email === '')) {
+            return 0;
+        }
+
+        return $this->usages()
+            ->when($userId !== null, fn ($q) => $q->where('user_id', $userId))
+            ->when($userId === null, fn ($q) => $q->whereRaw('LOWER(customer_email) = ?', [strtolower((string) $email)]))
+            ->count();
+    }
+
+    /**
+     * Whether the customer has exhausted their per-user allowance.
+     * Anonymous callers (no id and no email) are never blocked by this rule.
+     */
+    public function reachedPerUserLimit(?int $userId = null, ?string $email = null): bool
+    {
+        if ($this->per_user_limit === null) {
+            return false;
+        }
+
+        if ($userId === null && ($email === null || $email === '')) {
+            return false;
+        }
+
+        return $this->usageCountForCustomer($userId, $email) >= $this->per_user_limit;
     }
 
     /**
@@ -73,7 +119,7 @@ class Voucher extends Model
      */
     public function calculateDiscount(float $orderSubtotal): float
     {
-        if (!$this->isValidForOrder($orderSubtotal)) {
+        if (! $this->isValidForOrder($orderSubtotal)) {
             return 0.0;
         }
 

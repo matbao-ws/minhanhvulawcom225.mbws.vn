@@ -14,6 +14,7 @@ class PublicUserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'preferred_locale' => $this->preferred_locale,
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

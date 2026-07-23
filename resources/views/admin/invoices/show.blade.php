@@ -84,12 +84,15 @@
             <div class="row align-items-start mb-5 gap-4 gap-md-0">
                 <div class="col-md-7">
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <img src="{{ asset('admin-assets/images/logos/favicon.png') }}" alt="logo" width="35" height="35">
-                        <span class="fs-6 fw-bold text-primary">LARAVEL ECOMMERCE AGENCY</span>
+                        <img src="{{ $siteBranding['logo_url'] }}" alt="{{ $siteBranding['name'] }}" style="width: auto; height: 35px; max-width: 160px; object-fit: contain;">
+                        <span class="fs-6 fw-bold text-primary">{{ $siteBranding['name'] }}</span>
                     </div>
-                    <p class="text-muted mb-0 fs-3">Cần Thơ, Việt Nam</p>
-                    <p class="text-muted mb-0 fs-3">Email: billing@agency.com</p>
-                    <p class="text-muted mb-0 fs-3">Website: agency.com</p>
+                    @if(filled(data_get($siteBranding, 'contact.address')))
+                        <p class="text-muted mb-0 fs-3">{{ data_get($siteBranding, 'contact.address') }}</p>
+                    @endif
+                    @if(filled(data_get($siteBranding, 'contact.email')))
+                        <p class="text-muted mb-0 fs-3">Email: {{ data_get($siteBranding, 'contact.email') }}</p>
+                    @endif
                 </div>
                 <div class="col-md-5 text-md-end">
                     <h1 class="text-primary fw-bolder mb-3 fs-8">{{ __('admin.invoices.invoice') }}</h1>
@@ -107,7 +110,7 @@
                     <h6 class="fw-semibold text-muted mb-3 fs-2 uppercase">{{ __('admin.invoices.billed_to') }}</h6>
                     <h5 class="fw-bold text-primary mb-2 fs-4">{{ auth()->user()->name }}</h5>
                     <p class="text-muted mb-1 fs-3">Email: {{ auth()->user()->email }}</p>
-                    <p class="text-muted mb-1 fs-3">Cửa hàng: {{ config('app.name', 'Laravel Ecommerce Core') }}</p>
+                    <p class="text-muted mb-1 fs-3">Cửa hàng: {{ $siteBranding['name'] }}</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <h6 class="fw-semibold text-muted mb-3 fs-2 uppercase">{{ __('admin.invoices.payment_status') }}</h6>

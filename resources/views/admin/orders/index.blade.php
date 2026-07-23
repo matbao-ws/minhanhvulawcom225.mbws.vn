@@ -33,12 +33,12 @@
     <div class="card">
         <div class="card-body border-bottom p-4">
             <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
                         placeholder="{{ __('admin.orders.search_placeholder') }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.status') }}</label>
                     <select name="status" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
@@ -48,13 +48,22 @@
                         <option value="cancelled" @selected(request('status') === 'cancelled')>{{ __('admin.orders.statuses.cancelled') }}</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.payment_status') }}</label>
                     <select name="payment_status" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
                         <option value="pending" @selected(request('payment_status') === 'pending')>{{ __('admin.orders.payment_statuses.pending') }}</option>
                         <option value="paid" @selected(request('payment_status') === 'paid')>{{ __('admin.orders.payment_statuses.paid') }}</option>
                         <option value="failed" @selected(request('payment_status') === 'failed')>{{ __('admin.orders.payment_statuses.failed') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.shipping_status') }}</label>
+                    <select name="shipping_status" class="form-select">
+                        <option value="">{{ __('admin.all') }}</option>
+                        @foreach($shippingStatuses as $shippingStatus)
+                            <option value="{{ $shippingStatus }}" @selected(request('shipping_status') === $shippingStatus)>{{ __('admin.orders.shipping_statuses.'.$shippingStatus) }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-1">
@@ -74,6 +83,7 @@
                             <th>{{ __('admin.orders.fields.order_date') }}</th>
                             <th>{{ __('admin.orders.fields.total') }}</th>
                             <th>{{ __('admin.orders.fields.payment') }}</th>
+                            <th>{{ __('admin.orders.fields.shipping_status') }}</th>
                             <th>{{ __('admin.orders.fields.status') }}</th>
                             <th></th>
                         </tr>
@@ -112,6 +122,11 @@
                                     @endif
                                 </td>
                                 <td>
+                                    <span class="badge {{ $order->shippingStatusBadgeClass() }} fw-semibold fs-2">
+                                        {{ $order->shippingStatusLabel() }}
+                                    </span>
+                                </td>
+                                <td>
                                     @if($order->status === 'completed')
                                         <span class="badge bg-success text-white fw-semibold fs-2">
                                             {{ __('admin.orders.statuses.completed') }}
@@ -138,7 +153,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5">
+                                <td colspan="8" class="text-center py-5">
                                     <iconify-icon icon="solar:bill-list-broken" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
                                     <p class="text-muted mb-0 fs-3">{{ __('admin.orders.not_found') }}</p>
                                 </td>

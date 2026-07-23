@@ -222,6 +222,19 @@
         const quickLinksContainer = document.getElementById('quickLinksContainer');
         const searchResultsContainer = document.getElementById('searchResultsContainer');
         let debounceTimer;
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
+        }[char]));
+        const safeAdminLink = (value, locale) => {
+            try {
+                const parsed = new URL(String(value ?? ''), window.location.origin);
+                return parsed.origin === window.location.origin && parsed.pathname.startsWith(`/${locale}/admin/`)
+                    ? parsed.href
+                    : '#';
+            } catch (_) {
+                return '#';
+            }
+        };
 
         searchInput.addEventListener('input', function () {
             const query = searchInput.value.trim();
@@ -264,18 +277,18 @@
                             html += `
                                 <div class="mb-4">
                                     <h5 class="mb-2 fs-4 p-1 d-flex align-items-center gap-2 text-primary border-bottom pb-2">
-                                        <iconify-icon icon="${group.icon || 'solar:link-bold-duotone'}" class="fs-5"></iconify-icon>
-                                        <span>${group.category}</span>
+                                        <iconify-icon icon="${escapeHtml(group.icon || 'solar:link-bold-duotone')}" class="fs-5"></iconify-icon>
+                                        <span>${escapeHtml(group.category)}</span>
                                     </h5>
                                     <ul class="list mb-0 py-1" style="list-style: none; padding-left: 0;">
                             `;
                             group.items.forEach(item => {
                                 html += `
                                         <li class="p-2 mb-1 bg-hover-light-black rounded">
-                                            <a href="${item.link}" class="d-flex align-items-center justify-content-between text-decoration-none">
+                                            <a href="${safeAdminLink(item.link, locale)}" class="d-flex align-items-center justify-content-between text-decoration-none">
                                                 <div>
-                                                    <span class="text-dark fw-semibold d-block fs-3">${item.title}</span>
-                                                    <span class="fs-2 d-block text-muted">${item.subtitle}</span>
+                                                    <span class="text-dark fw-semibold d-block fs-3">${escapeHtml(item.title)}</span>
+                                                    <span class="fs-2 d-block text-muted">${escapeHtml(item.subtitle)}</span>
                                                 </div>
                                                 <iconify-icon icon="solar:alt-arrow-right-linear" class="fs-5 text-muted"></iconify-icon>
                                             </a>

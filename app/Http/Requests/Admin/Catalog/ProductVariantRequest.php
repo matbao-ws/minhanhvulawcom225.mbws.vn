@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Admin\Catalog;
 
+use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ProductVariantRequest extends FormRequest
 {
+    use NormalizesLocalizedInput;
+
     public function authorize(): bool
     {
         return true;
@@ -17,7 +20,7 @@ class ProductVariantRequest extends FormRequest
         $variantId = $this->route('variant')?->id;
 
         return [
-            'name' => ['nullable', 'string', 'max:255'],
+            ...$this->localizedStringRules('name', false, 255),
             'sku' => ['required', 'string', 'max:100', Rule::unique('product_variants', 'sku')->ignore($variantId)],
             'barcode' => ['nullable', 'string', 'max:255'],
             'option_value_ids' => ['required', 'array', 'min:1', 'max:8'],
@@ -32,5 +35,10 @@ class ProductVariantRequest extends FormRequest
             'is_default' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeLocalizedInput(['name']);
     }
 }

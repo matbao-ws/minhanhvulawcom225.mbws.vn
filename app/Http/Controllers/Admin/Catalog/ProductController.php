@@ -2,26 +2,31 @@
 
 namespace App\Http\Controllers\Admin\Catalog;
 
+use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\ProductRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
-use App\Services\Catalog\ProductService;
-use App\Services\Catalog\ProductOptionService;
-use DomainException;
-use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLogger;
 use App\Services\Catalog\ProductImportService;
+use App\Services\Catalog\ProductOptionService;
+use App\Services\Catalog\ProductService;
+use App\Services\CloudinaryService;
+use DomainException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class ProductController extends Controller
 {
+    use HandlesBulkActions;
+
     public function __construct(
         private readonly ProductService $products,
         private readonly ProductOptionService $options,
         private readonly ProductImportService $importService
-    ) {
-    }
+    ) {}
 
     public function index()
     {
@@ -74,7 +79,7 @@ class ProductController extends Controller
             $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
             unset($data['has_variants'], $data['variant_groups']);
             if ($request->hasFile('image_file')) {
-                $cloudinaryService = app(\App\Services\CloudinaryService::class);
+                $cloudinaryService = app(CloudinaryService::class);
                 $data['image_url'] = $cloudinaryService->uploadFile($request->file('image_file'), 'products');
             }
             [$product, $variantCount] = DB::transaction(function () use ($data, $variantGroups) {
@@ -121,7 +126,7 @@ class ProductController extends Controller
         $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
         unset($data['has_variants'], $data['variant_groups']);
         if ($request->hasFile('image_file')) {
-            $cloudinaryService = app(\App\Services\CloudinaryService::class);
+            $cloudinaryService = app(CloudinaryService::class);
             $data['image_url'] = $cloudinaryService->uploadFile($request->file('image_file'), 'products');
         }
 
@@ -157,6 +162,38 @@ class ProductController extends Controller
             ->with('success', __('catalog.products.deleted'));
     }
 
+    public function bulk(Request $request, string $locale)
+    {
+        $validated = $this->validatedBulkAction($request, 'products');
+        $ids = $validated['ids'];
+
+        if ($validated['action'] === 'delete') {
+            DB::transaction(function () use ($ids): void {
+                Product::query()->whereIn('id', $ids)->lockForUpdate()->get()
+                    ->each(fn (Product $product) => $this->products->delete($product));
+            });
+
+            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt sản phẩm', [
+                'model' => Product::class,
+                'ids' => $ids,
+                'count' => count($ids),
+            ]);
+
+            return back()->with('success', 'Đã xóa '.count($ids).' sản phẩm.');
+        }
+
+        $isActive = $validated['action'] === 'activate';
+        $updated = Product::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
+        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt sản phẩm', [
+            'model' => Product::class,
+            'ids' => $ids,
+            'count' => $updated,
+            'is_active' => $isActive,
+        ]);
+
+        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' sản phẩm.');
+    }
+
     private function categoryOptions()
     {
         $allCategories = Category::query()
@@ -183,6 +220,7 @@ class ProductController extends Controller
         };
 
         $flatten($rootCategories);
+
         return $flatOptions;
     }
 
@@ -199,10 +237,10 @@ class ProductController extends Controller
     {
         $headers = [
             'Content-type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename=products_export_' . date('Y-m-d') . '.csv',
+            'Content-Disposition' => 'attachment; filename=products_export_'.date('Y-m-d').'.csv',
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0'
+            'Expires' => '0',
         ];
 
         $products = Product::query()
@@ -228,9 +266,9 @@ class ProductController extends Controller
 
         $callback = function () use ($products) {
             $file = fopen('php://output', 'w');
-            
+
             // Add UTF-8 BOM
-            fputs($file, "\xEF\xBB\xBF");
+            fwrite($file, "\xEF\xBB\xBF");
 
             // Write Headers
             fputcsv($file, [
@@ -250,11 +288,11 @@ class ProductController extends Controller
                 'short_description_en',
                 'description_vi',
                 'description_en',
-                'image_url'
+                'image_url',
             ]);
 
             foreach ($products as $product) {
-                fputcsv($file, [
+                fputcsv($file, array_map(fn ($value) => $this->safeCsvValue($value), [
                     $product->getTranslation('name', 'vi', false) ?: $product->name,
                     $product->getTranslation('name', 'en', false) ?: $product->name,
                     $product->slug,
@@ -271,8 +309,8 @@ class ProductController extends Controller
                     $product->getTranslation('short_description', 'en', false) ?: '',
                     $product->getTranslation('description', 'vi', false) ?: '',
                     $product->getTranslation('description', 'en', false) ?: '',
-                    $product->image_url
-                ]);
+                    $product->image_url,
+                ]));
             }
 
             fclose($file);
@@ -288,12 +326,12 @@ class ProductController extends Controller
             'Content-Disposition' => "attachment; filename=template_{$type}.csv",
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0'
+            'Expires' => '0',
         ];
 
         $callback = function () use ($type) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF");
+            fwrite($file, "\xEF\xBB\xBF");
 
             if ($type === 'wordpress') {
                 fputcsv($file, [
@@ -307,7 +345,7 @@ class ProductController extends Controller
                     'Manage stock?',
                     'Stock',
                     'Categories',
-                    'Images'
+                    'Images',
                 ]);
 
                 fputcsv($file, [
@@ -321,7 +359,7 @@ class ProductController extends Controller
                     'yes',
                     '50',
                     'Electronics > Computers',
-                    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97'
+                    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97',
                 ]);
             } else {
                 fputcsv($file, [
@@ -341,7 +379,7 @@ class ProductController extends Controller
                     'Short_Description_EN',
                     'Description_VI',
                     'Description_EN',
-                    'Image_URL'
+                    'Image_URL',
                 ]);
 
                 fputcsv($file, [
@@ -361,7 +399,7 @@ class ProductController extends Controller
                     'English short description',
                     '<p>Mô tả chi tiết</p>',
                     '<p>Detailed English description</p>',
-                    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97'
+                    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97',
                 ]);
             }
 
@@ -371,7 +409,7 @@ class ProductController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    public function import(\Illuminate\Http\Request $request)
+    public function import(Request $request)
     {
         $request->validate([
             'import_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
@@ -383,10 +421,10 @@ class ProductController extends Controller
 
         try {
             $results = $this->importService->import($file->getRealPath(), $type);
-            
+
             $msg = __('catalog.products.import_summary', [
                 'success' => $results['success'],
-                'failed' => $results['failed']
+                'failed' => $results['failed'],
             ]);
 
             if ($results['failed'] > 0) {
@@ -395,7 +433,16 @@ class ProductController extends Controller
 
             return back()->with('success', $msg);
         } catch (\Exception $exception) {
-            return back()->with('error', __('catalog.products.import_failed') . ' ' . $exception->getMessage());
+            return back()->with('error', __('catalog.products.import_failed').' '.$exception->getMessage());
         }
+    }
+
+    private function safeCsvValue(mixed $value): string|int|float|null
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return preg_match('/^[=+\-@\t\r]/', $value) ? "'".$value : $value;
     }
 }

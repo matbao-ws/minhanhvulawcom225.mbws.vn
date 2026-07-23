@@ -10,6 +10,7 @@ use App\Models\ShippingPartner;
 use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,189 +21,150 @@ class WebhookController extends Controller
         private readonly OrderStockService $orderStockService,
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
-    ) {}
+    ) {
+    }
 
-    /**
-     * Handle Giao Hàng Tiết Kiệm (GHTK) webhook callbacks.
-     */
     public function handleGHTK(Request $request)
     {
-        // Get shipping settings
-        $ghtk = ShippingPartner::query()
-            ->where('partner_code', 'DTGH000012')
-            ->first();
-
-        $configuredToken = $ghtk ? data_get($ghtk->settings, 'webhook_token') : null;
-        // Configurations created before the explicit switch retain their
-        // webhook behavior. New configurations must opt in to realtime sync.
-        $realtimeTrackingEnabled = $ghtk
-            ? (bool) data_get($ghtk->settings, 'realtime_tracking_enabled', ! empty($configuredToken))
-            : false;
-
-        $providedToken = (string) $request->query('token', '');
-        if (! $realtimeTrackingEnabled || ! $configuredToken || ! hash_equals((string) $configuredToken, $providedToken)) {
-            Log::warning('GHTK Webhook rejected due to invalid credentials.');
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized.',
-            ], 401);
+        $ghtk = ShippingPartner::query()->where('partner_code', 'DTGH000012')->first();
+        $configuredToken = (string) data_get($ghtk?->settings, 'webhook_token', '');
+        $trackingEnabled = (bool) data_get($ghtk?->settings, 'realtime_tracking_enabled', false);
+        $providedToken = (string) $request->header('X-GHTK-Token');
+        if ($providedToken === '' && config('app.ghtk_webhook_allow_query_token')) {
+            $providedToken = (string) $request->query('token', '');
         }
 
-        // Get webhook parameters
-        // GHTK webhook fields: partner_id, label_id, status_id, fee, reason
-        $partnerId = $request->input('partner_id'); // our order number
-        $labelId = $request->input('label_id'); // GHTK tracking number
-        $statusId = $request->input('status_id');
-        $fee = $request->input('fee');
+        if (! $trackingEnabled || $configuredToken === '' || ! hash_equals($configuredToken, $providedToken)) {
+            Log::warning('GHTK webhook rejected due to invalid credentials.');
 
-        if (empty($partnerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'partner_id is required.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
         }
 
-        Log::info('GHTK Webhook accepted.', [
-            'partner_id' => $partnerId,
-            'label_id' => $labelId,
-            'status_id' => $statusId,
+        $payload = $request->validate([
+            'partner_id' => ['required', 'string', 'max:100'],
+            'label_id' => ['nullable', 'string', 'max:100'],
+            'status_id' => ['nullable', 'integer', 'between:-1,21'],
+            'fee' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'reason' => ['nullable', 'string', 'max:1000'],
         ]);
-
-        // Find the order
-        $order = Order::query()->where('order_number', $partnerId)->first();
-
+        $order = Order::query()->where('order_number', $payload['partner_id'])->first();
         if (! $order) {
-            Log::warning("GHTK Webhook order not found. partner_id: {$partnerId}");
-
-            return response()->json([
-                'success' => false,
-                'message' => "Order not found: {$partnerId}",
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Order not found.'], 404);
         }
 
-        $oldStatus = $order->status;
-        $oldPaymentStatus = $order->payment_status;
+        $fingerprint = hash('sha256', implode('|', [
+            'ghtk', $payload['partner_id'], $payload['label_id'] ?? '', $payload['status_id'] ?? '', $payload['fee'] ?? '', $payload['reason'] ?? '',
+        ]));
 
-        // Map status_id to order statuses
-        $newStatus = $oldStatus;
-        if (! is_null($statusId)) {
-            $statusId = (int) $statusId;
-            switch ($statusId) {
-                case -1: // Hủy đơn hàng
-                case 7:  // Không lấy được hàng
-                case 9:  // Không giao được hàng
-                case 11: // Đã đối soát công nợ trả hàng
-                case 13: // Đơn hàng bồi hoàn
-                case 20: // Đang trả hàng
-                case 21: // Đã trả hàng xong
-                    $newStatus = 'cancelled';
-                    break;
+        try {
+            $result = DB::transaction(function () use ($order, $payload, $fingerprint): array {
+                $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->id);
 
-                case 1:  // Chưa tiếp nhận
-                case 2:  // Đã tiếp nhận
-                    $newStatus = 'pending';
-                    break;
-
-                case 3:  // Đã lấy hàng / Đã nhập kho
-                case 4:  // Đang giao hàng
-                case 8:  // Hoãn lấy hàng
-                case 10: // Delay giao hàng
-                case 12: // Đang lấy hàng
-                    $newStatus = 'processing';
-                    break;
-
-                case 5:  // Đã giao hàng / Chưa đối soát
-                case 6:  // Đã đối soát
-                    $newStatus = 'completed';
-                    break;
-            }
-        }
-
-        // Update fields
-        $updates = [];
-
-        if ($newStatus !== $oldStatus) {
-            $updates['status'] = $newStatus;
-        }
-
-        if ($labelId && $order->tracking_number !== $labelId) {
-            $updates['tracking_number'] = $labelId;
-        }
-
-        // Update fee if provided and is greater than 0
-        if (! is_null($fee) && (float) $fee > 0 && (float) $order->shipping_fee != (float) $fee) {
-            $updates['shipping_fee'] = (float) $fee;
-        }
-
-        // If completed and payment is COD, set to paid
-        if ($newStatus === 'completed' && $order->payment_method === 'cod' && $order->payment_status !== 'paid') {
-            $updates['payment_status'] = 'paid';
-        }
-
-        // Update GHTK as shipping carrier if not already set
-        if ($order->shipping_carrier !== 'ghtk') {
-            $updates['shipping_carrier'] = 'ghtk';
-        }
-
-        if (! empty($updates)) {
-            $order = DB::transaction(function () use ($order, $updates): Order {
-                $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-                $previousStatus = $lockedOrder->status;
-                $previousPaymentStatus = $lockedOrder->payment_status;
-
-                $nextStatus = $updates['status'] ?? $previousStatus;
-                $nextPaymentStatus = $updates['payment_status'] ?? $previousPaymentStatus;
-                if (! $this->orderStateTransitionService->canTransitionOrderStatus($previousStatus, $nextStatus)) {
-                    Log::warning('Ignoring stale GHTK order status.', [
-                        'order_number' => $lockedOrder->order_number,
-                        'from_status' => $previousStatus,
-                        'to_status' => $nextStatus,
-                    ]);
-                    unset($updates['status']);
+                if (DB::table('shipping_webhook_events')->where('fingerprint', $fingerprint)->exists()) {
+                    return ['order' => $lockedOrder, 'duplicate' => true, 'status_changed' => false];
                 }
-                if (! $this->orderStateTransitionService->canTransitionPaymentStatus($previousPaymentStatus, $nextPaymentStatus)) {
-                    Log::warning('Ignoring invalid GHTK payment status.', [
-                        'order_number' => $lockedOrder->order_number,
-                        'from_payment_status' => $previousPaymentStatus,
-                        'to_payment_status' => $nextPaymentStatus,
-                    ]);
-                    unset($updates['payment_status']);
+                DB::table('shipping_webhook_events')->insert([
+                    'order_id' => $lockedOrder->id,
+                    'provider' => 'ghtk',
+                    'fingerprint' => $fingerprint,
+                    'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+                    'received_at' => now(),
+                ]);
+
+                $oldStatus = $lockedOrder->status;
+                $oldPaymentStatus = $lockedOrder->payment_status;
+                $oldShippingStatus = $lockedOrder->shipping_status ?: 'not_shipped';
+                $requestedStatus = $this->orderStatusForGhtk($payload['status_id'] ?? null, $oldStatus);
+                $requestedShippingStatus = Order::shippingStatusFromGhtk(isset($payload['status_id']) ? (int) $payload['status_id'] : null);
+
+                $updates = ['shipping_carrier' => 'ghtk'];
+                $statusChanged = false;
+                $shippingChanged = false;
+                if ($requestedStatus !== $oldStatus && $this->orderStateTransitionService->canTransitionOrderStatus($oldStatus, $requestedStatus)) {
+                    $updates['status'] = $requestedStatus;
+                    $statusChanged = true;
+                }
+                if ($requestedShippingStatus && $requestedShippingStatus !== $oldShippingStatus && Order::canTransitionShippingStatus($oldShippingStatus, $requestedShippingStatus)) {
+                    $updates['shipping_status'] = $requestedShippingStatus;
+                    $updates['shipping_status_updated_at'] = now();
+                    $shippingChanged = true;
+                }
+                if (! empty($payload['label_id']) && $lockedOrder->tracking_number !== $payload['label_id']) {
+                    $updates['tracking_number'] = $payload['label_id'];
+                }
+                if (array_key_exists('fee', $payload) && $payload['fee'] !== null && (float) $lockedOrder->carrier_shipping_fee !== (float) $payload['fee']) {
+                    $updates['carrier_shipping_fee'] = (float) $payload['fee'];
+                }
+
+                $effectiveStatus = $updates['status'] ?? $oldStatus;
+                if ($effectiveStatus === 'completed' && $lockedOrder->payment_method === 'cod' && $oldPaymentStatus !== 'paid' && $this->orderStateTransitionService->canTransitionPaymentStatus($oldPaymentStatus, 'paid')) {
+                    $updates['payment_status'] = 'paid';
                 }
 
                 $lockedOrder->update($updates);
-
-                if ($lockedOrder->status === 'cancelled' && $previousStatus !== 'cancelled') {
+                $paymentChanged = $oldPaymentStatus !== $lockedOrder->payment_status;
+                if (($statusChanged && $lockedOrder->status === 'cancelled') || ($shippingChanged && $lockedOrder->shipping_status === 'returned')) {
                     $this->orderStockService->restore($lockedOrder, 'Hoàn kho theo trạng thái trả/hủy từ GHTK');
                 }
                 $this->paymentTransactionService->syncInitialTransaction($lockedOrder);
 
-                if ($previousStatus !== $lockedOrder->status || $previousPaymentStatus !== $lockedOrder->payment_status) {
+                if ($statusChanged || $paymentChanged || $shippingChanged) {
                     OrderStatusHistory::query()->create([
                         'order_id' => $lockedOrder->id,
-                        'from_status' => $previousStatus,
+                        'from_status' => $oldStatus,
                         'to_status' => $lockedOrder->status,
-                        'from_payment_status' => $previousPaymentStatus,
+                        'from_payment_status' => $oldPaymentStatus,
                         'to_payment_status' => $lockedOrder->payment_status,
-                        'note' => 'Cập nhật tự động từ GHTK',
+                        'note' => 'Cập nhật GHTK: '.($lockedOrder->shipping_status ?: 'not_shipped').(! empty($payload['reason']) ? ' - '.$payload['reason'] : ''),
                         'created_at' => now(),
                     ]);
                 }
 
-                return $lockedOrder->fresh();
-            });
+                return ['order' => $lockedOrder->fresh(), 'duplicate' => false, 'status_changed' => $statusChanged];
+            }, 3);
+        } catch (QueryException $exception) {
+            $duplicateEvent = in_array((string) $exception->getCode(), ['23000', '23505'], true)
+                && (str_contains(strtolower($exception->getMessage()), 'unique') || (int) ($exception->errorInfo[1] ?? 0) === 1062);
+            if (! $duplicateEvent) {
+                Log::error('Failed to persist GHTK webhook event.', [
+                    'order_number' => $order->order_number,
+                    'message' => $exception->getMessage(),
+                ]);
 
-            // Send email if status changed
-            if (isset($updates['status']) && $oldStatus !== $updates['status']) {
-                SendOrderStatusEmail::dispatch($order->id, $order->customer_email)->afterCommit();
+                return response()->json(['success' => false, 'message' => 'Unable to process webhook.'], 500);
             }
+
+            Log::info('Duplicate GHTK webhook ignored.', ['order_number' => $order->order_number]);
+            $result = ['order' => $order->fresh(), 'duplicate' => true, 'status_changed' => false];
+        } catch (\Throwable $exception) {
+            Log::error('Failed to process GHTK webhook.', ['order_number' => $order->order_number, 'message' => $exception->getMessage()]);
+
+            return response()->json(['success' => false, 'message' => 'Unable to process webhook.'], 500);
+        }
+
+        if ($result['status_changed']) {
+            SendOrderStatusEmail::dispatch($result['order']->id, $result['order']->customer_email)->afterCommit();
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Webhook processed successfully.',
-            'order_status' => $order->status,
-            'payment_status' => $order->payment_status,
+            'duplicate' => $result['duplicate'],
+            'order_status' => $result['order']->status,
+            'payment_status' => $result['order']->payment_status,
+            'shipping_status' => $result['order']->shipping_status,
         ]);
+    }
+
+    private function orderStatusForGhtk(?int $statusId, string $currentStatus): string
+    {
+        return match ($statusId) {
+            -1 => 'cancelled',
+            1, 2 => 'pending',
+            3, 4, 8, 10, 12 => 'processing',
+            7 => $currentStatus,
+            5, 6 => 'completed',
+            11, 20, 21 => $currentStatus === 'completed' ? 'completed' : 'cancelled',
+            default => $currentStatus,
+        };
     }
 }

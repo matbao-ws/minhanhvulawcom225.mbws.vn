@@ -68,35 +68,15 @@
                 @elseif($method->method_code === 'sepay')
                     @php
                         $apiKey = data_get($method->settings, 'api_key', '');
-                        $webhookToken = data_get($method->settings, 'webhook_token', '');
                     @endphp
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-12 mb-3">
                             <label class="form-label fw-semibold text-dark" for="api_key">API Key <span class="text-danger">*</span></label>
                             <input type="text" class="form-control text-dark" id="api_key" name="api_key" 
                                 value="{{ old('api_key', $apiKey) }}" placeholder="Nhập Sepay API Key" required>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="sepay_webhook_token">Webhook Authorization Token</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control text-dark" id="sepay_webhook_token" name="webhook_token" 
-                                    value="{{ old('webhook_token', $webhookToken) }}" placeholder="Nhập webhook token...">
-                                <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" onclick="generateWebhookToken()">
-                                    <i class="ti ti-refresh fs-4"></i> {{ __('admin.payment_methods.generate_random') }}
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label fw-semibold text-dark">{{ __('admin.payment_methods.webhook_url_label') }}</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control bg-light text-dark font-monospace small" id="sepay_webhook_url" 
-                                    value="{{ url('/api/webhooks/sepay') }}?token={{ $webhookToken }}" readonly>
-                                <button class="btn btn-outline-primary d-flex align-items-center gap-1" type="button" onclick="copyWebhookUrl()">
-                                    <i class="ti ti-copy fs-4"></i> {{ __('admin.payment_methods.copy') }}
-                                </button>
-                            </div>
-                            <div class="form-text text-muted">{{ __('admin.payment_methods.webhook_url_hint') }}</div>
+                        <div class="col-12">
+                            <div class="alert alert-warning mb-0">{{ __('admin.payment_methods.integration_unavailable') }}</div>
                         </div>
                     </div>
                 @elseif($method->method_code === 'bank_transfer')
@@ -153,38 +133,3 @@
         </div>
     </div>
 @endsection
-
-@push('scripts')
-<script>
-    function generateWebhookToken() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let token = '';
-        for (let i = 0; i < 32; i++) {
-            token += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        document.getElementById('sepay_webhook_token').value = token;
-        updateWebhookUrl(token);
-    }
-
-    function updateWebhookUrl(token) {
-        const baseUrl = "{{ url('/api/webhooks/sepay') }}";
-        document.getElementById('sepay_webhook_url').value = baseUrl + '?token=' + token;
-    }
-
-    function copyWebhookUrl() {
-        const copyText = document.getElementById("sepay_webhook_url");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(copyText.value);
-        
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000,
-            icon: 'success',
-            title: '{{ __('admin.payment_methods.copied_notification') }}'
-        });
-    }
-</script>
-@endpush

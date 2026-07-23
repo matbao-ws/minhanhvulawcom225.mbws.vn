@@ -5,21 +5,37 @@ namespace App\Services\Catalog;
 use App\Models\Product;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
+use App\Support\HtmlSanitizer;
+use App\Services\LanguageRegistry;
+use App\Services\LocalizedSlugService;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ProductService
 {
+    public function __construct(
+        private readonly HtmlSanitizer $htmlSanitizer,
+        private readonly LocalizedSlugService $localizedSlugs,
+        private readonly LanguageRegistry $languages,
+    ) {
+    }
+
     public function create(array $data): Product
     {
-        return DB::transaction(fn () => Product::query()->create($this->payload($data)));
+        return DB::transaction(function () use ($data) {
+            $product = Product::query()->create($this->payload($data));
+            $this->localizedSlugs->sync($product, $this->localizedValues($data['slug'] ?? []), $product->getTranslations('name'));
+
+            return $product->refresh();
+        });
     }
 
     public function update(Product $product, array $data): Product
     {
         return DB::transaction(function () use ($product, $data) {
             $product->update($this->payload($data, $product));
+            $this->localizedSlugs->sync($product, $this->localizedValues($data['slug'] ?? []), $product->getTranslations('name'));
 
             return $product->refresh();
         });
@@ -117,7 +133,8 @@ class ProductService
     private function payload(array $data, ?Product $product = null): array
     {
         $name = $this->translationValue($data['name'] ?? null, $product, 'name');
-        $baseSlug = ($data['slug'] ?? null) ?: ($name[app()->getLocale()] ?? $name[$this->fallbackLocale()] ?? reset($name));
+        $submittedSlugs = $this->localizedValues($data['slug'] ?? []);
+        $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $submittedSlugs[app()->getLocale()] ?? ($name[$this->languages->defaultLocale()] ?? $name[$this->fallbackLocale()] ?? reset($name));
 
         $categoryId = $data['category_id'] ?? null;
         if (empty($categoryId)) {
@@ -273,11 +290,17 @@ class ProductService
         if (is_array($value)) {
             foreach ($value as $lang => $val) {
                 if (is_string($val) && trim($val) !== '') {
-                    $translations[$lang] = trim($val);
+                    $cleanValue = trim($val);
+                    $translations[$lang] = in_array($attribute, ['short_description', 'description'], true)
+                        ? $this->htmlSanitizer->clean($cleanValue)
+                        : $cleanValue;
                 }
             }
         } else {
-            $value = is_string($value) ? trim($value) : '';
+        $value = is_string($value) ? trim($value) : '';
+        if (in_array($attribute, ['short_description', 'description'], true)) {
+            $value = $this->htmlSanitizer->clean($value);
+        }
             if ($value !== '') {
                 $translations[$locale] = $value;
             }
@@ -291,7 +314,18 @@ class ProductService
 
     private function fallbackLocale(): string
     {
-        return config('app.fallback_locale', config('app.locale', 'en'));
+        return $this->languages->fallbackLocale();
+    }
+
+    /** @return array<string, string> */
+    private function localizedValues(string|array|null $value): array
+    {
+        if (is_array($value)) {
+            return collect($value)->filter(fn ($item, $locale) => $this->languages->supports((string) $locale) && is_string($item) && trim($item) !== '')
+                ->map(fn (string $item) => trim($item))->all();
+        }
+
+        return is_string($value) && trim($value) !== '' ? [app()->getLocale() => trim($value)] : [];
     }
 
     private function uniqueProductSlug(string $value, ?int $ignoreId = null): string

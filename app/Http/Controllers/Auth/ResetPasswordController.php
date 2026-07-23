@@ -9,6 +9,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use App\Services\UserAccessService;
 
 class ResetPasswordController extends Controller
 {
@@ -22,6 +23,12 @@ class ResetPasswordController extends Controller
 
     public function store(ResetPasswordRequest $request)
     {
+        if (! \App\Models\User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->exists()) {
+            return $request->expectsJson()
+                ? ApiResponse::error('Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.', 422)
+                : back()->withErrors(['email' => 'Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.']);
+        }
+
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request): void {
@@ -29,6 +36,7 @@ class ResetPasswordController extends Controller
                     'password' => Hash::make($request->input('password')),
                     'remember_token' => Str::random(60),
                 ])->save();
+                app(UserAccessService::class)->revoke($user);
 
                 event(new PasswordReset($user));
             }

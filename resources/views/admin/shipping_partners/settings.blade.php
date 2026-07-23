@@ -82,12 +82,22 @@
                                 </button>
                             </div>
                         </div>
+                        @php
+                            $pickup = data_get($partner->settings, 'pickup', []);
+                        @endphp
+                        <div class="col-12"><hr><h6 class="fw-semibold">Thông tin lấy hàng</h6></div>
+                        <div class="col-md-6 mb-3"><label class="form-label" for="pickup_name">Tên người gửi <span class="text-danger">*</span></label><input class="form-control" id="pickup_name" name="pickup_name" value="{{ old('pickup_name', data_get($pickup, 'name')) }}" required></div>
+                        <div class="col-md-6 mb-3"><label class="form-label" for="pickup_tel">Số điện thoại lấy hàng <span class="text-danger">*</span></label><input class="form-control" id="pickup_tel" name="pickup_tel" value="{{ old('pickup_tel', data_get($pickup, 'tel')) }}" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_province">Tỉnh/Thành <span class="text-danger">*</span></label><input class="form-control" id="pickup_province" name="pickup_province" value="{{ old('pickup_province', data_get($pickup, 'province')) }}" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_district">Quận/Huyện <span class="text-danger">*</span></label><input class="form-control" id="pickup_district" name="pickup_district" value="{{ old('pickup_district', data_get($pickup, 'district')) }}" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_ward">Phường/Xã <span class="text-danger">*</span></label><input class="form-control" id="pickup_ward" name="pickup_ward" value="{{ old('pickup_ward', data_get($pickup, 'ward')) }}" required></div>
+                        <div class="col-12 mb-3"><label class="form-label" for="pickup_address">Địa chỉ lấy hàng <span class="text-danger">*</span></label><input class="form-control" id="pickup_address" name="pickup_address" value="{{ old('pickup_address', data_get($pickup, 'address')) }}" required></div>
                         
                         <div class="col-md-12 mb-3" id="ghtk-webhook-url" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
                             <label class="form-label fw-semibold text-dark">{{ __('admin.shipping_partners.webhook_url_label') }}</label>
                             <div class="input-group">
                                 <input type="text" class="form-control bg-light text-dark font-monospace small" id="ghtk_webhook_url" 
-                                    value="{{ url('/api/webhooks/ghtk') }}?token={{ $webhookToken }}" readonly>
+                                    value="{{ url('/api/webhooks/ghtk') }}" readonly>
                                 <button class="btn btn-outline-primary d-flex align-items-center gap-1" type="button" onclick="copyWebhookUrl()">
                                     <i class="ti ti-copy fs-4"></i> {{ __('admin.shipping_partners.copy') }}
                                 </button>
@@ -230,12 +240,6 @@
             token += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         document.getElementById('ghtk_webhook_token').value = token;
-        updateWebhookUrl(token);
-    }
-
-    function updateWebhookUrl(token) {
-        const baseUrl = "{{ url('/api/webhooks/ghtk') }}";
-        document.getElementById('ghtk_webhook_url').value = baseUrl + '?token=' + token;
     }
 
     function toggleGhtkWebhookSettings() {
@@ -266,7 +270,6 @@
         if (!realtimeToggle || !webhookToken) return;
 
         realtimeToggle.addEventListener('change', toggleGhtkWebhookSettings);
-        webhookToken.addEventListener('input', () => updateWebhookUrl(webhookToken.value));
         toggleGhtkWebhookSettings();
     });
 </script>

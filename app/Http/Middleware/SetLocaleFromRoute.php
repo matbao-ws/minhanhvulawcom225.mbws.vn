@@ -2,23 +2,31 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\LanguageRegistry;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 
 class SetLocaleFromRoute
 {
+    public function __construct(private readonly LanguageRegistry $languages) {}
+
     public function handle(Request $request, Closure $next)
     {
-        $locale = $request->route('locale') ?: config('app.locale', 'vi');
-        $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
+        $locale = $this->languages->normalize((string) ($request->route('locale') ?: $this->languages->defaultLocale()));
 
-        if (! in_array($locale, $supportedLocales, true)) {
+        if (! $this->languages->supportsAdmin($locale)) {
             abort(404);
         }
 
         app()->setLocale($locale);
         URL::defaults(['locale' => $locale]);
+        $request->session()->put('locale', $locale);
+
+        if ($request->user() && Schema::hasColumn('users', 'preferred_locale') && $request->user()->preferred_locale !== $locale) {
+            $request->user()->forceFill(['preferred_locale' => $locale])->saveQuietly();
+        }
 
         return $next($request);
     }

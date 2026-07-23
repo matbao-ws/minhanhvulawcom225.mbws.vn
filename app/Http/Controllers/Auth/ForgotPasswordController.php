@@ -16,18 +16,16 @@ class ForgotPasswordController extends Controller
 
     public function store(ForgotPasswordRequest $request)
     {
-        $status = Password::sendResetLink($request->only('email'));
-        $success = $status === Password::RESET_LINK_SENT;
-        $message = __($status);
+        $user = \App\Models\User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->first();
+        if ($user) {
+            Password::sendResetLink(['email' => $user->email]);
+        }
+        $message = 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được gửi.';
 
         if ($request->expectsJson()) {
-            return $success
-                ? ApiResponse::success(null, $message)
-                : ApiResponse::error($message, 422, ['email' => [$message]]);
+            return ApiResponse::success(null, $message);
         }
 
-        return $success
-            ? back()->with('status', $message)
-            : back()->withErrors(['email' => $message])->withInput();
+        return back()->with('status', $message);
     }
 }

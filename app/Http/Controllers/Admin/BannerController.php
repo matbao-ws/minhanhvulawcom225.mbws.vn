@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class BannerController extends Controller
 {
-    public function __construct(private readonly CloudinaryService $cloudinaryService)
-    {
-    }
+    use HandlesBulkActions;
+
+    public function __construct(private readonly CloudinaryService $cloudinaryService) {}
 
     /**
      * Display a listing of banners.
@@ -96,7 +98,7 @@ class BannerController extends Controller
 
         if ($request->hasFile('image_file')) {
             // Delete old resource if it was local fallback
-            if (!empty($banner->image_path)) {
+            if (! empty($banner->image_path)) {
                 try {
                     $parsedUrl = parse_url($banner->image_path);
                     if (isset($parsedUrl['path'])) {
@@ -132,7 +134,44 @@ class BannerController extends Controller
      */
     public function destroy(string $locale, Banner $banner)
     {
-        if (!empty($banner->image_path)) {
+        $this->deleteBanner($banner);
+
+        return redirect()
+            ->route('admin.banners.index')
+            ->with('success', __('admin.banners.messages.delete_success'));
+    }
+
+    public function bulk(Request $request, string $locale)
+    {
+        $validated = $this->validatedBulkAction($request, 'banners');
+        $ids = $validated['ids'];
+
+        if ($validated['action'] === 'delete') {
+            Banner::query()->whereIn('id', $ids)->get()->each(fn (Banner $banner) => $this->deleteBanner($banner));
+            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt banner', [
+                'model' => Banner::class,
+                'ids' => $ids,
+                'count' => count($ids),
+            ]);
+
+            return back()->with('success', 'Đã xóa '.count($ids).' banner.');
+        }
+
+        $isActive = $validated['action'] === 'activate';
+        $updated = Banner::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
+        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt banner', [
+            'model' => Banner::class,
+            'ids' => $ids,
+            'count' => $updated,
+            'is_active' => $isActive,
+        ]);
+
+        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' banner.');
+    }
+
+    private function deleteBanner(Banner $banner): void
+    {
+        if (! empty($banner->image_path)) {
             try {
                 $parsedUrl = parse_url($banner->image_path);
                 if (isset($parsedUrl['path'])) {
@@ -141,15 +180,10 @@ class BannerController extends Controller
                         Storage::disk('public')->delete($localPath);
                     }
                 }
-            } catch (\Exception $e) {
-                // Ignore deletion error
+            } catch (\Exception) {
+                // The database record can still be safely deleted when an old local file is missing.
             }
         }
-
         $banner->delete();
-
-        return redirect()
-            ->route('admin.banners.index')
-            ->with('success', __('admin.banners.messages.delete_success'));
     }
 }

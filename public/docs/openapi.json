@@ -12,6 +12,60 @@
     }
   ],
   "paths": {
+    "/public/settings": {
+      "get": {
+        "tags": ["Storefront Configuration"],
+        "summary": "Lấy cấu hình công khai của website",
+        "description": "Frontend dùng multilingual.mode để chọn cơ chế hiển thị. Khi mode là gtranslate, tạo phần tử theo container_class, gán window.gtranslateSettings bằng settings rồi nạp script_url.",
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "shop_name": { "type": "string", "example": "My Store" },
+                        "multilingual": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": { "type": "boolean", "example": true },
+                            "mode": { "type": "string", "enum": ["disabled", "manual", "gtranslate"], "example": "gtranslate" },
+                            "source_locale": { "type": "string", "example": "vi" },
+                            "widget": {
+                              "nullable": true,
+                              "type": "object",
+                              "properties": {
+                                "container_class": { "type": "string", "example": "gtranslate_wrapper" },
+                                "script_url": { "type": "string", "format": "uri", "example": "https://cdn.gtranslate.net/widgets/latest/float.js" },
+                                "settings": { "type": "object", "additionalProperties": true }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/languages": {
+      "get": {
+        "tags": ["Storefront Configuration"],
+        "summary": "Lấy danh sách ngôn ngữ nội dung đang hoạt động",
+        "responses": {
+          "200": { "description": "Thành công" }
+        }
+      }
+    },
     "/public/auth/register": {
       "post": {
         "tags": ["Customer Authentication"],

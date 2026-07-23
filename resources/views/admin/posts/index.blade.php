@@ -76,10 +76,16 @@
             </form>
         </div>
         <div class="card-body p-0">
+            @include('admin.shared.bulk-actions', [
+                'bulkFormId' => 'bulk-posts-form',
+                'bulkActionUrl' => route('admin.posts.bulk'),
+                'bulkItemLabel' => 'bài viết',
+            ])
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
+                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-posts-form" aria-label="Chọn tất cả bài viết"></th>
                             <th class="ps-4">{{ __('admin.posts.fields.title') }}</th>
                             <th>{{ __('admin.posts.fields.category') }}</th>
                             <th>{{ __('admin.posts.fields.published_at') }}</th>
@@ -95,6 +101,7 @@
                                 $catName = $post->category ? ($post->category->getTranslation('name', app()->getLocale(), false) ?: $post->category->getTranslation('name', $fallbackLocale, false)) : __('admin.posts.uncategorized');
                             @endphp
                             <tr class="text-nowrap">
+                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $post->id }}" form="bulk-posts-form" data-bulk-select="bulk-posts-form" aria-label="Chọn {{ $title }}"></td>
                                 <td class="ps-4 text-wrap" style="min-width: 250px;">
                                     <div class="d-flex align-items-center gap-3">
                                         <img src="{{ $post->image_url ?: asset('admin-assets/js/icons/empty.png') }}" 
@@ -148,7 +155,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5">
+                                <td colspan="6" class="text-center py-5">
                                     <iconify-icon icon="solar:document-bold-duotone" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
                                     <p class="text-muted mb-0 fs-3">{{ __('admin.posts.not_found') }}</p>
                                 </td>

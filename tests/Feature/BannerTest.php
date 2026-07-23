@@ -36,7 +36,7 @@ class BannerTest extends TestCase
     public function test_guests_cannot_access_banners(): void
     {
         $response = $this->get('/vi/admin/banners');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_non_authorized_users_cannot_access_banners(): void

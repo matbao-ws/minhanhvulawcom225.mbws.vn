@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ShippingPartner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ShippingPartnerController extends Controller
 {
@@ -134,7 +135,8 @@ class ShippingPartnerController extends Controller
             $settings = $shipping_partner->settings ?? [];
 
             if ($shipping_partner->partner_code === 'DTGH000012') { // GHTK
-                if (empty($settings['api_token']) || empty($settings['api_url'])) {
+                $requiresPickup = ($settings['api_token'] ?? null) !== 'mock';
+                if (empty($settings['api_token']) || empty($settings['api_url']) || ($requiresPickup && (! data_get($settings, 'pickup.name') || ! data_get($settings, 'pickup.tel') || ! data_get($settings, 'pickup.province') || ! data_get($settings, 'pickup.district') || ! data_get($settings, 'pickup.ward') || ! data_get($settings, 'pickup.address')))) {
                     return response()->json([
                         'success' => false,
                         'message' => __('admin.shipping_partners.config_required_ghtk'),
@@ -203,12 +205,21 @@ class ShippingPartnerController extends Controller
         if ($shipping_partner->partner_code === 'DTGH000012') { // GHTK
             $validated = $request->validate([
                 'api_token' => 'required|string|max:255',
-                'api_url' => 'required|url|max:255',
+                'api_url' => ['required', 'url', Rule::in(['https://services.giaohangtietkiem.vn', 'https://services.ghtk.vn'])],
                 'realtime_tracking_enabled' => 'nullable|boolean',
                 'webhook_token' => 'nullable|string|max:255',
+                'pickup_name' => 'nullable|string|max:255',
+                'pickup_tel' => 'nullable|string|max:20',
+                'pickup_province' => 'nullable|string|max:255',
+                'pickup_district' => 'nullable|string|max:255',
+                'pickup_ward' => 'nullable|string|max:255',
+                'pickup_address' => 'nullable|string|max:500',
             ]);
 
             $realtimeTrackingEnabled = (bool) ($validated['realtime_tracking_enabled'] ?? false);
+            if ($validated['api_token'] !== 'mock' && (! $validated['pickup_name'] || ! $validated['pickup_tel'] || ! $validated['pickup_province'] || ! $validated['pickup_district'] || ! $validated['pickup_ward'] || ! $validated['pickup_address'])) {
+                return back()->withInput()->withErrors(['pickup_name' => 'Vui lòng khai báo đầy đủ địa chỉ lấy hàng trước khi kết nối GHTK thật.']);
+            }
             $webhookToken = $realtimeTrackingEnabled
                 ? ($validated['webhook_token'] ?: data_get($shipping_partner->settings, 'webhook_token') ?: Str::random(32))
                 : null;
@@ -220,6 +231,14 @@ class ShippingPartnerController extends Controller
                     'api_url' => $validated['api_url'],
                     'realtime_tracking_enabled' => $realtimeTrackingEnabled,
                     'webhook_token' => $webhookToken,
+                    'pickup' => [
+                        'name' => $validated['pickup_name'] ?? data_get($shipping_partner->settings, 'pickup.name'),
+                        'tel' => $validated['pickup_tel'] ?? data_get($shipping_partner->settings, 'pickup.tel'),
+                        'province' => $validated['pickup_province'] ?? data_get($shipping_partner->settings, 'pickup.province'),
+                        'district' => $validated['pickup_district'] ?? data_get($shipping_partner->settings, 'pickup.district'),
+                        'ward' => $validated['pickup_ward'] ?? data_get($shipping_partner->settings, 'pickup.ward'),
+                        'address' => $validated['pickup_address'] ?? data_get($shipping_partner->settings, 'pickup.address'),
+                    ],
                 ],
             ]);
         } elseif ($shipping_partner->partner_code === 'DTGH000013') { // GHN

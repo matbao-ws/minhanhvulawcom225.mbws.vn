@@ -41,6 +41,17 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    'payment_mock_enabled' => (bool) env('PAYMENT_MOCK_ENABLED', false),
+
+    'payment_return_hosts' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('PAYMENT_RETURN_HOSTS', ''))
+    ))),
+
+    'public_frontend_url' => env('PUBLIC_FRONTEND_URL'),
+
+    'ghtk_webhook_allow_query_token' => (bool) env('GHTK_WEBHOOK_ALLOW_QUERY_TOKEN', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

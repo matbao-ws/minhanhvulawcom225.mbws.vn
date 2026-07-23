@@ -35,7 +35,7 @@ class UserControllerTest extends TestCase
 
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['*'],
+            'permissions' => ['manage_users'],
         ]);
 
         $this->editorRole = Role::query()->create([
@@ -49,7 +49,7 @@ class UserControllerTest extends TestCase
     public function test_guests_are_redirected_to_login(): void
     {
         $response = $this->get('/vi/admin/users');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/vi/admin/login');
     }
 
     public function test_admin_can_access_users_index(): void
@@ -107,7 +107,7 @@ class UserControllerTest extends TestCase
         $response = $this->post('/vi/admin/users', [
             'name' => 'New User',
             'email' => 'newuser@example.com',
-            'password' => 'secret123',
+            'password' => 'Secret123!abc',
             'role_id' => $this->editorRole->id,
             'is_active' => '1',
             'avatar_file' => $avatarFile,
@@ -123,7 +123,7 @@ class UserControllerTest extends TestCase
         ]);
 
         $user = User::query()->where('email', 'newuser@example.com')->firstOrFail();
-        $this->assertTrue(Hash::check('secret123', $user->password));
+        $this->assertTrue(Hash::check('Secret123!abc', $user->password));
         $this->assertNotNull($user->avatar_url);
         $this->assertStringContainsString('avatars/', $user->avatar_url);
     }
@@ -224,6 +224,7 @@ class UserControllerTest extends TestCase
         $superadminRole = Role::query()->create([
             'name' => 'Superadmin',
             'permissions' => ['*'],
+            'is_system' => true,
         ]);
 
         $admin = User::factory()->create([
@@ -251,7 +252,7 @@ class UserControllerTest extends TestCase
         $responseStore = $this->post('/vi/admin/users', [
             'name' => 'Should Fail User',
             'email' => 'shouldfail@example.com',
-            'password' => 'password123',
+            'password' => 'Password123!x',
             'role_id' => $superadminRole->id,
             'is_active' => 1,
         ]);

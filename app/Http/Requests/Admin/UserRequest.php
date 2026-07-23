@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UserRequest extends FormRequest
 {
@@ -30,9 +31,9 @@ class UserRequest extends FormRequest
         ];
 
         if ($this->isMethod('POST')) {
-            $rules['password'] = ['required', 'string', 'min:6'];
+            $rules['password'] = ['required', 'string', Password::min(12)->mixedCase()->numbers()->symbols()];
         } else {
-            $rules['password'] = ['nullable', 'string', 'min:6'];
+            $rules['password'] = ['nullable', 'string', Password::min(12)->mixedCase()->numbers()->symbols()];
         }
 
         return $rules;

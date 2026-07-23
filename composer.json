@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "cloudinary/cloudinary_php": "^2.0",
+        "ezyang/htmlpurifier": "^4.17",
         "firebase/php-jwt": "^7.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",

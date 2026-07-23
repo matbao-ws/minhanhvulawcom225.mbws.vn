@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\VoucherRequest;
 use App\Models\Voucher;
+use App\Services\ActivityLogger;
+use App\Services\LanguageRegistry;
+use Illuminate\Http\Request;
 
 class VoucherController extends Controller
 {
+    use HandlesBulkActions;
+
     /**
      * Display a listing of the resource.
      */
@@ -17,7 +23,7 @@ class VoucherController extends Controller
             ->when(request('q'), function ($query, $keyword) {
                 $query->where(function ($q) use ($keyword) {
                     $q->where('code', 'like', "%{$keyword}%")
-                      ->orWhere('name', 'like', "%{$keyword}%");
+                        ->orWhere('name', 'like', "%{$keyword}%");
                 });
             })
             ->when(request()->filled('status'), function ($query) {
@@ -50,17 +56,16 @@ class VoucherController extends Controller
     public function store(VoucherRequest $request)
     {
         $validated = $request->validated();
-        $locale = app()->getLocale() ?: 'vi';
-
         Voucher::create([
             'code' => strtoupper($validated['code']),
-            'name' => [$locale => $validated['name']],
-            'description' => isset($validated['description']) ? [$locale => $validated['description']] : null,
+            'name' => $this->translations($validated['name']),
+            'description' => $this->translations($validated['description'] ?? []),
             'type' => $validated['type'],
             'value' => $validated['value'],
             'min_order_amount' => $validated['min_order_amount'] ?? 0.00,
             'max_discount_amount' => $validated['max_discount_amount'] ?? null,
             'quantity' => $validated['quantity'] ?? null,
+            'per_user_limit' => $validated['per_user_limit'] ?? null,
             'start_date' => $validated['start_date'] ?? null,
             'end_date' => $validated['end_date'] ?? null,
             'is_active' => $request->boolean('is_active', true),
@@ -94,25 +99,16 @@ class VoucherController extends Controller
     {
         $validated = $request->validated();
 
-        $nameTranslations = $voucher->getTranslations('name');
-        $nameTranslations[$locale] = $validated['name'];
-
-        $descTranslations = $voucher->getTranslations('description');
-        if (isset($validated['description'])) {
-            $descTranslations[$locale] = $validated['description'];
-        } else {
-            unset($descTranslations[$locale]);
-        }
-
         $voucher->update([
             'code' => strtoupper($validated['code']),
-            'name' => $nameTranslations,
-            'description' => $descTranslations,
+            'name' => [...$voucher->getTranslations('name'), ...$this->translations($validated['name'])],
+            'description' => [...$voucher->getTranslations('description'), ...$this->translations($validated['description'] ?? [])],
             'type' => $validated['type'],
             'value' => $validated['value'],
             'min_order_amount' => $validated['min_order_amount'] ?? 0.00,
             'max_discount_amount' => $validated['max_discount_amount'] ?? null,
             'quantity' => $validated['quantity'] ?? null,
+            'per_user_limit' => $validated['per_user_limit'] ?? null,
             'start_date' => $validated['start_date'] ?? null,
             'end_date' => $validated['end_date'] ?? null,
             'is_active' => $request->boolean('is_active', true),
@@ -128,10 +124,54 @@ class VoucherController extends Controller
      */
     public function destroy(string $locale, Voucher $voucher)
     {
+        if ($voucher->used_count > 0) {
+            return back()->with('error', 'Không thể xóa mã giảm giá đã được sử dụng. Hãy tạm ẩn mã thay vì xóa.');
+        }
+
         $voucher->delete();
 
         return redirect()
             ->route('admin.vouchers.index')
             ->with('success', __('admin.vouchers.deleted'));
+    }
+
+    public function bulk(Request $request, string $locale)
+    {
+        $validated = $this->validatedBulkAction($request, 'vouchers');
+        $ids = $validated['ids'];
+
+        if ($validated['action'] === 'delete') {
+            $usedCount = Voucher::query()->whereIn('id', $ids)->where('used_count', '>', 0)->count();
+            if ($usedCount > 0) {
+                return back()->with('error', "Không thể xóa {$usedCount} mã giảm giá đã được sử dụng. Hãy tạm ẩn các mã này.");
+            }
+
+            $deleted = Voucher::query()->whereIn('id', $ids)->delete();
+            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt mã giảm giá', [
+                'model' => Voucher::class,
+                'ids' => $ids,
+                'count' => $deleted,
+            ]);
+
+            return back()->with('success', 'Đã xóa '.$deleted.' mã giảm giá.');
+        }
+
+        $isActive = $validated['action'] === 'activate';
+        $updated = Voucher::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
+        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt mã giảm giá', [
+            'model' => Voucher::class,
+            'ids' => $ids,
+            'count' => $updated,
+            'is_active' => $isActive,
+        ]);
+
+        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' mã giảm giá.');
+    }
+
+    private function translations(array $values): array
+    {
+        $languages = app(LanguageRegistry::class);
+
+        return collect($values)->filter(fn ($value, $locale) => $languages->supports((string) $locale) && is_string($value) && trim($value) !== '')->map(fn (string $value) => trim($value))->all();
     }
 }

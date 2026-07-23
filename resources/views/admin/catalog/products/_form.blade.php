@@ -1,10 +1,6 @@
 @php
-    $fallbackLocale = config('app.fallback_locale', config('app.locale'));
-    $name = old('name', $product->getTranslation('name', app()->getLocale(), false) ?: $product->getTranslation('name', $fallbackLocale, false));
-    $shortDescription = old('short_description', $product->getTranslation('short_description', app()->getLocale(), false) ?: $product->getTranslation('short_description', $fallbackLocale, false));
-    $description = old('description', $product->getTranslation('description', app()->getLocale(), false) ?: $product->getTranslation('description', $fallbackLocale, false));
-    $metaTitle = old('meta_title', $product->getTranslation('meta_title', app()->getLocale(), false) ?: $product->getTranslation('meta_title', $fallbackLocale, false));
-    $metaDescription = old('meta_description', $product->getTranslation('meta_description', app()->getLocale(), false) ?: $product->getTranslation('meta_description', $fallbackLocale, false));
+    $contentLanguages = app(\App\Services\LanguageRegistry::class)->active();
+    $defaultContentLocale = app(\App\Services\LanguageRegistry::class)->defaultLocale();
     $cancelUrl = $product->exists ? route('admin.products.show', $product) : route('admin.products.index');
 @endphp
 
@@ -19,47 +15,46 @@
                     </button>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label" for="name">{{ __('catalog.fields.name') }} <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="name" name="name" value="{{ $name }}" placeholder="{{ __('catalog.placeholders.product_name') }}" required>
-                    <p class="fs-2">{{ __('catalog.products.help.name') }}</p>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="slug">{{ __('catalog.fields.slug') }}</label>
-                    <input type="text" class="form-control" id="slug" name="slug" value="{{ old('slug', $product->slug) }}" placeholder="{{ __('catalog.placeholders.product_slug') }}">
-                    <p class="fs-2 mb-0">{{ __('catalog.products.help.slug') }}</p>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="short_description">{{ __('catalog.fields.short_description') }}</label>
-                    <textarea class="form-control" id="short_description" name="short_description" rows="3" placeholder="{{ __('catalog.placeholders.product_short_description') }}">{{ $shortDescription }}</textarea>
-                </div>
-
-                <div class="mb-4 position-relative" id="editor_wrapper">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <label class="form-label mb-0" for="description">{{ __('catalog.fields.description') }}</label>
-                        <button type="button" class="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 py-1 px-2" id="toggle_fullscreen" style="font-size: 12.2px !important; border-radius: 6px;">
-                            <i class="ti ti-maximize fs-4" id="fullscreen_icon"></i>
-                            <span id="fullscreen_text">Phóng to</span>
-                        </button>
-                    </div>
-                    <textarea class="form-control d-none" id="description" name="description">{{ $description }}</textarea>
-                    <div id="description_editor" class="catalog-quill" data-target="description" style="height: 350px;">{!! $description !!}</div>
-                    <p class="fs-2 mb-0">{{ __('catalog.products.help.description') }}</p>
-                </div>
-                <div class="card border bg-light-subtle mt-4">
-                    <div class="card-body">
-                        <h5 class="mb-3">{{ __('catalog.fields.seo') }}</h5>
-                        <div class="mb-3">
-                            <label class="form-label" for="meta_title">{{ __('catalog.fields.meta_title') }}</label>
-                            <input type="text" maxlength="255" class="form-control" id="meta_title" name="meta_title" value="{{ $metaTitle }}" placeholder="{{ __('catalog.placeholders.meta_title') }}">
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    @foreach($contentLanguages as $language)
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
+                               data-bs-toggle="tab"
+                               href="#product-language-{{ $language->code }}"
+                               role="tab"
+                               aria-selected="{{ $language->code === $defaultContentLocale ? 'true' : 'false' }}">
+                                <span><i class="ti ti-language fs-4"></i></span>
+                                <span>{{ $language->native_name }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="tab-content">
+                    @foreach($contentLanguages as $language)
+                        @php
+                            $code = $language->code;
+                            $name = old("name.$code", $product->getTranslation('name', $code, false));
+                            $slug = old("slug.$code", $product->localizedSlug($code) ?: ($code === $defaultContentLocale ? $product->slug : ''));
+                            $shortDescription = old("short_description.$code", $product->getTranslation('short_description', $code, false));
+                            $description = old("description.$code", $product->getTranslation('description', $code, false));
+                            $metaTitle = old("meta_title.$code", $product->getTranslation('meta_title', $code, false));
+                            $metaDescription = old("meta_description.$code", $product->getTranslation('meta_description', $code, false));
+                        @endphp
+                        <div class="tab-pane fade @if($code === $defaultContentLocale) show active @endif" id="product-language-{{ $code }}">
+                            @if($code !== $defaultContentLocale)
+                                <div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>
+                            @endif
+                            <div class="mb-4"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div>
+                            <div class="mb-4"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }}</label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug"><p class="fs-2 mb-0">Để trống để tự tạo từ tên {{ strtoupper($code) }}.</p></div>
+                            <div class="mb-4"><label class="form-label" for="short_description_{{ $code }}">{{ __('catalog.fields.short_description') }}</label><textarea class="form-control" id="short_description_{{ $code }}" name="short_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="short_description">{{ $shortDescription }}</textarea></div>
+                            <div class="mb-4 position-relative" @if($code === $defaultContentLocale) id="editor_wrapper" @endif>
+                                <label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label>
+                                <textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html">{{ $description }}</textarea>
+                                <div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}" style="height: 350px;">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div>
+                            </div>
+                            <div class="card border bg-light-subtle mt-4"><div class="card-body"><h5 class="mb-3">{{ __('catalog.fields.seo') }}</h5><div class="mb-3"><label class="form-label" for="meta_title_{{ $code }}">{{ __('catalog.fields.meta_title') }}</label><input type="text" maxlength="255" class="form-control" id="meta_title_{{ $code }}" name="meta_title[{{ $code }}]" value="{{ $metaTitle }}" data-i18n-locale="{{ $code }}" data-i18n-field="meta_title"></div><div class="mb-0"><label class="form-label" for="meta_description_{{ $code }}">{{ __('catalog.fields.meta_description') }}</label><textarea maxlength="500" class="form-control" id="meta_description_{{ $code }}" name="meta_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="meta_description">{{ $metaDescription }}</textarea></div></div></div>
                         </div>
-                        <div class="mb-0">
-                            <label class="form-label" for="meta_description">{{ __('catalog.fields.meta_description') }}</label>
-                            <textarea maxlength="500" class="form-control" id="meta_description" name="meta_description" rows="3" placeholder="{{ __('catalog.placeholders.meta_description') }}">{{ $metaDescription }}</textarea>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -286,6 +281,8 @@
         </div>
     </div>
 </div>
+
+@include('admin.shared.translation-assets')
 
 <!-- Unsaved Changes Modal -->
 <div class="modal fade" id="unsavedChangesModal" tabindex="-1" aria-labelledby="unsavedChangesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">

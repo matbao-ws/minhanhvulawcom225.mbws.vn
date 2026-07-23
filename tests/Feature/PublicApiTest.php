@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Mail\OrderStatusMail;
@@ -135,7 +136,7 @@ class PublicApiTest extends TestCase
         $response = $this->getJson("/api/public/products/{$this->product->slug}");
         $response->assertStatus(200);
         $response->assertJsonFragment(['slug' => 'iphone-15-pro']);
-        $response->assertJsonFragment(['name' => ['vi' => '256GB Gold']]);
+        $response->assertJsonFragment(['name' => '256GB Gold']);
     }
 
     public function test_apply_voucher_validation(): void
@@ -217,6 +218,31 @@ class PublicApiTest extends TestCase
         });
     }
 
+    public function test_admin_api_token_cannot_be_used_for_customer_checkout(): void
+    {
+        $role = Role::query()->create([
+            'name' => 'Checkout Admin',
+            'permissions' => ['manage_orders'],
+        ]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->postJson('/api/public/orders/checkout', [
+            'customer_name' => 'Blocked Admin',
+            'customer_email' => 'blocked-admin@example.com',
+            'customer_phone' => '0988776655',
+            'shipping_address' => '789 District 3, HCMC',
+            'payment_method' => 'cod',
+            'items' => [[
+                'product_id' => $this->product->id,
+                'option_value_ids' => [$this->optionValue->id],
+                'quantity' => 1,
+            ]],
+        ])->assertStatus(403);
+
+        $this->assertDatabaseMissing('orders', ['customer_email' => 'blocked-admin@example.com']);
+    }
+
     public function test_checkout_rejects_when_variant_stock_is_insufficient(): void
     {
         $this->variant->update(['stock_quantity' => 1]);
@@ -249,7 +275,7 @@ class PublicApiTest extends TestCase
             'role_id' => null,
         ]);
 
-        Sanctum::actingAs($customer);
+        Sanctum::actingAs($customer, ['customer']);
 
         $response = $this->postJson('/api/public/orders/checkout', [
             'customer_name' => 'Member Customer',
@@ -278,8 +304,8 @@ class PublicApiTest extends TestCase
         $responseRegister = $this->postJson('/api/public/auth/register', [
             'name' => 'New Customer',
             'email' => 'new.customer@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123!x',
+            'password_confirmation' => 'Password123!x',
         ]);
         $responseRegister->assertStatus(200);
         $responseRegister->assertJsonStructure(['success', 'data' => ['user', 'token']]);
@@ -287,7 +313,7 @@ class PublicApiTest extends TestCase
         // 2. Login
         $responseLogin = $this->postJson('/api/public/auth/login', [
             'email' => 'new.customer@example.com',
-            'password' => 'password123',
+            'password' => 'Password123!x',
         ]);
         $responseLogin->assertStatus(200);
         $token = $responseLogin->json('data.token');

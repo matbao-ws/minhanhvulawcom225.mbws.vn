@@ -1,21 +1,42 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\AddonController;
+use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\Catalog\BrandController;
 use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
 use App\Http\Controllers\Admin\Catalog\ProductOptionController;
 use App\Http\Controllers\Admin\Catalog\ProductVariantController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FeatureController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\LanguageController;
+use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\NotificationSettingController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PaymentMethodController;
+use App\Http\Controllers\Admin\PostCategoryController;
+use App\Http\Controllers\Admin\PostController;
+use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SearchController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\ShippingPartnerController;
+use App\Http\Controllers\Admin\TranslationController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\SearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:admin-login')->name('login.store');
 Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
-Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:admin-login')->name('password.email');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
 Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.update');
 
@@ -23,7 +44,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::post('/impersonate/leave', [\App\Http\Controllers\Admin\UserController::class, 'leaveImpersonate'])
+Route::post('/impersonate/leave', [UserController::class, 'leaveImpersonate'])
     ->middleware('auth')
     ->name('users.impersonate.leave');
 
@@ -32,104 +53,119 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
     Route::get('search', [SearchController::class, 'search'])->name('search');
+    Route::post('translations/preview', [TranslationController::class, 'preview'])
+        ->middleware(['can:translate_content', 'throttle:admin-translation'])
+        ->name('translations.preview');
 
-    Route::get('media', [\App\Http\Controllers\Admin\MediaController::class, 'index'])->name('media.index');
-    Route::post('media/upload', [\App\Http\Controllers\Admin\MediaController::class, 'upload'])->name('media.upload');
-    Route::delete('media/delete', [\App\Http\Controllers\Admin\MediaController::class, 'destroy'])->name('media.delete');
+    Route::middleware('can:manage_media')->group(function () {
+        Route::get('media', [MediaController::class, 'index'])->name('media.index');
+        Route::post('media/upload', [MediaController::class, 'upload'])->name('media.upload');
+        Route::delete('media/delete', [MediaController::class, 'destroy'])->name('media.delete');
+    });
 
     Route::middleware('superadmin')->group(function () {
-        Route::get('features', [\App\Http\Controllers\Admin\FeatureController::class, 'index'])->name('features.index');
-        Route::post('features', [\App\Http\Controllers\Admin\FeatureController::class, 'update'])->name('features.update');
-        Route::post('features/toggle', [\App\Http\Controllers\Admin\FeatureController::class, 'toggle'])->name('features.toggle');
+        Route::get('features', [FeatureController::class, 'index'])->name('features.index');
+        Route::post('features', [FeatureController::class, 'update'])->name('features.update');
+        Route::post('features/toggle', [FeatureController::class, 'toggle'])->name('features.toggle');
+        Route::get('languages', [LanguageController::class, 'index'])->name('languages.index');
+        Route::post('languages', [LanguageController::class, 'store'])->name('languages.store');
+        Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->name('languages.preferences');
+        Route::put('languages/{language}', [LanguageController::class, 'update'])->name('languages.update');
     });
 
     Route::middleware('feature:multi_admin')->group(function () {
-        Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->middleware('can:manage_users');
-        Route::patch('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])
+        Route::resource('users', UserController::class)->middleware('can:manage_users');
+        Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
             ->name('users.toggle-status')
             ->middleware('can:manage_users');
-        Route::post('users/{user}/impersonate', [\App\Http\Controllers\Admin\UserController::class, 'impersonate'])
+        Route::post('users/{user}/impersonate', [UserController::class, 'impersonate'])
             ->name('users.impersonate')
-            ->middleware('can:manage_users');
-        Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->middleware('superadmin');
+            ->middleware('superadmin');
+        Route::resource('roles', RoleController::class)->middleware('superadmin');
     });
 
     Route::middleware(['feature:cms_page', 'can:manage_posts'])->group(function () {
-        Route::post('post-categories/sort', [\App\Http\Controllers\Admin\PostCategoryController::class, 'sort'])->name('post-categories.sort');
-        Route::put('post-categories/{post_category}/quick-update', [\App\Http\Controllers\Admin\PostCategoryController::class, 'quickUpdate'])->name('post-categories.quick-update');
-        Route::resource('post-categories', \App\Http\Controllers\Admin\PostCategoryController::class)->except(['show']);
-        Route::resource('posts', \App\Http\Controllers\Admin\PostController::class);
+        Route::patch('posts/bulk', [PostController::class, 'bulk'])->name('posts.bulk');
+        Route::post('post-categories/sort', [PostCategoryController::class, 'sort'])->name('post-categories.sort');
+        Route::put('post-categories/{post_category}/quick-update', [PostCategoryController::class, 'quickUpdate'])->name('post-categories.quick-update');
+        Route::resource('post-categories', PostCategoryController::class)->except(['show']);
+        Route::resource('posts', PostController::class);
     });
 
     Route::middleware(['feature:voucher', 'can:manage_vouchers'])->group(function () {
-        Route::resource('vouchers', \App\Http\Controllers\Admin\VoucherController::class);
-        Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->except(['show']);
+        Route::patch('vouchers/bulk', [VoucherController::class, 'bulk'])->name('vouchers.bulk');
+        Route::resource('vouchers', VoucherController::class);
+        Route::resource('promotions', PromotionController::class)->except(['show']);
     });
 
     Route::middleware(['feature:review', 'can:manage_reviews'])->group(function () {
-        Route::get('reviews', [\App\Http\Controllers\Admin\ReviewController::class, 'index'])->name('reviews.index');
-        Route::put('reviews/{review}', [\App\Http\Controllers\Admin\ReviewController::class, 'update'])->name('reviews.update');
-        Route::patch('reviews/{review}/toggle-visibility', [\App\Http\Controllers\Admin\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
-        Route::delete('reviews/{review}', [\App\Http\Controllers\Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
+        Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::put('reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+        Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     });
 
     Route::middleware('can:manage_settings')->group(function () {
-        Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceController::class, 'index'])->name('invoices.index');
-        Route::get('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceController::class, 'show'])->name('invoices.show');
-        Route::post('invoices/{invoice}/send-email', [\App\Http\Controllers\Admin\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
+        Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+        Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
 
-        Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
-        Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+        Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
+        Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
 
-        Route::get('notification-settings', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'index'])->name('notification-settings.index');
-        Route::post('notification-settings', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'update'])->name('notification-settings.update');
-        Route::post('notification-settings/get-zalo-chat-id', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'getZaloChatId'])->name('notification-settings.get-chat-id');
+        Route::get('notification-settings', [NotificationSettingController::class, 'index'])->name('notification-settings.index');
+        Route::post('notification-settings', [NotificationSettingController::class, 'update'])->name('notification-settings.update');
+        Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->name('notification-settings.get-chat-id');
 
-        Route::post('shipping-partners/{shipping_partner}/toggle-status', [\App\Http\Controllers\Admin\ShippingPartnerController::class, 'toggleStatus'])->name('shipping-partners.toggle-status');
-        Route::get('shipping-partners/{shipping_partner}/settings', [\App\Http\Controllers\Admin\ShippingPartnerController::class, 'settings'])->name('shipping-partners.settings');
-        Route::post('shipping-partners/{shipping_partner}/settings', [\App\Http\Controllers\Admin\ShippingPartnerController::class, 'updateSettings'])->name('shipping-partners.update-settings');
-        Route::resource('shipping-partners', \App\Http\Controllers\Admin\ShippingPartnerController::class)->except(['show']);
+        Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->name('shipping-partners.toggle-status');
+        Route::get('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'settings'])->name('shipping-partners.settings');
+        Route::post('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'updateSettings'])->name('shipping-partners.update-settings');
+        Route::resource('shipping-partners', ShippingPartnerController::class)->except(['show']);
 
-        Route::post('payment-methods/{payment_method}/toggle-status', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
-        Route::get('payment-methods/{payment_method}/settings', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'settings'])->name('payment-methods.settings');
-        Route::post('payment-methods/{payment_method}/settings', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'updateSettings'])->name('payment-methods.update-settings');
-        Route::resource('payment-methods', \App\Http\Controllers\Admin\PaymentMethodController::class)->except(['show']);
+        Route::post('payment-methods/{payment_method}/toggle-status', [PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
+        Route::get('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'settings'])->name('payment-methods.settings');
+        Route::post('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'updateSettings'])->name('payment-methods.update-settings');
+        Route::resource('payment-methods', PaymentMethodController::class)->except(['show']);
 
         // Integration catalogue. Activation is handled by support; no in-app addon sales.
-        Route::get('addons', [\App\Http\Controllers\Admin\AddonController::class, 'index'])->name('addons.index');
+        Route::get('addons', [AddonController::class, 'index'])->name('addons.index');
 
     });
 
     Route::middleware(['feature:banner', 'can:manage_banners'])->group(function () {
-        Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)->except(['show']);
+        Route::patch('banners/bulk', [BannerController::class, 'bulk'])->name('banners.bulk');
+        Route::resource('banners', BannerController::class)->except(['show']);
     });
 
     Route::middleware('can:view_audit_log')->group(function () {
-        Route::get('activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
     Route::middleware('can:view_customers')->group(function () {
-        Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index');
-        Route::get('customers/profile', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('customers.show');
+        Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/profile', [CustomerController::class, 'show'])->name('customers.show');
     });
 
     Route::middleware('feature:catalog')->group(function () {
         Route::middleware('can:manage_orders')->group(function () {
-            Route::patch('orders/{order}/status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('orders.update-status');
-            Route::post('orders/{order}/push-shipping', [\App\Http\Controllers\Admin\OrderController::class, 'pushShipping'])->name('orders.push-shipping');
-            Route::post('orders/{order}/refund', [\App\Http\Controllers\Admin\OrderController::class, 'refund'])->name('orders.refund');
-            Route::resource('orders', \App\Http\Controllers\Admin\OrderController::class)->only(['index', 'show', 'create', 'store']);
+            Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+            Route::post('orders/{order}/push-shipping', [OrderController::class, 'pushShipping'])->name('orders.push-shipping');
+            Route::post('orders/{order}/refund', [OrderController::class, 'refund'])->name('orders.refund');
+            Route::resource('orders', OrderController::class)->only(['index', 'show', 'create', 'store']);
         });
 
         Route::middleware('can:manage_products')->group(function () {
+            Route::patch('categories/bulk', [CategoryController::class, 'bulk'])->name('categories.bulk');
             Route::post('categories/sort', [CategoryController::class, 'sort'])->name('categories.sort');
             Route::put('categories/{category}/quick-update', [CategoryController::class, 'quickUpdate'])->name('categories.quick-update');
             Route::resource('categories', CategoryController::class)->except(['show']);
 
+            Route::patch('brands/bulk', [BrandController::class, 'bulk'])->name('brands.bulk');
             Route::post('brands/sort', [BrandController::class, 'sort'])->name('brands.sort');
             Route::put('brands/{brand}/quick-update', [BrandController::class, 'quickUpdate'])->name('brands.quick-update');
             Route::resource('brands', BrandController::class)->except(['show']);
 
+            Route::patch('products/bulk', [ProductController::class, 'bulk'])->name('products.bulk');
             Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
             Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->name('products.template');
             Route::post('products/import', [ProductController::class, 'import'])->name('products.import');

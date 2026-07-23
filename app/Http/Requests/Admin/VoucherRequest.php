@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class VoucherRequest extends FormRequest
 {
+    use NormalizesLocalizedInput;
+
     public function authorize(): bool
     {
         return true;
@@ -23,8 +26,8 @@ class VoucherRequest extends FormRequest
                 'max:50',
                 Rule::unique('vouchers', 'code')->ignore($voucherId),
             ],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            ...$this->localizedStringRules('name', true, 255),
+            ...$this->localizedStringRules('description'),
             'type' => ['required', 'in:percentage,fixed'],
             'value' => [
                 'required',
@@ -39,9 +42,15 @@ class VoucherRequest extends FormRequest
             'min_order_amount' => ['nullable', 'numeric', 'min:0'],
             'max_discount_amount' => ['nullable', 'numeric', 'min:0'],
             'quantity' => ['nullable', 'integer', 'min:0'],
+            'per_user_limit' => ['nullable', 'integer', 'min:1'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'is_active' => ['nullable', 'boolean'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeLocalizedInput(['name', 'description']);
     }
 }
