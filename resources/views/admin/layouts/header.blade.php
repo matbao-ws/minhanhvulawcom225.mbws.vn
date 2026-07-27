@@ -215,9 +215,6 @@
                                               <a href="{{ route('admin.users.edit', auth()->id()) }}" class="p-2 dropdown-item h6 rounded-1">
                                                   {{ __('admin.profile.my_profile') }}
                                               </a>
-                                              <a href="{{ route('admin.addons.index') }}" class="p-2 dropdown-item h6 rounded-1">
-                                                  Tích hợp & hỗ trợ
-                                              </a>
                                               <a href="{{ route('admin.settings.index') }}"
                                                   class="p-2 dropdown-item h6 rounded-1">
                                                   {{ __('admin.profile.account_settings') }}
@@ -552,9 +549,6 @@
                                           <div class="message-body">
                                               <a href="{{ route('admin.users.edit', auth()->id()) }}" class="p-2 dropdown-item h6 rounded-1">
                                                   {{ __('admin.profile.my_profile') }}
-                                              </a>
-                                              <a href="{{ route('admin.addons.index') }}" class="p-2 dropdown-item h6 rounded-1">
-                                                  Tích hợp & hỗ trợ
                                               </a>
                                               <a href="{{ route('admin.settings.index') }}"
                                                   class="p-2 dropdown-item h6 rounded-1">

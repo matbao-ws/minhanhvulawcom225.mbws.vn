@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Ecommerce Core"
+  short_description: "Safely maintain this Laravel ecommerce core"
+  default_prompt: "Use $maintain-ecommerce-core to implement and verify a change in this Laravel ecommerce core."

@@ -46,9 +46,20 @@ class CloudinaryService
             throw new \InvalidArgumentException('Invalid media folder.');
         }
 
+        // Generate clean, SEO-friendly filename from original file name
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $slug = \Illuminate\Support\Str::slug($originalName);
+        if (empty($slug)) {
+            $slug = 'file';
+        }
+        $suffix = substr(md5(uniqid((string) mt_rand(), true)), 0, 6);
+        $friendlyFilename = "{$slug}-{$suffix}.{$extension}";
+        $publicId = "{$slug}-{$suffix}";
+
         if (!$this->isConfigured()) {
             Log::info("Cloudinary is not configured. Falling back to local storage.");
-            $path = $file->store($folder, 'public');
+            $path = $file->storeAs($folder, $friendlyFilename, 'public');
             return Storage::disk('public')->url($path);
         }
 
@@ -56,6 +67,9 @@ class CloudinaryService
             $uploadApi = new UploadApi();
             $response = $uploadApi->upload($file->getRealPath(), [
                 'folder' => $folder,
+                'public_id' => $publicId,
+                'use_filename' => true,
+                'unique_filename' => false,
                 'resource_type' => 'auto',
             ]);
 
@@ -63,7 +77,7 @@ class CloudinaryService
         } catch (\Exception $e) {
             Log::error("Cloudinary Upload Error: " . $e->getMessage());
             // Fallback to local storage in case of API failure
-            $path = $file->store($folder, 'public');
+            $path = $file->storeAs($folder, $friendlyFilename, 'public');
             return Storage::disk('public')->url($path);
         }
     }

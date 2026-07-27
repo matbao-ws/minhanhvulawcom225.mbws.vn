@@ -130,7 +130,7 @@
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.customers.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:users-group-two-rounded-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.menu.customers') }}</span>
+                                  <span class="hide-menu">{{ __('admin.sidebar.customers') }}</span>
                               </a>
                           </li>
                           @endcan
@@ -182,11 +182,11 @@
                               <li class="sidebar-item">
                                   <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                       <iconify-icon icon="solar:ticket-sale-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">Khuyến mãi</span>
+                                      <span class="hide-menu">{{ __('admin.sidebar.promotions') }}</span>
                                   </a>
                                   <ul aria-expanded="false" class="collapse first-level">
                                       <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.vouchers.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.vouchers') }}</a></li>
-                                      <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.promotions.index') }}"><span class="icon-small"></span>Chương trình & Flash Sale</a></li>
+                                      <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.promotions.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.promotions_flash_sale') }}</a></li>
                                   </ul>
                               </li>
                               @endcan
@@ -287,7 +287,7 @@
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.languages.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:global-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">Ngôn ngữ nội dung</span>
+                                  <span class="hide-menu">{{ __('admin.sidebar.content_languages') }}</span>
                               </a>
                           </li>
                           <li class="sidebar-item">
@@ -302,7 +302,7 @@
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.activity-logs.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:history-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">Nhật ký hoạt động</span>
+                                  <span class="hide-menu">{{ __('admin.sidebar.activity_logs') }}</span>
                               </a>
                           </li>
                           @endcan
@@ -321,7 +321,7 @@
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.media.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:gallery-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.menu.media_library') }}</span>
+                                  <span class="hide-menu">{{ __('admin.sidebar.media_library') }}</span>
                               </a>
                           </li>
                       </ul>

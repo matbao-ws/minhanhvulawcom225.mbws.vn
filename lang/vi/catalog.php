@@ -190,7 +190,7 @@ return array (
       'local_warning' => 'Lưu ý: Cloud chưa được cấu hình. Các tệp đang được tải lên và quản lý tại máy chủ cục bộ.',
       'upload_to_folder' => 'Tải lên thư mục: :folder',
       'select_file' => 'Chọn tệp tin',
-      'copy_url' => 'Sao chép liên kết',
+      'copy_url' => 'Copy liên kết',
       'copied' => 'Đã sao chép!',
       'delete_confirm' => 'Bạn có chắc chắn muốn xóa tệp tin này không?',
       'no_files' => 'Không tìm thấy tệp tin nào trong thư mục này.',

@@ -701,15 +701,40 @@ class PublicController extends Controller
             return ApiResponse::error('Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua hàng.', 403);
         }
 
-        $review = Review::query()->create([
-            'product_id' => $product->id,
-            'user_id' => $user ? $user->id : null,
-            'customer_name' => $customerName,
-            'customer_email' => $customerEmail,
-            'rating' => (int) $request->input('rating'),
-            'comment' => $request->input('comment'),
-            'is_visible' => true,
-        ]);
+        $review = DB::transaction(function () use ($product, $user, $customerName, $customerEmail, $request) {
+            // Serializes review creation per product so concurrent submissions cannot both pass the duplicate check.
+            Product::query()->lockForUpdate()->findOrFail($product->id);
+
+            $existingReview = Review::query()
+                ->where('product_id', $product->id)
+                ->when(
+                    $user,
+                    fn ($query) => $query->where(function ($query) use ($user) {
+                        $query->where('user_id', $user->id)
+                            ->orWhereRaw('LOWER(customer_email) = ?', [strtolower((string) $user->email)]);
+                    }),
+                    fn ($query) => $query->whereRaw('LOWER(customer_email) = ?', [strtolower((string) $customerEmail)]),
+                )
+                ->exists();
+
+            if ($existingReview) {
+                return null;
+            }
+
+            return Review::query()->create([
+                'product_id' => $product->id,
+                'user_id' => $user ? $user->id : null,
+                'customer_name' => $customerName,
+                'customer_email' => $customerEmail,
+                'rating' => (int) $request->input('rating'),
+                'comment' => $request->input('comment'),
+                'is_visible' => true,
+            ]);
+        });
+
+        if (! $review) {
+            return ApiResponse::error('Bạn đã gửi đánh giá cho sản phẩm này.', 409);
+        }
 
         return ApiResponse::success(new PublicReviewResource($review), 'Gửi đánh giá thành công.');
     }

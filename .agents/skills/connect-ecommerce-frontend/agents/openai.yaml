@@ -1,0 +1,4 @@
+interface:
+  display_name: "Connect Ecommerce Frontend"
+  short_description: "Prototype, cut, and connect storefront UI"
+  default_prompt: "Use $connect-ecommerce-frontend to build the static HTML prototype, cut the approved UI, then connect it to the core API."

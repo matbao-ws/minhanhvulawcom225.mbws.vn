@@ -1,708 +1,327 @@
-# AI_BUILD_PROMPT.md
+# AI Operating Contract — Laravel Ecommerce Core
 
-# Prompt cho AI Coding Agent - Build Laravel Ecommerce Core
+Tài liệu này là hợp đồng làm việc dành cho mọi AI coding agent thao tác trong repository này.
+Đọc tài liệu trước khi phân tích, sửa code, migration, test, API, admin UI hoặc deployment.
 
-Dùng file này khi muốn nhờ AI coding agent bắt đầu code trực tiếp trong repo hiện tại.
+## 1. Nhận diện hệ thống
 
-Yêu cầu AI coding agent phải đọc file này trước, sau đó đọc `AI_SYSTEM_SPEC.md`, rồi mới inspect project và code.
-
----
-
-## Vai trò của AI
-
-Bạn là senior Laravel engineer đang build một hệ thống **Laravel Ecommerce Core**.
-
-Hệ thống dùng cho agency/web service để triển khai nhiều website bán hàng theo gói.
-
-Mô hình v1:
+Đây là Laravel 12 Ecommerce Admin Core dùng để triển khai từng website bán hàng độc lập:
 
 ```text
 1 khách hàng = 1 Laravel project = 1 database riêng
 ```
 
-Không làm multi-tenant ở v1.
+Không phải hệ thống multi-tenant. Không tự thêm `shop_id`, tenant middleware, tenant database
+hoặc package multi-tenancy.
 
-Không thêm `shop_id`.
+Core cung cấp:
 
----
+- Admin Blade + Bootstrap tại `/{locale}/admin`.
+- REST JSON API cho storefront tại `/api/public`.
+- Customer authentication bằng Laravel Sanctum.
+- Phân quyền admin theo role/permission.
+- Catalog, biến thể V2, tồn kho, checkout, khuyến mãi, voucher và review.
+- Vòng đời đơn hàng, hoàn tiền, payment transaction và VNPAY.
+- Shipping configuration, GHTK push/webhook.
+- CMS post, banner, đa ngôn ngữ, media và notification.
+- Feature flags do support cấu hình; package/subscription cũ chỉ giữ tương thích dữ liệu lịch sử.
 
-## Stack bắt buộc
+Storefront không nằm trong core. Không thêm React, Vue, Next.js, Nuxt, Inertia, Livewire,
+GraphQL hoặc một frontend framework khác nếu người dùng không yêu cầu.
 
-```text
-Laravel
-Blade + Bootstrap cho admin
-REST API JSON cho client website
-MySQL/MariaDB
-Eloquent ORM
-Form Request validation
-Service layer
-API Resource / ApiResponse helper
-FeatureGate theo gói
-```
+## 2. Thứ tự nguồn sự thật
 
-Không dùng React, Vue, Next.js, Nuxt, Inertia, Livewire, GraphQL nếu chưa được yêu cầu.
+Khi tài liệu và code mâu thuẫn, dùng thứ tự ưu tiên sau:
 
----
+1. Migration và database constraints hiện hành.
+2. Route + middleware thực tế trong `bootstrap/app.php`, `routes/*.php`.
+3. Service nghiệp vụ và model hiện hành.
+4. FormRequest/controller/resource và test đang chạy.
+5. `public/docs/openapi.json`.
+6. README, prompt, comment hoặc tài liệu cũ.
 
-## File bắt buộc phải đọc trước
+Không sao chép hợp đồng từ tài liệu cũ mà chưa đối chiếu code. Khi thay đổi API, đồng bộ route,
+validation, resource, test và OpenAPI trong cùng thay đổi.
 
-Đọc kỹ các file này trước khi code:
+## 3. Quy trình bắt buộc trước khi sửa
 
-```text
-AI_SYSTEM_SPEC.md
-```
+1. Đọc `README.md`, `composer.json`, file này và skill phù hợp trong `.agents/skills`.
+2. Chạy `git status --short`; mọi thay đổi có sẵn thuộc về người dùng.
+3. Dùng `rg`/`rg --files` để tìm route, controller, service, model, migration và test liên quan.
+4. Đọc đầy đủ luồng gọi trước khi chỉnh sửa, kể cả middleware và side effect.
+5. Nêu kế hoạch ngắn: phạm vi, file dự kiến, rủi ro và cách kiểm chứng.
+6. Chỉ sửa trong phạm vi yêu cầu; bảo toàn thay đổi không liên quan.
+7. Sau khi sửa, chạy test mục tiêu trước rồi mới chạy regression rộng hơn.
 
-Nếu repo đã có các file sau thì cũng đọc:
+Không đoán trạng thái phase. Repository hiện là một core đã có nhiều module; hãy xác định trạng
+thái từ code và migration hiện tại.
 
-```text
-README.md
-composer.json
-routes/web.php
-routes/api.php
-routes/admin.php
-app/Models/*
-app/Http/Controllers/*
-database/migrations/*
-```
-
----
-
-## Luật làm việc
-
-Trước khi sửa code, hãy làm 4 bước:
+## 4. Bản đồ kiến trúc
 
 ```text
-1. Inspect project structure.
-2. Xác định project đang ở phase nào.
-3. Liệt kê file sẽ tạo/sửa.
-4. Chỉ code trong scope phase hiện tại.
+Admin route       routes/admin.php
+Public/API route  routes/api.php
+Web route         routes/web.php
+Bootstrap         bootstrap/app.php
+
+Admin controller  app/Http/Controllers/Admin
+API controller    app/Http/Controllers/Api
+Auth controller   app/Http/Controllers/Auth
+Validation        app/Http/Requests
+API output        app/Http/Resources + app/Support/ApiResponse.php
+
+Business logic    app/Services
+Shared policy     app/Support
+Persistence       app/Models + database/migrations
+Admin UI          resources/views/admin
+Translations      lang/* + localized database fields
+Tests             tests/Unit + tests/Feature
+API contract      public/docs/openapi.json
 ```
 
-Không tự ý đổi kiến trúc.
-
-Không sửa file ngoài scope nếu không cần.
-
-Không thêm dependency mới nếu không có lý do rõ ràng.
-
----
-
-## Kiến trúc bắt buộc
-
-Flow chuẩn:
+Luồng ưu tiên:
 
 ```text
-Controller -> FormRequest -> Service -> Model -> Resource/View
+Route/Middleware
+  -> FormRequest hoặc request validation
+  -> Controller orchestration
+  -> Service/domain policy
+  -> Model/database
+  -> Resource/View
 ```
 
-Admin:
+Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc tính tiền trong Blade.
 
-```text
-routes/admin.php
-app/Http/Controllers/Admin
-resources/views/admin
-```
+## 5. Các bất biến nghiệp vụ
 
-API:
+### Tenant và feature
 
-```text
-routes/api.php
-app/Http/Controllers/Api
-app/Http/Resources
-```
-
-Core logic:
-
-```text
-app/Services
-```
-
-Shared helpers:
-
-```text
-app/Support
-```
-
----
-
-## Coding Rules
-
-Bắt buộc:
-
-```text
-- Controller mỏng.
-- Không để business logic trong Controller.
-- Không query database trong Blade.
-- Không để logic tính tiền, voucher, stock trong Blade.
-- Validation nằm trong FormRequest.
-- API trả JSON theo chuẩn ApiResponse.
-- Admin dùng Blade + Bootstrap.
-- Tính năng theo gói phải check bằng FeatureGate.
-- Không check trực tiếp package code trong logic.
-- Checkout/payment/stock phải dùng DB transaction.
-```
+- Không thêm multi-tenancy.
+- Dùng `FeatureGate`/middleware `feature:<code>`, không hard-code package code.
+- Superadmin có cơ chế bypass feature hiện hành; không thay đổi ngầm.
+- Feature bị tắt phải trả đúng hành vi web/API hiện có.
 
 Sai:
 
 ```php
 if ($packageCode === 'basic_2m') {
-    // sai
+    // ...
 }
 ```
 
 Đúng:
 
 ```php
-if (! feature_enabled('voucher')) {
-    abort(403);
-}
+app(\App\Support\FeatureGate::class)->require('voucher');
 ```
 
----
-
-## Phase hiện tại cần code
-
-Bắt đầu với **Phase 1: Foundation**.
-
-### Mục tiêu Phase 1
-
-Tạo nền Laravel core gồm:
-
-```text
-- Admin auth cơ bản nếu project chưa có
-- Admin Bootstrap layout base
-- ApiResponse helper
-- FeatureGate service
-- feature middleware
-- packages table
-- features table
-- package_features table
-- project_subscription table
-- feature_settings table
-- project_settings table
-- roles table
-- users table nếu chưa có
-- seed package basic_2m và standard_4m
-- seed feature codes
-- routes/admin.php setup
-```
-
----
-
-## Phase 1 - Files cần tạo/sửa
-
-Tùy project hiện tại, tạo/sửa các file sau.
-
-### Config
-
-```text
-config/features.php
-config/packages.php
-```
-
-### Support
-
-```text
-app/Support/ApiResponse.php
-app/Support/FeatureGate.php
-```
-
-### Middleware
-
-```text
-app/Http/Middleware/EnsureFeatureEnabled.php
-```
-
-### Models
-
-```text
-app/Models/Package.php
-app/Models/Feature.php
-app/Models/PackageFeature.php
-app/Models/ProjectSubscription.php
-app/Models/FeatureSetting.php
-app/Models/ProjectSetting.php
-app/Models/Role.php
-app/Models/User.php
-```
-
-### Migrations
-
-```text
-database/migrations/*_create_packages_table.php
-database/migrations/*_create_features_table.php
-database/migrations/*_create_package_features_table.php
-database/migrations/*_create_project_subscription_table.php
-database/migrations/*_create_feature_settings_table.php
-database/migrations/*_create_project_settings_table.php
-database/migrations/*_create_roles_table.php
-```
-
-Nếu users table đã tồn tại thì không tạo lại, chỉ thêm field cần thiết nếu hợp lý.
-
-### Seeders
-
-```text
-database/seeders/FeatureSeeder.php
-database/seeders/PackageSeeder.php
-database/seeders/ProjectSubscriptionSeeder.php
-database/seeders/DatabaseSeeder.php
-```
-
-### Routes
-
-```text
-routes/admin.php
-routes/web.php
-routes/api.php
-```
-
-### Admin Layout
-
-```text
-resources/views/admin/layouts/app.blade.php
-resources/views/admin/layouts/header.blade.php
-resources/views/admin/layouts/sidebar.blade.php
-resources/views/admin/layouts/footer.blade.php
-resources/views/admin/dashboard/index.blade.php
-```
-
-### Controllers
-
-```text
-app/Http/Controllers/Admin/DashboardController.php
-```
-
----
-
-## Feature Codes bắt buộc
-
-Seed các feature code này:
-
-```text
-catalog
-cart
-cod_order
-online_payment
-voucher
-review
-zalo_oa
-cms_page
-banner
-menu
-multi_admin
-inventory_log
-max_products
-max_admin_users
-```
-
-Không được tự đổi tên thành code khác.
-
----
-
-## Package Presets
-
-Seed package `basic_2m`:
-
-```text
-catalog = true
-cart = true
-cod_order = true
-online_payment = false
-voucher = false
-review = false
-zalo_oa = false
-cms_page = false
-banner = true
-menu = true
-multi_admin = false
-inventory_log = false
-max_products = 50
-max_admin_users = 1
-```
-
-Seed package `standard_4m`:
-
-```text
-catalog = true
-cart = true
-cod_order = true
-online_payment = true
-voucher = true
-review = true
-zalo_oa = true
-cms_page = true
-banner = true
-menu = true
-multi_admin = true
-inventory_log = true
-max_products = 200
-max_admin_users = 3
-```
-
-Sau khi seed, project mặc định dùng `basic_2m`.
-
----
-
-## Database Schema Phase 1
-
-### packages
-
-```text
-id
-code unique
-name
-price
-description nullable
-is_active boolean
-timestamps
-```
-
-### features
-
-```text
-id
-code unique
-name
-description nullable
-value_type string
-timestamps
-```
-
-### package_features
-
-```text
-id
-package_id foreign
-feature_id foreign
-is_enabled boolean
-limit_value nullable string
-config nullable json
-timestamps
-
-unique(package_id, feature_id)
-```
-
-### project_subscription
-
-```text
-id
-package_id foreign
-status string
-started_at date nullable
-expired_at date nullable
-timestamps
-```
-
-### feature_settings
-
-```text
-id
-feature_code unique
-is_enabled boolean
-limit_value nullable string
-config nullable json
-updated_at
-```
-
-### project_settings
-
-```text
-id
-setting_key unique
-setting_value nullable json
-updated_at
-```
-
-### roles
-
-```text
-id
-name
-permissions nullable json
-timestamps
-```
-
-### users
-
-Use Laravel default if available. Ensure it can support admin login.
-
-Recommended fields:
-
-```text
-id
-role_id nullable
-name
-email unique
-password
-avatar_url nullable
-is_active boolean default true
-last_login_at nullable
-timestamps
-```
-
-If Laravel default `password` exists, do not rename it to `password_hash`.
-
----
-
-## ApiResponse Helper
-
-Create:
-
-```php
-namespace App\Support;
-
-class ApiResponse
-{
-    public static function success($data = null, ?string $message = null, array $meta = [])
-    {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $data,
-            'meta' => $meta,
-        ]);
-    }
-
-    public static function error(string $message, int $status = 400, array $errors = [])
-    {
-        return response()->json([
-            'success' => false,
-            'message' => $message,
-            'errors' => $errors,
-        ], $status);
-    }
-}
-```
-
----
-
-## FeatureGate Service
-
-Create:
-
-```php
-namespace App\Support;
-
-use App\Models\FeatureSetting;
-
-class FeatureGate
-{
-    public function enabled(string $featureCode): bool
-    {
-        $setting = FeatureSetting::query()
-            ->where('feature_code', $featureCode)
-            ->first();
-
-        return $setting && (bool) $setting->is_enabled;
-    }
-
-    public function limit(string $featureCode): ?int
-    {
-        $setting = FeatureSetting::query()
-            ->where('feature_code', $featureCode)
-            ->first();
-
-        if (! $setting || $setting->limit_value === null) {
-            return null;
-        }
-
-        return (int) $setting->limit_value;
-    }
-
-    public function require(string $featureCode): void
-    {
-        if (! $this->enabled($featureCode)) {
-            abort(403, 'Tính năng này không khả dụng trong gói hiện tại.');
-        }
-    }
-}
-```
-
----
-
-## Feature Middleware
-
-Create middleware:
-
-```php
-namespace App\Http\Middleware;
-
-use Closure;
-use Illuminate\Http\Request;
-use App\Support\FeatureGate;
-
-class EnsureFeatureEnabled
-{
-    public function handle(Request $request, Closure $next, string $feature)
-    {
-        app(FeatureGate::class)->require($feature);
-
-        return $next($request);
-    }
-}
-```
-
-Register middleware alias:
-
-```php
-'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
-```
-
-Use route example:
-
-```php
-Route::middleware('feature:voucher')->group(function () {
-    // voucher routes
-});
-```
-
----
-
-## Blade Helper
-
-Add helper if project has helper file system.
-
-```php
-function feature_enabled(string $code): bool
-{
-    return app(\App\Support\FeatureGate::class)->enabled($code);
-}
-```
-
-If no helper system exists, use:
-
-```blade
-@if(app(\App\Support\FeatureGate::class)->enabled('voucher'))
-    ...
-@endif
-```
-
-Do not invent a helper system without explaining the file and Composer autoload update.
-
----
-
-## Admin Sidebar Requirements
-
-Admin sidebar must hide/show menu based on features.
-
-Minimum menu:
-
-```text
-Dashboard
-Products - feature: catalog
-Categories - feature: catalog
-Orders - always visible or feature: cod_order
-Customers - always visible
-Banners - feature: banner
-Menus - feature: menu
-Pages - feature: cms_page
-Vouchers - feature: voucher
-Payment Settings - feature: online_payment
-Reviews - feature: review
-Zalo OA - feature: zalo_oa
-Settings
-```
-
----
-
-## REST API Phase 1
-
-Only create health/settings placeholder API for Phase 1.
-
-Example:
-
-```text
-GET /api/public/health
-GET /api/public/settings
-```
-
-Response:
+### Admin và quyền
+
+- Admin web phải đi qua `auth`, `admin`, feature gate và `can:<permission>` phù hợp.
+- API admin dùng Sanctum ability `admin` và kiểm tra tài khoản admin đang active.
+- Customer token không được truy cập admin; admin token không được checkout thay khách.
+- Thao tác superadmin, role, impersonation và feature settings phải giữ audit/guard hiện có.
+- Khi vô hiệu hóa user hoặc thay đổi quyền nhạy cảm, xem xét thu hồi token/session qua
+  `UserAccessService`.
+
+### Đa ngôn ngữ
+
+- Admin route luôn có `{locale}`.
+- Public API resolve locale bằng middleware `apiLocale`.
+- Field dịch dùng pattern/model/service hiện có; không tự tạo cột ngôn ngữ rời rạc.
+- Slug đa ngôn ngữ đi qua `LocalizedSlugService`/`HasLocalizedSlugs`.
+- API success metadata phải giữ `meta.locale`.
+
+### Catalog và biến thể
+
+- Catalog V2 chọn biến thể bằng một option value thuộc mỗi option group.
+- Public checkout gửi `option_value_ids`; không tin `variant_id` do client tự chọn.
+- Variant phải thuộc đúng product, active và đúng combination.
+- SKU, giá, promotion và tồn kho được resolve phía server.
+
+### Giá, checkout, promotion và voucher
+
+- Không nhận giá bán, giá vốn, discount, shipping fee hoặc grand total từ client.
+- Checkout phải tính lại toàn bộ giá từ database.
+- Promotion tự động áp dụng trước; voucher tính trên subtotal sau promotion.
+- Voucher phải kiểm tra thời gian, trạng thái, số lượng và giới hạn mỗi khách trong transaction.
+- Checkout/stock/payment cần `DB::transaction()` và row lock khi cạnh tranh dữ liệu.
+
+### Đơn hàng và tồn kho
+
+- Chuyển trạng thái qua `OrderStateTransitionService`.
+- Trừ/hoàn kho qua `OrderStockService`.
+- Inventory movement phải idempotent; không cập nhật stock trực tiếp ở controller.
+- `completed` và `cancelled` là trạng thái đơn hàng kết thúc theo policy hiện tại.
+- Refund phải đi qua luồng refund để đối soát tiền, lịch sử và hoàn kho.
+
+### Thanh toán
+
+- `PaymentTransactionService` là nguồn ghi nhận transaction/idempotency.
+- VNPAY IPN là nguồn thay đổi payment state; browser return chỉ xác minh và hiển thị kết quả.
+- Luôn kiểm tra chữ ký, TMN code, order, payment method, amount và transaction state.
+- Không log hash secret, access token hoặc credential.
+- Payment mock chỉ được hoạt động trong `local`/`testing` và khi flag cho phép.
+
+### Shipping và webhook
+
+- Chỉ gọi endpoint đối tác trong allow-list hiện hành.
+- GHTK webhook yêu cầu token, realtime tracking active, validation và idempotency.
+- Không mở query-token webhook nếu không có yêu cầu tương thích rõ ràng.
+- Side effect gửi mail/notification chỉ xảy ra sau commit khi phụ thuộc transaction.
+
+### Review
+
+- Chỉ khách có đơn `completed` chứa sản phẩm mới được review.
+- Mỗi khách chỉ được review một lần cho mỗi sản phẩm.
+- Nhận diện member bằng `user_id` và email tài khoản; guest bằng email đơn hàng.
+- Giữ transaction/lock chống tạo trùng đồng thời.
+- Public resource không để lộ email reviewer.
+
+### Dữ liệu nhạy cảm và nội dung
+
+- Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
+- Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
+- Nội dung HTML cho phép phải qua `HtmlSanitizer`.
+- Upload phải validate MIME/kích thước, dùng folder allow-list và extension do server xác định.
+- Không đưa secret vào source, test fixture production, log hoặc error response.
+
+## 6. Quy tắc triển khai
+
+- Ưu tiên FormRequest cho input admin/API có cấu trúc; giữ style hiện có khi thay đổi nhỏ.
+- Dùng validated data; không truyền toàn bộ `$request->all()` vào `create()`/`update()`.
+- Dùng Eloquent binding/query có parameter; không nối input vào raw SQL.
+- Dùng API Resource để kiểm soát output public.
+- Giữ response envelope:
 
 ```json
 {
   "success": true,
   "message": null,
-  "data": {
-    "app": "Laravel Ecommerce Core"
-  },
-  "meta": {}
+  "data": {},
+  "meta": {
+    "locale": "vi"
+  }
 }
 ```
 
-Do not implement product/order API in Phase 1.
+- Dùng HTTP status đúng nghĩa: `401`, `403`, `404`, `409`, `422`, `429`, `500`.
+- Với thay đổi database, tạo migration tiến; không sửa migration đã deploy để thay schema.
+- Migration phải an toàn với dữ liệu hiện hữu và có `down()` hợp lý.
+- Không thêm dependency nếu framework/core hiện có giải quyết được.
+- Không đổi kiến trúc hoặc public contract ngoài phạm vi mà không báo rõ.
 
----
+## 7. An toàn dữ liệu và deployment
 
-## Acceptance Criteria Phase 1
-
-Phase 1 is done when:
-
-```text
-- Project can run migrations.
-- Project can run seeders.
-- packages/features/package_features exist.
-- feature_settings is seeded from basic_2m by default.
-- FeatureGate can check enabled features.
-- feature middleware works.
-- Admin layout loads.
-- Sidebar hides disabled features.
-- Public health API returns standard JSON.
-- No React/Vue/Next/Inertia/Livewire added.
-- No shop_id added.
-```
-
----
-
-## After Phase 1
-
-Stop and report:
+Không chạy các lệnh sau trên database không xác định:
 
 ```text
-- Files created/modified
-- Commands to run
-- Notes about any assumptions
-- Next recommended phase
+migrate:fresh
+migrate:reset
+db:wipe
+DemoSeeder
+seeder cũ có truncate/delete hàng loạt
 ```
 
-Do not continue to Phase 2 unless explicitly asked.
-
----
-
-## Commands to suggest after coding
-
-Suggest these commands if applicable:
+Quy trình cài core:
 
 ```bash
-composer install
-php artisan migrate:fresh --seed
-php artisan serve
+php artisan core:install
+php artisan core:check
 ```
 
-If helper autoload changed:
+Production yêu cầu tối thiểu:
+
+```text
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY riêng
+HTTPS
+document root trỏ vào public/
+queue worker được giám sát
+schedule:run mỗi phút
+QUEUE_AFTER_COMMIT=true
+```
+
+Không đọc hoặc in giá trị secret trong `.env`. Chỉ kiểm tra tên key hoặc trạng thái boolean khi
+cần thiết.
+
+## 8. Chiến lược test
+
+Với mỗi thay đổi:
+
+1. Viết test tái hiện lỗi hoặc contract mới.
+2. Test happy path, validation, authorization và boundary case.
+3. Với tiền/stock/payment/webhook, test idempotency và transaction rollback.
+4. Với tài nguyên user-owned, test IDOR bằng user khác.
+5. Với public output, test không rò rỉ field nhạy cảm.
+6. Chạy file test mục tiêu.
+7. Chạy toàn bộ suite nếu phạm vi cho phép.
+
+Lệnh chuẩn:
 
 ```bash
-composer dump-autoload
+php artisan test --compact tests/Feature/RelevantTest.php
+php artisan test --compact
+php -l path/to/changed.php
+php composer.phar validate --no-check-publish
+php composer.phar audit --locked --no-interaction
 ```
 
----
+Nếu full suite đã lỗi do thay đổi có sẵn, không sửa file ngoài scope để “làm xanh”. Báo chính xác:
+test nào lỗi, lỗi có liên quan hay không và test mục tiêu đã đạt gì.
 
-## Output Format For AI Agent
+## 9. Đồng bộ API và storefront
 
-When done, respond with:
+Quy trình mặc định khi làm storefront:
 
-```md
-## Summary
-...
-
-## Files changed
-...
-
-## Commands to run
-...
-
-## Verified / Not verified
-...
-
-## Next phase
-...
+```text
+Lập page map
+  -> dựng HTML mẫu bằng mock data
+  -> duyệt giao diện
+  -> cắt thành page/component dùng lại
+  -> duyệt cấu trúc
+  -> nối API public
+  -> test tích hợp
 ```
+
+- Không tự nối backend khi người dùng mới yêu cầu dựng HTML mẫu.
+- Không thay đổi thiết kế đã duyệt trong lúc cắt component hoặc nối API.
+- Không trộn storefront vào admin views.
+- Nếu storefront nằm ở project/thư mục riêng, giữ nguyên kiến trúc của project đó.
+- Tách mock fixtures khỏi HTML để có thể thay bằng API adapter theo từng phần.
+- Chỉ loại bỏ mock data sau khi phần API tương ứng đã được kiểm chứng.
+
+Khi thay đổi public API:
+
+- Cập nhật `routes/api.php`, validation, service, resource và test.
+- Cập nhật `public/docs/openapi.json`.
+- Kiểm tra `/api/docs`.
+- Giữ tương thích nếu không có yêu cầu breaking change.
+- Không để frontend gửi field mà backend bỏ qua hoặc cấm.
+
+Storefront phải coi server là nguồn sự thật cho giá, tồn kho, voucher, payment và order state.
+
+## 10. Definition of Done
+
+Một thay đổi chỉ hoàn tất khi:
+
+- Đáp ứng đúng yêu cầu, không mở rộng ngoài scope.
+- Giữ các bất biến ở mục 5.
+- Có validation, authorization và output filtering phù hợp.
+- Có test mới hoặc giải thích cụ thể vì sao không cần.
+- Test mục tiêu đạt; regression được chạy hoặc nêu rõ chưa chạy.
+- Không có syntax error, debug code, secret hoặc TODO tạm.
+- Migration/queue/scheduler/deployment impact được báo rõ.
+- OpenAPI được đồng bộ nếu public API thay đổi.
+
+## 11. Cách báo cáo kết quả
+
+Trả lời ngắn gọn theo thứ tự:
+
+1. Kết quả đã hoàn thành.
+2. File chính đã thay đổi.
+3. Test/command đã chạy và kết quả.
+4. Rủi ro, migration hoặc việc còn lại.
+
+Không tuyên bố “đã hoàn tất” khi test bắt buộc chưa chạy hoặc đang lỗi liên quan.

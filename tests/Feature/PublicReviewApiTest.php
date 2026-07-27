@@ -251,6 +251,82 @@ class PublicReviewApiTest extends TestCase
         ]);
     }
 
+    public function test_guest_can_only_submit_one_review_per_product(): void
+    {
+        $order = $this->createOrderForProduct($this->product, [
+            'customer_email' => 'one-review-guest@example.com',
+        ]);
+        $payload = [
+            'customer_name' => 'One Review Guest',
+            'customer_email' => 'one-review-guest@example.com',
+            'order_number' => $order->order_number,
+            'rating' => 5,
+            'comment' => 'Đánh giá đầu tiên.',
+        ];
+
+        $this->postJson("/api/public/products/{$this->product->id}/reviews", $payload)
+            ->assertOk();
+
+        $this->postJson("/api/public/products/{$this->product->id}/reviews", array_merge($payload, [
+            'rating' => 1,
+            'comment' => 'Không được tạo review thứ hai.',
+        ]))
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Bạn đã gửi đánh giá cho sản phẩm này.');
+
+        $this->assertDatabaseCount('reviews', 1);
+    }
+
+    public function test_authenticated_user_can_only_submit_one_review_per_product(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'one-review-member@example.com',
+        ]);
+        $this->createOrderForProduct($this->product, [
+            'user_id' => $user->id,
+            'customer_email' => $user->email,
+        ]);
+        Sanctum::actingAs($user, ['customer']);
+
+        $this->postJson("/api/public/products/{$this->product->id}/reviews", [
+            'rating' => 5,
+            'comment' => 'Đánh giá đầu tiên.',
+        ])->assertOk();
+
+        $this->postJson("/api/public/products/{$this->product->id}/reviews", [
+            'customer_email' => 'another-email@example.com',
+            'rating' => 4,
+            'comment' => 'Không được tạo review thứ hai.',
+        ])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Bạn đã gửi đánh giá cho sản phẩm này.');
+
+        $this->assertDatabaseCount('reviews', 1);
+    }
+
+    public function test_authenticated_user_cannot_review_again_after_a_guest_review_with_the_same_email(): void
+    {
+        $email = 'guest-then-member@example.com';
+        $order = $this->createOrderForProduct($this->product, [
+            'customer_email' => $email,
+        ]);
+        $this->postJson("/api/public/products/{$this->product->id}/reviews", [
+            'customer_name' => 'Guest Then Member',
+            'customer_email' => $email,
+            'order_number' => $order->order_number,
+            'rating' => 5,
+        ])->assertOk();
+
+        $user = User::factory()->create(['email' => $email]);
+        Sanctum::actingAs($user, ['customer']);
+
+        $this->postJson("/api/public/products/{$this->product->id}/reviews", [
+            'rating' => 4,
+        ])->assertStatus(409);
+
+        $this->assertDatabaseCount('reviews', 1);
+    }
+
     public function test_cannot_submit_review_without_purchasing(): void
     {
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
