@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\ProjectSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -50,6 +51,19 @@ class AdminAuthTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['success' => true]);
         $this->assertAuthenticatedAs($this->admin);
+    }
+
+    public function test_admin_login_uses_the_matbao_ws_logo_instead_of_the_configured_store_logo(): void
+    {
+        ProjectSetting::query()->create([
+            'setting_key' => 'logo_url',
+            'setting_value' => 'https://cdn.example.test/settings/store-logo.png',
+        ]);
+
+        $this->get('/vi/admin/login')
+            ->assertOk()
+            ->assertSee('/matbao-ws-logo.png')
+            ->assertDontSee('https://cdn.example.test/settings/store-logo.png');
     }
 
     public function test_customer_cannot_login_via_web_admin_login(): void

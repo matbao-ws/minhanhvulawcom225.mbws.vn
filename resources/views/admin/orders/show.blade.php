@@ -158,8 +158,7 @@
             <div class="row align-items-start mb-5 gap-4 gap-md-0">
                 <div class="col-md-7">
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <img src="{{ $siteBranding['logo_url'] }}" alt="{{ $siteBranding['name'] }}" style="width: auto; height: 35px; max-width: 160px; object-fit: contain;">
-                        <span class="fs-6 fw-bold text-primary">{{ strtoupper($siteBranding['name']) }}</span>
+                        <img src="{{ $siteBranding['admin_logo_url'] }}" alt="MatBaoWS" style="width: auto; height: 35px; max-width: 160px; object-fit: contain;">
                     </div>
                     @if(filled(data_get($siteBranding, 'contact.address')))
                         <p class="text-muted mb-0 fs-3">Địa chỉ: {{ data_get($siteBranding, 'contact.address') }}</p>

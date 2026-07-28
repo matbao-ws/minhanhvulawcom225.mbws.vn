@@ -103,7 +103,7 @@
                   </ul>
 
                   <div class="d-block d-lg-none py-9 py-xl-0">
-                      <img src="{{ $siteBranding['logo_url'] }}" alt="{{ $siteBranding['name'] }}" width="120px">
+                      <img src="{{ $siteBranding['admin_logo_url'] }}" alt="MatBaoWS" width="120px">
                   </div>
                   <a class="navbar-toggler p-0 border-0 nav-icon-hover-bg rounded-circle" href="javascript:void(0)"
                       data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav"

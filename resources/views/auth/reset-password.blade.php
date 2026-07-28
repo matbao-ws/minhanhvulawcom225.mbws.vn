@@ -32,7 +32,7 @@
                     <div class="card mb-0 bg-body auth-login m-auto w-100">
                         <div class="card-body">
                             <a href="{{ $loginUrl ?? route('admin.login') }}" class="text-nowrap logo-img d-block mb-4 w-100">
-                                <img src="{{ $siteBranding['logo_url'] }}" width="140" class="dark-logo" alt="{{ $siteBranding['name'] }}">
+                                <img src="{{ $siteBranding['admin_logo_url'] }}" width="140" class="dark-logo" alt="MatBaoWS">
                             </a>
                             <h2 class="lh-base mb-4">{{ __('auth.reset.heading') }}</h2>
 

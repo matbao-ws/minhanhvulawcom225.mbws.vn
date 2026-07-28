@@ -29,6 +29,7 @@ class SiteBranding
         return $this->branding = [
             'name' => $this->textValue($settings->get('shop_name')) ?: config('app.name', 'Laravel Ecommerce Core'),
             'logo_url' => $this->assetUrl($settings->get('logo_url'), 'matbao-ws-logo.png'),
+            'admin_logo_url' => asset('matbao-ws-logo.png'),
             'favicon_url' => $this->assetUrl($settings->get('favicon_url'), 'admin-assets/images/logos/favicon.png'),
             'contact' => is_array($contact) ? $contact : [],
         ];

@@ -36,7 +36,7 @@
                                     <div class="col-lg-11">
                                         <div class="card-body">
                                             <a href="{{ route('admin.login') }}" class="text-nowrap logo-img d-block mb-4 w-100">
-                                                <img src="{{ $siteBranding['logo_url'] }}" width="140" class="dark-logo" alt="{{ $siteBranding['name'] }}">
+                                                <img src="{{ $siteBranding['admin_logo_url'] }}" width="140" class="dark-logo" alt="MatBaoWS">
                                             </a>
                                             <h2 class="lh-base mb-4">{{ __('auth.login.heading') }}</h2>
 
