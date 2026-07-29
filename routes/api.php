@@ -52,24 +52,30 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
         ]);
     })->middleware('throttle:public-contact');
 
-    // Catalog routes
-    Route::get('/categories', [PublicController::class, 'categories']);
-    Route::get('/brands', [PublicController::class, 'brands']);
-    Route::get('/products', [PublicController::class, 'products']);
-    Route::get('/products/{id_or_slug}', [PublicController::class, 'productDetail']);
-    Route::get('/post-categories', [PublicController::class, 'postCategories']);
-    Route::get('/posts', [PublicController::class, 'posts']);
-    Route::get('/posts/{id_or_slug}', [PublicController::class, 'postDetail']);
-
-    Route::middleware('feature:review')->group(function () {
-        Route::post('/products/{id_or_slug}/reviews', [PublicController::class, 'storeReview'])->middleware('throttle:public-review');
+    Route::middleware('feature:catalog')->group(function () {
+        Route::get('/categories', [PublicController::class, 'categories']);
+        Route::get('/brands', [PublicController::class, 'brands']);
+        Route::get('/products', [PublicController::class, 'products']);
+        Route::get('/products/{id_or_slug}', [PublicController::class, 'productDetail']);
     });
 
+    Route::middleware('feature:cms_page')->group(function () {
+        Route::get('/post-categories', [PublicController::class, 'postCategories']);
+        Route::get('/posts', [PublicController::class, 'posts']);
+        Route::get('/posts/{id_or_slug}', [PublicController::class, 'postDetail']);
+        Route::get('/pages', [PublicController::class, 'pages']);
+        Route::get('/pages/{id_or_slug}', [PublicController::class, 'pageDetail']);
+    });
+
+    Route::post('/products/{id_or_slug}/reviews', [PublicController::class, 'storeReview'])
+        ->middleware(['feature:catalog', 'feature:review', 'throttle:public-review']);
+
     // Vouchers
-    Route::post('/vouchers/apply', [PublicController::class, 'applyVoucher']);
+    Route::post('/vouchers/apply', [PublicController::class, 'applyVoucher'])->middleware('feature:voucher');
 
     // Checkout & Tracking
-    Route::post('/orders/checkout', [PublicController::class, 'checkout'])->middleware('throttle:public-checkout');
+    Route::post('/orders/checkout', [PublicController::class, 'checkout'])
+        ->middleware(['feature:catalog', 'feature:cart', 'throttle:public-checkout']);
     Route::get('/orders/track', [PublicController::class, 'trackOrder'])->middleware('throttle:public-tracking');
     Route::get('/payment/vnpay/ipn', [PublicController::class, 'vnpayIpn'])->middleware('throttle:webhook')->name('api.payment.vnpay.ipn');
     Route::get('/payment/vnpay/return', [PublicController::class, 'vnpayReturn'])->middleware('throttle:webhook')->name('api.payment.vnpay.return');

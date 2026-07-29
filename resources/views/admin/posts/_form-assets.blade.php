@@ -104,6 +104,45 @@
         .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"] { font-family: Verdana, Geneva, sans-serif !important; }
         .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="quicksand"] { font-family: "Quicksand", sans-serif !important; }
         .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto"] { font-family: "Roboto", sans-serif !important; }
+
+        .seo-google-preview {
+            padding: 16px;
+            border: 1px solid #e5eaf2;
+            border-radius: 12px;
+            background: #fff;
+        }
+        #seo_google_preview_result {
+            max-width: 600px;
+            transition: max-width 0.2s ease;
+        }
+        #seo_google_preview_result.is-mobile {
+            max-width: 360px;
+        }
+        .seo-preview-site {
+            color: #202124;
+            font-size: 14px;
+        }
+        .seo-preview-url {
+            color: #4d5156;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .seo-preview-title {
+            margin-top: 4px;
+            color: #1a0dab;
+            font-size: 20px;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+        .seo-preview-description {
+            margin-top: 4px;
+            color: #4d5156;
+            font-size: 14px;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
     </style>
 @endpush
 
@@ -253,6 +292,34 @@
             const seoKeysInput = document.getElementById('seo_keys');
             const seoTitleInput = document.getElementById('seo_title');
             const seoDescInput = document.getElementById('seo_description');
+            const canonicalInput = document.getElementById('canonical_url');
+            const previewResult = document.getElementById('seo_google_preview_result');
+
+            document.querySelectorAll('[data-seo-title-input]').forEach(function (input) {
+                const counter = document.querySelector('[data-seo-title-count="' + input.dataset.seoTitleInput + '"]');
+                const refresh = () => {
+                    if (counter) counter.textContent = input.value.length;
+                };
+                input.addEventListener('input', refresh);
+                refresh();
+            });
+
+            document.querySelectorAll('[data-seo-description-input]').forEach(function (input) {
+                const counter = document.querySelector('[data-seo-description-count="' + input.dataset.seoDescriptionInput + '"]');
+                const refresh = () => {
+                    if (counter) counter.textContent = input.value.length;
+                };
+                input.addEventListener('input', refresh);
+                refresh();
+            });
+
+            document.querySelectorAll('[data-seo-preview-device]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    document.querySelectorAll('[data-seo-preview-device]').forEach(item => item.classList.remove('active'));
+                    button.classList.add('active');
+                    previewResult?.classList.toggle('is-mobile', button.dataset.seoPreviewDevice === 'mobile');
+                });
+            });
 
             function countOccurrences(string, subString) {
                 string += "";
@@ -280,7 +347,9 @@
                 rating_excellent: "{{ __('admin.posts.seo_widget.rating_excellent') }}",
                 status_need_optimize: "{{ __('admin.posts.seo_widget.status_need_optimize') }}",
                 status_good: "{{ __('admin.posts.seo_widget.status_good') }}",
-                status_excellent: "{{ __('admin.posts.seo_widget.status_excellent') }}"
+                status_excellent: "{{ __('admin.posts.seo_widget.status_excellent') }}",
+                preview_title: @json(__('admin.posts.placeholders.seo_title')),
+                preview_description: @json(__('admin.posts.placeholders.seo_description'))
             };
 
             function analyzeSEO() {
@@ -302,16 +371,17 @@
                 // Rule statuses (0: fail, 1: pass, 2: neutral/optional)
                 const rules = {
                     keyword_exists: keyword.length > 0,
-                    title_length: title.length >= 40 && title.length <= 60,
-                    title_keyword: keyword.length > 0 && title.toLowerCase().includes(keyword),
-                    slug_keyword: keyword.length > 0 && slug.toLowerCase().includes(keyword.replace(/\s+/g, '-')),
+                    title_length: seoTitle.length >= 40 && seoTitle.length <= 60,
+                    title_keyword: keyword.length > 0 && seoTitle.toLowerCase().includes(keyword),
+                    slug_keyword: keyword.length > 0 && slug.toLowerCase().includes(generateSlug(keyword)),
                     desc_length: seoDesc.length >= 120 && seoDesc.length <= 160,
                     desc_keyword: keyword.length > 0 && seoDesc.toLowerCase().includes(keyword),
                     content_length: wordCount >= 300,
                     keyword_density: false, // will calculate
                     first_paragraph: false, // will calculate
                     headings: htmlContent.includes('<h2') || htmlContent.includes('<h3'),
-                    image_alts: false // will check below
+                    image_alts: false, // will check below
+                    internal_links: false
                 };
 
                 // Calculate keyword density (recommended 0.5% to 2.5%)
@@ -346,6 +416,17 @@
                     rules.image_alts = allHaveAlts;
                 }
 
+                const contentDocument = new DOMParser().parseFromString(htmlContent, 'text/html');
+                rules.internal_links = Array.from(contentDocument.querySelectorAll('a[href]')).some(link => {
+                    const href = (link.getAttribute('href') || '').trim();
+                    if (href.startsWith('/') || href.startsWith('#')) return true;
+                    try {
+                        return new URL(href, window.location.origin).origin === window.location.origin;
+                    } catch (error) {
+                        return false;
+                    }
+                });
+
                 // Update Rule indicators UI
                 function updateRuleUI(id, passed) {
                     const element = document.getElementById(id);
@@ -368,10 +449,11 @@
                 updateRuleUI('rule_first_paragraph', rules.first_paragraph);
                 updateRuleUI('rule_headings', rules.headings);
                 updateRuleUI('rule_image_alts', rules.image_alts);
+                updateRuleUI('rule_internal_links', rules.internal_links);
 
                 // Compute overall SEO Score
                 let score = 0;
-                if (rules.keyword_exists) score += 10;
+                if (rules.keyword_exists) score += 5;
                 if (rules.title_length) score += 10;
                 if (rules.title_keyword) score += 10;
                 if (rules.slug_keyword) score += 10;
@@ -382,6 +464,22 @@
                 if (rules.first_paragraph) score += 10;
                 if (rules.headings) score += 5;
                 if (rules.image_alts) score += 5;
+                if (rules.internal_links) score += 5;
+
+                const wordCountElement = document.getElementById('seo_word_count');
+                const densityElement = document.getElementById('seo_keyword_density');
+                if (wordCountElement) wordCountElement.textContent = wordCount;
+                if (densityElement) densityElement.textContent = density.toFixed(2) + '%';
+
+                const previewTitle = document.getElementById('seo_preview_title');
+                const previewDescription = document.getElementById('seo_preview_description');
+                const previewUrl = document.getElementById('seo_preview_url');
+                if (previewTitle) previewTitle.textContent = seoTitle || translations.preview_title;
+                if (previewDescription) previewDescription.textContent = seoDesc || translations.preview_description;
+                if (previewUrl) {
+                    const generatedUrl = window.location.origin + '/' + generateSlug(slug || title);
+                    previewUrl.textContent = canonicalInput?.value.trim() || generatedUrl;
+                }
 
                 // Animate circular ring gauge
                 const circle = document.getElementById('seo_progress_circle');
@@ -431,6 +529,7 @@
             if (seoKeysInput) seoKeysInput.addEventListener('input', analyzeSEO);
             if (seoTitleInput) seoTitleInput.addEventListener('input', analyzeSEO);
             if (seoDescInput) seoDescInput.addEventListener('input', analyzeSEO);
+            if (canonicalInput) canonicalInput.addEventListener('input', analyzeSEO);
 
             // Run initial analysis
             setTimeout(analyzeSEO, 500);

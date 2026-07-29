@@ -16,7 +16,7 @@
       "get": {
         "tags": ["Storefront Configuration"],
         "summary": "Lấy cấu hình công khai của website",
-        "description": "Frontend dùng multilingual.mode để chọn cơ chế hiển thị. Khi mode là gtranslate, tạo phần tử theo container_class, gán window.gtranslateSettings bằng settings rồi nạp script_url.",
+        "description": "Frontend dùng multilingual.mode để chọn cơ chế hiển thị và data.features để ẩn module đã tắt. API của module đã tắt trả 403.",
         "responses": {
           "200": {
             "description": "Thành công",
@@ -30,6 +30,20 @@
                       "type": "object",
                       "properties": {
                         "shop_name": { "type": "string", "example": "My Store" },
+                        "features": {
+                          "type": "object",
+                          "description": "Trạng thái công khai của từng feature code.",
+                          "additionalProperties": { "type": "boolean" },
+                          "example": {
+                            "catalog": true,
+                            "cart": true,
+                            "cod_order": true,
+                            "online_payment": false,
+                            "voucher": true,
+                            "review": true,
+                            "cms_page": true
+                          }
+                        },
                         "multilingual": {
                           "type": "object",
                           "properties": {
@@ -865,6 +879,117 @@
         }
       }
     },
+    "/public/posts": {
+      "get": {
+        "tags": ["Blog Posts"],
+        "summary": "Lấy danh sách bài viết đã xuất bản",
+        "parameters": [
+          { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } },
+          { "name": "category", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/PublicPost" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/posts/{id_or_slug}": {
+      "get": {
+        "tags": ["Blog Posts"],
+        "summary": "Lấy chi tiết bài viết đã xuất bản",
+        "parameters": [
+          { "name": "id_or_slug", "in": "path", "required": true, "schema": { "oneOf": [{ "type": "integer" }, { "type": "string" }] } },
+          { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/PublicPost" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Bài viết không tồn tại hoặc chưa xuất bản" }
+        }
+      }
+    },
+    "/public/pages": {
+      "get": {
+        "tags": ["Content Pages"],
+        "summary": "Lấy danh sách trang nội dung đã xuất bản",
+        "description": "Chỉ trả về các trang đang hoạt động và đã được xuất bản. Dùng query locale để nhận nội dung theo ngôn ngữ.",
+        "parameters": [
+          { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/PublicPage" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/pages/{id_or_slug}": {
+      "get": {
+        "tags": ["Content Pages"],
+        "summary": "Lấy chi tiết trang nội dung đã xuất bản",
+        "description": "Có thể tìm bằng ID, slug chính hoặc slug theo locale. HTML đã được làm sạch ở thời điểm lưu; storefront gắn CSS vào phạm vi trang và render HTML.",
+        "parameters": [
+          { "name": "id_or_slug", "in": "path", "required": true, "description": "ID hoặc slug của trang", "schema": { "oneOf": [{ "type": "integer" }, { "type": "string" }], "example": "gioi-thieu" } },
+          { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/PublicPage" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Trang không tồn tại, chưa xuất bản hoặc đã bị tắt" }
+        }
+      }
+    },
     "/webhooks/ghtk": {
       "post": {
         "tags": ["Webhooks"],
@@ -904,6 +1029,46 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "Sanctum"
+      }
+    },
+    "schemas": {
+      "PublicPost": {
+        "type": "object",
+        "required": ["id", "title", "slug", "robots", "published_at"],
+        "properties": {
+          "id": { "type": "integer", "example": 7 },
+          "title": { "type": "string", "example": "Hướng dẫn viết bài chuẩn SEO" },
+          "slug": { "type": "string", "example": "huong-dan-viet-bai-chuan-seo" },
+          "summary": { "type": "string", "nullable": true },
+          "content": { "type": "string", "nullable": true, "description": "Chỉ có trong phản hồi chi tiết" },
+          "image_url": { "type": "string", "nullable": true },
+          "seo_title": { "type": "string", "nullable": true },
+          "seo_description": { "type": "string", "nullable": true },
+          "canonical_url": { "type": "string", "format": "uri", "nullable": true },
+          "robots": {
+            "type": "object",
+            "required": ["index", "follow"],
+            "properties": {
+              "index": { "type": "boolean", "example": true },
+              "follow": { "type": "boolean", "example": true }
+            }
+          },
+          "published_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "PublicPage": {
+        "type": "object",
+        "required": ["id", "title", "slug", "html", "css", "seo", "published_at"],
+        "properties": {
+          "id": { "type": "integer", "example": 12 },
+          "title": { "type": "string", "example": "Giới thiệu" },
+          "slug": { "type": "string", "example": "gioi-thieu" },
+          "html": { "type": "string", "description": "HTML đã được làm sạch", "example": "<section data-page-block=\"hero\"><h1>Giới thiệu</h1></section>" },
+          "css": { "type": "string", "description": "CSS của trang đã qua kiểm tra an toàn", "example": "[data-page-block=\"hero\"]{padding:48px}" },
+          "seo_title": { "type": "string", "nullable": true, "example": "Giới thiệu cửa hàng" },
+          "seo_description": { "type": "string", "nullable": true, "example": "Tìm hiểu thêm về cửa hàng của chúng tôi." },
+          "published_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
       }
     }
   }

@@ -35,7 +35,7 @@
     $colorClass = $colorMap[$feature->feature_code] ?? 'bg-light text-dark';
 @endphp
 
-<div class="col-md-6 col-lg-4 mb-4">
+<div class="col-md-6 col-lg-4 mb-4" data-feature-card data-feature-group="{{ $groupKey }}">
     <div class="card h-100 shadow-sm border border-light-subtle rounded-4 overflow-hidden position-relative feature-card">
         <!-- Top Status Badge -->
         <span class="position-absolute top-0 end-0 {{ $feature->is_enabled ? 'bg-success text-white' : 'bg-secondary-subtle text-muted' }} px-3 py-1 small fw-semibold d-flex align-items-center gap-1" 
@@ -74,6 +74,8 @@
                         <input class="form-check-input" type="checkbox" role="switch"
                                name="features[{{ $feature->feature_code }}]" value="1"
                                id="switch-{{ $feature->feature_code }}"
+                               data-feature-switch
+                               data-feature-group="{{ $groupKey }}"
                                onchange="toggleFeatureState('{{ $feature->feature_code }}', this.checked)"
                                @checked($feature->is_enabled)>
                     </div>

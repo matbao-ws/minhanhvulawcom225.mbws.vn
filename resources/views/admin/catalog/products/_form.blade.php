@@ -164,7 +164,7 @@
                     <h4 class="card-title mb-7" id="productSidePanelLabel">{{ __('catalog.products.sections.thumbnail') }}</h4>
                     
                     <!-- Hidden file input for image select -->
-                    <input type="file" name="image_file" id="product_image_file" class="d-none" accept="image/*">
+                    <input type="file" name="image_file" id="product_image_file" class="d-none" accept="image/*" data-media-folder="products">
                     
                     <!-- Styled image preview area -->
                     <div id="product_image_preview_container" class="position-relative text-center border border-2 border-dashed rounded p-3 mb-3 cursor-pointer d-flex flex-column align-items-center justify-content-center bg-light" 

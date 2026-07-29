@@ -98,13 +98,16 @@ class CatalogCrudTest extends TestCase
             'is_active' => true,
         ]);
 
-        Product::query()->create([
+        $product = Product::query()->create([
             'category_id' => $category->id,
             'brand_id' => $brand->id,
             'name' => ['vi' => 'San pham'],
             'slug' => 'san-pham',
             'sku' => 'SKU-1',
+            'image_url' => '/images/products/san-pham.jpg',
             'price' => 100000,
+            'short_description' => ['vi' => '<p>Mô tả ngắn</p>'],
+            'description' => ['vi' => '<p>Nội dung sản phẩm</p>'],
             'is_active' => true,
         ]);
 
@@ -116,6 +119,13 @@ class CatalogCrudTest extends TestCase
         $this->get('/vi/admin/products?brand_id=' . $brand->id)->assertOk();
         $this->get('/vi/admin/products?status=1')->assertOk();
         $this->get('/vi/admin/products?status=0')->assertOk();
+        $this->get("/vi/admin/products/{$product->id}")
+            ->assertOk()
+            ->assertViewIs('admin.catalog.products.show')
+            ->assertSee('product-show-image', false)
+            ->assertSee('object-fit: contain', false)
+            ->assertSeeText('Nội dung sản phẩm')
+            ->assertSeeText('Intel');
     }
 
     public function test_admin_can_upload_quick_update_and_sort_categories(): void

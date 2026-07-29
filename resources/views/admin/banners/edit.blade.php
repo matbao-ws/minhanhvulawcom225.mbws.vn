@@ -63,7 +63,7 @@
                                 <i class="ti ti-photo-plus text-muted fs-9 mb-2 d-inline-block"></i>
                                 <h6 class="text-dark fw-semibold mb-1">Thay đổi tập tin ảnh banner (nếu muốn)</h6>
                                 <p class="text-muted small mb-3">Chấp nhận JPG, PNG, WEBP tối đa 2MB. Bỏ trống nếu muốn giữ ảnh cũ.</p>
-                                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" style="cursor: pointer;">
+                                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="banners" style="cursor: pointer;">
                                 <div id="imagePreviewContainer" class="mt-3" style="display: none;">
                                     <span class="d-block small text-primary fw-semibold mb-2">Hình ảnh mới thay thế:</span>
                                     <img id="imagePreview" src="" alt="New Preview" class="rounded shadow-sm border border-2 border-success-subtle" style="max-height: 180px; max-width: 100%; object-fit: cover;">

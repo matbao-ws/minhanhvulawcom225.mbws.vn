@@ -57,12 +57,10 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label" for="image_file">{{ __('catalog.fields.image') }}</label>
-                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*">
-                @if($category->image_url)
-                    <div class="mt-2">
-                        <img src="{{ $category->image_url }}" alt="{{ $name }}" class="rounded border object-fit-cover" width="72" height="72" onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">
-                    </div>
-                @endif
+                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="categories">
+                <div class="mt-2 {{ $category->image_url ? '' : 'd-none' }}" data-media-preview>
+                    <img src="{{ $category->image_url ?: '' }}" alt="{{ $name }}" class="rounded border object-fit-cover" width="72" height="72" data-media-preview-image onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">
+                </div>
             </div>
             <div class="col-12 mb-3">
                 <input type="hidden" name="is_active" value="1">

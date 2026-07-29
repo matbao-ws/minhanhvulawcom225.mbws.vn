@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('{locale}')
                 ->where(['locale' => '[a-z]{2,3}'])
                 ->group(function (): void {
+                    Route::name('client.')
+                        ->group(base_path('routes/client.php'));
+
                     Route::prefix('admin')
                         ->name('admin.')
                         ->group(base_path('routes/admin.php'));
@@ -28,7 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\App\Http\Middleware\ValidateLocalizedAdminPath::class);
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request): string {
             return route('admin.login', [
-                'locale' => $request->route('locale') ?: config('app.locale', 'vi'),
+                'locale' => $request->route('locale') ?: app(\App\Services\LanguageRegistry::class)->defaultLocale(),
             ]);
         });
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);

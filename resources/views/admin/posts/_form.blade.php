@@ -44,7 +44,36 @@
                             <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'slug' : 'slug_'.$code }}">{{ __('admin.posts.fields.slug') }}</label><input type="text" class="form-control" id="{{ $defaultTab ? 'slug' : 'slug_'.$code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="Tự tạo từ tiêu đề"></div>
                             <div class="mb-4"><label class="form-label" for="summary_{{ $code }}">{{ __('admin.posts.fields.summary') }}</label><textarea class="form-control" id="summary_{{ $code }}" name="summary[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="summary">{{ $summary }}</textarea></div>
                             <div class="mb-4 position-relative" @if($defaultTab) id="editor_wrapper" @endif><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="catalog-quill" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" style="height:350px">{!! app(\App\Support\HtmlSanitizer::class)->clean($content) !!}</div></div>
-                            <div class="border rounded p-3 bg-light-subtle"><div class="mb-3"><label class="form-label" for="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}">{{ __('admin.posts.fields.seo_title') }}</label><input class="form-control" id="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}" name="seo_title[{{ $code }}]" value="{{ $seoTitle }}" data-i18n-locale="{{ $code }}" data-i18n-field="seo_title"></div><div><label class="form-label" for="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}">{{ __('admin.posts.fields.seo_description') }}</label><textarea class="form-control" id="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}" name="seo_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="seo_description">{{ $seoDesc }}</textarea></div></div>
+                            <div class="border rounded p-3 bg-light-subtle">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <label class="form-label" for="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}">{{ __('admin.posts.fields.seo_title') }}</label>
+                                        <small class="text-muted"><span data-seo-title-count="{{ $code }}">{{ mb_strlen($seoTitle) }}</span>/60</small>
+                                    </div>
+                                    <input class="form-control"
+                                           id="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}"
+                                           name="seo_title[{{ $code }}]"
+                                           value="{{ $seoTitle }}"
+                                           maxlength="255"
+                                           data-seo-title-input="{{ $code }}"
+                                           data-i18n-locale="{{ $code }}"
+                                           data-i18n-field="seo_title">
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <label class="form-label" for="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}">{{ __('admin.posts.fields.seo_description') }}</label>
+                                        <small class="text-muted"><span data-seo-description-count="{{ $code }}">{{ mb_strlen($seoDesc) }}</span>/160</small>
+                                    </div>
+                                    <textarea class="form-control"
+                                              id="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}"
+                                              name="seo_description[{{ $code }}]"
+                                              rows="3"
+                                              maxlength="500"
+                                              data-seo-description-input="{{ $code }}"
+                                              data-i18n-locale="{{ $code }}"
+                                              data-i18n-field="seo_description">{{ $seoDesc }}</textarea>
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -57,11 +86,70 @@
                 <h4 class="card-title mb-7">{{ __('admin.posts.sections.seo') }}</h4>
                 
                 <div class="mb-4">
-                    <label class="form-label" for="seo_keys">{{ __('admin.posts.fields.seo_keys') }} <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="seo_keys" name="seo_keys" value="{{ old('seo_keys', $post->seo_keys) }}" placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}" required>
+                    <label class="form-label" for="seo_keys">{{ __('admin.posts.fields.seo_keys') }}</label>
+                    <input type="text" class="form-control" id="seo_keys" name="seo_keys" value="{{ old('seo_keys', $post->seo_keys) }}" placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}">
                     <p class="fs-2 text-muted mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label" for="canonical_url">{{ __('admin.posts.fields.canonical_url') }}</label>
+                    <input type="url"
+                           class="form-control"
+                           id="canonical_url"
+                           name="canonical_url"
+                           value="{{ old('canonical_url', $post->canonical_url) }}"
+                           placeholder="https://example.com/bai-viet">
+                    <p class="fs-2 text-muted mb-0">{{ __('admin.posts.placeholders.canonical_url_help') }}</p>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <input type="hidden" name="robots_index" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   role="switch"
+                                   id="robots_index"
+                                   name="robots_index"
+                                   value="1"
+                                   @checked((bool) old('robots_index', $post->exists ? $post->robots_index : true))>
+                            <label class="form-check-label fw-semibold" for="robots_index">Index</label>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <input type="hidden" name="robots_follow" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   role="switch"
+                                   id="robots_follow"
+                                   name="robots_follow"
+                                   value="1"
+                                   @checked((bool) old('robots_follow', $post->exists ? $post->robots_follow : true))>
+                            <label class="form-check-label fw-semibold" for="robots_follow">Follow links</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="seo-google-preview">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                        <h5 class="mb-0">{{ __('admin.posts.sections.google_preview') }}</h5>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Google preview">
+                            <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop">
+                                <i class="ti ti-device-desktop" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile">
+                                <i class="ti ti-device-mobile" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="seo_google_preview_result">
+                        <div class="seo-preview-site">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com' }}</div>
+                        <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
+                        <div class="seo-preview-title" id="seo_preview_title">{{ __('admin.posts.placeholders.seo_title') }}</div>
+                        <div class="seo-preview-description" id="seo_preview_description">{{ __('admin.posts.placeholders.seo_description') }}</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -76,7 +164,7 @@
                 <h4 class="card-title mb-7">{{ __('admin.posts.sections.thumbnail') }}</h4>
                 
                 <!-- Hidden file input for image select -->
-                <input type="file" name="image_file" id="post_image_file" class="d-none" accept="image/*">
+                <input type="file" name="image_file" id="post_image_file" class="d-none" accept="image/*" data-media-folder="posts">
                 
                 <!-- Styled image preview area -->
                 <div id="post_image_preview_container" class="position-relative text-center border border-2 border-dashed rounded p-3 mb-3 cursor-pointer d-flex flex-column align-items-center justify-content-center bg-light" 
@@ -139,7 +227,7 @@
                     <h4 class="card-title mb-0 text-success d-flex align-items-center gap-2">
                         <iconify-icon icon="solar:ranking-bold-duotone" class="fs-6"></iconify-icon>{{ __('admin.posts.sections.seo_analysis') }}
                     </h4>
-                    <span class="badge bg-success text-white fw-bold px-2 py-1 fs-1" id="seo_overall_badge">{{ __('admin.posts.seo_widget.status_excellent') }}</span>
+                    <span class="badge bg-secondary text-white fw-bold px-2 py-1 fs-1" id="seo_overall_badge">{{ __('admin.posts.seo_widget.status_need_optimize') }}</span>
                 </div>
 
                 <!-- Circular Progress Score -->
@@ -150,11 +238,26 @@
                             <circle class="seo-progress-ring-circle" id="seo_progress_circle" stroke="#ef4444" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" fill="transparent" r="40" cx="50" cy="50"/>
                         </svg>
                         <div class="position-absolute top-50 start-50 translate-middle text-center">
-                            <span class="fs-6 fw-bold text-dark" id="seo_score_txt">0</span><span class="fs-3 text-muted">/100</span>
+                            <span class="fs-6 fw-bold text-dark" id="seo_score_txt">{{ (int) ($post->seo_score ?? 0) }}</span><span class="fs-3 text-muted">/100</span>
                         </div>
                     </div>
                     <div class="mt-2">
                         <span class="fs-3 fw-bold" id="seo_rating_label" style="color: #ef4444;">{{ __('admin.posts.seo_widget.rating_too_short') }}</span>
+                    </div>
+                </div>
+
+                <div class="row g-2 text-center mb-4">
+                    <div class="col-6">
+                        <div class="border rounded p-2 h-100">
+                            <div class="fw-bold" id="seo_word_count">0</div>
+                            <small class="text-muted">{{ __('admin.posts.seo_widget.word_count') }}</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2 h-100">
+                            <div class="fw-bold" id="seo_keyword_density">0%</div>
+                            <small class="text-muted">{{ __('admin.posts.seo_widget.keyword_density') }}</small>
+                        </div>
                     </div>
                 </div>
 
@@ -205,6 +308,10 @@
                     <div class="seo-rule-item" id="rule_image_alts">
                         <span class="seo-status-dot seo-status-red"></span>
                         <span>{{ __('admin.posts.seo_widget.rules.image_alts') }}</span>
+                    </div>
+                    <div class="seo-rule-item" id="rule_internal_links">
+                        <span class="seo-status-dot seo-status-red"></span>
+                        <span>{{ __('admin.posts.seo_widget.rules.internal_links') }}</span>
                     </div>
                 </div>
             </div>

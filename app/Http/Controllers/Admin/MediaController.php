@@ -33,11 +33,47 @@ class MediaController extends Controller
         ]);
     }
 
+    /**
+     * Image-only data source for the admin media picker.
+     */
+    public function resources(Request $request)
+    {
+        $folder = $request->query('folder', 'all');
+        $folders = $this->cloudinaryService->listFolders();
+
+        if ($folder !== 'all' && ! in_array($folder, $folders, true)) {
+            abort(422, 'Invalid media folder.');
+        }
+
+        $cursor = $request->query('cursor');
+        abort_unless(is_null($cursor) || (is_string($cursor) && mb_strlen($cursor) <= 512), 422, 'Invalid media cursor.');
+        $page = $this->cloudinaryService->listImageResourcePage($folder, $cursor);
+
+        return response()
+            ->json($page)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    }
+
     public function upload(Request $request)
     {
+        $imageOnly = $request->boolean('image_only');
+        $allowedMimetypes = $imageOnly
+            ? 'image/jpeg,image/png,image/webp,image/gif'
+            : 'image/jpeg,image/png,image/webp,image/gif,application/pdf';
+
         $request->validate([
-            'file' => ['required', 'file', 'max:10240', 'mimetypes:image/jpeg,image/png,image/webp,image/gif,application/pdf'],
+            'file' => ['required', 'file', 'max:10240', 'mimetypes:'.$allowedMimetypes],
             'folder' => ['nullable', 'string', Rule::in($this->cloudinaryService->listFolders())],
+            'image_only' => ['nullable', 'boolean'],
+        ], [
+            'file.required' => __('catalog.media.upload_required'),
+            'file.file' => __('catalog.media.upload_invalid_file'),
+            'file.max' => __('catalog.media.upload_too_large'),
+            'file.mimetypes' => __($imageOnly
+                ? 'catalog.media.upload_invalid_image_type'
+                : 'catalog.media.upload_invalid_type'),
+            'folder.in' => __('catalog.media.upload_invalid_folder'),
+            'image_only.boolean' => __('catalog.media.upload_invalid_context'),
         ]);
 
         $folder = $request->input('folder', 'general');

@@ -1,6 +1,6 @@
 ---
 name: connect-ecommerce-frontend
-description: Build a storefront static HTML prototype first, cut an approved design into reusable HTML/CSS/JavaScript/Tailwind pages and components, then connect, repair, or verify it against this Laravel Ecommerce Core public API. Use for storefront mockups, template cutting, replacing mock data, product/category/post rendering, locale handling, customer Sanctum authentication, addresses, cart and variant selection, voucher preview, checkout, VNPAY redirects, order tracking/history, product reviews, or aligning frontend payloads with `/api/public`.
+description: Build or import a storefront HTML theme, cut a root `theme/` design into Laravel Blade under `resources/views/client`, preserve its approved appearance and admin inline-editing hooks, then connect, repair, or verify it against this Laravel Ecommerce Core and its public API. Use for storefront mockups, Laravel Blade template cutting, client layout replacement, CMS Page rendering or inline editing, asset migration, routes/controllers, replacing mock data, product/category/post rendering, locale handling, customer Sanctum authentication, addresses, cart and variant selection, voucher preview, checkout, VNPAY redirects, order tracking/history, product reviews, or aligning frontend payloads with `/api/public`.
 ---
 
 # Connect Ecommerce Frontend
@@ -10,10 +10,14 @@ description: Build a storefront static HTML prototype first, cut an approved des
 1. Read `AI_BUILD_PROMPT.md`.
 2. Read [static-first-workflow.md](references/static-first-workflow.md) when creating a mockup,
    cutting an approved HTML design, or deciding the current frontend stage.
-3. Read [api-contracts.md](references/api-contracts.md) before connecting live data.
-4. Inspect `routes/api.php`, the relevant API controller, Resource, and feature tests.
-5. Inspect `public/docs/openapi.json`, but resolve any mismatch in favor of executable code/tests.
-6. Identify whether the storefront is same-origin or cross-origin before choosing auth/storage/CORS
+3. Read [laravel-blade-cutting.md](references/laravel-blade-cutting.md) whenever a `theme/`
+   directory is supplied or the storefront belongs in this Laravel repository.
+4. Read [inline-admin-editing.md](references/inline-admin-editing.md) whenever creating or replacing
+   a client layout, rendering CMS Pages, or changing the storefront admin bar/editor.
+5. Read [api-contracts.md](references/api-contracts.md) before connecting live data.
+6. Inspect `routes/api.php`, the relevant API controller, Resource, and feature tests.
+7. Inspect `public/docs/openapi.json`, but resolve any mismatch in favor of executable code/tests.
+8. Identify whether the storefront is same-origin or cross-origin before choosing auth/storage/CORS
    behavior.
 
 Do not invent endpoints or fields from UI labels.
@@ -24,13 +28,16 @@ Classify the request before editing:
 
 ```text
 Stage 1  Static HTML prototype with representative mock data
-Stage 2  Approved design cut into shared components/pages/assets
+Stage 2  Approved design cut into Laravel Blade/components/assets
 Stage 3  Components connected to the live public API
 Stage 4  Integrated storefront verification and hardening
 ```
 
 Do only the requested stage and its prerequisites.
 
+- A supplied root `theme/` is an existing design input. Treat cutting it into Blade as Stage 2; do
+  not rebuild it as a new Stage 1 JavaScript prototype unless the user explicitly requests a
+  redesign.
 - During Stage 1, prioritize appearance, responsive states, and complete page coverage. Do not add
   backend calls unless explicitly requested.
 - Before Stage 2, preserve the approved visual result. Refactor structure without redesigning it.
@@ -77,17 +84,25 @@ Stop after the visual prototype when the user has not approved cutting/integrati
 
 Extract the approved prototype into:
 
-- Shared shell: header, navigation, footer, breadcrumbs, modal, toast.
-- Reusable commerce components: product card, price, option selector, cart row, pagination, form
-  errors, order status, review item.
-- Page-specific templates/controllers.
-- Central asset and JavaScript module structure.
+- `resources/views/client/layouts`: shared document shell.
+- `resources/views/client/partials`: header, navigation, footer, breadcrumbs, modal and toast.
+- `resources/views/client/components`: product card, price, option selector, cart row, pagination,
+  form errors, order status and review item.
+- `resources/views/client/pages`: page-specific Blade templates.
+- Storefront routes/controllers and a namespaced client asset structure.
 - Explicit render targets and event hooks for later API binding.
+- The existing `client.partials.admin-bar` include and CMS Page inline-editing contract.
 
 Preserve layout, spacing, typography, responsive behavior, and interactions from the approved HTML.
-Do not mix mock fixtures with the future API client.
+Do not mix mock fixtures with the future API client. Do not convert approved HTML markup into
+JavaScript template strings or a client-rendered application unless the user explicitly requests
+that architecture. Do not overwrite the shared client layout in a way that removes admin editing.
 
 ## Build one API client
+
+For initial same-origin Laravel pages, use a storefront controller/service to pass data into Blade.
+Do not call this application's `/api/public` over HTTP from a PHP controller. Reserve the browser
+API client for targeted asynchronous interactions; a separate storefront may use it for all data.
 
 Centralize:
 
@@ -140,6 +155,8 @@ Check:
 - Invalid/expired tokens clear authenticated UI state without deleting unrelated cart data.
 - Checkout displays authoritative response totals.
 - No sensitive data is stored in logs, HTML, analytics, or long-lived browser state.
+- Authorized admins can open and save the CMS Page inline editor; guests, customers, and admins
+  without `manage_pages` neither see nor load it.
 
 When backend behavior is wrong, fix the backend contract and its tests first; do not hide backend
 errors with frontend workarounds.

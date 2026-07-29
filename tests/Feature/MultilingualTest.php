@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\TranslationProvider;
+use App\Models\FeatureSetting;
 use App\Models\Language;
 use App\Models\Product;
 use App\Models\Role;
@@ -11,12 +12,24 @@ use App\Models\User;
 use App\Services\Catalog\ProductService;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
+use App\Services\LocalizedContent;
+use App\Services\MultilingualSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class MultilingualTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        FeatureSetting::query()->updateOrCreate(
+            ['feature_code' => 'catalog'],
+            ['is_enabled' => true],
+        );
+    }
 
     protected function tearDown(): void
     {
@@ -165,6 +178,50 @@ class MultilingualTest extends TestCase
 
         $this->get('/vi/admin/login')->assertRedirect('/vi/admin');
         $this->get('/en/admin/login')->assertRedirect('/en/admin');
+    }
+
+    public function test_database_content_preferences_override_environment_in_every_translation_mode(): void
+    {
+        Language::query()->update([
+            'is_default' => false,
+            'is_content_fallback' => false,
+        ]);
+        Language::query()->where('code', 'vi')->update(['is_default' => true]);
+        Language::query()->where('code', 'en')->update(['is_content_fallback' => true]);
+
+        config()->set('multilingual.default_locale', 'en');
+        config()->set('multilingual.fallback_locale', 'vi');
+        config()->set('app.fallback_locale', 'vi');
+
+        app(MultilingualSettings::class)->update([
+            'enabled' => true,
+            'mode' => MultilingualSettings::MODE_GTRANSLATE,
+            'gtranslate' => ['target_locales' => ['en']],
+        ]);
+        $registry = app(LanguageRegistry::class);
+        $registry->forget();
+
+        $this->assertSame('vi', $registry->defaultLocale());
+        $this->assertSame('en', $registry->fallbackLocale());
+        $this->assertSame(['vi'], $registry->codes());
+
+        $product = Product::query()->create([
+            'name' => ['en' => 'Database fallback content'],
+            'slug' => 'database-fallback-content',
+            'price' => 100,
+            'is_active' => true,
+        ]);
+        app()->setLocale('vi');
+
+        $this->assertSame(
+            'Database fallback content',
+            app(LocalizedContent::class)->get($product, 'name'),
+        );
+
+        $this->getJson('/api/public/settings')
+            ->assertOk()
+            ->assertJsonPath('data.multilingual.source_locale', 'vi');
+        $this->assertSame('en', config('app.fallback_locale'));
     }
 
     public function test_default_and_fallback_must_be_different_active_languages(): void

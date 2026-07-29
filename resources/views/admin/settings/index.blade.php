@@ -275,18 +275,16 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="logo">{{ __('admin.settings.general.logo') }}</label>
-                                <input type="file" class="form-control" id="logo" name="logo" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/x-icon">
+                                <input type="file" class="form-control" id="logo" name="logo" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/x-icon" data-media-folder="settings" data-media-selected-field="logo_url">
                                 <div class="form-text text-dark">{{ __('admin.settings.general.logo_help') }}</div>
-                                @if($settings->get('logo_url'))
-                                    <div class="mt-3">
-                                        <p class="small text-dark mb-1">{{ __('admin.settings.general.logo_current') }}</p>
-                                        <img src="{{ $settings->get('logo_url') }}" alt="Logo" class="img-thumbnail" style="max-height: 80px;">
-                                    </div>
-                                @endif
+                                <div class="mt-3 {{ $settings->get('logo_url') ? '' : 'd-none' }}" id="logo-preview-wrap">
+                                    <p class="small text-dark mb-1">{{ __('admin.settings.general.logo_current') }}</p>
+                                    <img id="logo-preview" src="{{ $settings->get('logo_url') ?: '' }}" alt="Logo" class="img-thumbnail" style="max-height: 80px;">
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="favicon">{{ __('admin.settings.general.favicon') }}</label>
-                                <input type="file" class="form-control mb-2 position-relative" style="z-index: 10;" id="favicon" name="favicon" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/x-icon">
+                                <input type="file" class="form-control mb-2 position-relative" style="z-index: 10;" id="favicon" name="favicon" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/x-icon" data-media-folder="settings" data-media-selected-field="favicon_url">
                                 <div class="form-text text-dark mb-3">{{ __('admin.settings.general.favicon_help') }}</div>
                                 
                                 @php
@@ -735,6 +733,23 @@
                     }
                 });
             }
+
+            document.addEventListener('media:selected', function (event) {
+                const url = event.detail.url;
+                if (event.target.id === 'logo') {
+                    const preview = document.getElementById('logo-preview');
+                    if (preview) preview.src = url;
+                    document.getElementById('logo-preview-wrap')?.classList.remove('d-none');
+                }
+                if (event.target.id === 'favicon') {
+                    const appPreview = document.getElementById('app-icon-preview');
+                    const browserPreview = document.getElementById('browser-icon-preview');
+                    const previewWrap = document.getElementById('site-icon-preview');
+                    if (appPreview) appPreview.src = url;
+                    if (browserPreview) browserPreview.src = url;
+                    if (previewWrap) previewWrap.style.setProperty('--site-icon-url', `url('${url}')`);
+                }
+            });
 
             const shopNameInput = document.getElementById('shop_name');
             const siteTitlePreview = document.getElementById('site-icon-preview-site-title');

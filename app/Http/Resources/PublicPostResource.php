@@ -21,6 +21,11 @@ class PublicPostResource extends JsonResource
             'image_url' => $this->image_url,
             'seo_title' => $content->get($this->resource, 'seo_title'),
             'seo_description' => $content->get($this->resource, 'seo_description'),
+            'canonical_url' => $this->canonical_url,
+            'robots' => [
+                'index' => (bool) $this->robots_index,
+                'follow' => (bool) $this->robots_follow,
+            ],
             'published_at' => $this->published_at?->toISOString(),
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,

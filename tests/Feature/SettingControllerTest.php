@@ -148,4 +148,18 @@ class SettingControllerTest extends TestCase
         $faviconUrl = ProjectSetting::where('setting_key', 'favicon_url')->first()->setting_value;
         $this->assertNotNull($faviconUrl);
     }
+
+    public function test_admin_can_select_existing_media_for_site_branding(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)->post('/vi/admin/settings', [
+            'shop_name' => 'Library Settings',
+            'logo_url' => 'https://cdn.example.test/settings/logo.png',
+            'favicon_url' => 'https://cdn.example.test/settings/favicon.png',
+        ])->assertRedirect('/vi/admin/settings');
+
+        $this->assertSame('https://cdn.example.test/settings/logo.png', ProjectSetting::query()->where('setting_key', 'logo_url')->value('setting_value'));
+        $this->assertSame('https://cdn.example.test/settings/favicon.png', ProjectSetting::query()->where('setting_key', 'favicon_url')->value('setting_value'));
+    }
 }

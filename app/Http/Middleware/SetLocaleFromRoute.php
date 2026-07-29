@@ -21,6 +21,7 @@ class SetLocaleFromRoute
         }
 
         app()->setLocale($locale);
+        config()->set('app.fallback_locale', $this->languages->fallbackLocale());
         URL::defaults(['locale' => $locale]);
         $request->session()->put('locale', $locale);
 

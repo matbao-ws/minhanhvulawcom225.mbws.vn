@@ -102,6 +102,25 @@ class BannerTest extends TestCase
         Storage::disk('public')->assertExists($path);
     }
 
+    public function test_admin_can_create_banner_from_an_existing_media_url(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+        $this->actingAs($admin);
+
+        $this->post('/vi/admin/banners', [
+            'title' => 'Library Banner',
+            'image_url' => 'https://cdn.example.test/banners/library.jpg',
+            'position' => 'home_main',
+            'sort_order' => 0,
+            'is_active' => 1,
+        ])->assertRedirect('/vi/admin/banners');
+
+        $this->assertDatabaseHas('banners', [
+            'title' => 'Library Banner',
+            'image_path' => 'https://cdn.example.test/banners/library.jpg',
+        ]);
+    }
+
     public function test_admin_can_update_banner_details_and_image(): void
     {
         $admin = User::factory()->create(['role_id' => $this->adminRole->id]);

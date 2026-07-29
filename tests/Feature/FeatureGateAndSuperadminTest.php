@@ -69,7 +69,11 @@ class FeatureGateAndSuperadminTest extends TestCase
         $response = $this->get('/vi/admin/features');
         $response->assertOk();
         $response->assertViewIs('admin.features.index');
-        $response->assertViewHas('features');
+        $response->assertViewHas('featureGroups');
+        $response->assertSee('Website bán hàng');
+        $response->assertSee('Website không bán hàng');
+        $response->assertSee('data-feature-group-switch="ecommerce"', false);
+        $response->assertSee('data-feature-group-switch="non_ecommerce"', false);
     }
 
     public function test_superadmin_can_update_features_settings(): void
@@ -210,6 +214,71 @@ class FeatureGateAndSuperadminTest extends TestCase
         ]);
 
         $this->assertFalse(\App\Models\FeatureSetting::where('feature_code', 'multi_admin')->first()->is_enabled);
+    }
+
+    public function test_superadmin_can_toggle_an_entire_feature_group_without_changing_another_group(): void
+    {
+        FeatureSetting::query()->insert([
+            ['feature_code' => 'catalog', 'is_enabled' => true],
+            ['feature_code' => 'cart', 'is_enabled' => true],
+            ['feature_code' => 'cms_page', 'is_enabled' => true],
+        ]);
+        $superadmin = User::factory()->create([
+            'role_id' => $this->superadminRole->id,
+        ]);
+
+        $response = $this->actingAs($superadmin)->postJson('/vi/admin/features/group-toggle', [
+            'group' => 'ecommerce',
+            'is_enabled' => false,
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'updated' => 2,
+            ]);
+        $this->assertDatabaseHas('feature_settings', ['feature_code' => 'catalog', 'is_enabled' => false]);
+        $this->assertDatabaseHas('feature_settings', ['feature_code' => 'cart', 'is_enabled' => false]);
+        $this->assertDatabaseHas('feature_settings', ['feature_code' => 'cms_page', 'is_enabled' => true]);
+    }
+
+    public function test_feature_group_toggle_rejects_unknown_groups(): void
+    {
+        $superadmin = User::factory()->create([
+            'role_id' => $this->superadminRole->id,
+        ]);
+
+        $this->actingAs($superadmin)
+            ->postJson('/vi/admin/features/group-toggle', [
+                'group' => 'unknown',
+                'is_enabled' => false,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('group');
+
+        $this->assertTrue(FeatureSetting::query()->where('feature_code', 'multi_admin')->value('is_enabled'));
+    }
+
+    public function test_standard_admin_cannot_toggle_a_feature_group(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => $this->adminRole->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson('/vi/admin/features/group-toggle', [
+                'group' => 'ecommerce',
+                'is_enabled' => false,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_feature_groups_cover_every_runtime_feature_once(): void
+    {
+        $groupedCodes = collect(config('features.groups'))->flatten()->values();
+
+        $this->assertEqualsCanonicalizing(config('features.codes'), $groupedCodes->all());
+        $this->assertSame($groupedCodes->count(), $groupedCodes->unique()->count());
     }
 
     public function test_legacy_product_limit_does_not_block_catalog_creation(): void

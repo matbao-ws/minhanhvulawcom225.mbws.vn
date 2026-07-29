@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\PaymentMethod;
+use App\Models\FeatureSetting;
 use App\Models\Product;
 use App\Models\ProjectSetting;
 use App\Models\Review;
@@ -16,6 +17,18 @@ use Tests\TestCase;
 class SecurityHardeningTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach (['catalog', 'cart', 'cod_order', 'review'] as $featureCode) {
+            FeatureSetting::query()->updateOrCreate(
+                ['feature_code' => $featureCode],
+                ['is_enabled' => true],
+            );
+        }
+    }
 
     public function test_public_settings_never_include_notification_secrets(): void
     {

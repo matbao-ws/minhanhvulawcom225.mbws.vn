@@ -32,11 +32,18 @@ visual redesign.
 
 Determine where the storefront lives before creating files:
 
-- User-provided separate frontend directory/project: keep all work there.
+- Root `theme/` directory inside this Laravel repository: treat it as approved source HTML and cut
+  it into `resources/views/client` using [laravel-blade-cutting.md](laravel-blade-cutting.md).
+- User-provided separate frontend directory/project explicitly chosen as output: keep work there.
 - Existing storefront inside the repository: follow its established structure.
 - No location provided: propose a prototype location; do not mix storefront pages into admin views.
 
-The Laravel core intentionally does not own a storefront by default.
+The Laravel core has no default storefront, but a supplied root `theme/` explicitly selects an
+in-repository Laravel Blade storefront.
+
+When `theme/` already contains the requested pages, do not recreate those pages as a new prototype.
+Inventory and preserve them, then begin the Laravel Blade cut at Stage 2 unless the user explicitly
+asks for a redesign.
 
 ## Stage 1 — Build the HTML prototype
 
@@ -162,12 +169,15 @@ field validation message
 
 ### Separate behavior
 
-- Put DOM querying/rendering in page or component modules.
+- Put initial and repeated page markup in Blade pages/components.
+- Put DOM querying and interactive state updates in page or component JavaScript modules.
 - Put cart persistence in one cart store/module.
 - Put formatting in helpers.
 - Keep fixture access behind an adapter that can later be replaced by the API client.
 - Avoid inline scripts and duplicate event registration.
 - Use event delegation for repeated dynamic lists.
+- Do not convert the supplied HTML into JavaScript template strings or an empty client-rendered
+  shell.
 
 ### Preserve visual fidelity
 
@@ -194,16 +204,17 @@ Read [api-contracts.md](api-contracts.md) before this stage.
 
 ### Create the integration boundary
 
-Use one API client and domain adapters:
+For a same-origin Laravel Blade storefront, use server rendering for initial page data and one API
+client for browser interactions:
 
 ```text
-API client
-  -> catalog/auth/order/review adapters
-  -> page/component render functions
-  -> DOM
+web route -> client controller -> service/query -> Blade
+
+browser interaction -> API client -> domain adapter -> targeted DOM update
 ```
 
 Do not call `fetch()` independently from every click handler.
+Do not call the application's own public API over HTTP from its PHP controller.
 
 ### Replace fixtures incrementally
 
@@ -244,7 +255,24 @@ Verify:
 
 ## Recommended structure
 
-For framework-free HTML/JS:
+For a root `theme/` cut into this Laravel repository:
+
+```text
+resources/views/client/
+├── layouts/
+├── partials/
+├── components/
+└── pages/
+
+public/client-assets/
+├── css/
+├── js/
+├── images/
+├── fonts/
+└── vendor/
+```
+
+For an explicitly separate framework-free HTML/JS project:
 
 ```text
 src/
@@ -263,7 +291,7 @@ src/
 └── assets/
 ```
 
-Adapt this to the actual frontend project. Do not force this tree into the Laravel admin core.
+Use the separate `src/` tree only when the user explicitly chose a separate frontend output.
 
 ## Handoff checklist
 

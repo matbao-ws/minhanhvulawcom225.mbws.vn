@@ -22,6 +22,7 @@ class ValidateLocalizedAdminPath
             }
 
             app()->setLocale($locale);
+            config()->set('app.fallback_locale', $this->languages->fallbackLocale());
             URL::defaults(['locale' => $locale]);
         }
 

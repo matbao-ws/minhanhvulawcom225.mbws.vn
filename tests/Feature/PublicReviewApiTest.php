@@ -26,11 +26,12 @@ class PublicReviewApiTest extends TestCase
     {
         parent::setUp();
 
-        // Enable review feature setting globally by default for tests
-        FeatureSetting::query()->updateOrCreate(
-            ['feature_code' => 'review'],
-            ['is_enabled' => true]
-        );
+        foreach (['catalog', 'review'] as $featureCode) {
+            FeatureSetting::query()->updateOrCreate(
+                ['feature_code' => $featureCode],
+                ['is_enabled' => true]
+            );
+        }
 
         $this->category = Category::query()->create([
             'name' => ['vi' => 'Điện thoại', 'en' => 'Phones'],
@@ -400,5 +401,25 @@ class PublicReviewApiTest extends TestCase
         ]);
 
         $response->assertStatus(403);
+    }
+
+    public function test_cannot_submit_review_when_catalog_is_disabled(): void
+    {
+        FeatureSetting::query()->updateOrCreate(
+            ['feature_code' => 'catalog'],
+            ['is_enabled' => false]
+        );
+
+        $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
+            'customer_name' => 'Name',
+            'customer_email' => 'guest@example.com',
+            'rating' => 5,
+        ]);
+
+        $response
+            ->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 }

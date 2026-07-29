@@ -18,6 +18,18 @@ class PromotionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach (['catalog', 'cart', 'cod_order'] as $featureCode) {
+            FeatureSetting::query()->updateOrCreate(
+                ['feature_code' => $featureCode],
+                ['is_enabled' => true],
+            );
+        }
+    }
+
     public function test_higher_priority_automatic_promotion_wins_and_snapshots_the_discount_at_checkout(): void
     {
         PaymentMethod::query()->where('method_code', 'cod')->update(['status' => 'active']);
@@ -111,7 +123,6 @@ class PromotionTest extends TestCase
 
     public function test_admin_can_create_a_selected_product_promotion(): void
     {
-        FeatureSetting::query()->create(['feature_code' => 'voucher', 'is_enabled' => true]);
         $role = Role::query()->create(['name' => 'Marketing Admin', 'permissions' => ['*']]);
         $admin = User::factory()->create(['role_id' => $role->id]);
         $product = $this->product(['slug' => 'admin-promotion-product', 'sku' => 'ADMIN-PROMO']);
@@ -130,6 +141,24 @@ class PromotionTest extends TestCase
 
         $promotion = Promotion::query()->where('name->vi', 'Ngày hội mua sắm')->firstOrFail();
         $this->assertDatabaseHas('promotion_targets', ['promotion_id' => $promotion->id, 'product_id' => $product->id]);
+    }
+
+    public function test_admin_can_open_promotions_when_vouchers_are_disabled(): void
+    {
+        FeatureSetting::query()->updateOrCreate(
+            ['feature_code' => 'voucher'],
+            ['is_enabled' => false],
+        );
+        $role = Role::query()->create([
+            'name' => 'Promotion Admin',
+            'permissions' => ['manage_vouchers'],
+        ]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+
+        $response = $this->actingAs($admin)->get('/vi/admin/promotions/');
+
+        $response->assertOk();
+        $response->assertViewIs('admin.promotions.index');
     }
 
     private function product(array $overrides = []): Product

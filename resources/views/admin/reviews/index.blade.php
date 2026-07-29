@@ -38,7 +38,7 @@
                         <option value="">{{ __('admin.reviews.all_products') }}</option>
                         @foreach($products as $p)
                             @php
-                                $pName = $p->getTranslation('name', app()->getLocale(), false) ?: $p->getTranslation('name', config('app.fallback_locale', 'vi'), false);
+                                $pName = $p->getTranslation('name', app()->getLocale(), false) ?: $p->getTranslation('name', app(\App\Services\LanguageRegistry::class)->fallbackLocale(), false);
                             @endphp
                             <option value="{{ $p->id }}" @selected((string) request('product_id') === (string) $p->id)>{{ $pName }}</option>
                         @endforeach
@@ -87,7 +87,7 @@
                         @forelse($reviews as $review)
                             @php
                                 $productName = $review->product->getTranslation('name', app()->getLocale(), false) 
-                                    ?: $review->product->getTranslation('name', config('app.fallback_locale', 'vi'), false);
+                                    ?: $review->product->getTranslation('name', app(\App\Services\LanguageRegistry::class)->fallbackLocale(), false);
                             @endphp
                             <tr>
                                 <td class="ps-4" style="max-width: 250px;">

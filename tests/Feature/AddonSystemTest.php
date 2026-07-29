@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Addon;
+use App\Models\FeatureSetting;
 use App\Models\PaymentMethod;
 use App\Models\Role;
 use App\Models\ShippingPartner;
@@ -19,6 +20,11 @@ class AddonSystemTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        FeatureSetting::query()->updateOrCreate(
+            ['feature_code' => 'online_payment'],
+            ['is_enabled' => true],
+        );
 
         $role = Role::query()->create([
             'name' => 'Admin',

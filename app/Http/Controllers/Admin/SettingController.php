@@ -49,6 +49,8 @@ class SettingController extends Controller
             'shop_name' => 'required|string|max:255',
             'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
             'favicon' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
+            'logo_url' => 'nullable|string|max:255',
+            'favicon_url' => 'nullable|string|max:255',
             'contact.phone' => 'nullable|string|max:20',
             'contact.email' => 'nullable|email|max:255',
             'contact.address' => 'nullable|string|max:500',
@@ -129,8 +131,10 @@ class SettingController extends Controller
         );
 
         // Upload logo if uploaded
-        if ($request->hasFile('logo')) {
-            $logoUrl = $this->cloudinaryService->uploadFile($request->file('logo'), 'settings');
+        if ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) {
+            $logoUrl = $request->hasFile('logo')
+                ? $this->cloudinaryService->uploadFile($request->file('logo'), 'settings')
+                : $validated['logo_url'];
             ProjectSetting::updateOrCreate(
                 ['setting_key' => 'logo_url'],
                 ['setting_value' => $logoUrl]
@@ -138,8 +142,10 @@ class SettingController extends Controller
         }
 
         // Upload favicon if uploaded
-        if ($request->hasFile('favicon')) {
-            $faviconUrl = $this->cloudinaryService->uploadFile($request->file('favicon'), 'settings');
+        if ($request->hasFile('favicon') || filled($validated['favicon_url'] ?? null)) {
+            $faviconUrl = $request->hasFile('favicon')
+                ? $this->cloudinaryService->uploadFile($request->file('favicon'), 'settings')
+                : $validated['favicon_url'];
             ProjectSetting::updateOrCreate(
                 ['setting_key' => 'favicon_url'],
                 ['setting_value' => $faviconUrl]
@@ -160,8 +166,8 @@ class SettingController extends Controller
                 'embed_header',
                 'embed_footer',
                 $request->user()?->isSuperAdmin() ? 'multilingual' : null,
-                $request->hasFile('logo') ? 'logo_url' : null,
-                $request->hasFile('favicon') ? 'favicon_url' : null,
+                ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) ? 'logo_url' : null,
+                ($request->hasFile('favicon') || filled($validated['favicon_url'] ?? null)) ? 'favicon_url' : null,
             ])),
         ]);
 

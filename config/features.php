@@ -15,4 +15,23 @@ return [
         'multi_admin',
         'inventory_log',
     ],
+
+    'groups' => [
+        'ecommerce' => [
+            'catalog',
+            'cart',
+            'cod_order',
+            'online_payment',
+            'voucher',
+            'review',
+            'inventory_log',
+        ],
+        'non_ecommerce' => [
+            'cms_page',
+            'banner',
+            'menu',
+            'zalo_oa',
+            'multi_admin',
+        ],
+    ],
 ];

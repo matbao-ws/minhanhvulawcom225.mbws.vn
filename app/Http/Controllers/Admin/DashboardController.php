@@ -14,7 +14,11 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        abort_unless(request()->user()->can('manage_orders'), 403);
+        $canViewOrders = request()->user()->can('manage_orders');
+        if (! $canViewOrders) {
+            return view('admin.dashboard.index', compact('canViewOrders'));
+        }
+
         // 1. Key Metrics
         $monthlyRevenue = Order::query()
             ->where('status', 'completed')
@@ -170,6 +174,7 @@ class DashboardController extends Controller
         }
 
         return view('admin.dashboard.index', [
+            'canViewOrders' => true,
             'subscription' => ProjectSubscription::query()->with('package')->first(),
             'enabledFeatureCount' => FeatureSetting::query()->where('is_enabled', true)->count(),
             'metrics' => [

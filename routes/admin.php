@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\NotificationSettingController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PostCategoryController;
 use App\Http\Controllers\Admin\PostController;
@@ -59,6 +60,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware('can:manage_media')->group(function () {
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
+        Route::get('media/resources', [MediaController::class, 'resources'])->name('media.resources');
         Route::post('media/upload', [MediaController::class, 'upload'])->name('media.upload');
         Route::delete('media/delete', [MediaController::class, 'destroy'])->name('media.delete');
     });
@@ -67,6 +69,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('features', [FeatureController::class, 'index'])->name('features.index');
         Route::post('features', [FeatureController::class, 'update'])->name('features.update');
         Route::post('features/toggle', [FeatureController::class, 'toggle'])->name('features.toggle');
+        Route::post('features/group-toggle', [FeatureController::class, 'toggleGroup'])->name('features.group-toggle');
         Route::get('languages', [LanguageController::class, 'index'])->name('languages.index');
         Route::post('languages', [LanguageController::class, 'store'])->name('languages.store');
         Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->name('languages.preferences');
@@ -92,9 +95,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('posts', PostController::class);
     });
 
+    Route::middleware(['feature:cms_page', 'can:manage_pages'])->group(function () {
+        Route::get('pages/{page}/preview', [PageController::class, 'preview'])->name('pages.preview');
+        Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->name('pages.inline-update');
+        Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restore'])->name('pages.revisions.restore');
+        Route::resource('pages', PageController::class)->except(['show']);
+    });
+
     Route::middleware(['feature:voucher', 'can:manage_vouchers'])->group(function () {
         Route::patch('vouchers/bulk', [VoucherController::class, 'bulk'])->name('vouchers.bulk');
         Route::resource('vouchers', VoucherController::class);
+    });
+
+    Route::middleware(['feature:catalog', 'can:manage_vouchers'])->group(function () {
         Route::resource('promotions', PromotionController::class)->except(['show']);
     });
 

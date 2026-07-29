@@ -4,20 +4,24 @@
 
 @section('content')
     <!-- Header Card -->
-        <!-- Header Card -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
                 <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md">
                             <h4 class="fw-semibold mb-1 text-white">{{ __('admin.posts.title') }}</h4>
                             <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
                                 <ol class="breadcrumb mb-0">
                                     <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.posts.title') }}</li>
+                                    <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.posts.title') }}</li>
                                 </ol>
                             </nav>
+                        </div>
+                        <div class="col-md-auto">
+                            <a href="{{ route('admin.posts.create') }}" class="btn btn-light fw-semibold w-100">
+                                <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.posts.create') }}
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -51,7 +55,7 @@
                         <option value="">{{ __('admin.all') }} {{ mb_strtolower(__('admin.posts.fields.category')) }}</option>
                         @foreach($categories as $category)
                             @php
-                                $fallbackLocale = config('app.fallback_locale', config('app.locale', 'vi'));
+                                $fallbackLocale = app(\App\Services\LanguageRegistry::class)->fallbackLocale();
                                 $catName = $category->getTranslation('name', app()->getLocale(), false) ?: $category->getTranslation('name', $fallbackLocale, false);
                             @endphp
                             <option value="{{ $category->id }}" @selected(request('category_id') == $category->id)>
@@ -89,6 +93,7 @@
                             <th class="ps-4">{{ __('admin.posts.fields.title') }}</th>
                             <th>{{ __('admin.posts.fields.category') }}</th>
                             <th>{{ __('admin.posts.fields.published_at') }}</th>
+                            <th>{{ __('admin.posts.placeholders.seo_score') }}</th>
                             <th>{{ __('admin.posts.fields.status') }}</th>
                             <th></th>
                         </tr>
@@ -96,7 +101,7 @@
                     <tbody>
                         @forelse($posts as $post)
                             @php
-                                $fallbackLocale = config('app.fallback_locale', config('app.locale', 'vi'));
+                                $fallbackLocale = app(\App\Services\LanguageRegistry::class)->fallbackLocale();
                                 $title = $post->getTranslation('title', app()->getLocale(), false) ?: $post->getTranslation('title', $fallbackLocale, false);
                                 $catName = $post->category ? ($post->category->getTranslation('name', app()->getLocale(), false) ?: $post->category->getTranslation('name', $fallbackLocale, false)) : __('admin.posts.uncategorized');
                             @endphp
@@ -116,6 +121,17 @@
                                             </h6>
                                         </div>
                                     </div>
+                                </td>
+                                <td>
+                                    @php
+                                        $seoScore = $post->seo_score;
+                                        $seoClass = $seoScore === null
+                                            ? 'bg-secondary-subtle text-secondary'
+                                            : ($seoScore >= 80 ? 'bg-success-subtle text-success' : ($seoScore >= 50 ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger'));
+                                    @endphp
+                                    <span class="badge {{ $seoClass }} fw-semibold">
+                                        {{ $seoScore === null ? 'Chưa phân tích' : $seoScore.'/100' }}
+                                    </span>
                                 </td>
                                 <td>
                                     <span class="badge bg-primary-subtle text-primary fw-semibold">{{ $catName }}</span>
@@ -155,7 +171,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-5">
+                                <td colspan="7" class="text-center py-5">
                                     <iconify-icon icon="solar:document-bold-duotone" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
                                     <p class="text-muted mb-0 fs-3">{{ __('admin.posts.not_found') }}</p>
                                 </td>

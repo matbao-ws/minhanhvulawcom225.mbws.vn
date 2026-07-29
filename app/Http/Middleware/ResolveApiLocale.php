@@ -41,6 +41,7 @@ class ResolveApiLocale
         }
 
         app()->setLocale($locale);
+        config()->set('app.fallback_locale', $this->languages->fallbackLocale());
         $request->attributes->set('content_locale', $locale);
 
         $response = $next($request);

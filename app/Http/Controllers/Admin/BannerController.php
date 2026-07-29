@@ -51,13 +51,16 @@ class BannerController extends Controller
     {
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
-            'image_file' => 'required|image|max:2048',
+            'image_file' => 'nullable|image|max:2048',
+            'image_url' => 'required_without:image_file|string|max:255',
             'link_url' => 'nullable|string|max:255',
             'position' => 'required|string|max:255',
             'sort_order' => 'required|integer|min:0',
         ]);
 
-        $imagePath = $this->cloudinaryService->uploadFile($request->file('image_file'), 'banners');
+        $imagePath = $request->hasFile('image_file')
+            ? $this->cloudinaryService->uploadFile($request->file('image_file'), 'banners')
+            : $validated['image_url'];
 
         Banner::create([
             'title' => $validated['title'] ?? null,
@@ -89,6 +92,7 @@ class BannerController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'image_file' => 'nullable|image|max:2048',
+            'image_url' => 'nullable|string|max:255',
             'link_url' => 'nullable|string|max:255',
             'position' => 'required|string|max:255',
             'sort_order' => 'required|integer|min:0',
@@ -113,6 +117,8 @@ class BannerController extends Controller
             }
 
             $imagePath = $this->cloudinaryService->uploadFile($request->file('image_file'), 'banners');
+        } elseif (! empty($validated['image_url'])) {
+            $imagePath = $validated['image_url'];
         }
 
         $banner->update([

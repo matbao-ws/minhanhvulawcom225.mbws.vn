@@ -58,7 +58,7 @@ class BrandService
         $name = $this->translationValue($data['name'] ?? null, $brand, 'name');
         $submittedSlugs = $this->localizedValues($data['slug'] ?? []);
         $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $submittedSlugs[app()->getLocale()] ?? ($name[$this->languages->defaultLocale()] ?? $name[$this->fallbackLocale()] ?? reset($name));
-        $imageUrl = $this->imageUrl($data['image_file'] ?? null, $brand);
+        $imageUrl = $this->imageUrl($data['image_file'] ?? null, $data['image_url'] ?? null, $brand);
 
         return [
             'name' => $name,
@@ -70,13 +70,13 @@ class BrandService
         ];
     }
 
-    private function imageUrl(?UploadedFile $file, ?Brand $brand): ?string
+    private function imageUrl(?UploadedFile $file, ?string $selectedUrl, ?Brand $brand): ?string
     {
-        if (! $file) {
-            return $brand?->image_url;
+        if ($file) {
+            return $this->cloudinaryService->uploadFile($file, 'brands');
         }
 
-        return $this->cloudinaryService->uploadFile($file, 'brands');
+        return filled($selectedUrl) ? $selectedUrl : $brand?->image_url;
     }
 
     private function translationValue(string|array|null $value, ?Brand $brand, string $attribute): array

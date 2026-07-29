@@ -497,6 +497,9 @@
 
     <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+    @can('manage_media')
+        @include('admin.layouts.media-picker')
+    @endcan
     <script src="{{ asset('admin-assets/libs/simplebar/dist/simplebar.min.js') }}"></script>
     <script src="{{ asset('admin-assets/js/theme/app.init.js') }}"></script>
     <script src="{{ asset('admin-assets/js/theme/theme.js') }}"></script>

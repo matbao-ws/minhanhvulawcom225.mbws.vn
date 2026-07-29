@@ -26,8 +26,18 @@ Core cung cấp:
 - CMS post, banner, đa ngôn ngữ, media và notification.
 - Feature flags do support cấu hình; package/subscription cũ chỉ giữ tương thích dữ liệu lịch sử.
 
-Storefront không nằm trong core. Không thêm React, Vue, Next.js, Nuxt, Inertia, Livewire,
-GraphQL hoặc một frontend framework khác nếu người dùng không yêu cầu.
+Core không có storefront mặc định. Khi repository có thư mục `theme/` ở root, coi đây là giao diện
+HTML nguồn do người dùng cung cấp và cắt giao diện đó thành Laravel Blade ngay trong core:
+
+```text
+theme/                         nguồn thiết kế, không phải mã production
+resources/views/client/       Blade storefront sau khi cắt
+public/client-assets/         CSS, JavaScript, font và ảnh của storefront
+```
+
+Không biến theme HTML thành một ứng dụng JavaScript, không dựng lại toàn bộ markup bằng chuỗi HTML
+trong JS và không tạo project frontend song song. Không thêm React, Vue, Next.js, Nuxt, Inertia,
+Livewire, GraphQL hoặc một frontend framework khác nếu người dùng không yêu cầu rõ ràng.
 
 ## 2. Thứ tự nguồn sự thật
 
@@ -74,6 +84,7 @@ Business logic    app/Services
 Shared policy     app/Support
 Persistence       app/Models + database/migrations
 Admin UI          resources/views/admin
+Client storefront resources/views/client
 Translations      lang/* + localized database fields
 Tests             tests/Unit + tests/Feature
 API contract      public/docs/openapi.json
@@ -273,24 +284,60 @@ test nào lỗi, lỗi có liên quan hay không và test mục tiêu đã đạ
 
 ## 9. Đồng bộ API và storefront
 
-Quy trình mặc định khi làm storefront:
+Khi người dùng đặt giao diện vào `theme/` ở root, quy trình mặc định là:
 
 ```text
-Lập page map
-  -> dựng HTML mẫu bằng mock data
-  -> duyệt giao diện
-  -> cắt thành page/component dùng lại
-  -> duyệt cấu trúc
-  -> nối API public
-  -> test tích hợp
+Kiểm kê toàn bộ theme/
+  -> lập page map và asset map
+  -> giữ nguyên giao diện HTML đã duyệt
+  -> cắt shell/partial/component Blade
+  -> tạo route + controller storefront Laravel
+  -> thay mock bằng dữ liệu backend
+  -> nối JavaScript chỉ cho tương tác bất đồng bộ
+  -> test route, asset và giao diện
 ```
 
-- Không tự nối backend khi người dùng mới yêu cầu dựng HTML mẫu.
+- `theme/` chỉ là input tham chiếu. Không dùng trực tiếp nó làm production output và không chỉnh bản
+  nguồn trừ khi người dùng yêu cầu.
+- Tạo storefront tại `resources/views/client`, tách tối thiểu thành `layouts`, `partials`,
+  `components` và các page Blade.
+- Chuyển link và asset tĩnh sang `route()`, `asset()`, `@vite`, `@csrf`, `old()` cùng Blade
+  directive phù hợp; không để link `.html` hoặc asset relative từ `theme/` trong view production.
+- Đưa asset storefront vào `public/client-assets`; không trộn vào `public/admin-assets`.
+- Markup sản phẩm, danh mục, bài viết, giỏ hàng và đơn hàng phải nằm trong Blade component/loop;
+  không dựng lại toàn bộ các vùng này bằng chuỗi `innerHTML` trong JavaScript.
+- JavaScript chỉ phụ trách menu, slider, chọn biến thể, cập nhật giỏ hàng, API bất đồng bộ và trạng
+  thái loading/error; dùng một API client chung khi cần.
+- Với render đầu trang cùng origin, ưu tiên controller/service Laravel truyền dữ liệu vào Blade;
+  không gọi HTTP ngược từ PHP vào chính `/api/public`.
 - Không thay đổi thiết kế đã duyệt trong lúc cắt component hoặc nối API.
 - Không trộn storefront vào admin views.
-- Nếu storefront nằm ở project/thư mục riêng, giữ nguyên kiến trúc của project đó.
-- Tách mock fixtures khỏi HTML để có thể thay bằng API adapter theo từng phần.
-- Chỉ loại bỏ mock data sau khi phần API tương ứng đã được kiểm chứng.
+- Chỉ giữ storefront ở project riêng khi người dùng chỉ định rõ thư mục/project đích khác.
+- Nếu không có `theme/` và không có storefront hiện hữu, không tự phát minh giao diện.
+- Chỉ loại bỏ mock data sau khi phần API tương ứng được kiểm chứng.
+
+### Sửa trực tiếp trên storefront
+
+Khi cắt hoặc thay layout client, phải giữ cơ chế sửa trực tiếp dành cho admin:
+
+- Layout chung phải include `client.partials.admin-bar` đúng một lần, gần cuối `<body>`. Không xóa,
+  sao chép hoặc nhúng lại toàn bộ mã editor vào từng page.
+- Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
+  `$css` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung Page vào Blade.
+- Chỉ admin đang active và có `manage_pages` mới được tải GrapesJS và thấy **Sửa trực tiếp**.
+  Guest, customer và admin thiếu quyền không được thấy markup, asset hoặc endpoint editor.
+- Lưu trực tiếp phải gọi route admin hiện có bằng session + CSRF, đi qua FormRequest,
+  `PageBuilderService`, HTML/CSS sanitizer, revision và activity log. Không ghi database từ
+  JavaScript và không tạo public write API.
+- Ảnh trong Page phải chọn và thay được từ thư viện Media ngay trong inline editor. Chỉ admin có
+  thêm `manage_media` mới thấy công cụ ảnh; upload dùng route admin hiện có, giữ popup mở sau upload
+  và giữ phân trang thư viện.
+- Theme CSS không được che admin bar/editor; giữ namespace selector, z-index và chuỗi chiều cao
+  canvas/iframe. Client asset vẫn tách khỏi admin asset, ngoại trừ thư viện editor chỉ nạp có điều
+  kiện cho admin được phép.
+- Với product/category/post hoặc tài nguyên không do `Page` quản lý, không giả vờ lưu bằng Page
+  Builder. Dùng đúng editor/domain route của tài nguyên; chỉ thêm inline save khi backend đã có
+  validation, authorization, revision/audit tương ứng.
 
 Khi thay đổi public API:
 
@@ -314,6 +361,8 @@ Một thay đổi chỉ hoàn tất khi:
 - Không có syntax error, debug code, secret hoặc TODO tạm.
 - Migration/queue/scheduler/deployment impact được báo rõ.
 - OpenAPI được đồng bộ nếu public API thay đổi.
+- Layout client mới vẫn giữ admin bar và luồng sửa trực tiếp cho CMS Page; có test guest/customer
+  không thấy editor, admin đúng quyền lưu được và nội dung nguy hiểm bị lọc.
 
 ## 11. Cách báo cáo kết quả
 

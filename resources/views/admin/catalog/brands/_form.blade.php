@@ -42,12 +42,10 @@
             </div>
             <div class="col-md-12 mb-3">
                 <label class="form-label" for="image_file">{{ __('catalog.fields.image') }}</label>
-                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*">
-                @if($brand->image_url)
-                    <div class="mt-2">
-                        <img src="{{ $brand->image_url }}" alt="{{ $name }}" class="rounded border object-fit-cover" width="72" height="72" onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">
-                    </div>
-                @endif
+                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="brands">
+                <div class="mt-2 {{ $brand->image_url ? '' : 'd-none' }}" data-media-preview>
+                    <img src="{{ $brand->image_url ?: '' }}" alt="{{ $name }}" class="rounded border object-fit-cover" width="72" height="72" data-media-preview-image onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">
+                </div>
             </div>
             <div class="col-12 mb-3">
                 <input type="hidden" name="is_active" value="1">

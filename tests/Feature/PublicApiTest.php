@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
+use App\Models\Review;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Voucher;
@@ -32,6 +34,13 @@ class PublicApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        foreach (['catalog', 'cart', 'cod_order', 'online_payment', 'voucher', 'review', 'cms_page'] as $featureCode) {
+            FeatureSetting::query()->updateOrCreate(
+                ['feature_code' => $featureCode],
+                ['is_enabled' => true],
+            );
+        }
 
         \App\Models\PaymentMethod::query()
             ->where('method_code', 'bank_transfer')
@@ -137,6 +146,69 @@ class PublicApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['slug' => 'iphone-15-pro']);
         $response->assertJsonFragment(['name' => '256GB Gold']);
+    }
+
+    public function test_public_settings_exposes_feature_states_for_client_visibility(): void
+    {
+        FeatureSetting::query()->where('feature_code', 'online_payment')->update(['is_enabled' => false]);
+
+        $this->getJson('/api/public/settings')
+            ->assertOk()
+            ->assertJsonPath('data.features.catalog', true)
+            ->assertJsonPath('data.features.online_payment', false);
+    }
+
+    public function test_disabled_features_block_their_public_api_modules(): void
+    {
+        FeatureSetting::query()->where('feature_code', 'catalog')->update(['is_enabled' => false]);
+        $this->getJson('/api/public/products')->assertForbidden();
+
+        FeatureSetting::query()->where('feature_code', 'catalog')->update(['is_enabled' => true]);
+        FeatureSetting::query()->where('feature_code', 'cms_page')->update(['is_enabled' => false]);
+        $this->getJson('/api/public/pages')->assertForbidden();
+
+        FeatureSetting::query()->where('feature_code', 'voucher')->update(['is_enabled' => false]);
+        $this->postJson('/api/public/vouchers/apply', [
+            'code' => 'DISCOUNT100K',
+            'subtotal' => 600000,
+        ])->assertForbidden();
+
+        $payload = $this->checkoutPayload('disabled-voucher@example.com');
+        $payload['voucher_code'] = 'DISCOUNT100K';
+        $this->postJson('/api/public/orders/checkout', $payload)->assertForbidden();
+
+        FeatureSetting::query()->where('feature_code', 'cart')->update(['is_enabled' => false]);
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('disabled-cart@example.com'))
+            ->assertForbidden();
+    }
+
+    public function test_disabled_review_feature_removes_reviews_from_product_detail(): void
+    {
+        Review::query()->create([
+            'product_id' => $this->product->id,
+            'customer_name' => 'Khách hàng',
+            'customer_email' => 'review@example.com',
+            'rating' => 5,
+            'is_visible' => true,
+        ]);
+        FeatureSetting::query()->where('feature_code', 'review')->update(['is_enabled' => false]);
+
+        $this->getJson("/api/public/products/{$this->product->slug}")
+            ->assertOk()
+            ->assertJsonMissingPath('data.reviews');
+    }
+
+    public function test_checkout_blocks_disabled_cod_and_online_payment_features(): void
+    {
+        FeatureSetting::query()->where('feature_code', 'cod_order')->update(['is_enabled' => false]);
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('disabled-cod@example.com'))
+            ->assertForbidden();
+
+        FeatureSetting::query()->where('feature_code', 'cod_order')->update(['is_enabled' => true]);
+        FeatureSetting::query()->where('feature_code', 'online_payment')->update(['is_enabled' => false]);
+        $payload = $this->checkoutPayload('disabled-online@example.com');
+        $payload['payment_method'] = 'bank_transfer';
+        $this->postJson('/api/public/orders/checkout', $payload)->assertForbidden();
     }
 
     public function test_apply_voucher_validation(): void
@@ -370,5 +442,21 @@ class PublicApiTest extends TestCase
         
         $jsonContent = file_get_contents($filePath);
         $this->assertJson($jsonContent);
+    }
+
+    private function checkoutPayload(string $email): array
+    {
+        return [
+            'customer_name' => 'Feature Customer',
+            'customer_email' => $email,
+            'customer_phone' => '0988776655',
+            'shipping_address' => 'Ho Chi Minh City',
+            'payment_method' => 'cod',
+            'items' => [[
+                'product_id' => $this->product->id,
+                'option_value_ids' => [$this->optionValue->id],
+                'quantity' => 1,
+            ]],
+        ];
     }
 }

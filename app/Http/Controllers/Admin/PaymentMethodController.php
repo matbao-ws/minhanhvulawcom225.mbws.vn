@@ -5,19 +5,28 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
 use App\Services\VNPAYService;
+use App\Support\FeatureGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class PaymentMethodController extends Controller
 {
+    public function __construct(private readonly FeatureGate $features) {}
+
     /**
      * Display a listing of payment methods.
      */
     public function index()
     {
-        $methods = PaymentMethod::all();
-        return view('admin.payment_methods.index', compact('methods'));
+        $isSuperadmin = auth()->user()?->isSuperAdmin() === true;
+        $canUseCod = $isSuperadmin || $this->features->enabled('cod_order');
+        $canUseOnlinePayment = $isSuperadmin || $this->features->enabled('online_payment');
+        $methods = PaymentMethod::all()
+            ->filter(fn (PaymentMethod $method) => $method->method_code === 'cod' ? $canUseCod : $canUseOnlinePayment)
+            ->values();
+
+        return view('admin.payment_methods.index', compact('methods', 'canUseOnlinePayment'));
     }
 
     /**
@@ -25,6 +34,8 @@ class PaymentMethodController extends Controller
      */
     public function create()
     {
+        $this->requireOnlinePayment();
+
         return view('admin.payment_methods.create');
     }
 
@@ -33,6 +44,8 @@ class PaymentMethodController extends Controller
      */
     public function store(Request $request)
     {
+        $this->requireOnlinePayment();
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:1000',
@@ -60,6 +73,8 @@ class PaymentMethodController extends Controller
      */
     public function edit(string $locale, PaymentMethod $payment_method)
     {
+        $this->requirePaymentMethod($payment_method);
+
         if ($payment_method->type !== 'custom') {
             return redirect()
                 ->route('admin.payment-methods.index')
@@ -74,6 +89,8 @@ class PaymentMethodController extends Controller
      */
     public function update(Request $request, string $locale, PaymentMethod $payment_method)
     {
+        $this->requirePaymentMethod($payment_method);
+
         if ($payment_method->type !== 'custom') {
             return redirect()
                 ->route('admin.payment-methods.index')
@@ -102,6 +119,8 @@ class PaymentMethodController extends Controller
      */
     public function destroy(string $locale, PaymentMethod $payment_method)
     {
+        $this->requirePaymentMethod($payment_method);
+
         if ($payment_method->type !== 'custom') {
             return redirect()
                 ->route('admin.payment-methods.index')
@@ -120,6 +139,8 @@ class PaymentMethodController extends Controller
      */
     public function toggleStatus(Request $request, string $locale, PaymentMethod $payment_method)
     {
+        $this->requirePaymentMethod($payment_method);
+
         $newStatus = $payment_method->status === 'active' ? 'inactive' : 'active';
 
         if ($newStatus === 'active') {
@@ -161,6 +182,8 @@ class PaymentMethodController extends Controller
      */
     public function settings(string $locale, PaymentMethod $payment_method)
     {
+        $this->requirePaymentMethod($payment_method);
+
         return view('admin.payment_methods.settings', ['method' => $payment_method]);
     }
 
@@ -169,6 +192,8 @@ class PaymentMethodController extends Controller
      */
     public function updateSettings(Request $request, string $locale, PaymentMethod $payment_method)
     {
+        $this->requirePaymentMethod($payment_method);
+
         if ($payment_method->method_code === 'vnpay') {
             $validated = $request->validate([
                 'tmn_code' => 'required|string|max:255',
@@ -246,5 +271,23 @@ class PaymentMethodController extends Controller
         return redirect()
             ->route('admin.payment-methods.index')
             ->with('success', __('admin.payment_methods.save_success'));
+    }
+
+    private function requirePaymentMethod(PaymentMethod $method): void
+    {
+        if (auth()->user()?->isSuperAdmin()) {
+            return;
+        }
+
+        $this->features->require($method->method_code === 'cod' ? 'cod_order' : 'online_payment');
+    }
+
+    private function requireOnlinePayment(): void
+    {
+        if (auth()->user()?->isSuperAdmin()) {
+            return;
+        }
+
+        $this->features->require('online_payment');
     }
 }

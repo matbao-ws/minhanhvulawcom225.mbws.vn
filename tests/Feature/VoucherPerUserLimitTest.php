@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\FeatureSetting;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Voucher;
@@ -25,6 +26,13 @@ class VoucherPerUserLimitTest extends TestCase
         parent::setUp();
 
         Mail::fake();
+
+        foreach (['catalog', 'cart', 'cod_order', 'voucher'] as $featureCode) {
+            FeatureSetting::query()->updateOrCreate(
+                ['feature_code' => $featureCode],
+                ['is_enabled' => true],
+            );
+        }
 
         $category = Category::query()->create([
             'name' => ['vi' => 'Danh mục', 'en' => 'Category'],

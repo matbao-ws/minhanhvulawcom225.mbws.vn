@@ -104,6 +104,21 @@ class DashboardTest extends TestCase
         $this->assertCount(2, $recentOrders);
     }
 
+    public function test_admin_without_order_permission_can_access_a_safe_dashboard(): void
+    {
+        $role = Role::query()->create([
+            'name' => 'Content editor',
+            'permissions' => ['manage_posts'],
+        ]);
+        $editor = User::factory()->create(['role_id' => $role->id]);
+
+        $this->actingAs($editor)
+            ->get('/vi/admin')
+            ->assertOk()
+            ->assertSee(__('admin.dashboard_page.limited_title'))
+            ->assertDontSee(__('admin.dashboard_page.monthly_revenue'));
+    }
+
     public function test_dashboard_groups_registered_customers_and_uses_actual_admin_activity(): void
     {
         $customer = User::factory()->create([

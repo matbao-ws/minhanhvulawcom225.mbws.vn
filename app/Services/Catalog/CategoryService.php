@@ -58,7 +58,7 @@ class CategoryService
         $name = $this->translationValue($data['name'] ?? null, $category, 'name');
         $submittedSlugs = $this->localizedValues($data['slug'] ?? []);
         $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $submittedSlugs[app()->getLocale()] ?? ($name[$this->languages->defaultLocale()] ?? $name[$this->fallbackLocale()] ?? reset($name));
-        $imageUrl = $this->imageUrl($data['image_file'] ?? null, $category);
+        $imageUrl = $this->imageUrl($data['image_file'] ?? null, $data['image_url'] ?? null, $category);
 
         return [
             'parent_id' => $data['parent_id'] ?? null,
@@ -73,13 +73,13 @@ class CategoryService
         ];
     }
 
-    private function imageUrl(?UploadedFile $file, ?Category $category): ?string
+    private function imageUrl(?UploadedFile $file, ?string $selectedUrl, ?Category $category): ?string
     {
-        if (! $file) {
-            return $category?->image_url;
+        if ($file) {
+            return $this->cloudinaryService->uploadFile($file, 'categories');
         }
 
-        return $this->cloudinaryService->uploadFile($file, 'categories');
+        return filled($selectedUrl) ? $selectedUrl : $category?->image_url;
     }
 
     private function translationValue(string|array|null $value, ?Category $category, string $attribute): array

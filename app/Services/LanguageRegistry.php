@@ -79,14 +79,15 @@ class LanguageRegistry
 
     public function defaultLocale(): string
     {
-        return $this->active()->firstWhere('is_default', true)?->code
+        return $this->admin()->firstWhere('is_default', true)?->code
+            ?? $this->admin()->first()?->code
             ?? config('multilingual.default_locale', 'vi');
     }
 
     public function fallbackLocale(): string
     {
-        return $this->active()->firstWhere('is_content_fallback', true)?->code
-            ?? config('multilingual.fallback_locale', 'vi');
+        return $this->admin()->firstWhere('is_content_fallback', true)?->code
+            ?? $this->defaultLocale();
     }
 
     public function forget(): void

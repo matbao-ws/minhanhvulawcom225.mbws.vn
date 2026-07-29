@@ -126,6 +126,55 @@ class CloudinaryService
     }
 
     /**
+     * Return one page of images for the admin picker. Cloudinary cursors are
+     * passed through unchanged; local storage uses an opaque page cursor.
+     */
+    public function listImageResourcePage(string $folder, ?string $cursor = null, int $limit = 24): array
+    {
+        $limit = max(1, min($limit, 100));
+
+        if (! $this->isConfigured()) {
+            $resources = array_values(array_filter(
+                $this->listLocalFallbackResources($folder),
+                fn (array $resource): bool => $this->isImageFormat($resource['format'] ?? ''),
+            ));
+            $page = $cursor && preg_match('/^local:(\d+)$/', $cursor, $matches) ? max(1, (int) $matches[1]) : 1;
+            $offset = ($page - 1) * $limit;
+
+            return [
+                'resources' => array_slice($resources, $offset, $limit),
+                'next_cursor' => $offset + $limit < count($resources) ? 'local:' . ($page + 1) : null,
+            ];
+        }
+
+        try {
+            $options = [
+                'type' => 'upload',
+                'resource_type' => 'image',
+                'prefix' => $folder === 'all' ? '' : $folder,
+                'max_results' => $limit,
+            ];
+            if ($cursor) $options['next_cursor'] = $cursor;
+
+            $results = (new AdminApi())->resources($options);
+            $resources = array_map(fn (array $resource) => [
+                'secure_url' => $resource['secure_url'],
+                'public_id' => $resource['public_id'],
+                'bytes' => $resource['bytes'],
+                'created_at' => $resource['created_at'],
+                'format' => $resource['format'] ?? 'file',
+                'width' => isset($resource['width']) ? (int) $resource['width'] : null,
+                'height' => isset($resource['height']) ? (int) $resource['height'] : null,
+            ], $results['resources'] ?? []);
+
+            return ['resources' => $resources, 'next_cursor' => $results['next_cursor'] ?? null];
+        } catch (\Exception $e) {
+            Log::error('Cloudinary List Image Resources Error: ' . $e->getMessage());
+            return $this->listImageResourcePageFromLocalFallback($folder, $cursor, $limit);
+        }
+    }
+
+    /**
      * Delete an asset from Cloudinary (or local storage fallback).
      */
     public function deleteResource(string $publicId): bool
@@ -172,12 +221,15 @@ class CloudinaryService
                 continue;
             }
 
+            $dimensions = $this->localImageDimensions($file);
             $resources[] = [
                 'secure_url' => Storage::disk('public')->url($file),
                 'public_id' => $file,
                 'bytes' => Storage::disk('public')->size($file),
                 'created_at' => date('Y-m-d\TH:i:s\Z', Storage::disk('public')->lastModified($file)),
                 'format' => pathinfo($file, PATHINFO_EXTENSION),
+                'width' => $dimensions['width'],
+                'height' => $dimensions['height'],
             ];
         }
 
@@ -187,5 +239,41 @@ class CloudinaryService
         });
 
         return $resources;
+    }
+
+    private function listImageResourcePageFromLocalFallback(string $folder, ?string $cursor, int $limit): array
+    {
+        $resources = array_values(array_filter(
+            $this->listLocalFallbackResources($folder),
+            fn (array $resource): bool => $this->isImageFormat($resource['format'] ?? ''),
+        ));
+        $page = $cursor && preg_match('/^local:(\d+)$/', $cursor, $matches) ? max(1, (int) $matches[1]) : 1;
+        $offset = ($page - 1) * $limit;
+
+        return [
+            'resources' => array_slice($resources, $offset, $limit),
+            'next_cursor' => $offset + $limit < count($resources) ? 'local:' . ($page + 1) : null,
+        ];
+    }
+
+    private function isImageFormat(string $format): bool
+    {
+        return in_array(strtolower($format), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'], true);
+    }
+
+    /** @return array{width: int|null, height: int|null} */
+    private function localImageDimensions(string $file): array
+    {
+        try {
+            $path = Storage::disk('public')->path($file);
+            $size = is_file($path) ? @getimagesize($path) : false;
+
+            return [
+                'width' => is_array($size) ? (int) $size[0] : null,
+                'height' => is_array($size) ? (int) $size[1] : null,
+            ];
+        } catch (\Throwable) {
+            return ['width' => null, 'height' => null];
+        }
     }
 }

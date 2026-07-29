@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\PaymentMethod;
+use App\Models\FeatureSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,6 +19,11 @@ class PaymentMethodTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        FeatureSetting::query()->updateOrCreate(
+            ['feature_code' => 'online_payment'],
+            ['is_enabled' => true],
+        );
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',
@@ -159,5 +165,36 @@ class PaymentMethodTest extends TestCase
         $this->assertEquals('pk_live_123', $method->settings['publishable_key']);
         $this->assertEquals('sk_live_123', $method->settings['secret_key']);
         $this->assertEquals('whsec_123', $method->settings['webhook_secret']);
+    }
+
+    public function test_disabled_online_payment_is_hidden_and_blocked_for_regular_admin(): void
+    {
+        FeatureSetting::query()->where('feature_code', 'online_payment')->update(['is_enabled' => false]);
+        $method = PaymentMethod::query()->where('method_code', 'stripe')->firstOrFail();
+
+        $this->actingAs($this->adminUser)
+            ->get('/vi/admin/payment-methods')
+            ->assertOk()
+            ->assertDontSee('Cổng thanh toán quốc tế Stripe');
+
+        $this->actingAs($this->adminUser)
+            ->get("/vi/admin/payment-methods/{$method->id}/settings")
+            ->assertForbidden();
+    }
+
+    public function test_superadmin_can_manage_online_payment_while_feature_is_disabled(): void
+    {
+        FeatureSetting::query()->where('feature_code', 'online_payment')->update(['is_enabled' => false]);
+        $role = Role::query()->create([
+            'name' => 'Superadmin',
+            'permissions' => ['*'],
+            'is_system' => true,
+        ]);
+        $superadmin = User::factory()->create(['role_id' => $role->id]);
+
+        $this->actingAs($superadmin)
+            ->get('/vi/admin/payment-methods')
+            ->assertOk()
+            ->assertSee('Cổng thanh toán quốc tế Stripe');
     }
 }

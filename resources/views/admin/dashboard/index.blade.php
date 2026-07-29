@@ -80,6 +80,21 @@
         </div>
     </div>
 
+    @if(!$canViewOrders)
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="card-icon bg-primary-subtle text-primary flex-shrink-0">
+                        <iconify-icon icon="solar:shield-user-bold-duotone" class="fs-6"></iconify-icon>
+                    </div>
+                    <div>
+                        <h5 class="fw-semibold mb-1">{{ __('admin.dashboard_page.limited_title') }}</h5>
+                        <p class="text-muted mb-0">{{ __('admin.dashboard_page.limited_description') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @else
     <!-- Stat Cards Row -->
     <div class="row mb-4">
         <!-- Revenue Card -->
@@ -351,9 +366,11 @@
         </div>
     </div>
 
+    @endif
 @endsection
 
 @push('scripts')
+@if($canViewOrders)
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -703,4 +720,5 @@
         });
     });
 </script>
+@endif
 @endpush

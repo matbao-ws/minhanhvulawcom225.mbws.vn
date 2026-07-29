@@ -55,7 +55,7 @@
                                 <i class="ti ti-photo-plus text-muted fs-9 mb-2 d-inline-block"></i>
                                 <h6 class="text-dark fw-semibold mb-1">Chọn tập tin ảnh banner</h6>
                                 <p class="text-muted small mb-3">Chấp nhận JPG, PNG, WEBP tối đa 2MB</p>
-                                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" required style="cursor: pointer;">
+                                <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="banners" style="cursor: pointer;">
                                 <div id="imagePreviewContainer" class="mt-3" style="display: none;">
                                     <img id="imagePreview" src="" alt="Preview" class="rounded shadow-sm border border-2 border-primary-subtle" style="max-height: 200px; max-width: 100%; object-fit: cover;">
                                 </div>

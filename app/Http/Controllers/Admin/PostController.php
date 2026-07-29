@@ -10,6 +10,7 @@ use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
+use App\Services\PostSeoAnalyzer;
 use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class PostController extends Controller
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly HtmlSanitizer $htmlSanitizer,
+        private readonly PostSeoAnalyzer $seoAnalyzer,
     ) {}
 
     /**
@@ -74,26 +76,36 @@ class PostController extends Controller
         $titles = $this->cleanTranslations($validated['title']);
         $submittedSlugs = $this->cleanTranslations($validated['slug'] ?? []);
         $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $titles[$this->languages->defaultLocale()];
+        $legacySlug = $this->uniqueLegacySlug($baseSlug);
+        $contents = $this->cleanTranslations($validated['content'], true);
+        $seoTitles = $this->cleanTranslations($validated['seo_title'] ?? []);
+        $seoDescriptions = $this->cleanTranslations($validated['seo_description'] ?? []);
+        $seoAnalysis = $this->analyzeSeo($titles, $contents, $seoTitles, $seoDescriptions, $legacySlug, $validated['seo_keys'] ?? null);
 
-        $imageUrl = null;
+        $imageUrl = $validated['image_url'] ?? null;
         if ($request->hasFile('image_file')) {
             $cloudinaryService = app(CloudinaryService::class);
             $imageUrl = $cloudinaryService->uploadFile($request->file('image_file'), 'posts');
         }
 
-        $post = DB::transaction(function () use ($validated, $titles, $submittedSlugs, $baseSlug, $imageUrl, $request) {
+        $post = DB::transaction(function () use ($validated, $titles, $submittedSlugs, $legacySlug, $contents, $seoTitles, $seoDescriptions, $seoAnalysis, $imageUrl, $request) {
             $active = $request->boolean('is_active');
             $post = Post::query()->create([
                 'category_id' => $validated['category_id'] ?? null,
                 'title' => $titles,
-                'slug' => $this->uniqueLegacySlug($baseSlug),
+                'slug' => $legacySlug,
                 'summary' => $this->cleanTranslations($validated['summary'] ?? []),
-                'content' => $this->cleanTranslations($validated['content'], true),
+                'content' => $contents,
                 'image_url' => $imageUrl,
                 'is_active' => $active,
-                'seo_title' => $this->cleanTranslations($validated['seo_title'] ?? []),
-                'seo_description' => $this->cleanTranslations($validated['seo_description'] ?? []),
+                'seo_title' => $seoTitles,
+                'seo_description' => $seoDescriptions,
                 'seo_keys' => $validated['seo_keys'] ?? null,
+                'canonical_url' => $validated['canonical_url'] ?? null,
+                'robots_index' => $request->has('robots_index') ? $request->boolean('robots_index') : true,
+                'robots_follow' => $request->has('robots_follow') ? $request->boolean('robots_follow') : true,
+                'seo_score' => $seoAnalysis['score'],
+                'seo_analysis' => $seoAnalysis,
                 'published_at' => $active ? now() : null,
             ]);
             $this->localizedSlugs->sync($post, $submittedSlugs, $titles);
@@ -134,26 +146,36 @@ class PostController extends Controller
         $titles = $this->mergeTranslations($post, 'title', $validated['title']);
         $submittedSlugs = $this->cleanTranslations($validated['slug'] ?? []);
         $baseSlug = $submittedSlugs[$this->languages->defaultLocale()] ?? $post->slug;
+        $legacySlug = $this->uniqueLegacySlug($baseSlug, $post->id);
+        $contents = $this->mergeTranslations($post, 'content', $validated['content'], true);
+        $seoTitles = $this->mergeTranslations($post, 'seo_title', $validated['seo_title'] ?? []);
+        $seoDescriptions = $this->mergeTranslations($post, 'seo_description', $validated['seo_description'] ?? []);
+        $seoAnalysis = $this->analyzeSeo($titles, $contents, $seoTitles, $seoDescriptions, $legacySlug, $validated['seo_keys'] ?? null);
 
-        $imageUrl = $post->image_url;
+        $imageUrl = ($validated['image_url'] ?? null) ?: $post->image_url;
         if ($request->hasFile('image_file')) {
             $cloudinaryService = app(CloudinaryService::class);
             $imageUrl = $cloudinaryService->uploadFile($request->file('image_file'), 'posts');
         }
 
-        DB::transaction(function () use ($post, $validated, $titles, $submittedSlugs, $baseSlug, $imageUrl, $request): void {
+        DB::transaction(function () use ($post, $validated, $titles, $submittedSlugs, $legacySlug, $contents, $seoTitles, $seoDescriptions, $seoAnalysis, $imageUrl, $request): void {
             $active = $request->boolean('is_active');
             $post->update([
                 'category_id' => $validated['category_id'] ?? null,
                 'title' => $titles,
-                'slug' => $this->uniqueLegacySlug($baseSlug, $post->id),
+                'slug' => $legacySlug,
                 'summary' => $this->mergeTranslations($post, 'summary', $validated['summary'] ?? []),
-                'content' => $this->mergeTranslations($post, 'content', $validated['content'], true),
+                'content' => $contents,
                 'image_url' => $imageUrl,
                 'is_active' => $active,
-                'seo_title' => $this->mergeTranslations($post, 'seo_title', $validated['seo_title'] ?? []),
-                'seo_description' => $this->mergeTranslations($post, 'seo_description', $validated['seo_description'] ?? []),
+                'seo_title' => $seoTitles,
+                'seo_description' => $seoDescriptions,
                 'seo_keys' => $validated['seo_keys'] ?? null,
+                'canonical_url' => $validated['canonical_url'] ?? null,
+                'robots_index' => $request->has('robots_index') ? $request->boolean('robots_index') : $post->robots_index,
+                'robots_follow' => $request->has('robots_follow') ? $request->boolean('robots_follow') : $post->robots_follow,
+                'seo_score' => $seoAnalysis['score'],
+                'seo_analysis' => $seoAnalysis,
                 'published_at' => $active ? ($post->published_at ?: now()) : null,
             ]);
             $this->localizedSlugs->sync($post, $submittedSlugs, $titles);
@@ -250,8 +272,12 @@ class PostController extends Controller
             'title' => ['required', 'array'], 'slug' => ['nullable', 'array'],
             'summary' => ['nullable', 'array'], 'content' => ['required', 'array'],
             'seo_title' => ['nullable', 'array'], 'seo_description' => ['nullable', 'array'],
-            'category_id' => ['nullable', 'exists:post_categories,id'], 'image_file' => ['nullable', 'image', 'max:2048'],
-            'seo_keys' => ['nullable', 'string', 'max:255'], 'is_active' => ['nullable', 'boolean'],
+            'category_id' => ['nullable', 'exists:post_categories,id'], 'image_file' => ['nullable', 'image', 'max:2048'], 'image_url' => ['nullable', 'string', 'max:255'],
+            'seo_keys' => ['nullable', 'string', 'max:255'],
+            'canonical_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'robots_index' => ['nullable', 'boolean'],
+            'robots_follow' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
         ];
         foreach ($this->languages->codes() as $code) {
             $required = $code === $this->languages->defaultLocale() ? 'required' : 'nullable';
@@ -260,7 +286,7 @@ class PostController extends Controller
             $rules["summary.$code"] = ['nullable', 'string'];
             $rules["content.$code"] = [$required, 'string'];
             $rules["seo_title.$code"] = ['nullable', 'string', 'max:255'];
-            $rules["seo_description.$code"] = ['nullable', 'string'];
+            $rules["seo_description.$code"] = ['nullable', 'string', 'max:500'];
         }
 
         return $rules;
@@ -301,5 +327,31 @@ class PostController extends Controller
         }
 
         return $slug;
+    }
+
+    /**
+     * @param  array<string, string>  $titles
+     * @param  array<string, string>  $contents
+     * @param  array<string, string>  $seoTitles
+     * @param  array<string, string>  $seoDescriptions
+     */
+    private function analyzeSeo(
+        array $titles,
+        array $contents,
+        array $seoTitles,
+        array $seoDescriptions,
+        string $slug,
+        ?string $focusKeyword,
+    ): array {
+        $locale = $this->languages->defaultLocale();
+
+        return $this->seoAnalyzer->analyze([
+            'title' => $titles[$locale] ?? (reset($titles) ?: ''),
+            'slug' => $slug,
+            'content' => $contents[$locale] ?? (reset($contents) ?: ''),
+            'seo_title' => $seoTitles[$locale] ?? '',
+            'seo_description' => $seoDescriptions[$locale] ?? '',
+            'focus_keyword' => $focusKeyword,
+        ]);
     }
 }

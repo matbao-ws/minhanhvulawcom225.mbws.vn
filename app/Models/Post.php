@@ -30,11 +30,20 @@ class Post extends Model
         'seo_title',
         'seo_description',
         'seo_keys',
+        'canonical_url',
+        'robots_index',
+        'robots_follow',
+        'seo_score',
+        'seo_analysis',
         'published_at',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'robots_index' => 'boolean',
+        'robots_follow' => 'boolean',
+        'seo_score' => 'integer',
+        'seo_analysis' => 'array',
         'published_at' => 'datetime',
     ];
 

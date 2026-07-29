@@ -28,6 +28,7 @@ class UserRequest extends FormRequest
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'is_active' => ['nullable', 'boolean'],
             'avatar_file' => ['nullable', 'file', 'image', 'max:2048'], // 2MB max
+            'avatar_url' => ['nullable', 'string', 'max:255'],
         ];
 
         if ($this->isMethod('POST')) {

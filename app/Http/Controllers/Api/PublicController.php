@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicBrandResource;
 use App\Http\Resources\PublicCategoryResource;
 use App\Http\Resources\PublicOrderResource;
+use App\Http\Resources\PublicPageResource;
 use App\Http\Resources\PublicPostResource;
 use App\Http\Resources\PublicProductResource;
 use App\Http\Resources\PublicReviewResource;
 use App\Jobs\SendOrderStatusEmail;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\PaymentMethod;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Product;
@@ -34,6 +37,7 @@ use App\Services\PromotionService;
 use App\Services\ShippingService;
 use App\Services\VNPAYService;
 use App\Support\ApiResponse;
+use App\Support\FeatureGate;
 use App\Support\NotificationHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +56,7 @@ class PublicController extends Controller
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LocalizedContent $localizedContent,
         private readonly MultilingualSettings $multilingual,
+        private readonly FeatureGate $features,
     ) {}
 
     /**
@@ -91,6 +96,12 @@ class PublicController extends Controller
             ->all();
 
         $settings['multilingual'] = $this->multilingual->publicConfig();
+        $featureStates = FeatureSetting::query()
+            ->whereIn('feature_code', config('features.codes', []))
+            ->pluck('is_enabled', 'feature_code');
+        $settings['features'] = collect(config('features.codes', []))
+            ->mapWithKeys(fn (string $code) => [$code => (bool) $featureStates->get($code, false)])
+            ->all();
 
         return ApiResponse::success($settings);
     }
@@ -205,13 +216,17 @@ class PublicController extends Controller
     {
         $product = $this->localizedSlugs->find(Product::class, $idOrSlug, app()->getLocale());
         if ($product && $product->is_active) {
-            $product->load(['localizedSlugs', 'category.localizedSlugs', 'brand.localizedSlugs', 'optionGroups.values' => function ($q) {
+            $relations = ['localizedSlugs', 'category.localizedSlugs', 'brand.localizedSlugs', 'optionGroups.values' => function ($q) {
                 $q->where('is_active', true);
             }, 'variants.optionValues.optionGroup', 'variants' => function ($q) {
                 $q->where('is_active', true);
-            }, 'reviews' => function ($q) {
+            }];
+            if ($this->features->enabled('review')) {
+                $relations['reviews'] = function ($q) {
                 $q->where('is_visible', true)->latest();
-            }]);
+                };
+            }
+            $product->load($relations);
         } else {
             $product = null;
         }
@@ -281,6 +296,31 @@ class PublicController extends Controller
         $post->load(['localizedSlugs', 'category.localizedSlugs']);
 
         return ApiResponse::success(new PublicPostResource($post));
+    }
+
+    public function pages()
+    {
+        $pages = Page::query()
+            ->where('is_active', true)
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->with('localizedSlugs')
+            ->latest('published_at')
+            ->get();
+
+        return ApiResponse::success(PublicPageResource::collection($pages));
+    }
+
+    public function pageDetail(string $idOrSlug)
+    {
+        $page = $this->localizedSlugs->find(Page::class, $idOrSlug, app()->getLocale());
+        if (! $page || ! $page->is_active || ! $page->published_at || $page->published_at->isFuture()) {
+            return ApiResponse::error('Trang không tồn tại.', 404);
+        }
+
+        $page->load('localizedSlugs');
+
+        return ApiResponse::success(new PublicPageResource($page));
     }
 
     /**
@@ -374,6 +414,13 @@ class PublicController extends Controller
 
         if (! $paymentMethod) {
             return ApiResponse::error('Phương thức thanh toán chưa được kích hoạt hoặc không tồn tại.', 422);
+        }
+        $paymentFeature = $paymentMethod->method_code === 'cod' ? 'cod_order' : 'online_payment';
+        if (! $this->features->enabled($paymentFeature)) {
+            return ApiResponse::error($this->features->unavailableMessage(), 403);
+        }
+        if ($request->filled('voucher_code') && ! $this->features->enabled('voucher')) {
+            return ApiResponse::error($this->features->unavailableMessage(), 403);
         }
         if ($paymentMethod->type === 'connected' && $paymentMethod->method_code !== 'vnpay') {
             return ApiResponse::error('Cổng thanh toán này chưa được tích hợp cho checkout.', 422);

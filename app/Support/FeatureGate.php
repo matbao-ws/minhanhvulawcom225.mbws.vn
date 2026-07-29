@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\FeatureSetting;
+use App\Models\User;
 
 class FeatureGate
 {
@@ -15,6 +16,11 @@ class FeatureGate
             ->first();
 
         return $setting && (bool) $setting->is_enabled;
+    }
+
+    public function availableTo(?User $user, string $featureCode): bool
+    {
+        return (bool) ($user?->isSuperAdmin() || $this->enabled($featureCode));
     }
 
     public function limit(string $featureCode): ?int

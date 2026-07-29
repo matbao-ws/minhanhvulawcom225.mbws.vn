@@ -54,7 +54,7 @@
                 <h4 class="card-title mb-7 text-start">{{ __('admin.users.fields.avatar') }}</h4>
                 
                 <!-- Hidden file input -->
-                <input type="file" name="avatar_file" id="user_avatar_file" class="d-none" accept="image/*">
+                <input type="file" name="avatar_file" id="user_avatar_file" class="d-none" accept="image/*" data-media-folder="avatars">
                 
                 <!-- Drag and drop preview container -->
                 <div id="user_avatar_preview_container" class="position-relative mx-auto rounded-circle border border-2 border-dashed d-flex align-items-center justify-content-center bg-light cursor-pointer mb-3 overflow-hidden" 

@@ -166,7 +166,7 @@
                         </div>
                         <div class="col-md-12 mb-3">
                             <label class="form-label" for="quick_image_file">{{ __('catalog.fields.image') }}</label>
-                            <input type="file" class="form-control" id="quick_image_file" name="image_file" accept="image/*">
+                            <input type="file" class="form-control" id="quick_image_file" name="image_file" accept="image/*" data-media-folder="brands">
                         </div>
                         <div class="col-12 mb-3 d-none" id="quickImagePreviewWrap">
                             <img src="" alt="" id="quickImagePreview" class="rounded border object-fit-cover" width="72" height="72" onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">

@@ -107,7 +107,12 @@ class ProductController extends Controller
     public function show(string $locale, Product $product)
     {
         return view('admin.catalog.products.show', [
-            'product' => $product->load(['category', 'optionGroups.values', 'variants.optionValues']),
+            'product' => $product->load([
+                'category',
+                'brand',
+                'optionGroups.values',
+                'variants.optionValues.optionGroup',
+            ]),
         ]);
     }
 

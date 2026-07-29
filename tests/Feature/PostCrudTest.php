@@ -99,11 +99,26 @@ class PostCrudTest extends TestCase
         $responsePost->assertOk();
         $responsePost->assertViewIs('admin.posts.index');
         $responsePost->assertViewHas('posts');
+        $responsePost
+            ->assertSee('Viết bài mới')
+            ->assertSee('/vi/admin/posts/create', false);
 
         $responseCategory = $this->get('/vi/admin/post-categories');
         $responseCategory->assertOk();
         $responseCategory->assertViewIs('admin.posts.categories.index');
         $responseCategory->assertViewHas('categories');
+    }
+
+    public function test_post_form_contains_live_seo_preview_and_analysis_controls(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->get('/vi/admin/posts/'.$this->post->id.'/edit')
+            ->assertOk()
+            ->assertSee('seo_google_preview_result', false)
+            ->assertSee('rule_internal_links', false)
+            ->assertSee('name="canonical_url"', false)
+            ->assertSee('name="robots_index"', false)
+            ->assertSee('name="robots_follow"', false);
     }
 
     public function test_admin_can_create_post_category(): void
@@ -172,6 +187,10 @@ class PostCrudTest extends TestCase
             'seo_title' => 'Tiêu đề SEO bài viết mới',
             'seo_description' => 'Mô tả SEO cho bài viết mới để xem có chuẩn hay không',
             'seo_keys' => 'bài viết mới',
+            'canonical_url' => 'https://example.com/bai-viet-moi-tinh',
+            'robots_index' => '0',
+            'robots_follow' => '1',
+            'seo_score' => 100,
             'is_active' => '1',
         ]);
 
@@ -182,7 +201,14 @@ class PostCrudTest extends TestCase
             'slug' => 'bai-viet-moi-tinh',
             'category_id' => $this->category->id,
             'is_active' => true,
+            'canonical_url' => 'https://example.com/bai-viet-moi-tinh',
+            'robots_index' => false,
+            'robots_follow' => true,
         ]);
+        $created = Post::query()->where('slug', 'bai-viet-moi-tinh')->firstOrFail();
+        $this->assertNotNull($created->seo_score);
+        $this->assertNotSame(100, $created->seo_score);
+        $this->assertIsArray($created->seo_analysis);
     }
 
     public function test_admin_can_update_post(): void
@@ -206,6 +232,24 @@ class PostCrudTest extends TestCase
         $this->post->refresh();
         $this->assertEquals('bai-viet-duoc-chinh-sua', $this->post->slug);
         $this->assertEquals('Bài viết được chỉnh sửa', $this->post->getTranslation('title', 'vi'));
+        $this->assertNotNull($this->post->seo_score);
+    }
+
+    public function test_public_post_exposes_canonical_and_robots_metadata(): void
+    {
+        $this->post->update([
+            'canonical_url' => 'https://example.com/bai-viet-thu-nghiem',
+            'robots_index' => false,
+            'robots_follow' => true,
+        ]);
+
+        $this->getJson('/api/public/posts/'.$this->post->slug)
+            ->assertOk()
+            ->assertJsonPath('data.canonical_url', 'https://example.com/bai-viet-thu-nghiem')
+            ->assertJsonPath('data.robots.index', false)
+            ->assertJsonPath('data.robots.follow', true)
+            ->assertJsonMissingPath('data.seo_score')
+            ->assertJsonMissingPath('data.seo_analysis');
     }
 
     public function test_admin_can_delete_post(): void

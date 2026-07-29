@@ -79,7 +79,7 @@
                     <tbody>
                         @forelse($vouchers as $voucher)
                             @php
-                                $fallbackLocale = config('app.fallback_locale', config('app.locale', 'vi'));
+                                $fallbackLocale = app(\App\Services\LanguageRegistry::class)->fallbackLocale();
                                 $name = $voucher->getTranslation('name', app()->getLocale(), false) ?: $voucher->getTranslation('name', $fallbackLocale, false);
                                 $description = $voucher->getTranslation('description', app()->getLocale(), false) ?: $voucher->getTranslation('description', $fallbackLocale, false);
                                 

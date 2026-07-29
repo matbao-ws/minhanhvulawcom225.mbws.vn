@@ -39,6 +39,8 @@ class ProductUploadAndMediaTest extends TestCase
         $response->assertViewIs('admin.media.index');
         $response->assertViewHas('folders');
         $response->assertViewHas('resources');
+        $response->assertSee('row-cols-xl-8', false);
+        $response->assertSee('object-fit: contain', false);
     }
 
     public function test_admin_can_upload_media_file(): void
@@ -55,7 +57,60 @@ class ProductUploadAndMediaTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        Storage::disk('public')->assertExists('general/' . $file->hashName());
+        $files = Storage::disk('public')->files('general');
+        $this->assertCount(1, $files);
+        $this->assertStringEndsWith('.jpg', $files[0]);
+    }
+
+    public function test_image_picker_rejects_svg_with_a_clear_security_message(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $svg = UploadedFile::fake()->createWithContent(
+            'unsafe.svg',
+            '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+        );
+
+        $this->postJson('/vi/admin/media/upload', [
+            'file' => $svg,
+            'folder' => 'general',
+            'image_only' => true,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'errors.file.0',
+                'Định dạng ảnh không được hỗ trợ. Chỉ chấp nhận JPG, PNG, WEBP hoặc GIF. SVG bị chặn vì lý do bảo mật.',
+            );
+    }
+
+    public function test_admin_can_get_image_resources_for_the_media_picker(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $image = UploadedFile::fake()->image('picker-image.jpg', 320, 180);
+        Storage::disk('public')->putFileAs('general', $image, 'picker-image.jpg');
+        Storage::disk('public')->put('general/document.pdf', 'document');
+
+        $this->getJson('/vi/admin/media/resources?folder=general')
+            ->assertOk()
+            ->assertJsonCount(1, 'resources')
+            ->assertJsonPath('resources.0.public_id', 'general/picker-image.jpg')
+            ->assertJsonPath('resources.0.width', 320)
+            ->assertJsonPath('resources.0.height', 180);
+    }
+
+    public function test_media_picker_paginates_local_images(): void
+    {
+        $this->actingAs(User::factory()->create());
+        foreach (range(1, 25) as $number) {
+            Storage::disk('public')->put("general/image-{$number}.jpg", 'image');
+        }
+
+        $firstPage = $this->getJson('/vi/admin/media/resources?folder=general')->assertOk();
+        $firstPage->assertJsonCount(24, 'resources')->assertJsonPath('next_cursor', 'local:2');
+
+        $this->getJson('/vi/admin/media/resources?folder=general&cursor=local:2')
+            ->assertOk()
+            ->assertJsonCount(1, 'resources')
+            ->assertJsonPath('next_cursor', null);
     }
 
     public function test_admin_can_delete_media_file(): void
@@ -106,8 +161,35 @@ class ProductUploadAndMediaTest extends TestCase
         $this->assertStringContainsString('products/', $product->image_url);
 
         // Verify the file was stored on the fallback public disk
-        $filename = 'products/' . $imageFile->hashName();
-        Storage::disk('public')->assertExists($filename);
+        $files = Storage::disk('public')->files('products');
+        $this->assertCount(1, $files);
+        $this->assertStringEndsWith('.png', $files[0]);
+    }
+
+    public function test_can_create_product_with_an_existing_media_url(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $category = Category::query()->create([
+            'name' => ['vi' => 'Điện thoại'],
+            'slug' => 'dien-thoai-library',
+            'is_active' => true,
+        ]);
+
+        $this->post('/vi/admin/products', [
+            'name' => 'Library product',
+            'slug' => 'library-product',
+            'sku' => 'LIBRARY-1',
+            'price' => 1200,
+            'category_id' => $category->id,
+            'image_url' => 'https://cdn.example.test/products/library.jpg',
+            'is_active' => 1,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('products', [
+            'sku' => 'LIBRARY-1',
+            'image_url' => 'https://cdn.example.test/products/library.jpg',
+        ]);
     }
 
     public function test_can_save_product_as_draft_inactive(): void

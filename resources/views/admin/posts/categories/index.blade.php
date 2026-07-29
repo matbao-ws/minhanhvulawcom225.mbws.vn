@@ -87,7 +87,7 @@
                     @php $isFirstTbody = true; @endphp
                     @forelse($categories as $category)
                         @php
-                            $fallbackLocale = config('app.fallback_locale', config('app.locale', 'vi'));
+                            $fallbackLocale = app(\App\Services\LanguageRegistry::class)->fallbackLocale();
                             $categoryName = $category->getTranslation('name', app()->getLocale(), false) ?: $category->getTranslation('name', $fallbackLocale, false);
                             $categoryDescription = $category->getTranslation('description', app()->getLocale(), false) ?: $category->getTranslation('description', $fallbackLocale, false) ?: '';
                         @endphp
