@@ -75,7 +75,7 @@ class PageHtmlSanitizer
             $output .= $document->saveHTML($child);
         }
 
-        return $output;
+        return MediaUrl::relativizeHtmlSources($output);
     }
 
     private function unwrap(DOMNode $node): void

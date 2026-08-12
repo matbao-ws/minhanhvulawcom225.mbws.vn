@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Banner;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\MediaUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -98,7 +99,7 @@ class BannerTest extends TestCase
         $this->assertNotNull($banner->image_path);
         
         // Assert that the image file was stored
-        $path = str_replace(Storage::disk('public')->url(''), '', $banner->image_path);
+        $path = MediaUrl::publicDiskPath($banner->image_path);
         Storage::disk('public')->assertExists($path);
     }
 
@@ -164,7 +165,7 @@ class BannerTest extends TestCase
         $this->assertEquals(10, $banner->sort_order);
 
         // Assert new image is saved, old is deleted
-        $newPath = str_replace(Storage::disk('public')->url(''), '', $banner->image_path);
+        $newPath = MediaUrl::publicDiskPath($banner->image_path);
         Storage::disk('public')->assertExists($newPath);
         Storage::disk('public')->assertMissing($oldPath);
     }

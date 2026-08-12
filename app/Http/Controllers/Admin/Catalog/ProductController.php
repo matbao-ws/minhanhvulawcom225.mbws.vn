@@ -78,17 +78,25 @@ class ProductController extends Controller
             $data = $request->validated();
             $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
             unset($data['has_variants'], $data['variant_groups']);
+            $galleryImages = array_values(array_filter($data['gallery_images'] ?? [], fn ($url) => filled($url)));
+            unset($data['gallery_images']);
             if ($request->hasFile('image_file')) {
                 $cloudinaryService = app(CloudinaryService::class);
                 $data['image_url'] = $cloudinaryService->uploadFile($request->file('image_file'), 'products');
             }
-            [$product, $variantCount] = DB::transaction(function () use ($data, $variantGroups) {
+            [$product, $variantCount] = DB::transaction(function () use ($data, $variantGroups, $galleryImages) {
                 $product = $this->products->create($data);
                 $variantCount = 0;
 
                 if ($variantGroups !== []) {
                     $this->options->sync($product, $variantGroups);
                     $variantCount = $this->products->generateVariants($product);
+                }
+
+                if ($galleryImages !== []) {
+                    $product->images()->createMany(
+                        collect($galleryImages)->values()->map(fn ($url, $index) => ['image_url' => $url, 'sort_order' => $index])->all()
+                    );
                 }
 
                 return [$product, $variantCount];
@@ -119,7 +127,7 @@ class ProductController extends Controller
     public function edit(string $locale, Product $product)
     {
         return view('admin.catalog.products.edit', [
-            'product' => $product->load(['optionGroups.values', 'variants.optionValues']),
+            'product' => $product->load(['optionGroups.values', 'variants.optionValues', 'images']),
             'categoryOptions' => $this->categoryOptions(),
             'brandOptions' => $this->brandOptions(),
         ]);
@@ -130,19 +138,28 @@ class ProductController extends Controller
         $data = $request->validated();
         $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
         unset($data['has_variants'], $data['variant_groups']);
+        $galleryImages = array_values(array_filter($data['gallery_images'] ?? [], fn ($url) => filled($url)));
+        unset($data['gallery_images']);
         if ($request->hasFile('image_file')) {
             $cloudinaryService = app(CloudinaryService::class);
             $data['image_url'] = $cloudinaryService->uploadFile($request->file('image_file'), 'products');
         }
 
         try {
-            [$product, $variantCount] = DB::transaction(function () use ($product, $data, $variantGroups) {
+            [$product, $variantCount] = DB::transaction(function () use ($product, $data, $variantGroups, $galleryImages) {
                 $product = $this->products->update($product, $data);
                 $variantCount = 0;
 
                 if ($variantGroups !== []) {
                     $this->options->sync($product, $variantGroups);
                     $variantCount = $this->products->generateVariants($product);
+                }
+
+                $product->images()->delete();
+                if ($galleryImages !== []) {
+                    $product->images()->createMany(
+                        collect($galleryImages)->values()->map(fn ($url, $index) => ['image_url' => $url, 'sort_order' => $index])->all()
+                    );
                 }
 
                 return [$product, $variantCount];

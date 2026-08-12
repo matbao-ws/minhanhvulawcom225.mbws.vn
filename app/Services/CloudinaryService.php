@@ -6,6 +6,7 @@ use Cloudinary\Configuration\Configuration;
 use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Api\Admin\AdminApi;
 use Illuminate\Http\UploadedFile;
+use App\Support\MediaUrl;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -60,7 +61,7 @@ class CloudinaryService
         if (!$this->isConfigured()) {
             Log::info("Cloudinary is not configured. Falling back to local storage.");
             $path = $file->storeAs($folder, $friendlyFilename, 'public');
-            return Storage::disk('public')->url($path);
+            return $this->localUrl($path);
         }
 
         try {
@@ -78,8 +79,20 @@ class CloudinaryService
             Log::error("Cloudinary Upload Error: " . $e->getMessage());
             // Fallback to local storage in case of API failure
             $path = $file->storeAs($folder, $friendlyFilename, 'public');
-            return Storage::disk('public')->url($path);
+            return $this->localUrl($path);
         }
+    }
+
+    /**
+     * Reference to a file on our own public disk.
+     *
+     * Deliberately root-relative rather than absolute: these references are
+     * persisted, and an absolute URL would pin the record to whatever APP_URL
+     * happened to be set when the upload ran. See {@see MediaUrl}.
+     */
+    private function localUrl(string $path): string
+    {
+        return (string) MediaUrl::toStorable(Storage::disk('public')->url($path));
     }
 
     /**
@@ -223,7 +236,7 @@ class CloudinaryService
 
             $dimensions = $this->localImageDimensions($file);
             $resources[] = [
-                'secure_url' => Storage::disk('public')->url($file),
+                'secure_url' => $this->localUrl($file),
                 'public_id' => $file,
                 'bytes' => Storage::disk('public')->size($file),
                 'created_at' => date('Y-m-d\TH:i:s\Z', Storage::disk('public')->lastModified($file)),

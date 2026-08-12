@@ -4,16 +4,15 @@
 @section('meta_description', $metaDescription)
 
 @push('styles')
-<style id="client-page-css">
+<style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; color: #20242a; font-family: Arial, sans-serif; }
     img { max-width: 100%; }
-    {!! $css !!}
 </style>
 @endpush
 
 @section('content')
-    <main id="client-page-{{ $page->id }}">
+    <main id="client-page-{{ $page->id }}" translate="no" class="notranslate">
         {!! $html !!}
     </main>
 @endsection

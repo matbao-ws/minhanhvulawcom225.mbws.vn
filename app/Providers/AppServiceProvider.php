@@ -61,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip())),
             Limit::perDay(500)->by((string) ($request->user()?->id ?: $request->ip())),
         ]);
+        RateLimiter::for('admin-page-inline', fn (Request $request) => [
+            Limit::perMinute(30)->by((string) ($request->user()?->id ?: $request->ip())),
+        ]);
 
         Paginator::useBootstrapFive();
 

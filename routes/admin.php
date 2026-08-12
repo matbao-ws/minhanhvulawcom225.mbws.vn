@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
 use App\Http\Controllers\Admin\Catalog\ProductOptionController;
 use App\Http\Controllers\Admin\Catalog\ProductVariantController;
+use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureController;
@@ -97,7 +98,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware(['feature:cms_page', 'can:manage_pages'])->group(function () {
         Route::get('pages/{page}/preview', [PageController::class, 'preview'])->name('pages.preview');
-        Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->name('pages.inline-update');
+        Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->middleware('throttle:admin-page-inline')->name('pages.inline-update');
         Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restore'])->name('pages.revisions.restore');
         Route::resource('pages', PageController::class)->except(['show']);
     });
@@ -116,6 +117,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::put('reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
         Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+    });
+
+    Route::middleware('can:manage_contacts')->group(function () {
+        Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->name('contact-submissions.index');
+        Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->name('contact-submissions.toggle-read');
+        Route::delete('contact-submissions/{contactSubmission}', [ContactSubmissionController::class, 'destroy'])->name('contact-submissions.destroy');
     });
 
     Route::middleware('can:manage_settings')->group(function () {

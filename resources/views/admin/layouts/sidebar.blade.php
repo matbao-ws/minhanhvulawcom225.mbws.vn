@@ -181,6 +181,16 @@
                               @endcan
                           @endif
 
+                          <!-- Liên hệ -->
+                          @can('manage_contacts')
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.contact-submissions.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:letter-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">Liên hệ</span>
+                              </a>
+                          </li>
+                          @endcan
+
                           <!-- Mã giảm giá -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'voucher') || $sidebarFeatures->availableTo($sidebarUser, 'catalog'))
                               @can('manage_vouchers')

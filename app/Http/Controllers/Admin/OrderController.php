@@ -13,15 +13,14 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\ActivityLogger;
+use App\Services\Orders\OrderCreationService;
+use App\Services\Orders\OrderDraft;
 use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
-use App\Services\PromotionService;
-use App\Services\LocalizedContent;
 use App\Services\ShippingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -30,8 +29,7 @@ class OrderController extends Controller
         private readonly OrderStockService $orderStockService,
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
-        private readonly PromotionService $promotionService,
-        private readonly LocalizedContent $localizedContent,
+        private readonly OrderCreationService $orderCreation,
     ) {}
 
     /**
@@ -201,8 +199,6 @@ class OrderController extends Controller
 
         try {
             $order = DB::transaction(function () use ($validated) {
-                $subtotal = 0.0;
-                $promotionDiscount = 0.0;
                 $items = [];
 
                 foreach ($validated['items'] as $input) {
@@ -228,69 +224,29 @@ class OrderController extends Controller
                         throw new \DomainException("{$product->name} không đủ tồn kho.");
                     }
 
-                    $price = $variant?->price !== null ? (float) $variant->price : (float) $product->price;
-                    $quote = $this->promotionService->quote($product, $variant, $price, $quantity);
-                    $subtotal += $price * $quantity;
-                    $promotionDiscount += $quote['discount'];
-                    $items[] = ['quote' => $quote, 'data' => [
-                        'product_id' => $product->id,
-                        'product_variant_id' => $variant?->id,
-                        'promotion_id' => $quote['promotion']?->id,
-                        'product_name' => $this->localizedContent->get($product, 'name'),
-                        'variant_name' => $variant ? $this->localizedContent->get($variant, 'name') : null,
-                        'promotion_name' => $quote['promotion'] ? $this->localizedContent->get($quote['promotion'], 'name') : null,
-                        'sku' => $variant?->sku ?: $product->sku,
-                        'original_price' => $price,
-                        'promotion_discount' => $quote['discount'],
-                        'price' => $quote['unit_price'],
-                        'quantity' => $quantity,
-                        'total' => $quote['unit_price'] * $quantity,
-                    ]];
+                    $items[] = $this->orderCreation->priceLine($product, $variant, $quantity);
                 }
 
                 $manualDiscount = (float) ($validated['discount'] ?? 0);
-                $discountableSubtotal = max(0, $subtotal - $promotionDiscount);
-                if ($manualDiscount > $discountableSubtotal) {
+                if ($manualDiscount > $this->orderCreation->discountableSubtotal($items)) {
                     throw new \DomainException('Giảm giá thủ công không thể lớn hơn tiền hàng sau khuyến mãi.');
                 }
-                $discount = $promotionDiscount + $manualDiscount;
-                $shippingFee = (float) ($validated['shipping_fee'] ?? 0);
-                do {
-                    $orderNumber = 'ORD-'.strtoupper(Str::random(10));
-                } while (Order::query()->where('order_number', $orderNumber)->exists());
 
-                $order = Order::query()->create([
-                    'order_number' => $orderNumber,
-                    'locale' => app()->getLocale(),
-                    'customer_name' => $validated['customer_name'],
-                    'customer_email' => $validated['customer_email'],
-                    'customer_phone' => $validated['customer_phone'],
-                    'shipping_address' => $validated['shipping_address'],
-                    'payment_method' => $validated['payment_method'],
-                    'payment_status' => 'pending',
-                    'status' => 'pending',
-                    'subtotal' => $subtotal,
-                    'discount' => $discount,
-                    'promotion_discount' => $promotionDiscount,
-                    'shipping_fee' => $shippingFee,
-                    'grand_total' => max(0, $subtotal - $promotionDiscount - $manualDiscount) + $shippingFee,
-                    'notes' => $validated['notes'] ?? null,
-                ]);
-
-                foreach ($items as $item) {
-                    $orderItem = $order->items()->create($item['data']);
-                    $this->promotionService->reserve($item['quote'], (int) $orderItem->quantity);
-                    $this->orderStockService->deduct($order, $orderItem, 'Xuất kho cho đơn tạo thủ công');
-                }
-                $this->paymentTransactionService->createPending($order, 'manual_order');
-                OrderStatusHistory::query()->create([
-                    'order_id' => $order->id,
-                    'to_status' => 'pending',
-                    'to_payment_status' => 'pending',
-                    'note' => 'Tạo đơn thủ công',
-                    'changed_by' => auth()->id(),
-                    'created_at' => now(),
-                ]);
+                $order = $this->orderCreation->create(new OrderDraft(
+                    customerName: $validated['customer_name'],
+                    customerEmail: $validated['customer_email'],
+                    customerPhone: $validated['customer_phone'],
+                    shippingAddress: $validated['shipping_address'],
+                    paymentMethod: $validated['payment_method'],
+                    lines: $items,
+                    extraDiscount: $manualDiscount,
+                    shippingFee: (float) ($validated['shipping_fee'] ?? 0),
+                    notes: $validated['notes'] ?? null,
+                    paymentSource: 'manual_order',
+                    historyNote: 'Tạo đơn thủ công',
+                    stockNote: 'Xuất kho cho đơn tạo thủ công',
+                    changedBy: auth()->id(),
+                ));
                 ActivityLogger::log('created', $order, "Tạo đơn hàng thủ công {$order->order_number}");
 
                 return $order;

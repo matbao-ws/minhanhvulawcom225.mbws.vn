@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasLocalizedSlugs;
+use App\Models\Concerns\HasMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class Product extends Model
 {
-    use HasLocalizedSlugs, HasTranslations;
+    use HasLocalizedSlugs, HasTranslations, HasMediaUrls;
 
     public array $translatable = [
         'name',
@@ -68,6 +69,11 @@ class Product extends Model
     public function optionGroups()
     {
         return $this->hasMany(ProductOptionGroup::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function usesVariantInventory(): bool

@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
+use App\Support\MediaUrl;
 use App\Services\UserAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -139,8 +140,10 @@ class UserController extends Controller
             // Delete old avatar if it exists (optional)
             if (!empty($user->avatar_url) && !$this->cloudinaryService->isConfigured()) {
                 // local fallback path parsing and deletion
-                $path = str_replace(asset('storage/'), '', $user->avatar_url);
-                $this->cloudinaryService->deleteResource($path);
+                $path = MediaUrl::publicDiskPath($user->avatar_url);
+                if ($path !== null) {
+                    $this->cloudinaryService->deleteResource($path);
+                }
             }
             $data['avatar_url'] = $this->cloudinaryService->uploadFile($request->file('avatar_file'), 'avatars');
         }
@@ -183,8 +186,10 @@ class UserController extends Controller
 
         // Delete avatar if it exists
         if (!empty($user->avatar_url)) {
-            $path = str_replace(asset('storage/'), '', $user->avatar_url);
-            $this->cloudinaryService->deleteResource($path);
+            $path = MediaUrl::publicDiskPath($user->avatar_url);
+            if ($path !== null) {
+                $this->cloudinaryService->deleteResource($path);
+            }
         }
 
         $oldValues = $user->only(['name', 'email', 'role_id', 'is_active']);

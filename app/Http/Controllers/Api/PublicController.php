@@ -25,12 +25,15 @@ use App\Models\ProjectSetting;
 use App\Models\Review;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
+use App\Services\Catalog\ProductQueryService;
 use App\Services\Catalog\ProductVariantResolver;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
 use App\Services\MultilingualSettings;
 use App\Services\OrderStateTransitionService;
+use App\Services\Orders\OrderCreationService;
+use App\Services\Orders\OrderDraft;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\PromotionService;
@@ -43,7 +46,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
 class PublicController extends Controller
 {
@@ -52,6 +54,8 @@ class PublicController extends Controller
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
         private readonly ProductVariantResolver $variantResolver,
+        private readonly ProductQueryService $productQuery,
+        private readonly OrderCreationService $orderCreation,
         private readonly PromotionService $promotionService,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LocalizedContent $localizedContent,
@@ -156,50 +160,10 @@ class PublicController extends Controller
      */
     public function products(Request $request)
     {
-        $query = Product::query()->where('is_active', true)->with('localizedSlugs');
-
-        // Filter by Category
-        if ($request->filled('category')) {
-            $category = $this->localizedSlugs->find(Category::class, $request->input('category'), app()->getLocale());
-            $query->where('category_id', $category?->id ?? 0);
-        }
-
-        // Filter by Brand
-        if ($request->filled('brand')) {
-            $brand = $this->localizedSlugs->find(Brand::class, $request->input('brand'), app()->getLocale());
-            $query->where('brand_id', $brand?->id ?? 0);
-        }
-
-        // Search by keyword
-        if ($request->filled('q')) {
-            $q = $request->input('q');
-            $locale = app()->getLocale();
-            $query->where(function ($sub) use ($q, $locale) {
-                $sub->where("name->{$locale}", 'like', "%{$q}%")
-                    ->orWhere("description->{$locale}", 'like', "%{$q}%")
-                    ->orWhere('sku', 'like', "%{$q}%");
-            });
-        }
-
-        // Filter by Price range
-        if ($request->filled('min_price')) {
-            $query->where('price', '>=', (float) $request->input('min_price'));
-        }
-        if ($request->filled('max_price')) {
-            $query->where('price', '<=', (float) $request->input('max_price'));
-        }
-
-        // Sort results
-        $sortBy = $request->input('sort_by', 'latest');
-        if ($sortBy === 'price_asc') {
-            $query->orderBy('price', 'asc');
-        } elseif ($sortBy === 'price_desc') {
-            $query->orderBy('price', 'desc');
-        } else {
-            $query->latest();
-        }
-
-        $products = $query->paginate(12)->withQueryString();
+        $products = $this->productQuery
+            ->listing($request->only(['q', 'category', 'brand', 'min_price', 'max_price', 'sort_by']))
+            ->paginate(12)
+            ->withQueryString();
 
         return ApiResponse::success(PublicProductResource::collection($products->items()), 'Lấy danh sách sản phẩm thành công.', [
             'current_page' => $products->currentPage(),
@@ -214,22 +178,7 @@ class PublicController extends Controller
      */
     public function productDetail($idOrSlug)
     {
-        $product = $this->localizedSlugs->find(Product::class, $idOrSlug, app()->getLocale());
-        if ($product && $product->is_active) {
-            $relations = ['localizedSlugs', 'category.localizedSlugs', 'brand.localizedSlugs', 'optionGroups.values' => function ($q) {
-                $q->where('is_active', true);
-            }, 'variants.optionValues.optionGroup', 'variants' => function ($q) {
-                $q->where('is_active', true);
-            }];
-            if ($this->features->enabled('review')) {
-                $relations['reviews'] = function ($q) {
-                $q->where('is_visible', true)->latest();
-                };
-            }
-            $product->load($relations);
-        } else {
-            $product = null;
-        }
+        $product = $this->productQuery->findActiveDetail((string) $idOrSlug);
 
         if (! $product) {
             return ApiResponse::error('Sản phẩm không tồn tại.', 404);
@@ -439,8 +388,6 @@ class PublicController extends Controller
         $customerId = $apiUser?->id;
         try {
             $order = DB::transaction(function () use ($request, $customerId, $shippingFee) {
-                $subtotal = 0.0;
-                $promotionDiscount = 0.0;
                 $orderItems = [];
 
                 foreach ($request->input('items') as $item) {
@@ -450,10 +397,8 @@ class PublicController extends Controller
                     }
 
                     $variant = null;
-                    $price = (float) $product->price;
                     if ($product->usesVariantInventory()) {
                         $variant = $this->variantResolver->resolve($product, $item['option_value_ids'] ?? [], true);
-                        $price = $variant->price !== null ? (float) $variant->price : $price;
                     } elseif (! empty($item['variant_id'])) {
                         throw new \DomainException('API mới không nhận variant_id trực tiếp. Hãy gửi option_value_ids để chọn SKU.');
                     }
@@ -463,32 +408,12 @@ class PublicController extends Controller
                         throw new \DomainException("Sản phẩm {$product->name} đã hết hàng hoặc không đủ tồn kho.");
                     }
 
-                    $quote = $this->promotionService->quote($product, $variant, $price, $quantity);
-                    $subtotal += $price * $quantity;
-                    $promotionDiscount += $quote['discount'];
-                    $orderItems[] = [
-                        'product' => $product,
-                        'quote' => $quote,
-                        'data' => [
-                            'product_id' => $product->id,
-                            'product_variant_id' => $variant?->id,
-                            'promotion_id' => $quote['promotion']?->id,
-                            'product_name' => $this->localizedContent->get($product, 'name'),
-                            'variant_name' => $variant ? $this->localizedContent->get($variant, 'name') : null,
-                            'promotion_name' => $quote['promotion'] ? $this->localizedContent->get($quote['promotion'], 'name') : null,
-                            'sku' => $variant?->sku ?: $product->sku,
-                            'original_price' => $price,
-                            'promotion_discount' => $quote['discount'],
-                            'price' => $quote['unit_price'],
-                            'quantity' => $quantity,
-                            'total' => $quote['unit_price'] * $quantity,
-                        ],
-                    ];
+                    $orderItems[] = $this->orderCreation->priceLine($product, $variant, $quantity);
                 }
 
                 $voucher = null;
                 $voucherDiscount = 0.0;
-                $discountableSubtotal = max(0.0, $subtotal - $promotionDiscount);
+                $discountableSubtotal = $this->orderCreation->discountableSubtotal($orderItems);
                 if ($request->filled('voucher_code')) {
                     $voucher = Voucher::query()
                         ->where('code', strtoupper($request->input('voucher_code')))
@@ -499,45 +424,22 @@ class PublicController extends Controller
                     }
                     $voucherDiscount = $voucher->calculateDiscount($discountableSubtotal);
                 }
-                $discount = $promotionDiscount + $voucherDiscount;
-
-                do {
-                    $orderNumber = 'ORD-'.strtoupper(Str::random(10));
-                } while (Order::query()->where('order_number', $orderNumber)->exists());
-
-                $order = Order::query()->create([
-                    'order_number' => $orderNumber,
-                    'locale' => $request->attributes->get('content_locale', app()->getLocale()),
-                    'customer_name' => $request->customer_name,
-                    'customer_email' => $request->customer_email,
-                    'customer_phone' => $request->customer_phone,
-                    'shipping_address' => $request->shipping_address,
-                    'payment_method' => $request->payment_method,
-                    'payment_status' => 'pending',
-                    'status' => 'pending',
-                    'subtotal' => $subtotal,
-                    'discount' => $discount,
-                    'promotion_discount' => $promotionDiscount,
-                    'shipping_fee' => $shippingFee,
-                    'grand_total' => max(0.0, $subtotal - $promotionDiscount - $voucherDiscount) + $shippingFee,
-                    'notes' => $request->notes,
-                    'user_id' => $customerId,
-                ]);
-
-                foreach ($orderItems as $item) {
-                    $orderItem = $order->items()->create($item['data']);
-                    $this->promotionService->reserve($item['quote'], (int) $orderItem->quantity);
-                    $this->orderStockService->deduct($order, $orderItem, 'Xuất kho từ checkout API');
-                }
-
-                $this->paymentTransactionService->createPending($order, 'public_checkout');
-                OrderStatusHistory::query()->create([
-                    'order_id' => $order->id,
-                    'to_status' => 'pending',
-                    'to_payment_status' => 'pending',
-                    'note' => 'Tạo đơn hàng từ checkout API',
-                    'created_at' => now(),
-                ]);
+                $order = $this->orderCreation->create(new OrderDraft(
+                    customerName: $request->customer_name,
+                    customerEmail: $request->customer_email,
+                    customerPhone: $request->customer_phone,
+                    shippingAddress: $request->shipping_address,
+                    paymentMethod: $request->payment_method,
+                    lines: $orderItems,
+                    extraDiscount: $voucherDiscount,
+                    shippingFee: $shippingFee,
+                    notes: $request->notes,
+                    userId: $customerId,
+                    locale: $request->attributes->get('content_locale', app()->getLocale()),
+                    paymentSource: 'public_checkout',
+                    historyNote: 'Tạo đơn hàng từ checkout API',
+                    stockNote: 'Xuất kho từ checkout API',
+                ));
 
                 if ($voucher) {
                     $voucher->increment('used_count');

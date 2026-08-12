@@ -130,23 +130,51 @@
     <div class="row g-4 mb-4 status-card">
         <div class="col-lg-7">
             <div class="card h-100"><div class="card-body">
-                <h5 class="fw-semibold mb-3">Hoàn tiền</h5>
+                <h5 class="fw-bold mb-3">Hoàn tiền</h5>
                 @forelse($order->refunds as $refund)
-                    <div class="border-bottom pb-2 mb-2 small"><strong>{{ number_format($refund->amount, 0, ',', '.') }} ₫</strong> — {{ $refund->type === 'full' ? 'Toàn phần' : 'Một phần' }} — {{ $refund->created_at?->format('d/m/Y H:i') }}<br><span class="text-muted">{{ $refund->reason }}</span></div>
-                @empty <p class="text-muted small">Chưa có khoản hoàn tiền.</p>@endforelse
+                    <div class="border-bottom pb-2 mb-2 small fw-semibold"><strong>{{ number_format($refund->amount, 0, ',', '.') }} ₫</strong> — {{ $refund->type === 'full' ? 'Toàn phần' : 'Một phần' }} — {{ $refund->created_at?->format('d/m/Y H:i') }}<br><span class="text-muted fw-normal">{{ $refund->reason }}</span></div>
+                @empty <p class="text-muted small fw-semibold">Chưa có khoản hoàn tiền.</p>@endforelse
                 @if($order->payment_status !== 'refunded')
                 <form action="{{ route('admin.orders.refund', $order) }}" method="POST" id="refund-form">
                     @csrf
-                    <div class="row g-2 mb-2"><div class="col-md-4"><select class="form-select" name="type" id="refund-type"><option value="partial">Hoàn một phần</option><option value="full">Hoàn toàn phần</option></select></div><div class="col-md-8"><input class="form-control" name="reason" maxlength="1000" placeholder="Lý do hoàn tiền"></div></div>
-                    <div id="refund-items">@foreach($order->items as $item)<div class="row g-2 align-items-center mb-2"><div class="col-1"><input class="form-check-input refund-check" type="checkbox"></div><div class="col-6 small">{{ $item->product_name }}{{ $item->variant_name ? ' — '.$item->variant_name : '' }}</div><div class="col-3"><input type="hidden" disabled name="items[{{ $item->id }}][order_item_id]" value="{{ $item->id }}"><input type="number" disabled class="form-control form-control-sm refund-qty" min="1" max="{{ $item->quantity }}" name="items[{{ $item->id }}][quantity]" value="1"></div><div class="col-2 text-end small">{{ $item->quantity }} cái</div></div>@endforeach</div>
-                    <button class="btn btn-outline-danger btn-sm">Ghi nhận hoàn tiền</button>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
+                            <select class="form-select fw-semibold" name="type" id="refund-type">
+                                <option value="partial">Hoàn một phần</option>
+                                <option value="full">Hoàn toàn phần</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <input class="form-control fw-semibold" name="reason" maxlength="1000" placeholder="Lý do hoàn tiền">
+                        </div>
+                    </div>
+                    <div id="refund-items">
+                        @foreach($order->items as $item)
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-1">
+                                <input class="form-check-input refund-check" type="checkbox">
+                            </div>
+                            <div class="col-6 small fw-bold text-dark">
+                                {{ $item->product_name }}{{ $item->variant_name ? ' — '.$item->variant_name : '' }}
+                            </div>
+                            <div class="col-3">
+                                <input type="hidden" disabled name="items[{{ $item->id }}][order_item_id]" value="{{ $item->id }}">
+                                <input type="number" disabled class="form-control form-control-sm refund-qty fw-bold" min="1" max="{{ $item->quantity }}" name="items[{{ $item->id }}][quantity]" value="1">
+                            </div>
+                            <div class="col-2 text-end small fw-bold text-dark">
+                                {{ $item->quantity }} cái
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm fw-bold mt-2">Ghi nhận hoàn tiền</button>
                 </form>
                 @endif
             </div></div>
         </div>
         <div class="col-lg-5">
-            <div class="card h-100"><div class="card-body"><h5 class="fw-semibold mb-3">Lịch sử đơn hàng</h5>
-                @forelse($order->historyEntries as $entry)<div class="border-start border-primary ps-3 pb-3 mb-2"><div class="small fw-semibold">{{ $entry->to_status }} / {{ $entry->to_payment_status }}</div><div class="small text-muted">{{ $entry->created_at?->format('d/m/Y H:i') }} · {{ $entry->changedBy?->name ?? 'Hệ thống' }}</div>@if($entry->note)<div class="small">{{ $entry->note }}</div>@endif</div>@empty<p class="text-muted small">Chưa có lịch sử thay đổi.</p>@endforelse
+            <div class="card h-100"><div class="card-body"><h5 class="fw-bold mb-3">Lịch sử đơn hàng</h5>
+                @forelse($order->historyEntries as $entry)<div class="border-start border-primary ps-3 pb-3 mb-2"><div class="small fw-bold text-dark">{{ $entry->to_status }} / {{ $entry->to_payment_status }}</div><div class="small text-muted fw-semibold">{{ $entry->created_at?->format('d/m/Y H:i') }} · {{ $entry->changedBy?->name ?? 'Hệ thống' }}</div>@if($entry->note)<div class="small fw-semibold">{{ $entry->note }}</div>@endif</div>@empty<p class="text-muted small fw-semibold">Chưa có lịch sử thay đổi.</p>@endforelse
             </div></div>
         </div>
     </div>

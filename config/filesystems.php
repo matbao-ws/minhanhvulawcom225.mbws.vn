@@ -33,7 +33,12 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Not reachable over HTTP. Laravel serves a disk at the path of its
+            // "url" (here: the default "/storage"), which is the very prefix the
+            // public media uses. Left enabled, this private disk wins the route
+            // and answers every unsigned image request with 403/404 instead of
+            // letting the public disk resolve it. Nothing links to this disk.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -43,6 +48,13 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            // Fallback for hosts where "public/storage" cannot be a symlink —
+            // FTP deployments and shared hosting with symlink() disabled — where
+            // otherwise every uploaded image breaks. Where the link does exist
+            // the web server serves the file directly and this never runs.
+            // Reads are unsigned because the disk is public; the PUT route
+            // Laravel registers alongside it always demands a signed URL.
+            'serve' => true,
             'throw' => false,
             'report' => false,
         ],

@@ -14,7 +14,6 @@ class Page extends Model
     public array $translatable = [
         'title',
         'published_html',
-        'published_css',
         'meta_title',
         'meta_description',
     ];
@@ -22,10 +21,7 @@ class Page extends Model
     protected $fillable = [
         'title',
         'slug',
-        'schema_version',
-        'builder_data',
         'published_html',
-        'published_css',
         'meta_title',
         'meta_description',
         'is_active',
@@ -33,7 +29,6 @@ class Page extends Model
     ];
 
     protected $casts = [
-        'builder_data' => 'array',
         'is_active' => 'boolean',
         'published_at' => 'datetime',
     ];

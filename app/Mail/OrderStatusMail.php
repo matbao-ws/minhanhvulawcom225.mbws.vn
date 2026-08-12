@@ -37,6 +37,9 @@ class OrderStatusMail extends Mailable
     {
         return new Content(
             view: 'emails.order-status',
+            with: [
+                'siteBranding' => app(\App\Services\SiteBranding::class)->current(),
+            ],
         );
     }
 }

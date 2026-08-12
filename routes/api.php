@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\UserAddressController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Mail\ContactInquiryMail;
+use App\Models\ContactSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -34,6 +35,12 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
         }
 
         $inquiry = $request->only(['name', 'phone', 'email', 'message']);
+        $meta = $request->except(['name', 'phone', 'email', 'message']);
+
+        ContactSubmission::query()->create([
+            ...$inquiry,
+            'meta' => $meta !== [] ? $meta : null,
+        ]);
 
         try {
             Mail::to(config('mail.seller'))->send(new ContactInquiryMail($inquiry));

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ProjectSetting;
+use App\Support\MediaUrl;
 
 class SiteBranding
 {
@@ -48,14 +49,6 @@ class SiteBranding
 
     private function assetUrl(mixed $value, string $fallback): string
     {
-        $value = $this->textValue($value);
-
-        if ($value === null) {
-            return asset($fallback);
-        }
-
-        return str_starts_with($value, 'http://') || str_starts_with($value, 'https://') || str_starts_with($value, 'data:')
-            ? $value
-            : asset(ltrim($value, '/'));
+        return (string) MediaUrl::resolve($this->textValue($value), $fallback);
     }
 }

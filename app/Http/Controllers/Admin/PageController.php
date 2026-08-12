@@ -9,13 +9,13 @@ use App\Models\Page;
 use App\Models\PageRevision;
 use App\Services\ActivityLogger;
 use App\Services\LanguageRegistry;
-use App\Services\PageBuilderService;
+use App\Services\PageContentService;
 use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
     public function __construct(
-        private readonly PageBuilderService $pages,
+        private readonly PageContentService $pages,
         private readonly LanguageRegistry $languages,
     ) {}
 
@@ -87,7 +87,6 @@ class PageController extends Controller
             'page' => $page,
             'previewLocale' => $previewLocale,
             'html' => $page->getTranslation('published_html', $previewLocale, false),
-            'css' => $page->getTranslation('published_css', $previewLocale, false),
         ]);
     }
 
@@ -95,7 +94,7 @@ class PageController extends Controller
     {
         $validated = $request->validated();
         $contentLocale = $validated['content_locale'];
-        $page = $this->pages->updateLocale($page, $contentLocale, $validated, $request->user()?->id);
+        $page = $this->pages->updateLocale($page, $contentLocale, $validated['published_html'], $request->user()?->id);
         ActivityLogger::log('updated', $page, "Sửa trực tiếp trang {$page->slug}", [
             'content_locale' => $contentLocale,
         ]);
@@ -105,7 +104,6 @@ class PageController extends Controller
             'message' => 'Đã lưu trang.',
             'data' => [
                 'html' => $page->getTranslation('published_html', $contentLocale, false),
-                'css' => $page->getTranslation('published_css', $contentLocale, false),
                 'updated_at' => $page->updated_at?->toISOString(),
             ],
         ]);

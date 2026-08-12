@@ -104,6 +104,12 @@ For initial same-origin Laravel pages, use a storefront controller/service to pa
 Do not call this application's `/api/public` over HTTP from a PHP controller. Reserve the browser
 API client for targeted asynchronous interactions; a separate storefront may use it for all data.
 
+Because Blade cannot reuse the API by calling it, any read query that serves both must live in one
+shared service — never inline in a controller, or the API and the Blade page each end up with their
+own copy that drifts. `Catalog\ProductQueryService` already owns catalogue filtering, sorting and
+product-detail eager loading; extend it instead of rewriting the query in a client controller. Read
+services take a filter array keyed by the public query names, not a `Request`.
+
 Centralize:
 
 - Base URL `/api`.

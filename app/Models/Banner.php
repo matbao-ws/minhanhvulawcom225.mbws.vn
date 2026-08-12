@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMediaUrls;
+use App\Support\MediaUrl;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Banner extends Model
 {
-    use HasFactory;
+    use HasFactory, HasMediaUrls;
 
     protected $fillable = [
         'title',
@@ -25,14 +27,19 @@ class Banner extends Model
     ];
 
     /**
-     * Get the absolute URL of the banner image.
+     * Stored portable (root-relative for our own uploads), read back as a URL
+     * resolved against the current APP_URL.
+     */
+    protected function imagePath(): Attribute
+    {
+        return self::mediaUrlAttribute();
+    }
+
+    /**
+     * Get the URL of the banner image, falling back to the bundled placeholder.
      */
     public function getImageUrlAttribute(): string
     {
-        if (filter_var($this->image_path, FILTER_VALIDATE_URL)) {
-            return $this->image_path;
-        }
-
-        return $this->image_path ? Storage::url($this->image_path) : asset('admin-assets/images/backgrounds/login-side.jpg');
+        return $this->image_path ?: asset('admin-assets/images/backgrounds/login-side.jpg');
     }
 }

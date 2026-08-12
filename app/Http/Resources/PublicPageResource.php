@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Services\LocalizedContent;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,8 +17,7 @@ class PublicPageResource extends JsonResource
             'id' => $this->id,
             'title' => $content->get($this->resource, 'title'),
             'slug' => $this->canonicalSlug(),
-            'html' => $content->get($this->resource, 'published_html'),
-            'css' => $content->get($this->resource, 'published_css'),
+            'html' => MediaUrl::absolutizeHtmlSources($content->get($this->resource, 'published_html')),
             'seo_title' => $content->get($this->resource, 'meta_title'),
             'seo_description' => $content->get($this->resource, 'meta_description'),
             'published_at' => $this->published_at?->toISOString(),

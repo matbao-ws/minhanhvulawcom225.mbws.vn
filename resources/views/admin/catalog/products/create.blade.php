@@ -4,7 +4,6 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/dropzone/dist/min/dropzone.min.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/select2/dist/css/select2.min.css') }}">
 @endpush
 

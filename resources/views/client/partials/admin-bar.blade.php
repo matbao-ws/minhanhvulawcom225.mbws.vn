@@ -6,6 +6,17 @@
         && $clientAdmin->can('manage_pages');
 @endphp
 
+{{--
+    Convention for future dynamic (DB-driven) blocks on a CMS page: server-render
+    the block with `contenteditable="false"` already set on its wrapper. A
+    `contenteditable="false"` node nested inside the page's editable root is
+    respected by the browser and stays out of the editable region — no extra JS
+    needed. Known caveat: in some Chromium versions, pressing Backspace/Delete
+    with the caret right next to such a node can delete the node itself instead
+    of just skipping over it. Not an issue today (no dynamic blocks exist yet),
+    but worth knowing before relying on it for anything destructive-sensitive.
+--}}
+
 @if($showClientAdminBar)
     <style>
         #client-admin-bar {
@@ -51,6 +62,14 @@
         #client-admin-bar .client-admin-bar__edit {
             background: #5d87ff !important;
         }
+        #client-admin-bar .client-admin-bar__edit.is-active {
+            background: #087f5b !important;
+        }
+        #client-admin-bar .client-admin-bar__status {
+            color: #dce7f3 !important;
+            font-weight: 400 !important;
+            padding: 0 6px !important;
+        }
         #client-admin-bar form {
             display: inline !important;
             margin: 0 !important;
@@ -69,14 +88,19 @@
         </a>
 
         @isset($page)
+            <a href="{{ route('admin.pages.edit', ['locale' => app()->getLocale(), 'page' => $page]) }}">
+                <span aria-hidden="true">📝</span>
+                <span class="client-admin-bar__label">Sửa tiêu đề/SEO</span>
+            </a>
             <button
                 type="button"
                 id="client-inline-edit-button"
                 class="client-admin-bar__edit"
             >
                 <span aria-hidden="true">✎</span>
-                <span>Sửa trực tiếp</span>
+                <span class="client-admin-bar__label" id="client-inline-edit-label">Sửa trực tiếp</span>
             </button>
+            <span id="client-inline-edit-status" class="client-admin-bar__status" role="status"></span>
         @endisset
 
         <form method="POST" action="{{ route('admin.logout', ['locale' => app()->getLocale()]) }}">
@@ -89,94 +113,35 @@
     </nav>
 
     @isset($page)
-        <link rel="stylesheet" href="{{ asset('admin-assets/libs/font-awesome/css/font-awesome.min.css') }}">
-        <link rel="stylesheet" href="{{ asset('admin-assets/libs/grapesjs/grapes.min.css') }}">
         <style>
-            #client-inline-editor {
-                background: #263445 !important;
-                display: none;
-                height: 100vh !important;
-                inset: 0 !important;
-                position: fixed !important;
-                width: 100vw !important;
-                z-index: 2147483647 !important;
+            .client-edit-mode {
+                cursor: text !important;
             }
-            #client-inline-editor.is-open {
-                display: block !important;
+            .client-edit-mode:hover {
+                outline: 2px dashed #5d87ff !important;
+                outline-offset: 2px !important;
             }
-            #client-inline-editor-header {
-                align-items: center !important;
-                background: #182433 !important;
-                color: #fff !important;
-                display: flex !important;
-                font: 600 14px/1.2 Arial, sans-serif !important;
-                gap: 10px !important;
-                height: 54px !important;
-                justify-content: space-between !important;
-                left: 0 !important;
-                padding: 8px 14px !important;
-                position: absolute !important;
-                right: 0 !important;
-                top: 0 !important;
-                z-index: 20 !important;
-            }
-            #client-inline-editor-header button,
-            #client-inline-editor-header a {
-                border: 0 !important;
-                border-radius: 7px !important;
-                color: #fff !important;
+            .client-edit-mode img {
                 cursor: pointer !important;
-                display: inline-block !important;
-                font: inherit !important;
-                padding: 9px 14px !important;
-                text-decoration: none !important;
             }
-            #client-inline-editor-header button:disabled {
-                cursor: not-allowed !important;
-                opacity: .45 !important;
+            .client-edit-mode img:hover {
+                outline: 2px dashed #087f5b !important;
+                outline-offset: 2px !important;
             }
-            #client-inline-editor-media-button {
-                background: #087f5b !important;
-            }
-            #client-inline-editor-cancel {
-                background: #526274 !important;
-            }
-            #client-inline-editor-save {
-                background: #5d87ff !important;
-            }
-            #client-inline-editor-save:disabled {
-                cursor: wait !important;
-                opacity: .65 !important;
-            }
-            #client-inline-editor-message {
-                color: #dce7f3 !important;
-                font-weight: 400 !important;
-                margin-left: 8px !important;
-            }
-            #client-inline-editor-canvas {
-                height: calc(100vh - 54px) !important;
-                left: 0 !important;
-                position: absolute !important;
-                right: 0 !important;
-                top: 54px !important;
-            }
-            #client-inline-editor-canvas .gjs-editor,
-            #client-inline-editor-canvas .gjs-editor-cont,
-            #client-inline-editor-canvas .gjs-frame-wrapper,
-            #client-inline-editor-canvas iframe.gjs-frame {
-                height: 100% !important;
-            }
-            #client-inline-editor-canvas .fa {
-                font-family: FontAwesome !important;
+            .client-edit-mode [contenteditable="false"] {
+                cursor: default !important;
+                outline: none !important;
             }
             @can('manage_media')
             #client-inline-media-picker {
+                align-items: center !important;
                 background: rgba(10, 18, 28, .72) !important;
                 display: none;
                 inset: 0 !important;
+                justify-content: center !important;
                 padding: 24px !important;
-                position: absolute !important;
-                z-index: 40 !important;
+                position: fixed !important;
+                z-index: 2147483646 !important;
             }
             #client-inline-media-picker.is-open {
                 display: flex !important;
@@ -305,87 +270,164 @@
                 }
             }
             @endcan
-            @media (max-width: 780px) {
-                #client-inline-editor-header {
-                    height: auto !important;
-                }
-            }
         </style>
 
-        <section id="client-inline-editor" aria-hidden="true">
-            <header id="client-inline-editor-header">
-                <div>
-                    <span>Sửa trực tiếp: {{ $title ?? $page->getTranslation('title', app()->getLocale(), false) }}</span>
-                    <span id="client-inline-editor-message" role="status"></span>
-                </div>
-                <div>
-                    @can('manage_media')
-                        <button type="button" id="client-inline-editor-media-button" disabled>Thay ảnh</button>
-                    @endcan
-                    <a
-                        href="{{ route('admin.pages.edit', ['locale' => app()->getLocale(), 'page' => $page]) }}"
-                    >Builder đầy đủ</a>
-                    <button type="button" id="client-inline-editor-cancel">Hủy</button>
-                    <button type="button" id="client-inline-editor-save">Lưu</button>
-                </div>
-            </header>
-            <div id="client-inline-editor-canvas"></div>
-
-            @can('manage_media')
-                <aside id="client-inline-media-picker" aria-hidden="true">
-                    <div id="client-inline-media-dialog" role="dialog" aria-modal="true" aria-labelledby="client-inline-media-title">
-                        <div id="client-inline-media-head">
-                            <h2 id="client-inline-media-title">Chọn ảnh thay thế</h2>
-                            <button type="button" id="client-inline-media-close" aria-label="Đóng">Đóng</button>
-                        </div>
-                        <div id="client-inline-media-tools">
-                            <select id="client-inline-media-folder" aria-label="Thư mục ảnh">
-                                <option value="all">Tất cả thư mục</option>
-                                @foreach(app(\App\Services\CloudinaryService::class)->listFolders() as $folder)
-                                    <option value="{{ $folder }}">{{ ucfirst($folder) }}</option>
-                                @endforeach
-                            </select>
-                            <div>
-                                <input type="file" id="client-inline-media-upload" accept="image/*" hidden>
-                                <button type="button" class="client-inline-media-upload" id="client-inline-media-upload-button">
-                                    Thêm ảnh mới
-                                </button>
-                            </div>
-                        </div>
-                        <div id="client-inline-media-state">Đang tải thư viện ảnh…</div>
-                        <div id="client-inline-media-grid"></div>
-                        <div id="client-inline-media-pagination">
-                            <button type="button" id="client-inline-media-previous">← Trước</button>
-                            <span id="client-inline-media-page">Trang 1</span>
-                            <button type="button" id="client-inline-media-next">Sau →</button>
+        @can('manage_media')
+            <aside id="client-inline-media-picker" aria-hidden="true">
+                <div id="client-inline-media-dialog" role="dialog" aria-modal="true" aria-labelledby="client-inline-media-title">
+                    <div id="client-inline-media-head">
+                        <h2 id="client-inline-media-title">Chọn ảnh thay thế</h2>
+                        <button type="button" id="client-inline-media-close" aria-label="Đóng">Đóng</button>
+                    </div>
+                    <div id="client-inline-media-tools">
+                        <select id="client-inline-media-folder" aria-label="Thư mục ảnh">
+                            <option value="all">Tất cả thư mục</option>
+                            @foreach(app(\App\Services\CloudinaryService::class)->listFolders() as $folder)
+                                <option value="{{ $folder }}">{{ ucfirst($folder) }}</option>
+                            @endforeach
+                        </select>
+                        <div>
+                            <input type="file" id="client-inline-media-upload" accept="image/*" hidden>
+                            <button type="button" class="client-inline-media-upload" id="client-inline-media-upload-button">
+                                Thêm ảnh mới
+                            </button>
                         </div>
                     </div>
-                </aside>
-            @endcan
-        </section>
+                    <div id="client-inline-media-state">Đang tải thư viện ảnh…</div>
+                    <div id="client-inline-media-grid"></div>
+                    <div id="client-inline-media-pagination">
+                        <button type="button" id="client-inline-media-previous">← Trước</button>
+                        <span id="client-inline-media-page">Trang 1</span>
+                        <button type="button" id="client-inline-media-next">Sau →</button>
+                    </div>
+                </div>
+            </aside>
+        @endcan
 
-        <script src="{{ asset('admin-assets/libs/grapesjs/grapes.min.js') }}"></script>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const openButton = document.getElementById('client-inline-edit-button');
-            const overlay = document.getElementById('client-inline-editor');
-            const cancelButton = document.getElementById('client-inline-editor-cancel');
-            const saveButton = document.getElementById('client-inline-editor-save');
-            const message = document.getElementById('client-inline-editor-message');
+            const toggleButton = document.getElementById('client-inline-edit-button');
+            const toggleLabel = document.getElementById('client-inline-edit-label');
+            const statusLabel = document.getElementById('client-inline-edit-status');
             const pageContent = document.getElementById(@json('client-page-'.$page->id));
-            const pageStyle = document.getElementById('client-page-css');
             const saveUrl = @json(route('admin.pages.inline-update', ['locale' => app()->getLocale(), 'page' => $page]));
             const csrfToken = @json(csrf_token());
             const contentLocale = @json(app()->getLocale());
-            const initialHtml = @json($html ?? '');
-            const initialCss = @json($css ?? '');
-            let editor = null;
-            let lastSavedHtml = initialHtml;
-            let lastSavedCss = initialCss;
+
+            let lastSavedHtml = pageContent.innerHTML;
+            let editModeOn = false;
+            let savePromise = Promise.resolve();
+            let statusResetTimer = null;
+
+            function isDirty() {
+                return pageContent.innerHTML !== lastSavedHtml;
+            }
+
+            function setStatus(text) {
+                if (statusResetTimer) {
+                    window.clearTimeout(statusResetTimer);
+                    statusResetTimer = null;
+                }
+                statusLabel.textContent = text;
+                if (text === 'Đã lưu') {
+                    statusResetTimer = window.setTimeout(function () {
+                        statusLabel.textContent = '';
+                    }, 1500);
+                }
+            }
+
+            function doSave() {
+                if (!isDirty()) return Promise.resolve();
+                setStatus('Đang lưu…');
+                const html = pageContent.innerHTML;
+
+                return fetch(saveUrl, {
+                    method: 'PATCH',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ content_locale: contentLocale, published_html: html }),
+                }).then(async function (response) {
+                    const payload = await response.json();
+                    if (!response.ok || !payload.success) {
+                        const errors = payload.errors ? Object.values(payload.errors).flat().join(' ') : '';
+                        throw new Error(errors || payload.message || 'Không thể lưu trang.');
+                    }
+                    lastSavedHtml = payload.data.html || '';
+                    pageContent.innerHTML = lastSavedHtml;
+                    setStatus('Đã lưu');
+                }).catch(function (error) {
+                    setStatus(error.message || 'Không thể lưu trang.');
+                });
+            }
+
+            function saveIfDirty() {
+                savePromise = savePromise.then(doSave, doSave);
+                return savePromise;
+            }
+
+            function enableEditMode() {
+                editModeOn = true;
+                pageContent.setAttribute('contenteditable', 'true');
+                pageContent.classList.add('client-edit-mode');
+                try {
+                    document.execCommand('enableObjectResizing', false, false);
+                    document.execCommand('defaultParagraphSeparator', false, 'p');
+                } catch (error) {
+                    // Deprecated APIs — best-effort only, safe to ignore if unsupported.
+                }
+                toggleButton.classList.add('is-active');
+                toggleLabel.textContent = 'Tắt chỉnh sửa';
+            }
+
+            function disableEditMode() {
+                saveIfDirty().finally(function () {
+                    editModeOn = false;
+                    pageContent.setAttribute('contenteditable', 'false');
+                    pageContent.classList.remove('client-edit-mode');
+                    toggleButton.classList.remove('is-active');
+                    toggleLabel.textContent = 'Sửa trực tiếp';
+                });
+            }
+
+            toggleButton.addEventListener('click', function () {
+                if (editModeOn) {
+                    disableEditMode();
+                } else {
+                    enableEditMode();
+                }
+            });
+
+            pageContent.addEventListener('focusout', function () {
+                window.setTimeout(function () {
+                    if (editModeOn && !pageContent.contains(document.activeElement)) {
+                        saveIfDirty();
+                    }
+                }, 0);
+            });
+
+            window.addEventListener('pagehide', function () {
+                if (!editModeOn || !isDirty()) return;
+                // Best-effort only: keepalive requests are capped at a small payload
+                // size by the browser and may silently fail for very large pages.
+                fetch(saveUrl, {
+                    method: 'PATCH',
+                    keepalive: true,
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ content_locale: contentLocale, published_html: pageContent.innerHTML }),
+                });
+            });
 
             @can('manage_media')
-            const mediaButton = document.getElementById('client-inline-editor-media-button');
-                const mediaPicker = document.getElementById('client-inline-media-picker');
+            const mediaPicker = document.getElementById('client-inline-media-picker');
             const mediaFolder = document.getElementById('client-inline-media-folder');
             const mediaGrid = document.getElementById('client-inline-media-grid');
             const mediaState = document.getElementById('client-inline-media-state');
@@ -399,77 +441,7 @@
             let mediaCursors = [null];
             let mediaPageIndex = 0;
             let mediaNextCursor = null;
-            @endcan
 
-            function initializeEditor() {
-                if (editor) return editor;
-                if (typeof grapesjs === 'undefined') {
-                    window.alert('Không tải được trình sửa trang.');
-                    return null;
-                }
-
-                editor = grapesjs.init({
-                    container: '#client-inline-editor-canvas',
-                    height: '100%',
-                    storageManager: false,
-                    noticeOnUnload: false,
-                    fromElement: false,
-                    components: lastSavedHtml,
-                    style: lastSavedCss,
-                    cssIcons: @json(asset('admin-assets/libs/font-awesome/css/font-awesome.min.css')),
-                    selectorManager: { componentFirst: true },
-                    deviceManager: {
-                        devices: [
-                            { id: 'desktop', name: 'Desktop', width: '' },
-                            { id: 'tablet', name: 'Tablet', width: '768px', widthMedia: '992px' },
-                            { id: 'mobile', name: 'Mobile', width: '375px', widthMedia: '576px' },
-                        ]
-                    },
-                });
-                editor.on('load', function () {
-                    editor.clearDirtyCount();
-                });
-                @can('manage_media')
-                editor.on('component:selected', function (component) {
-                    selectedImage = component && component.is('image') ? component : null;
-                    mediaButton.disabled = !selectedImage;
-                    mediaButton.title = selectedImage ? 'Chọn ảnh khác từ thư viện' : 'Hãy chọn một ảnh trong trang trước';
-                });
-                editor.on('component:deselected', function () {
-                    selectedImage = null;
-                    mediaButton.disabled = true;
-                });
-                @endcan
-
-                return editor;
-            }
-
-            function closeEditor(force) {
-                if (!force && editor && editor.getDirtyCount() > 0 && !window.confirm('Bỏ các thay đổi chưa lưu?')) {
-                    return;
-                }
-                overlay.classList.remove('is-open');
-                overlay.setAttribute('aria-hidden', 'true');
-                document.body.style.overflow = '';
-                openButton.focus();
-            }
-
-            openButton.addEventListener('click', function () {
-                const activeEditor = initializeEditor();
-                if (!activeEditor) return;
-                overlay.classList.add('is-open');
-                overlay.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-                window.requestAnimationFrame(function () {
-                    activeEditor.refresh();
-                });
-            });
-
-            cancelButton.addEventListener('click', function () {
-                closeEditor(false);
-            });
-
-            @can('manage_media')
             function setMediaState(text, isError) {
                 mediaState.textContent = text;
                 mediaState.classList.toggle('is-error', Boolean(isError));
@@ -500,8 +472,9 @@
                     button.append(image, name, dimensions);
                     button.addEventListener('click', function () {
                         if (!selectedImage) return;
-                        selectedImage.addAttributes({ src: resource.secure_url });
+                        selectedImage.setAttribute('src', resource.secure_url);
                         closeMediaPicker();
+                        saveIfDirty();
                     });
                     mediaGrid.appendChild(button);
                 });
@@ -531,12 +504,8 @@
                 }
             }
 
-            function openMediaPicker() {
-                if (!selectedImage) {
-                    message.textContent = 'Hãy chọn một ảnh trong trang trước.';
-                    return;
-                }
-                message.textContent = '';
+            function openMediaPickerFor(img) {
+                selectedImage = img;
                 mediaPicker.classList.add('is-open');
                 mediaPicker.setAttribute('aria-hidden', 'false');
                 mediaCursors = [null];
@@ -547,10 +516,9 @@
             function closeMediaPicker() {
                 mediaPicker.classList.remove('is-open');
                 mediaPicker.setAttribute('aria-hidden', 'true');
-                mediaButton.focus();
+                selectedImage = null;
             }
 
-            mediaButton.addEventListener('click', openMediaPicker);
             document.getElementById('client-inline-media-close').addEventListener('click', closeMediaPicker);
             mediaFolder.addEventListener('change', function () {
                 mediaCursors = [null];
@@ -604,56 +572,25 @@
                     mediaUpload.value = '';
                 }
             });
-            @endcan
 
-            saveButton.addEventListener('click', async function () {
-                if (!editor) return;
-                saveButton.disabled = true;
-                message.textContent = 'Đang lưu…';
-
-                try {
-                    const response = await fetch(saveUrl, {
-                        method: 'PATCH',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                        },
-                        body: JSON.stringify({
-                            content_locale: contentLocale,
-                            builder_data: editor.getProjectData(),
-                            published_html: editor.getHtml(),
-                            published_css: editor.getCss(),
-                        }),
-                    });
-                    const payload = await response.json();
-                    if (!response.ok || !payload.success) {
-                        const errors = payload.errors ? Object.values(payload.errors).flat().join(' ') : '';
-                        throw new Error(errors || payload.message || 'Không thể lưu trang.');
-                    }
-
-                    lastSavedHtml = payload.data.html || '';
-                    lastSavedCss = payload.data.css || '';
-                    pageContent.innerHTML = lastSavedHtml;
-                    pageStyle.textContent =
-                        '*, *::before, *::after { box-sizing: border-box; }' +
-                        'body { margin: 0; color: #20242a; font-family: Arial, sans-serif; }' +
-                        'img { max-width: 100%; }' + lastSavedCss;
-                    editor.setComponents(lastSavedHtml);
-                    editor.setStyle(lastSavedCss);
-                    editor.clearDirtyCount();
-                    message.textContent = 'Đã lưu';
-                    window.setTimeout(function () {
-                        closeEditor(true);
-                        message.textContent = '';
-                    }, 500);
-                } catch (error) {
-                    message.textContent = error.message || 'Không thể lưu trang.';
-                } finally {
-                    saveButton.disabled = false;
+            pageContent.addEventListener('click', function (event) {
+                if (!editModeOn) return;
+                const img = event.target.closest('img');
+                if (img && !img.closest('[contenteditable="false"]')) {
+                    event.preventDefault();
+                    openMediaPickerFor(img);
+                    return;
                 }
+                const link = event.target.closest('a');
+                if (link) event.preventDefault();
             });
+            @else
+            pageContent.addEventListener('click', function (event) {
+                if (!editModeOn) return;
+                const link = event.target.closest('a');
+                if (link) event.preventDefault();
+            });
+            @endcan
         });
         </script>
     @endisset

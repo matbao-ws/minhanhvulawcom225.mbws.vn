@@ -19,6 +19,7 @@ class PermissionSeeder extends Seeder
             ['code' => 'manage_posts', 'name' => 'Quản lý bài viết', 'group' => 'marketing'],
             ['code' => 'manage_pages', 'name' => 'Quản lý trang nội dung', 'group' => 'marketing'],
             ['code' => 'manage_reviews', 'name' => 'Quản lý đánh giá', 'group' => 'marketing'],
+            ['code' => 'manage_contacts', 'name' => 'Quản lý liên hệ', 'group' => 'marketing'],
             ['code' => 'manage_users', 'name' => 'Quản lý tài khoản', 'group' => 'users'],
             ['code' => 'manage_roles', 'name' => 'Quản lý vai trò và phân quyền', 'group' => 'users'],
             ['code' => 'manage_settings', 'name' => 'Cấu hình website', 'group' => 'settings'],

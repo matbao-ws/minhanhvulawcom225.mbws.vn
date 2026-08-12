@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -104,12 +105,9 @@ class BannerController extends Controller
             // Delete old resource if it was local fallback
             if (! empty($banner->image_path)) {
                 try {
-                    $parsedUrl = parse_url($banner->image_path);
-                    if (isset($parsedUrl['path'])) {
-                        $localPath = str_replace('/storage/', '', $parsedUrl['path']);
-                        if (Storage::disk('public')->exists($localPath)) {
-                            Storage::disk('public')->delete($localPath);
-                        }
+                    $localPath = MediaUrl::publicDiskPath($banner->image_path);
+                    if ($localPath !== null && Storage::disk('public')->exists($localPath)) {
+                        Storage::disk('public')->delete($localPath);
                     }
                 } catch (\Exception $e) {
                     // Ignore deletion error
@@ -179,12 +177,9 @@ class BannerController extends Controller
     {
         if (! empty($banner->image_path)) {
             try {
-                $parsedUrl = parse_url($banner->image_path);
-                if (isset($parsedUrl['path'])) {
-                    $localPath = str_replace('/storage/', '', $parsedUrl['path']);
-                    if (Storage::disk('public')->exists($localPath)) {
-                        Storage::disk('public')->delete($localPath);
-                    }
+                $localPath = MediaUrl::publicDiskPath($banner->image_path);
+                if ($localPath !== null && Storage::disk('public')->exists($localPath)) {
+                    Storage::disk('public')->delete($localPath);
                 }
             } catch (\Exception) {
                 // The database record can still be safely deleted when an old local file is missing.

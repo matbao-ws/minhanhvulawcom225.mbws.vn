@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Services\LocalizedContent;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +20,10 @@ class PublicProductResource extends JsonResource
             'slug' => $this->canonicalSlug(),
             'sku' => $this->sku,
             'short_description' => $content->get($this->resource, 'short_description'),
-            'description' => $this->when($this->relationLoaded('category'), $content->get($this->resource, 'description')),
+            'description' => $this->when(
+                $this->relationLoaded('category'),
+                fn (): string => MediaUrl::absolutizeHtmlSources($content->get($this->resource, 'description')),
+            ),
             'meta_title' => $content->get($this->resource, 'meta_title'),
             'meta_description' => $content->get($this->resource, 'meta_description'),
             'image_url' => $this->image_url,

@@ -32,6 +32,8 @@ class ProductRequest extends FormRequest
             ...$this->localizedStringRules('meta_description', false, 500),
             'image_url' => ['nullable', 'string', 'max:255'],
             'image_file' => ['nullable', 'file', 'image', 'max:5120'],
+            'gallery_images' => ['nullable', 'array', 'max:20'],
+            'gallery_images.*' => ['nullable', 'url', 'max:2048'],
             'price' => ['required', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'cost_price' => ['nullable', 'numeric', 'min:0'],

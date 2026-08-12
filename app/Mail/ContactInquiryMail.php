@@ -36,6 +36,9 @@ class ContactInquiryMail extends Mailable
     {
         return new Content(
             view: 'emails.contact-inquiry',
+            with: [
+                'siteBranding' => app(\App\Services\SiteBranding::class)->current(),
+            ],
         );
     }
 }

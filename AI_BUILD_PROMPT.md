@@ -3,6 +3,42 @@
 Tài liệu này là hợp đồng làm việc dành cho mọi AI coding agent thao tác trong repository này.
 Đọc tài liệu trước khi phân tích, sửa code, migration, test, API, admin UI hoặc deployment.
 
+## Đọc skill trong `.agents/skills` trước khi làm
+
+Repository có sẵn skill mô tả chi tiết từng luồng công việc. **Đọc file này xong, đọc tiếp skill
+tương ứng với việc đang làm** — đừng bắt tay sửa code khi chưa đọc. Skill chứa quy trình, ràng buộc
+và checklist kiểm chứng mà tài liệu này chỉ nêu ở mức nguyên tắc.
+
+```text
+.agents/skills/
+  maintain-ecommerce-core/       sửa backend
+    SKILL.md
+    references/architecture.md         định vị tầng sở hữu logic
+    references/domain-invariants.md    bất biến nghiệp vụ
+    references/verification.md         chọn test và kiểm tra deploy
+  connect-ecommerce-frontend/    dựng/cắt storefront và nối API
+    SKILL.md
+    references/static-first-workflow.md   xác định đang ở stage nào
+    references/laravel-blade-cutting.md   khi có thư mục theme/
+    references/inline-admin-editing.md    layout client, CMS Page, inline editor
+    references/api-contracts.md           trước khi nối dữ liệu thật
+```
+
+Định tuyến theo loại việc:
+
+| Việc đang làm | Skill | Reference bắt buộc đọc thêm |
+|---|---|---|
+| Admin Blade, API public/admin, auth, role/permission, feature, đa ngôn ngữ, catalog/variant, checkout, promotion, voucher, đơn hàng, tồn kho, review, payment/VNPAY, shipping, webhook, notification, migration, seeder, command, test | `maintain-ecommerce-core` | `architecture.md`; thêm `domain-invariants.md` khi chạm auth/tiền/kho/đơn/payment/webhook/review/secret; thêm `verification.md` khi chọn test hoặc kiểm tra deploy |
+| Prototype giao diện, cắt `theme/` vào Blade, thay layout client, render CMS Page, inline editing, asset storefront, route/controller storefront, nối `/api/public` | `connect-ecommerce-frontend` | `static-first-workflow.md`; thêm `laravel-blade-cutting.md` khi có `theme/`; thêm `inline-admin-editing.md` khi tạo/thay layout client hoặc render Page; thêm `api-contracts.md` trước khi nối dữ liệu thật |
+
+Lưu ý:
+
+- `agents/openai.yaml` trong mỗi skill chỉ là metadata hiển thị cho agent host, không phải chỉ dẫn
+  làm việc. Không cần đọc để thực thi.
+- Skill và tài liệu là văn bản; khi lệch với code thì áp dụng thứ tự ưu tiên ở mục 2. Đã gặp trường
+  hợp skill mô tả tính năng đã bị xóa khỏi code — luôn đối chiếu trước khi tin.
+- Việc không khớp bảng trên: vẫn đọc `maintain-ecommerce-core` làm mặc định.
+
 ## 1. Nhận diện hệ thống
 
 Đây là Laravel 12 Ecommerce Admin Core dùng để triển khai từng website bán hàng độc lập:
@@ -23,7 +59,8 @@ Core cung cấp:
 - Catalog, biến thể V2, tồn kho, checkout, khuyến mãi, voucher và review.
 - Vòng đời đơn hàng, hoàn tiền, payment transaction và VNPAY.
 - Shipping configuration, GHTK push/webhook.
-- CMS post, banner, đa ngôn ngữ, media và notification.
+- CMS post, CMS page (HTML thuần, không có builder kéo-thả), banner, đa ngôn ngữ, media và
+  notification.
 - Feature flags do support cấu hình; package/subscription cũ chỉ giữ tương thích dữ liệu lịch sử.
 
 Core không có storefront mặc định. Khi repository có thư mục `theme/` ở root, coi đây là giao diện
@@ -55,7 +92,8 @@ validation, resource, test và OpenAPI trong cùng thay đổi.
 
 ## 3. Quy trình bắt buộc trước khi sửa
 
-1. Đọc `README.md`, `composer.json`, file này và skill phù hợp trong `.agents/skills`.
+1. Đọc `README.md`, `composer.json`, file này và skill phù hợp trong `.agents/skills` cùng các
+   reference của nó theo bảng định tuyến ở đầu tài liệu.
 2. Chạy `git status --short`; mọi thay đổi có sẵn thuộc về người dùng.
 3. Dùng `rg`/`rg --files` để tìm route, controller, service, model, migration và test liên quan.
 4. Đọc đầy đủ luồng gọi trước khi chỉnh sửa, kể cả middleware và side effect.
@@ -160,6 +198,13 @@ app(\App\Support\FeatureGate::class)->require('voucher');
 
 ### Đơn hàng và tồn kho
 
+- Tạo đơn qua `Orders\OrderCreationService` với `Orders\OrderDraft`. Đây là nơi duy nhất định nghĩa
+  `subtotal`, `promotion_discount`, `grand_total` và trình tự ghi đơn (order → items → reserve
+  promotion → trừ kho → payment pending → status history). Cả public checkout và tạo đơn thủ công ở
+  admin đều đi qua đây; không tự tính lại tiền hoặc tự ghi `Order::create` ở controller.
+- Caller sở hữu `DB::transaction()` và row lock, đồng thời tự quyết phần khác biệt hợp lệ: cách chọn
+  biến thể (`option_value_ids` ở public, SKU đã chọn ở admin), nguồn giảm giá thứ hai (voucher hay
+  thủ công) và nguồn phí vận chuyển.
 - Chuyển trạng thái qua `OrderStateTransitionService`.
 - Trừ/hoàn kho qua `OrderStockService`.
 - Inventory movement phải idempotent; không cập nhật stock trực tiếp ở controller.
@@ -193,8 +238,13 @@ app(\App\Support\FeatureGate::class)->require('voucher');
 
 - Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
-- Nội dung HTML cho phép phải qua `HtmlSanitizer`.
+- Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
+  `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.
 - Upload phải validate MIME/kích thước, dùng folder allow-list và extension do server xác định.
+- Media của chính site lưu path tương đối và resolve khi đọc qua `App\Support\MediaUrl`; không ghi
+  URL tuyệt đối vào database, vì host sẽ sai khi đổi `APP_URL`/deploy. Ảnh ngoài (Cloudinary, CDN)
+  giữ nguyên URL tuyệt đối. Khi cần path trên disk để xoá file, dùng `MediaUrl::publicDiskPath()`
+  thay vì tự cắt chuỗi từ URL.
 - Không đưa secret vào source, test fixture production, log hoặc error response.
 
 ## 6. Quy tắc triển khai
@@ -301,8 +351,10 @@ Kiểm kê toàn bộ theme/
   nguồn trừ khi người dùng yêu cầu.
 - Tạo storefront tại `resources/views/client`, tách tối thiểu thành `layouts`, `partials`,
   `components` và các page Blade.
-- Chuyển link và asset tĩnh sang `route()`, `asset()`, `@vite`, `@csrf`, `old()` cùng Blade
-  directive phù hợp; không để link `.html` hoặc asset relative từ `theme/` trong view production.
+- Chuyển link và asset tĩnh sang `route()`, `asset()`, `@csrf`, `old()` cùng Blade directive phù
+  hợp; không để link `.html` hoặc asset relative từ `theme/` trong view production. Project không
+  dùng Vite/npm build — asset là file tĩnh trong `public/`; không thêm `@vite` hoặc bước build
+  frontend nếu người dùng không yêu cầu.
 - Đưa asset storefront vào `public/client-assets`; không trộn vào `public/admin-assets`.
 - Markup sản phẩm, danh mục, bài viết, giỏ hàng và đơn hàng phải nằm trong Blade component/loop;
   không dựng lại toàn bộ các vùng này bằng chuỗi `innerHTML` trong JavaScript.
@@ -310,6 +362,13 @@ Kiểm kê toàn bộ theme/
   thái loading/error; dùng một API client chung khi cần.
 - Với render đầu trang cùng origin, ưu tiên controller/service Laravel truyền dữ liệu vào Blade;
   không gọi HTTP ngược từ PHP vào chính `/api/public`.
+- Hệ quả bắt buộc của quy tắc trên: khi một truy vấn đọc phục vụ **cả** API và Blade, logic đó phải
+  nằm trong service dùng chung, không viết inline trong controller. Vì Blade không được gọi API của
+  chính mình, viết inline nghĩa là sẽ có hai bản lọc/sắp xếp/eager-load rồi lệch nhau. Ví dụ hiện có:
+  `Catalog\ProductQueryService` là nơi duy nhất định nghĩa cách storefront lọc và load sản phẩm —
+  thêm filter mới thì sửa ở đó, không sửa trong controller.
+- Service đọc nhận mảng filter (dùng đúng tên tham số công khai), không nhận `Request`, để controller
+  Blade và test gọi được mà không cần HTTP.
 - Không thay đổi thiết kế đã duyệt trong lúc cắt component hoặc nối API.
 - Không trộn storefront vào admin views.
 - Chỉ giữ storefront ở project riêng khi người dùng chỉ định rõ thư mục/project đích khác.
@@ -318,25 +377,35 @@ Kiểm kê toàn bộ theme/
 
 ### Sửa trực tiếp trên storefront
 
-Khi cắt hoặc thay layout client, phải giữ cơ chế sửa trực tiếp dành cho admin:
+Core **không có** page builder kéo-thả. Tính năng đó đã bị loại bỏ cùng GrapesJS,
+`PageBuilderService` và các cột `builder_data`, `published_css`, `schema_version`. Không dựng lại nó
+và không thêm thư viện editor mới nếu người dùng không yêu cầu rõ ràng.
+
+Cơ chế hiện hành là inline editing bằng `contenteditable` thuần của browser, không thư viện ngoài.
+Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 
 - Layout chung phải include `client.partials.admin-bar` đúng một lần, gần cuối `<body>`. Không xóa,
   sao chép hoặc nhúng lại toàn bộ mã editor vào từng page.
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
-  `$css` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung Page vào Blade.
-- Chỉ admin đang active và có `manage_pages` mới được tải GrapesJS và thấy **Sửa trực tiếp**.
-  Guest, customer và admin thiếu quyền không được thấy markup, asset hoặc endpoint editor.
-- Lưu trực tiếp phải gọi route admin hiện có bằng session + CSRF, đi qua FormRequest,
-  `PageBuilderService`, HTML/CSS sanitizer, revision và activity log. Không ghi database từ
-  JavaScript và không tạo public write API.
+  `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
+  Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
+- Chỉ admin đang active, có `role_id` và quyền `manage_pages` mới thấy admin bar và **Sửa trực
+  tiếp**. Guest, customer và admin thiếu quyền không được thấy markup, asset hoặc endpoint editor.
+- Lưu trực tiếp phải gọi `admin.pages.inline-update` bằng session + CSRF, đi qua
+  `InlinePageUpdateRequest`, `PageContentService::updateLocale()`, `PageHtmlSanitizer`, revision và
+  activity log; giữ throttle `admin-page-inline`. Không ghi database từ JavaScript và không tạo
+  public write API.
+- Payload lưu chỉ gồm `content_locale` và `published_html`. Save phải bảo toàn các locale khác và
+  metadata của Page.
+- Block động (dữ liệu từ DB) render trên trang CMS phải server-render kèm `contenteditable="false"`
+  ở wrapper để nằm ngoài vùng sửa.
 - Ảnh trong Page phải chọn và thay được từ thư viện Media ngay trong inline editor. Chỉ admin có
   thêm `manage_media` mới thấy công cụ ảnh; upload dùng route admin hiện có, giữ popup mở sau upload
   và giữ phân trang thư viện.
-- Theme CSS không được che admin bar/editor; giữ namespace selector, z-index và chuỗi chiều cao
-  canvas/iframe. Client asset vẫn tách khỏi admin asset, ngoại trừ thư viện editor chỉ nạp có điều
-  kiện cho admin được phép.
-- Với product/category/post hoặc tài nguyên không do `Page` quản lý, không giả vờ lưu bằng Page
-  Builder. Dùng đúng editor/domain route của tài nguyên; chỉ thêm inline save khi backend đã có
+- Theme CSS không được che admin bar/editor; giữ namespace selector và z-index hiện có. Client asset
+  vẫn tách khỏi admin asset.
+- Với product/category/post hoặc tài nguyên không do `Page` quản lý, không lưu qua endpoint của
+  Page. Dùng đúng editor/domain route của tài nguyên; chỉ thêm inline save khi backend đã có
   validation, authorization, revision/audit tương ứng.
 
 Khi thay đổi public API:
@@ -361,8 +430,9 @@ Một thay đổi chỉ hoàn tất khi:
 - Không có syntax error, debug code, secret hoặc TODO tạm.
 - Migration/queue/scheduler/deployment impact được báo rõ.
 - OpenAPI được đồng bộ nếu public API thay đổi.
-- Layout client mới vẫn giữ admin bar và luồng sửa trực tiếp cho CMS Page; có test guest/customer
+- Layout client mới vẫn giữ admin bar và luồng inline editing cho CMS Page; có test guest/customer
   không thấy editor, admin đúng quyền lưu được và nội dung nguy hiểm bị lọc.
+- Media mới lưu path tương đối, không có URL tuyệt đối trỏ về host của chính site trong database.
 
 ## 11. Cách báo cáo kết quả
 

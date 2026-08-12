@@ -3,7 +3,7 @@
 @section('title', 'Chỉnh sửa trang')
 
 @section('content')
-    <form method="POST" action="{{ route('admin.pages.update', $page) }}" id="page-builder-form">
+    <form method="POST" action="{{ route('admin.pages.update', $page) }}" id="page-form">
         @csrf @method('PUT')
         @include('admin.pages._form')
     </form>

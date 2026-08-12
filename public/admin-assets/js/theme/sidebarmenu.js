@@ -23,15 +23,15 @@ if ((at = "vertical")) {
         var anchors = document.querySelectorAll("#sidebarnav a");
         let finalUrl = "";
 
-        let urlSplats = currentURL.split("?");
+        let urlSplats = currentUrl.split("?");
         let refinedUrl = urlSplats[0];
 
-        let isQueryParameter = currentURL.includes("?");
+        let isQueryParameter = currentUrl.includes("?");
         if(isQueryParameter){
           finalUrl = refinedUrl;
         }
         else{
-          finalUrl = currentURL
+          finalUrl = currentUrl
         }
  
         for (var i = 0; i < anchors.length; i++) {
@@ -164,23 +164,4 @@ if ((at = "horizontal")) {
       link.closest("a").parentElement.classList.add("selected");
       link.closest("ul").parentElement.classList.add("selected");
     });
-}
-
-// ----------------------------------------
-// Active 2 file at same time 
-// ----------------------------------------
-
-var currentURL =
-  window.location != window.parent.location
-    ? document.referrer
-    : document.location.href;
-
-var link = document.getElementById("get-url");
-
-if (currentURL.includes("/main/index.html")) {
-  link.setAttribute("href", "../main/index.html");
-} else if (currentURL.includes("/index.html")) {
-  link.setAttribute("href", "./index.html");
-} else {
-  link.setAttribute("href", "./");
 }

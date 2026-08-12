@@ -28,6 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind a TLS-terminating proxy the app would otherwise see plain HTTP
+        // and generate http:// asset URLs, which browsers block as mixed
+        // content. Opt in per environment via TRUSTED_PROXIES ("*" for a
+        // trusted load balancer, or a comma-separated list of addresses).
+        $proxies = trim((string) env('TRUSTED_PROXIES', ''));
+        if ($proxies !== '') {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
+
         $middleware->prepend(\App\Http\Middleware\ValidateLocalizedAdminPath::class);
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request): string {
             return route('admin.login', [

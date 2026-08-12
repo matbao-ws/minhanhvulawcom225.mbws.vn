@@ -110,7 +110,6 @@
 @push('scripts')
     <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/libs/dropzone/dist/min/dropzone.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -231,6 +230,37 @@
                 }
             }
 
+            // Product gallery uploader
+            const galleryItems = document.getElementById('product-gallery-items');
+            const galleryAddTrigger = document.getElementById('gallery-add-trigger');
+            const galleryFileInput = document.getElementById('gallery_image_file');
+            let galleryIndex = galleryItems ? galleryItems.querySelectorAll('.gallery-item').length : 0;
+
+            const galleryItemHtml = (index, url) => `<div class="gallery-item position-relative" data-index="${index}"><img src="${url}" class="rounded border" style="width:64px;height:64px;object-fit:cover;" alt=""><input type="hidden" name="gallery_images[${index}]" value="${url}"><button type="button" class="btn btn-sm btn-danger remove-gallery-image position-absolute top-0 end-0" style="padding:0 6px; line-height:1.6; border-radius:50%; transform:translate(30%,-30%);">×</button></div>`;
+
+            if (galleryAddTrigger && galleryFileInput) {
+                galleryAddTrigger.addEventListener('click', function () {
+                    galleryFileInput.dataset.mediaSelectedField = `gallery_images[${galleryIndex}]`;
+                    galleryFileInput.click();
+                });
+            }
+
+            if (galleryItems) {
+                galleryItems.addEventListener('click', function (event) {
+                    if (event.target.closest('.remove-gallery-image')) {
+                        event.target.closest('.gallery-item').remove();
+                        isDirty = true;
+                    }
+                });
+            }
+
+            document.addEventListener('media:selected', function (event) {
+                if (event.target !== galleryFileInput || !galleryItems) return;
+                galleryItems.insertAdjacentHTML('beforeend', galleryItemHtml(galleryIndex, event.detail.url));
+                galleryIndex++;
+                isDirty = true;
+            });
+
             // Track form dirty state
             if (form) {
                 form.querySelectorAll('input, textarea, select').forEach(function(el) {
@@ -298,10 +328,6 @@
                 });
             }
 
-            if (window.Dropzone) {
-                Dropzone.autoDiscover = false;
-            }
-
             if (window.jQuery) {
                 $('.catalog-select2').select2({ width: '100%' });
             }
@@ -310,7 +336,7 @@
             const setup = document.getElementById('create-variant-setup');
             const groups = document.getElementById('create-variant-groups');
             const addGroup = document.getElementById('add-create-group');
-            const valueRow = (groupIndex, valueIndex) => `<div class="row g-2 create-variant-value align-items-end"><div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="variant_groups[${groupIndex}][values][${valueIndex}][label]" required></div><div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="variant_groups[${groupIndex}][values][${valueIndex}][color_hex]" placeholder="#FFFFFF"></div><div class="col-md-4"><label class="form-label">Ảnh URL</label><input type="url" class="form-control" name="variant_groups[${groupIndex}][values][${valueIndex}][image_url]"></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[${groupIndex}][values][${valueIndex}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[${groupIndex}][values][${valueIndex}][is_active]" value="1" checked><label class="form-check-label">Bật</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>`;
+            const valueRow = (groupIndex, valueIndex) => `<div class="row g-2 create-variant-value align-items-end"><div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="variant_groups[${groupIndex}][values][${valueIndex}][label]" required></div><div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="variant_groups[${groupIndex}][values][${valueIndex}][color_hex]" placeholder="#FFFFFF"></div><div class="col-md-3"><label class="form-label">Ảnh</label><div class="variant-value-image-trigger form-control d-flex align-items-center gap-2" style="cursor:pointer; height:auto; min-height:calc(1.5em + 0.75rem + 2px);"><img class="variant-value-image-preview rounded d-none" style="width:32px;height:32px;object-fit:cover;" src="" alt=""><span class="variant-value-image-placeholder small text-muted">Chọn ảnh</span></div><input type="file" class="d-none variant-value-image-file" accept="image/*" data-media-folder="products" data-media-selected-field="variant_groups[${groupIndex}][values][${valueIndex}][image_url]"><input type="hidden" class="variant-value-image-url" name="variant_groups[${groupIndex}][values][${valueIndex}][image_url]" value=""></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[${groupIndex}][values][${valueIndex}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[${groupIndex}][values][${valueIndex}][is_active]" value="1" checked><label class="form-check-label">Bật</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>`;
             const groupCard = (groupIndex) => `<div class="border rounded p-3 create-variant-group" data-group-index="${groupIndex}"><div class="row align-items-end mb-3"><div class="col-md-6"><label class="form-label">Tên nhóm</label><input class="form-control" name="variant_groups[${groupIndex}][name]" required></div><div class="col-md-4"><label class="form-label">Kiểu hiển thị</label><select class="form-select" name="variant_groups[${groupIndex}][display_type]"><option value="select">Danh sách</option><option value="color">Màu sắc</option><option value="image">Ảnh</option></select></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-create-group">Xóa nhóm</button></div></div><div class="create-variant-values d-flex flex-column gap-2">${valueRow(groupIndex, 0)}</div><button type="button" class="btn btn-sm btn-outline-primary mt-3 add-create-value">+ Thêm giá trị</button></div>`;
             const addInitialGroup = () => {
                 if (groups && groups.children.length === 0) groups.insertAdjacentHTML('beforeend', groupCard(0));
@@ -338,8 +364,25 @@
                     }
                     if (event.target.closest('.remove-create-value')) event.target.closest('.create-variant-value').remove();
                     if (event.target.closest('.remove-create-group')) group.remove();
+                    const imageTrigger = event.target.closest('.variant-value-image-trigger');
+                    if (imageTrigger) imageTrigger.closest('.create-variant-value')?.querySelector('.variant-value-image-file')?.click();
                 });
             }
+
+            document.addEventListener('media:selected', function (event) {
+                const input = event.target;
+                if (!input.classList || !input.classList.contains('variant-value-image-file')) return;
+                const row = input.closest('.create-variant-value');
+                if (!row) return;
+                const preview = row.querySelector('.variant-value-image-preview');
+                const placeholder = row.querySelector('.variant-value-image-placeholder');
+                if (preview) {
+                    preview.src = event.detail.url;
+                    preview.classList.remove('d-none');
+                }
+                if (placeholder) placeholder.classList.add('d-none');
+                isDirty = true;
+            });
         });
     </script>
 @endpush

@@ -59,16 +59,27 @@
             </div>
         </div>
 
+        @php
+            $galleryImages = old('gallery_images', $product->exists ? $product->images->pluck('image_url')->all() : []);
+        @endphp
         <div class="card">
             <div class="card-body">
-                <h4 class="card-title mb-7">{{ __('catalog.products.sections.media') }}</h4>
-                <div class="dropzone dz-clickable mb-2 catalog-dropzone">
-                    <div class="dz-default dz-message">
-                        <button class="dz-button" type="button">{{ __('catalog.products.dropzone.media') }}</button>
-                    </div>
+                <h4 class="card-title mb-1">{{ __('catalog.products.sections.media') }}</h4>
+                <p class="fs-2 mb-3">Thêm nhiều ảnh phụ để hiển thị trong thư viện ảnh chi tiết sản phẩm.</p>
+                <div id="product-gallery-items" class="d-flex flex-wrap gap-2 mb-2">
+                    @foreach($galleryImages as $index => $url)
+                        @continue(empty($url))
+                        <div class="gallery-item position-relative" data-index="{{ $index }}">
+                            <img src="{{ $url }}" class="rounded border" style="width:64px;height:64px;object-fit:cover;" alt="">
+                            <input type="hidden" name="gallery_images[{{ $index }}]" value="{{ $url }}">
+                            <button type="button" class="btn btn-sm btn-danger remove-gallery-image position-absolute top-0 end-0" style="padding:0 6px; line-height:1.6; border-radius:50%; transform:translate(30%,-30%);">×</button>
+                        </div>
+                    @endforeach
                 </div>
-                <label class="form-label" for="image_url">{{ __('catalog.fields.image_url') }}</label>
-                <input type="text" class="form-control" id="image_url" name="image_url" value="{{ old('image_url', $product->image_url) }}" placeholder="{{ __('catalog.placeholders.product_image_url') }}">
+                <div id="gallery-add-trigger" class="d-inline-flex align-items-center justify-content-center border border-dashed rounded text-muted" style="width:64px;height:64px;cursor:pointer;">
+                    <iconify-icon icon="solar:add-circle-bold-duotone" class="fs-7"></iconify-icon>
+                </div>
+                <input type="file" id="gallery_image_file" class="d-none" accept="image/*" data-media-folder="products">
             </div>
         </div>
 
@@ -116,7 +127,7 @@
                                     </div>
                                     <div class="create-variant-values d-flex flex-column gap-2">
                                         @foreach(data_get($group, 'values', []) as $valueIndex => $value)
-                                            <div class="row g-2 create-variant-value align-items-end">@if(data_get($value, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][id]" value="{{ data_get($value, 'id') }}">@endif<div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][label]" value="{{ data_get($value, 'label') }}" required></div><div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][color_hex]" value="{{ data_get($value, 'color_hex') }}" placeholder="#FFFFFF"></div><div class="col-md-4"><label class="form-label">Ảnh URL</label><input type="url" class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]" value="{{ data_get($value, 'image_url') }}"></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="1" @checked(data_get($value, 'is_active', true))><label class="form-check-label">Bật</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>
+                                            <div class="row g-2 create-variant-value align-items-end">@if(data_get($value, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][id]" value="{{ data_get($value, 'id') }}">@endif<div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][label]" value="{{ data_get($value, 'label') }}" required></div><div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][color_hex]" value="{{ data_get($value, 'color_hex') }}" placeholder="#FFFFFF"></div><div class="col-md-3"><label class="form-label">Ảnh</label><div class="variant-value-image-trigger form-control d-flex align-items-center gap-2" style="cursor:pointer; height:auto; min-height:calc(1.5em + 0.75rem + 2px);"><img class="variant-value-image-preview rounded {{ data_get($value, 'image_url') ? '' : 'd-none' }}" style="width:32px;height:32px;object-fit:cover;" src="{{ data_get($value, 'image_url') }}" alt=""><span class="variant-value-image-placeholder small text-muted {{ data_get($value, 'image_url') ? 'd-none' : '' }}">Chọn ảnh</span></div><input type="file" class="d-none variant-value-image-file" accept="image/*" data-media-folder="products" data-media-selected-field="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]"><input type="hidden" class="variant-value-image-url" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]" value="{{ data_get($value, 'image_url') }}"></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="1" @checked(data_get($value, 'is_active', true))><label class="form-check-label">Bật</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>
                                         @endforeach
                                     </div>
                                     <button type="button" class="btn btn-sm btn-outline-primary mt-3 add-create-value">+ Thêm giá trị</button>

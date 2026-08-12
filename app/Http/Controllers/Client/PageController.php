@@ -37,7 +37,6 @@ class PageController extends Controller
             'page' => $page,
             'title' => $this->content->get($page, 'title'),
             'html' => $this->content->get($page, 'published_html'),
-            'css' => $this->content->get($page, 'published_css'),
             'metaTitle' => $this->content->get($page, 'meta_title'),
             'metaDescription' => $this->content->get($page, 'meta_description'),
         ]);

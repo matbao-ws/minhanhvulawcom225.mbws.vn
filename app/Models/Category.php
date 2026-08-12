@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasLocalizedSlugs;
+use App\Models\Concerns\HasMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class Category extends Model
 {
-    use HasLocalizedSlugs, HasTranslations;
+    use HasLocalizedSlugs, HasTranslations, HasMediaUrls;
 
     public array $translatable = [
         'name',

@@ -266,15 +266,33 @@ if ($res === TRUE) {{
     exit(1);
 }}
 
-// Setup storage link
+// Setup storage link so /storage/<file> reaches the public disk.
 echo "Configuring storage link...\\n";
 $baseDir = dirname(__DIR__);
+$linkTarget = $baseDir . '/storage/app/public';
 $publicStorage = $baseDir . '/public/storage';
-if (file_exists($publicStorage) || is_link($publicStorage)) {{
+
+if (!is_dir($linkTarget)) {{
+    @mkdir($linkTarget, 0755, true);
+}}
+
+if (is_link($publicStorage)) {{
+    // A link from an earlier deploy can point at a path that no longer
+    // exists; replace it rather than trusting it.
     @unlink($publicStorage);
 }}
-@symlink($baseDir . '/storage/app/public', $publicStorage);
-echo "Storage link created.\\n";
+
+if (is_dir($publicStorage)) {{
+    // A real directory here holds uploaded files. Never delete it.
+    echo "Storage directory already present; left untouched.\\n";
+}} elseif (@symlink($linkTarget, $publicStorage) && is_dir($publicStorage)) {{
+    echo "Storage link created.\\n";
+}} else {{
+    // Not fatal: the public disk has "serve" enabled, so the application
+    // streams media itself when it cannot be exposed as a symlink.
+    echo "WARNING: could not link public/storage (symlink() may be disabled).\\n";
+    echo "         Images will be served by PHP instead. This is slower but works.\\n";
+}}
 
 // Helper to get PHP CLI
 function getPHPExecutable() {{
@@ -299,6 +317,14 @@ $phpBin = getPHPExecutable();
 echo "Using PHP CLI binary: $phpBin\\n";
 
 $baseDir = dirname(__DIR__);
+
+// Cached config and routes survive an upload. Until they are dropped, the
+// freshly deployed config/filesystems.php and the routes built from it do not
+// take effect, and media keeps 403-ing on the old cached configuration.
+echo "Clearing cached configuration, routes and views...\\n";
+$output = shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan optimize:clear 2>&1");
+echo $output . "\\n";
+
 if ({migrate_val}) {{
     echo "Running migrations...\\n";
     $output = shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan migrate --force 2>&1");
@@ -358,13 +384,36 @@ echo "Using PHP CLI binary: $phpBin\n";
 
 $baseDir = dirname(__DIR__);
 
-echo "Clearing configuration cache...\n";
-$outputConfig = shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan config:clear 2>&1");
-echo $outputConfig . "\n";
+// Same storage wiring as the full deploy: an incremental upload can land a
+// changed config/filesystems.php, and a missing public/storage link is the
+// usual reason media 403s after a deploy.
+echo "Configuring storage link...\n";
+$linkTarget = $baseDir . '/storage/app/public';
+$publicStorage = $baseDir . '/public/storage';
 
-echo "Clearing application cache...\n";
-$outputCache = shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan cache:clear 2>&1");
-echo $outputCache . "\n";
+if (!is_dir($linkTarget)) {{
+    @mkdir($linkTarget, 0755, true);
+}}
+
+if (is_link($publicStorage)) {{
+    @unlink($publicStorage);
+}}
+
+if (is_dir($publicStorage)) {{
+    echo "Storage directory already present; left untouched.\n";
+}} elseif (@symlink($linkTarget, $publicStorage) && is_dir($publicStorage)) {{
+    echo "Storage link created.\n";
+}} else {{
+    echo "WARNING: could not link public/storage (symlink() may be disabled).\n";
+    echo "         Images will be served by PHP instead. This is slower but works.\n";
+}}
+
+// Clears config, routes, views and compiled classes. Routes matter here: the
+// media-serving route is built from the filesystem config at boot and is
+// skipped entirely while a stale route cache is present.
+echo "Clearing cached configuration, routes and views...\n";
+$outputClear = shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan optimize:clear 2>&1");
+echo $outputClear . "\n";
 
 if ({migrate_val}) {{
     echo "Running migrations...\n";
@@ -596,24 +645,23 @@ def main():
             except Exception as e:
                 print(f"[-] Lỗi khi đẩy file {fpath}: {e}")
                 
-        # Handle migration & seed if requested
-        if migrate:
-            print("[*] Generating Artisan trigger script...")
-            trigger_code = generate_artisan_trigger_php(migrate, seed_type)
-            trigger_bio = io.BytesIO(trigger_code.encode('utf-8'))
-            
-            # Ensure target public dir and upload
-            public_dir = os.path.join(remote_dir, "public").replace('\\', '/').strip('/')
-            ftp_ensure_dir(ftp, public_dir)
-            ftp.storbinary("STOR artisan_trigger.php", trigger_bio)
-            print("[+] Artisan trigger script uploaded.")
-            ftp.quit()
-            
-            # Trigger execution
-            trigger_http_url(domain, remote_dir, "artisan_trigger.php")
-        else:
-            ftp.quit()
-            
+        # Always run the trigger, not just for migrations: it also refreshes the
+        # storage link and drops the cached config/routes. Skipping it leaves an
+        # uploaded config change inert, which is how media ends up 403-ing.
+        print("[*] Generating Artisan trigger script...")
+        trigger_code = generate_artisan_trigger_php(migrate, seed_type)
+        trigger_bio = io.BytesIO(trigger_code.encode('utf-8'))
+
+        # Ensure target public dir and upload
+        public_dir = os.path.join(remote_dir, "public").replace('\\', '/').strip('/')
+        ftp_ensure_dir(ftp, public_dir)
+        ftp.storbinary("STOR artisan_trigger.php", trigger_bio)
+        print("[+] Artisan trigger script uploaded.")
+        ftp.quit()
+
+        # Trigger execution
+        trigger_http_url(domain, remote_dir, "artisan_trigger.php")
+
         success = True
         
     if success:

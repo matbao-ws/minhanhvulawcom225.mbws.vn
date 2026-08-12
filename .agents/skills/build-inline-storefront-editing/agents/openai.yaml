@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Inline Storefront Editing"
+  short_description: "Add hover-to-edit text and images on the public site for admins"
+  default_prompt: "Use $build-inline-storefront-editing to add front-of-site inline editing to this storefront."

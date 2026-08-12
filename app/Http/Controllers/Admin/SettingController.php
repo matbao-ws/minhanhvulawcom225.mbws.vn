@@ -7,6 +7,7 @@ use App\Models\Language;
 use App\Models\ProjectSetting;
 use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
+use App\Support\MediaUrl;
 use App\Services\LanguageRegistry;
 use App\Services\MultilingualSettings;
 use Illuminate\Http\Request;
@@ -134,7 +135,7 @@ class SettingController extends Controller
         if ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) {
             $logoUrl = $request->hasFile('logo')
                 ? $this->cloudinaryService->uploadFile($request->file('logo'), 'settings')
-                : $validated['logo_url'];
+                : MediaUrl::toStorable($validated['logo_url']);
             ProjectSetting::updateOrCreate(
                 ['setting_key' => 'logo_url'],
                 ['setting_value' => $logoUrl]
@@ -145,7 +146,7 @@ class SettingController extends Controller
         if ($request->hasFile('favicon') || filled($validated['favicon_url'] ?? null)) {
             $faviconUrl = $request->hasFile('favicon')
                 ? $this->cloudinaryService->uploadFile($request->file('favicon'), 'settings')
-                : $validated['favicon_url'];
+                : MediaUrl::toStorable($validated['favicon_url']);
             ProjectSetting::updateOrCreate(
                 ['setting_key' => 'favicon_url'],
                 ['setting_value' => $faviconUrl]

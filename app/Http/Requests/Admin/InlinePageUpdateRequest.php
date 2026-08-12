@@ -17,9 +17,7 @@ class InlinePageUpdateRequest extends FormRequest
     {
         return [
             'content_locale' => ['required', 'string', Rule::in(app(LanguageRegistry::class)->codes())],
-            'builder_data' => ['required', 'array'],
-            'published_html' => ['present', 'string', 'max:1000000'],
-            'published_css' => ['nullable', 'string', 'max:500000'],
+            'published_html' => ['required', 'string', 'max:1000000'],
         ];
     }
 }

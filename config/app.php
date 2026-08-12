@@ -67,6 +67,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Asset URL
+    |--------------------------------------------------------------------------
+    |
+    | Optional host to serve static assets and uploaded media from, e.g. a CDN.
+    | When empty, assets are served from the application itself. Media is stored
+    | as a relative path, so switching this is enough to move asset delivery.
+    |
+    */
+
+    'asset_url' => env('ASSET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

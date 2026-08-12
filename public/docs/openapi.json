@@ -1058,13 +1058,12 @@
       },
       "PublicPage": {
         "type": "object",
-        "required": ["id", "title", "slug", "html", "css", "seo", "published_at"],
+        "required": ["id", "title", "slug", "html", "published_at"],
         "properties": {
           "id": { "type": "integer", "example": 12 },
           "title": { "type": "string", "example": "Giới thiệu" },
           "slug": { "type": "string", "example": "gioi-thieu" },
-          "html": { "type": "string", "description": "HTML đã được làm sạch", "example": "<section data-page-block=\"hero\"><h1>Giới thiệu</h1></section>" },
-          "css": { "type": "string", "description": "CSS của trang đã qua kiểm tra an toàn", "example": "[data-page-block=\"hero\"]{padding:48px}" },
+          "html": { "type": "string", "description": "HTML đã được làm sạch; URL ảnh được trả về dạng tuyệt đối theo APP_URL", "example": "<section><h1>Giới thiệu</h1></section>" },
           "seo_title": { "type": "string", "nullable": true, "example": "Giới thiệu cửa hàng" },
           "seo_description": { "type": "string", "nullable": true, "example": "Tìm hiểu thêm về cửa hàng của chúng tôi." },
           "published_at": { "type": "string", "format": "date-time", "nullable": true }

@@ -10,16 +10,11 @@ class PageRevision extends Model
 
     protected $fillable = [
         'created_by',
-        'schema_version',
-        'builder_data',
         'published_html',
-        'published_css',
     ];
 
     protected $casts = [
-        'builder_data' => 'array',
         'published_html' => 'array',
-        'published_css' => 'array',
     ];
 
     public function page()

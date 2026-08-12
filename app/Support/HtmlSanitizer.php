@@ -27,6 +27,6 @@ class HtmlSanitizer
 
     public function clean(?string $html): string
     {
-        return $this->purifier->purify((string) $html);
+        return MediaUrl::relativizeHtmlSources($this->purifier->purify((string) $html));
     }
 }

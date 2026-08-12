@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Services\LocalizedContent;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,7 +18,10 @@ class PublicPostResource extends JsonResource
             'title' => $content->get($this->resource, 'title'),
             'slug' => $this->canonicalSlug(),
             'summary' => $content->get($this->resource, 'summary'),
-            'content' => $this->when($this->relationLoaded('category'), $content->get($this->resource, 'content')),
+            'content' => $this->when(
+                $this->relationLoaded('category'),
+                fn (): string => MediaUrl::absolutizeHtmlSources($content->get($this->resource, 'content')),
+            ),
             'image_url' => $this->image_url,
             'seo_title' => $content->get($this->resource, 'seo_title'),
             'seo_description' => $content->get($this->resource, 'seo_description'),
