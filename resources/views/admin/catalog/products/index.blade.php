@@ -2,11 +2,17 @@
 
 @section('title', __('catalog.products.title'))
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('admin-assets/libs/dragula/dist/dragula.min.css') }}">
+@endpush
+
+@php $isFiltered = $isFiltered ?? false; @endphp
+
 @section('content')
         <!-- Header Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3">
                     <div class="row align-items-center">
                         <div class="col-12">
@@ -50,7 +56,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" class="row g-2 align-items-end">
+            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -119,12 +125,17 @@
                             <th class="text-end pe-4">{{ __('catalog.fields.actions') }}</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="product-table-sortable" data-start-order="{{ max(0, ($products->firstItem() ?? 1) - 1) }}">
                         @forelse($products as $product)
-                            <tr class="text-nowrap">
+                            <tr class="text-nowrap" data-product-id="{{ $product->id }}">
                                 <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $product->id }}" form="bulk-products-form" data-bulk-select="bulk-products-form" aria-label="Chọn {{ $product->name }}"></td>
                                 <td class="ps-4 text-wrap" style="min-width: 300px;">
                                     <div class="d-flex align-items-center gap-3">
+                                        @unless($isFiltered)
+                                            <span class="catalog-drag-handle cursor-grab" title="{{ __('catalog.actions.drag_sort') }}">
+                                                <i class="ti ti-grip-vertical fs-5"></i>
+                                            </span>
+                                        @endunless
                                         <img src="{{ $product->image_url ?: asset('images/icons/default-product.png') }}"
                                              onerror="this.src='{{ asset('images/icons/default-product.png') }}'"
                                              alt="{{ $product->name }}"
@@ -200,20 +211,16 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="9" class="text-center py-5">
-                                    <img src="{{ asset('admin-assets/images/icons/emptydata.png') }}" alt="No data"
-                                        class="img-fluid mb-2" style="max-height: 60px;">
-                                    <p class="text-muted fw-bold mb-0">{{ __('catalog.common.no_data') }}</p>
-                                </td>
-                            </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+            @if($products->isEmpty())
+                @include('admin.shared.empty-state')
+            @endif
         </div>
         <div class="card-body">
-            {{ $products->links() }}
+            @include('admin.shared.pagination', ['paginator' => $products])
         </div>
     </div>
 
@@ -267,3 +274,68 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sortable = document.getElementById('product-table-sortable');
+            const sortingEnabled = @json(! $isFiltered);
+            const csrfToken = @json(csrf_token());
+            const sortUrl = @json(route('admin.products.sort'));
+
+            const toast = function (icon, message) {
+                if (!window.Swal) {
+                    return;
+                }
+
+                Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true
+                }).fire({ icon, title: message });
+            };
+
+            if (!sortingEnabled || !sortable || !window.dragula || sortable.querySelectorAll('tr[data-product-id]').length < 2) {
+                return;
+            }
+
+            dragula([sortable], {
+                moves: function (el, container, handle) {
+                    return el.dataset.productId !== undefined && handle.closest('.catalog-drag-handle') !== null;
+                }
+            }).on('drop', function () {
+                const ids = Array.from(sortable.querySelectorAll('tr[data-product-id]')).map(function (tr) {
+                    return tr.dataset.productId;
+                });
+
+                fetch(sortUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        ids: ids,
+                        start_order: Number(sortable.dataset.startOrder || 0)
+                    })
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Sort failed');
+                        }
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        toast('success', payload.message || @json(__('catalog.products.sorted')));
+                    })
+                    .catch(function () {
+                        toast('error', @json(__('catalog.products.sort_failed')));
+                    });
+            });
+        });
+    </script>
+@endpush

@@ -40,10 +40,10 @@
                         @endphp
                         <div class="tab-pane fade @if($defaultTab) show active @endif" id="post-language-{{ $code }}">
                             @if(!$defaultTab)<div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif
-                            <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'title' : 'title_'.$code }}">{{ __('admin.posts.fields.title') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="{{ $defaultTab ? 'title' : 'title_'.$code }}" name="title[{{ $code }}]" value="{{ $title }}" data-i18n-locale="{{ $code }}" data-i18n-field="title" @required($defaultTab)></div>
-                            <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'slug' : 'slug_'.$code }}">{{ __('admin.posts.fields.slug') }}</label><input type="text" class="form-control" id="{{ $defaultTab ? 'slug' : 'slug_'.$code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="Tự tạo từ tiêu đề"></div>
-                            <div class="mb-4"><label class="form-label" for="summary_{{ $code }}">{{ __('admin.posts.fields.summary') }}</label><textarea class="form-control" id="summary_{{ $code }}" name="summary[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="summary">{{ $summary }}</textarea></div>
-                            <div class="mb-4 position-relative" @if($defaultTab) id="editor_wrapper" @endif><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="catalog-quill" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" style="height:350px">{!! app(\App\Support\HtmlSanitizer::class)->clean($content) !!}</div></div>
+                            <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'title' : 'title_'.$code }}">{{ __('admin.posts.fields.title') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="{{ $defaultTab ? 'title' : 'title_'.$code }}" name="title[{{ $code }}]" value="{{ $title }}" data-i18n-locale="{{ $code }}" data-i18n-field="title" placeholder="{{ __('admin.posts.placeholders.title') }}" @required($defaultTab)></div>
+                            <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'slug' : 'slug_'.$code }}">{{ __('admin.posts.fields.slug') }}</label><input type="text" class="form-control" id="{{ $defaultTab ? 'slug' : 'slug_'.$code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="{{ __('admin.posts.placeholders.slug') }}"></div>
+                            <div class="mb-4"><label class="form-label" for="summary_{{ $code }}">{{ __('admin.posts.fields.summary') }}</label><textarea class="form-control" id="summary_{{ $code }}" name="summary[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="summary" placeholder="{{ __('admin.posts.placeholders.summary') }}">{{ $summary }}</textarea></div>
+                            <div class="mb-4 position-relative" @if($defaultTab) id="editor_wrapper" @endif><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="catalog-quill" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" data-placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" style="height:350px">{!! app(\App\Support\HtmlSanitizer::class)->clean($content) !!}</div></div>
                             <div class="border rounded p-3 bg-light-subtle">
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between gap-2">
@@ -57,7 +57,8 @@
                                            maxlength="255"
                                            data-seo-title-input="{{ $code }}"
                                            data-i18n-locale="{{ $code }}"
-                                           data-i18n-field="seo_title">
+                                           data-i18n-field="seo_title"
+                                           placeholder="{{ __('admin.posts.placeholders.seo_title') }}">
                                 </div>
                                 <div>
                                     <div class="d-flex justify-content-between gap-2">
@@ -71,7 +72,8 @@
                                               maxlength="500"
                                               data-seo-description-input="{{ $code }}"
                                               data-i18n-locale="{{ $code }}"
-                                              data-i18n-field="seo_description">{{ $seoDesc }}</textarea>
+                                              data-i18n-field="seo_description"
+                                              placeholder="{{ __('admin.posts.placeholders.seo_description') }}">{{ $seoDesc }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -98,7 +100,7 @@
                            id="canonical_url"
                            name="canonical_url"
                            value="{{ old('canonical_url', $post->canonical_url) }}"
-                           placeholder="https://example.com/bai-viet">
+                           placeholder="{{ __('admin.posts.placeholders.canonical_url') }}">
                     <p class="fs-2 text-muted mb-0">{{ __('admin.posts.placeholders.canonical_url_help') }}</p>
                 </div>
 
@@ -176,7 +178,7 @@
                          style="max-height: 150px; object-fit: contain;">
                      
                     <div id="post_image_placeholder" class="text-center py-3 {{ $post->image_url ? 'd-none' : '' }}">
-                        <iconify-icon icon="solar:camera-add-bold-duotone" class="fs-10 text-muted mb-2"></iconify-icon>
+                        <iconify-icon icon="solar:gallery-add-bold-duotone" class="fs-20 text-muted mb-2"></iconify-icon>
                         <div class="text-muted small">{{ __('admin.posts.placeholders.image_help') }}</div>
                     </div>
                 </div>

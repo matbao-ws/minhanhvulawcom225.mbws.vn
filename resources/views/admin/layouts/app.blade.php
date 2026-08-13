@@ -14,12 +14,16 @@
         body, h1, h2, h3, h4, h5, h6, .sidebar-nav, .topbar, * {
             font-family: 'Quicksand', sans-serif !important;
         }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+            font-weight: 600 !important;
+        }
         
         /* Global typography & readability improvements for Admin */
         body, p, .text-muted, .description, .card-subtitle, .form-text, .fs-12, .fs-13, .fs-14 {
             font-weight: 500 !important;
         }
-        .text-muted {
+        .text-muted:not([class*="fs-"]) {
             color: #5a6a85 !important;
             font-size: 13.5px !important;
         }
@@ -31,10 +35,10 @@
         .card-title {
             font-size: 18px !important;
             color: #2a3547 !important;
-            font-weight: 700 !important;
+            font-weight: 600 !important;
         }
-        .card-body p,
-        p {
+        .card-body p:not([class*="fs-"]),
+        p:not([class*="fs-"]) {
             font-size: 15px !important;
         }
         
@@ -235,7 +239,7 @@
             color: #2a3547 !important;
             font-weight: 600 !important;
         }
-        .table td .text-muted {
+        .table td .text-muted:not([class*="fs-"]) {
             font-size: 13.5px !important;
             color: #5a6a85 !important;
         }
@@ -510,6 +514,34 @@
     @include('admin.layouts.toast')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Collapse list filters on mobile while keeping them visible on desktop.
+            document.querySelectorAll('form[data-responsive-filters]').forEach(function (form, index) {
+                if (form.closest('.admin-responsive-filter-collapse')) return;
+
+                const collapseId = 'admin-responsive-filters-' + index;
+                const hasActiveFilters = Array.from(new FormData(form).entries()).some(function (entry) {
+                    return entry[0] !== 'page' && String(entry[1]).trim() !== '';
+                });
+                const collapse = document.createElement('div');
+                collapse.id = collapseId;
+                collapse.className = 'collapse d-md-block admin-responsive-filter-collapse' + (hasActiveFilters ? ' show' : '');
+
+                const toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.className = 'btn btn-outline-primary d-md-none w-100 d-flex align-items-center justify-content-between mb-2 admin-responsive-filter-toggle';
+                toggle.setAttribute('data-bs-toggle', 'collapse');
+                toggle.setAttribute('data-bs-target', '#' + collapseId);
+                toggle.setAttribute('aria-controls', collapseId);
+                toggle.setAttribute('aria-expanded', hasActiveFilters ? 'true' : 'false');
+                toggle.innerHTML = '<span><i class="ti ti-adjustments-horizontal me-2"></i>'
+                    + @json(app()->getLocale() === 'vi' ? 'Bộ lọc' : 'Filters')
+                    + '</span><i class="ti ti-chevron-down"></i>';
+
+                form.parentNode.insertBefore(toggle, form);
+                form.parentNode.insertBefore(collapse, form);
+                collapse.appendChild(form);
+            });
+
             // Global SweetAlert2 delete confirmation
             document.body.addEventListener('submit', function (e) {
                 const form = e.target;
@@ -793,6 +825,7 @@
             }
         });
     </script>
+    <script src="{{ asset('admin-assets/js/form-guidance.js') }}"></script>
     @stack('scripts')
 </body>
 

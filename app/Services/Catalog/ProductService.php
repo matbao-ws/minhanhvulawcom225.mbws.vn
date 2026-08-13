@@ -46,6 +46,15 @@ class ProductService
         DB::transaction(fn () => $product->delete());
     }
 
+    public function reorder(array $ids, int $startOrder = 0): void
+    {
+        foreach (array_values($ids) as $index => $id) {
+            Product::query()
+                ->whereKey($id)
+                ->update(['sort_order' => $startOrder + $index]);
+        }
+    }
+
     public function createVariant(Product $product, array $data): ProductVariant
     {
         return DB::transaction(function () use ($product, $data) {

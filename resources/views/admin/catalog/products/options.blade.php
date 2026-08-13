@@ -7,7 +7,7 @@
         $contentLanguages = app(\App\Services\LanguageRegistry::class)->active();
         $defaultContentLocale = app(\App\Services\LanguageRegistry::class)->defaultLocale();
     @endphp
-    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
         <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
             <div>
                 <h4 class="fw-semibold mb-1 text-white">Thuộc tính biến thể: {{ $product->name }}</h4>

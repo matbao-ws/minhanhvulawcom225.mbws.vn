@@ -232,13 +232,16 @@ class FeatureGateAndSuperadminTest extends TestCase
             'is_enabled' => false,
         ]);
 
+        // catalog and cart from the inserts above, plus "shipping", which its
+        // migration seeds enabled and which belongs to the same group.
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'updated' => 2,
+                'updated' => 3,
             ]);
         $this->assertDatabaseHas('feature_settings', ['feature_code' => 'catalog', 'is_enabled' => false]);
         $this->assertDatabaseHas('feature_settings', ['feature_code' => 'cart', 'is_enabled' => false]);
+        $this->assertDatabaseHas('feature_settings', ['feature_code' => 'shipping', 'is_enabled' => false]);
         $this->assertDatabaseHas('feature_settings', ['feature_code' => 'cms_page', 'is_enabled' => true]);
     }
 

@@ -298,7 +298,7 @@
 @push('styles')
     <style>
         .product-show-hero {
-            background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;
+            background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;
         }
 
         .product-show-hero .breadcrumb-item + .breadcrumb-item::before {

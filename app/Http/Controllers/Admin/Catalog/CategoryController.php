@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\CategoryRequest;
 use App\Models\Category;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
-    use HandlesBulkActions;
+    use HandlesBulkActions, HandlesPagination;
 
     public function __construct(private readonly CategoryService $categories) {}
 
@@ -36,15 +37,15 @@ class CategoryController extends Controller
             ]
         );
 
-        // Paginate root categories
-        $rootCategories = Category::query()
-            ->whereNull('parent_id')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->paginate(15);
+        $keyword = trim((string) request('q'));
+        $isFiltered = $keyword !== ''
+            || request()->filled('status')
+            || request()->filled('parent_id')
+            || request()->filled('draft');
 
         // Get all categories in one query to build tree in memory
         $allCategories = Category::query()
+            ->with('parent')
             ->withCount('products')
             ->orderBy('sort_order')
             ->orderBy('id')
@@ -71,6 +72,56 @@ class CategoryController extends Controller
             $computeTotalProducts($rootCategory);
         }
 
+        if ($isFiltered) {
+            // Filtered view: flat result list, tree grouping and drag sorting are disabled
+            $categories = Category::query()
+                ->when($keyword !== '', function ($query) use ($keyword): void {
+                    $query->where(function ($query) use ($keyword): void {
+                        $query->where('name', 'like', "%{$keyword}%")
+                            ->orWhere('slug', 'like', "%{$keyword}%")
+                            ->orWhere('description', 'like', "%{$keyword}%");
+                    });
+                })
+                ->when(request()->filled('status'), function ($query): void {
+                    $query->where('is_active', request('status'));
+                })
+                ->when(request()->filled('draft'), function ($query): void {
+                    $query->where('is_draft', request('draft'));
+                })
+                ->when(request()->filled('parent_id'), function ($query): void {
+                    request('parent_id') === 'root'
+                        ? $query->whereNull('parent_id')
+                        : $query->where('parent_id', request('parent_id'));
+                })
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->paginate($this->perPage())
+                ->withQueryString();
+
+            // Reuse the preloaded models so product totals and parent stay available
+            $byId = $allCategories->keyBy('id');
+            $categories->setCollection($categories->getCollection()->map(function (Category $category) use ($byId) {
+                $loaded = $byId->get($category->id) ?? $category;
+                $loaded->depth = 0;
+
+                return $loaded;
+            }));
+
+            return view('admin.catalog.categories.index', [
+                'categories' => $categories,
+                'parentOptions' => $this->parentOptions(),
+                'isFiltered' => true,
+            ]);
+        }
+
+        // Paginate root categories
+        $rootCategories = Category::query()
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->paginate($this->perPage())
+            ->withQueryString();
+
         $flatCategories = collect();
 
         $flatten = function ($categories, $depth = 0) use (&$flatten, &$flatCategories, $grouped) {
@@ -96,6 +147,7 @@ class CategoryController extends Controller
         return view('admin.catalog.categories.index', [
             'categories' => $rootCategories,
             'parentOptions' => $this->parentOptions(),
+            'isFiltered' => false,
         ]);
     }
 

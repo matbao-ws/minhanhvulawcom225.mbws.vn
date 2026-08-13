@@ -43,8 +43,11 @@ class SidebarNavigationTest extends TestCase
         $this->assertNotContains('/vi/admin/users', $links);
         $this->assertNotContains('/vi/admin/media', $links);
         $this->assertContains('/vi/admin/settings', $links);
-        $this->assertContains('/vi/admin/shipping-partners', $links);
-        $this->assertContains('/vi/admin/payment-methods', $links);
+        // setUp disables every feature, so these two are exactly what this test
+        // is named for: links the admin can no longer open. General and
+        // notification settings carry no feature switch and stay.
+        $this->assertNotContains('/vi/admin/shipping-partners', $links);
+        $this->assertNotContains('/vi/admin/payment-methods', $links);
         $this->assertContains('/vi/admin/notification-settings', $links);
         $response->assertSee('data-sidebar-settings-menu', false);
         $response->assertSeeText('Cấu hình chung');

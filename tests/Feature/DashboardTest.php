@@ -82,6 +82,7 @@ class DashboardTest extends TestCase
         $response = $this->actingAs($this->adminUser)->get('/vi/admin/dashboard');
 
         $response->assertOk();
+        $response->assertSee('admin-assets/js/form-guidance.js', false);
         $response->assertViewIs('admin.dashboard.index');
         $response->assertViewHasAll([
             'subscription',

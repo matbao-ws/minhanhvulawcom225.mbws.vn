@@ -52,6 +52,7 @@ class CategoryRequest extends FormRequest
             'image_file' => ['nullable', 'image', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+            'is_draft' => ['nullable', 'boolean'],
         ];
     }
 

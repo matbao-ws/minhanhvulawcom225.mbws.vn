@@ -28,10 +28,12 @@ class Category extends Model
         'image_url',
         'sort_order',
         'is_active',
+        'is_draft',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_draft' => 'boolean',
         'sort_order' => 'integer',
     ];
 

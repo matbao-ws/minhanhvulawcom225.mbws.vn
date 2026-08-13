@@ -8,6 +8,13 @@ return [
     'status' => [
         'active' => 'Active',
         'inactive' => 'Inactive',
+        'draft' => 'Draft',
+    ],
+    'filters' => [
+        'all' => 'All',
+        'root_only' => 'Root categories',
+        'draft_only' => 'Drafts only',
+        'published_only' => 'Finished only',
     ],
     'actions' => [
         'save' => 'Save',
@@ -17,6 +24,7 @@ return [
         'view' => 'View',
         'back' => 'Back',
         'search' => 'Search',
+        'reset_filters' => 'Clear filters',
         'drag_sort' => 'Drag to reorder',
         'quick_edit' => 'Quick edit',
         'confirm_delete' => 'Are you sure you want to delete this record?',
@@ -36,6 +44,7 @@ return [
         'image' => 'Image',
         'image_url' => 'Image URL',
         'is_active' => 'Active',
+        'visible' => 'Visible',
         'save_draft' => 'Save as draft',
         'is_featured' => 'Featured',
         'manage_stock' => 'Manage stock',
@@ -76,6 +85,10 @@ return [
         'quick_edit' => 'Quick Edit Category',
         'sorted' => 'Category order updated.',
         'sort_failed' => 'Could not update category order.',
+        'search_placeholder' => 'Search by name, slug or description',
+        'status_help' => 'Untick to hide the category from the storefront.',
+        'draft_help' => 'Marks unfinished content. Does not affect storefront visibility.',
+        'filtered_notice' => 'Filtered results are shown as a flat list; drag-and-drop sorting is disabled.',
     ],
     'brands' => [
         'title' => 'Brands',
@@ -96,6 +109,8 @@ return [
         'edit' => 'Edit Product',
         'details' => 'Product Details',
         'search_placeholder' => 'Search by name, SKU, or slug',
+        'sorted' => 'Product order updated.',
+        'sort_failed' => 'Could not update product order.',
         'actions' => [
             'add_variation_row' => 'Add another variation',
         ],

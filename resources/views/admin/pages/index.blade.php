@@ -13,7 +13,7 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="GET" class="row g-2 mb-4">
+        <form method="GET" data-responsive-filters class="row g-2 mb-4">
             <div class="col-md-6"><input class="form-control" name="q" value="{{ request('q') }}" placeholder="Tìm theo tiêu đề hoặc slug"></div>
             <div class="col-md-3">
                 <select class="form-select" name="status">

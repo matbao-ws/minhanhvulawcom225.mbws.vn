@@ -2,6 +2,11 @@
 
 return [
     'all' => 'All',
+    'pagination' => [
+        'per_page' => 'Rows',
+        'summary' => 'Showing :from–:to of :total',
+        'apply' => 'Apply',
+    ],
     'dashboard' => 'Dashboard',
     'admin' => 'Admin',
     'home' => 'Home',
@@ -151,6 +156,7 @@ return [
         'online_payment' => 'Online Payment',
         'voucher' => 'Vouchers / Coupons',
         'review' => 'Product Reviews',
+        'shipping' => 'Shipping',
         'zalo_oa' => 'Zalo OA Integration',
         'cms_page' => 'CMS Pages',
         'banner' => 'Banner Management',
@@ -165,6 +171,7 @@ return [
         'subtitle_for_online_payment' => 'Allow online payments via payment gateways and banks.',
         'subtitle_for_voucher' => 'Create and apply discount codes and promotion campaigns.',
         'subtitle_for_review' => 'Show product reviews and comments from customers.',
+        'subtitle_for_shipping' => 'Configure carriers, delivery fees, and shipping order integrations.',
         'subtitle_for_zalo_oa' => 'Send customer care messages and order notifications via Zalo OA.',
         'subtitle_for_cms_page' => 'Manage static content pages like about us, terms, and policies.',
         'subtitle_for_banner' => 'Manage slideshows and advertising banners on the website.',
@@ -413,6 +420,7 @@ return [
             'summary' => 'Enter summary for list views...',
             'focus_keyword' => 'e.g. seo ready, shopping cart...',
             'focus_keyword_help' => 'The focus keyword you want to rank for on Google.',
+            'canonical_url' => 'https://example.com/post',
             'canonical_url_help' => 'Leave blank when this post is the original. Enter a full URL only when another canonical address should be used.',
             'seo_title' => 'Leave empty to automatically use post title...',
             'seo_description' => 'Enter meta description (120-160 characters)...',

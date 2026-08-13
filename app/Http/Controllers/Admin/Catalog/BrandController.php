@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\BrandRequest;
 use App\Models\Brand;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class BrandController extends Controller
 {
-    use HandlesBulkActions;
+    use HandlesBulkActions, HandlesPagination;
 
     public function __construct(private readonly BrandService $brands) {}
 
@@ -32,7 +33,7 @@ class BrandController extends Controller
             })
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->paginate(15)
+            ->paginate($this->perPage())
             ->withQueryString();
 
         return view('admin.catalog.brands.index', [

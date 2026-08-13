@@ -3,7 +3,7 @@
 @section('title', 'Chương trình khuyến mãi')
 
 @section('content')
-    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
         <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
             <div><h4 class="fw-semibold mb-1 text-white">Chương trình khuyến mãi & Flash Sale</h4><div class="text-white-50">Giá tự động theo sản phẩm/SKU, không cần nhập mã.</div></div>
             <a href="{{ route('admin.promotions.create') }}" class="btn btn-light">+ Tạo chương trình</a>

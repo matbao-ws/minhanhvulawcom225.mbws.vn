@@ -40979,7 +40979,7 @@ body pre[class*="language-"] {
     background: #1f2a3d;
 }
 .auth-bg {
-    background: url(../images/backgrounds/login-bg.avif);
+    background: url(../images/backgrounds/auth-background.png);
     background-size: cover;
     background-repeat: no-repeat;
 }

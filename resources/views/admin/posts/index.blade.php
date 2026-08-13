@@ -6,7 +6,7 @@
     <!-- Header Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3">
                     <div class="row align-items-center g-3">
                         <div class="col-md">
@@ -19,9 +19,14 @@
                             </nav>
                         </div>
                         <div class="col-md-auto">
-                            <a href="{{ route('admin.posts.create') }}" class="btn btn-light fw-semibold w-100">
-                                <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.posts.create') }}
-                            </a>
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                <button type="button" class="btn btn-outline-light fw-semibold" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">
+                                    <i class="ti ti-brand-wordpress me-1" aria-hidden="true"></i>Import WordPress XML
+                                </button>
+                                <a href="{{ route('admin.posts.create') }}" class="btn btn-light fw-semibold">
+                                    <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.posts.create') }}
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -40,10 +45,31 @@
         </div>
     @endif
 
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <div class="fw-semibold">{{ session('warning') }}</div>
+            @if(session('import_errors'))
+                <ul class="mb-0 mt-2">
+                    @foreach(array_slice(session('import_errors'), 0, 20) as $importError)
+                        <li>{{ $importError }}</li>
+                    @endforeach
+                </ul>
+            @endif
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Posts Filter & List Card -->
     <div class="card">
         <div class="card-body border-bottom p-4">
-            <form method="GET" class="row g-2 align-items-end">
+            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -172,7 +198,10 @@
                         @empty
                             <tr>
                                 <td colspan="7" class="text-center py-5">
-                                    <iconify-icon icon="solar:document-bold-duotone" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
+                                    <img src="{{ asset('admin-assets/images/icons/empty-post.png') }}"
+                                         alt="{{ __('admin.posts.not_found') }}"
+                                         width="220"
+                                         class="img-fluid d-block mx-auto mb-3">
                                     <p class="text-muted mb-0 fs-3">{{ __('admin.posts.not_found') }}</p>
                                 </td>
                             </tr>
@@ -186,6 +215,43 @@
                     {{ $posts->links() }}
                 </div>
             @endif
+        </div>
+    </div>
+
+    <div class="modal fade" id="importWordPressPostsModal" tabindex="-1" aria-labelledby="importWordPressPostsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" action="{{ route('admin.posts.import-wordpress') }}" class="modal-content" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importWordPressPostsModalLabel">
+                        <i class="ti ti-brand-wordpress me-1 text-primary"></i>Import bài viết WordPress
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2">
+                        Chọn file <strong>WordPress eXtended RSS (WXR)</strong> được tải từ Công cụ → Xuất dữ liệu → Bài viết.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="wordpress_import_file">File WordPress XML <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="wordpress_import_file" name="import_file" accept=".xml,application/xml,text/xml" required>
+                        <div class="form-text">Dung lượng tối đa 20MB. Ảnh đại diện và ảnh trong nội dung sẽ được tải về media local.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="wordpress_duplicate_action">Khi trùng Slug <span class="text-danger">*</span></label>
+                        <select class="form-select" id="wordpress_duplicate_action" name="duplicate_action" required>
+                            <option value="skip" selected>Bỏ qua bài đã tồn tại (an toàn)</option>
+                            <option value="update">Cập nhật bài đang có bằng dữ liệu WordPress</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-upload me-1"></i>Bắt đầu import
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 @endsection

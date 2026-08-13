@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\ProductRequest;
 use App\Models\Brand;
@@ -20,7 +21,7 @@ use RuntimeException;
 
 class ProductController extends Controller
 {
-    use HandlesBulkActions;
+    use HandlesBulkActions, HandlesPagination;
 
     public function __construct(
         private readonly ProductService $products,
@@ -30,7 +31,15 @@ class ProductController extends Controller
 
     public function index()
     {
+        // Manual ordering only makes sense on the untouched list: reordering a
+        // filtered subset would rewrite sort_order for rows that are not shown.
+        $isFiltered = request()->filled('q')
+            || request()->filled('category_id')
+            || request()->filled('brand_id')
+            || request()->filled('status');
+
         return view('admin.catalog.products.index', [
+            'isFiltered' => $isFiltered,
             'products' => Product::query()
                 ->with(['category', 'brand'])
                 ->withCount('variants')
@@ -50,8 +59,9 @@ class ProductController extends Controller
                 ->when(request()->filled('status'), function ($query) {
                     $query->where('is_active', request('status'));
                 })
-                ->latest()
-                ->paginate(15)
+                ->orderBy('sort_order')
+                ->orderByDesc('id')
+                ->paginate($this->perPage())
                 ->withQueryString(),
             'categoryOptions' => $this->categoryOptions(),
             'brandOptions' => $this->brandOptions(),
@@ -182,6 +192,21 @@ class ProductController extends Controller
         return redirect()
             ->route('admin.products.index')
             ->with('success', __('catalog.products.deleted'));
+    }
+
+    public function sort(Request $request, string $locale)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:products,id'],
+            'start_order' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $this->products->reorder($validated['ids'], (int) ($validated['start_order'] ?? 0));
+
+        return response()->json([
+            'message' => __('catalog.products.sorted'),
+        ]);
     }
 
     public function bulk(Request $request, string $locale)

@@ -60,7 +60,9 @@
         </div>
 
         @php
-            $galleryImages = old('gallery_images', $product->exists ? $product->images->pluck('image_url')->all() : []);
+            // Read the gallery through the relation call: some databases carry a stray
+            // "images" column on products, which would shadow the relation and yield null.
+            $galleryImages = old('gallery_images', $product->exists ? $product->images()->get()->pluck('image_url')->all() : []);
         @endphp
         <div class="card">
             <div class="card-body">

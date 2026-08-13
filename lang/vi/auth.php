@@ -24,16 +24,16 @@ return [
 
         'slides' => [
             [
-                'title' => 'Quản trị ecommerce tập trung',
-                'description' => 'Theo dõi cấu hình gói, tính năng và dữ liệu vận hành từ một khu vực quản trị.',
+                'title' => 'Vận hành website hiệu quả hơn',
+                'description' => 'Theo dõi dự án, quản lý dịch vụ và phối hợp công việc nhanh chóng, đồng bộ và bảo mật cùng MATBAO WS.',
             ],
             [
-                'title' => 'Nền tảng mở rộng theo module',
-                'description' => 'Bật tắt tính năng theo gói dịch vụ mà không thay đổi kiến trúc lõi.',
+                'title' => 'Linh hoạt theo từng nhu cầu',
+                'description' => 'Kích hoạt các tính năng phù hợp với từng gói dịch vụ và quy trình vận hành.',
             ],
             [
-                'title' => 'Sẵn sàng cho API client',
-                'description' => 'Core Laravel phục vụ admin Blade và REST API cho website bán hàng.',
+                'title' => 'Đăng nhập an toàn, quản trị liền mạch',
+                'description' => 'Bảo vệ quyền truy cập quản trị và dữ liệu vận hành trong một hệ thống đồng bộ, đáng tin cậy.',
             ],
         ],
     ],

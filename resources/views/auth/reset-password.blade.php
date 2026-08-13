@@ -13,6 +13,10 @@
         body, h1, h2, h3, h4, h5, h6, input, button, select, textarea, label, .form-control, * {
             font-family: 'Quicksand', sans-serif !important;
         }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+            font-weight: 600 !important;
+        }
         body, p, .text-muted, .fs-12, .form-label, .form-text, .description {
             font-weight: 500 !important;
         }

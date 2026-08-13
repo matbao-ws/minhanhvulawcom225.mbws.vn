@@ -8,6 +8,7 @@ return [
         'online_payment',
         'voucher',
         'review',
+        'shipping',
         'zalo_oa',
         'cms_page',
         'banner',
@@ -24,6 +25,7 @@ return [
             'online_payment',
             'voucher',
             'review',
+            'shipping',
             'inventory_log',
         ],
         'non_ecommerce' => [

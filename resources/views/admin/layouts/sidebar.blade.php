@@ -300,16 +300,20 @@
                                           <span class="icon-small"></span>{{ __('admin.sidebar.general_settings') }}
                                       </a>
                                   </li>
+                                  @if($sidebarFeatures->availableTo($sidebarUser, 'shipping'))
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.shipping-partners.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.shipping_settings') }}
                                       </a>
                                   </li>
+                                  @endif
+                                  @if($sidebarFeatures->availableTo($sidebarUser, 'cod_order') || $sidebarFeatures->availableTo($sidebarUser, 'online_payment'))
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.payment-methods.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.payment_settings') }}
                                       </a>
                                   </li>
+                                  @endif
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.notification-settings.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.notification_settings') }}

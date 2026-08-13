@@ -12,6 +12,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Orders\OrderCreationService;
 use App\Services\Orders\OrderDraft;
@@ -173,6 +174,65 @@ class OrderController extends Controller
                 ->get(),
             'products' => Product::query()->where('is_active', true)->with(['variants' => fn ($query) => $query->where('is_active', true)])->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::query()->where('status', 'active')->orderBy('name')->get(),
+        ]);
+    }
+
+    public function customerSuggestions(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:100'],
+        ]);
+        $keyword = trim($validated['q']);
+
+        $registeredCustomers = User::query()
+            ->whereNull('role_id')
+            ->where(function ($query) use ($keyword): void {
+                $query->where('name', 'like', "%{$keyword}%")
+                    ->orWhere('email', 'like', "%{$keyword}%")
+                    ->orWhereHas('addresses', function ($query) use ($keyword): void {
+                        $query->where('customer_name', 'like', "%{$keyword}%")
+                            ->orWhere('customer_phone', 'like', "%{$keyword}%")
+                            ->orWhere('address', 'like', "%{$keyword}%");
+                    });
+            })
+            ->with(['addresses' => fn ($query) => $query->orderByDesc('is_default')->latest()])
+            ->limit(8)
+            ->get()
+            ->map(function (User $customer): array {
+                $address = $customer->addresses->first();
+
+                return [
+                    'name' => $address?->customer_name ?: $customer->name,
+                    'email' => $customer->email,
+                    'phone' => $address?->customer_phone ?: '',
+                    'address' => $address?->address ?: '',
+                    'source' => 'account',
+                ];
+            });
+
+        $knownEmails = $registeredCustomers->pluck('email')->map(fn (string $email): string => mb_strtolower($email));
+        $orderCustomers = Order::query()
+            ->where(function ($query) use ($keyword): void {
+                $query->where('customer_name', 'like', "%{$keyword}%")
+                    ->orWhere('customer_email', 'like', "%{$keyword}%")
+                    ->orWhere('customer_phone', 'like', "%{$keyword}%");
+            })
+            ->latest()
+            ->limit(30)
+            ->get(['customer_name', 'customer_email', 'customer_phone', 'shipping_address'])
+            ->unique(fn (Order $order): string => mb_strtolower($order->customer_email).'|'.$order->customer_phone)
+            ->reject(fn (Order $order): bool => $knownEmails->contains(mb_strtolower($order->customer_email)))
+            ->take(max(0, 8 - $registeredCustomers->count()))
+            ->map(fn (Order $order): array => [
+                'name' => $order->customer_name,
+                'email' => $order->customer_email,
+                'phone' => $order->customer_phone,
+                'address' => $order->shipping_address,
+                'source' => 'order',
+            ]);
+
+        return response()->json([
+            'data' => $registeredCustomers->concat($orderCustomers)->values(),
         ]);
     }
 

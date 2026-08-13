@@ -5,6 +5,77 @@
     --core-control-primary-rgb: 227, 35, 38;
 }
 
+[style*="#10203C"],
+.product-show-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+[style*="#10203C"]::before,
+.product-show-hero::before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    background:
+        radial-gradient(circle at 77% 22%, rgba(255, 255, 255, 0.18) 0 3px, transparent 4px),
+        radial-gradient(circle at 92% 72%, rgba(255, 255, 255, 0.12) 0 5px, transparent 6px),
+        radial-gradient(ellipse at 88% 50%, rgba(89, 157, 255, 0.3) 0%, transparent 62%);
+    content: "";
+    pointer-events: none;
+}
+
+[style*="#10203C"]::after,
+.product-show-hero::after {
+    position: absolute;
+    z-index: 0;
+    top: 50%;
+    right: -8%;
+    width: clamp(240px, 42%, 560px);
+    height: 220%;
+    border: 1px solid rgba(255, 255, 255, 0.17);
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 28px rgba(255, 255, 255, 0.08),
+        0 0 0 56px rgba(255, 255, 255, 0.05),
+        0 0 0 84px rgba(255, 255, 255, 0.025);
+    content: "";
+    pointer-events: none;
+    transform: translateY(-50%) rotate(-12deg);
+}
+
+[style*="#10203C"] > *,
+.product-show-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.admin-responsive-filter-toggle .ti-chevron-down {
+    transition: transform 0.2s ease;
+}
+
+.admin-responsive-filter-toggle[aria-expanded="true"] .ti-chevron-down {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 767.98px) {
+    .table-responsive tbody tr:only-child:has(> td[colspan]) {
+        position: sticky;
+        left: 0;
+        display: block;
+        width: calc(100vw - 30px);
+        max-width: calc(100vw - 30px);
+        box-sizing: border-box;
+        background: var(--bs-body-bg);
+    }
+
+    .table-responsive tbody tr:only-child:has(> td[colspan]) > td {
+        display: block;
+        width: 100%;
+        border-bottom: 0;
+    }
+}
+
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary.focus {

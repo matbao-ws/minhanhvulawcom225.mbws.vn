@@ -87,6 +87,17 @@ class ReviewManagementTest extends TestCase
         $response->assertSee('Sản phẩm tuyệt vời!');
     }
 
+    public function test_empty_review_list_renders_the_shared_empty_state(): void
+    {
+        $this->actingAs($this->admin);
+
+        $this->get('/vi/admin/reviews')
+            ->assertOk()
+            ->assertSee('admin-assets/images/icons/emptycomment.png', false)
+            ->assertSee('width="240"', false)
+            ->assertSeeText(__('admin.reviews.not_found'));
+    }
+
     public function test_authorized_admins_can_update_review_via_ajax(): void
     {
         $this->actingAs($this->admin);
