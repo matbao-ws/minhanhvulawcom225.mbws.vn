@@ -32,8 +32,8 @@ return [
                 'description' => 'Gate features by service package without changing core architecture.',
             ],
             [
-                'title' => 'Prepared for client APIs',
-                'description' => 'Laravel core serves Blade admin screens and REST APIs for storefront clients.',
+                'title' => 'Secure sign-in, seamless management',
+                'description' => 'Protect administrative access and operational data in one synchronized, reliable system.',
             ],
         ],
     ],

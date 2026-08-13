@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\WordPressPostImportRequest;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Services\ActivityLogger;
@@ -11,6 +12,7 @@ use App\Services\CloudinaryService;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Services\PostSeoAnalyzer;
+use App\Services\WordPressPostImportService;
 use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -232,6 +234,41 @@ class PostController extends Controller
         ]);
 
         return back()->with('success', 'Đã '.($isActive ? 'xuất bản' : 'tạm ẩn').' '.$updated.' bài viết.');
+    }
+
+    public function importWordPress(WordPressPostImportRequest $request, string $locale, WordPressPostImportService $importer)
+    {
+        $validated = $request->validated();
+        try {
+            $results = $importer->import(
+                $request->file('import_file')->getPathname(),
+                $validated['duplicate_action'],
+            );
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'Import WordPress thất bại: '.$exception->getMessage());
+        }
+
+        ActivityLogger::log('wordpress_posts_imported', null, 'Import bài viết từ WordPress XML', [
+            'imported' => $results['imported'],
+            'updated' => $results['updated'],
+            'skipped' => $results['skipped'],
+            'failed' => $results['failed'],
+            'images_downloaded' => $results['images_downloaded'],
+            'images_failed' => $results['images_failed'],
+        ]);
+
+        $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi.";
+
+        if ($results['failed'] > 0 || $results['images_failed'] > 0) {
+            return back()->with('warning', $message)->with('import_errors', [
+                ...$results['errors'],
+                ...array_map(fn (string $error): string => 'Ảnh: '.$error, $results['image_errors']),
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     /**

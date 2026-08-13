@@ -72,6 +72,18 @@ class VoucherCrudTest extends TestCase
         $response->assertSee('Mùa đông');
     }
 
+    public function test_empty_voucher_list_renders_the_shared_empty_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get('/vi/admin/vouchers')
+            ->assertOk()
+            ->assertSee('admin-assets/images/icons/emptyvoucher.png', false)
+            ->assertSee('width="240"', false)
+            ->assertSeeText(__('admin.vouchers.not_found'))
+            ->assertDontSee('colspan="10"', false);
+    }
+
     public function test_admin_can_create_voucher_via_form(): void
     {
         $this->actingAs(User::factory()->create());

@@ -55,6 +55,22 @@ class ContactSubmissionTest extends TestCase
         $this->actingAs($customer)->get('/vi/admin/contact-submissions')->assertForbidden();
     }
 
+    public function test_empty_submission_list_renders_the_shared_empty_state(): void
+    {
+        $role = Role::query()->create([
+            'name' => 'Contact manager',
+            'permissions' => ['manage_contacts'],
+        ]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+
+        $this->actingAs($admin)
+            ->get('/vi/admin/contact-submissions')
+            ->assertOk()
+            ->assertSee('admin-assets/images/icons/emptycomment.png', false)
+            ->assertSee('width="240"', false)
+            ->assertSeeText('Hiện tại chưa có liên hệ nào');
+    }
+
     public function test_authorized_admin_can_view_toggle_and_delete_a_submission(): void
     {
         $role = Role::query()->create([

@@ -20,10 +20,14 @@ class PaymentMethodTest extends TestCase
     {
         parent::setUp();
 
-        FeatureSetting::query()->updateOrCreate(
-            ['feature_code' => 'online_payment'],
-            ['is_enabled' => true],
-        );
+        // A shop that accepts both. COD is what keeps the payment configuration
+        // screen open in the test that switches online payment off.
+        foreach (['online_payment', 'cod_order'] as $featureCode) {
+            FeatureSetting::query()->updateOrCreate(
+                ['feature_code' => $featureCode],
+                ['is_enabled' => true],
+            );
+        }
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',

@@ -6,10 +6,18 @@ return array (
     'none' => 'Không có',
     'no_data' => 'Hiện tại chưa có dữ liệu',
   ),
-  'status' => 
+  'status' =>
   array (
     'active' => 'Hiển thị',
     'inactive' => 'Đang ẩn',
+    'draft' => 'Nháp',
+  ),
+  'filters' =>
+  array (
+    'all' => 'Tất cả',
+    'root_only' => 'Danh mục gốc',
+    'draft_only' => 'Chỉ bản nháp',
+    'published_only' => 'Đã hoàn thiện',
   ),
   'actions' => 
   array (
@@ -20,6 +28,7 @@ return array (
     'view' => 'Xem',
     'back' => 'Quay lại',
     'search' => 'Tìm kiếm',
+    'reset_filters' => 'Xóa bộ lọc',
     'confirm_delete' => 'Bạn chắc chắn muốn xóa dữ liệu này?',
     'drag_sort' => 'Kéo để đổi thứ tự',
     'quick_edit' => 'Sửa nhanh',
@@ -64,6 +73,7 @@ return array (
     'stock_quantity' => 'Tồn kho',
     'variants' => 'Biến thể',
     'image' => 'Hình ảnh',
+    'visible' => 'Hiển thị',
     'save_draft' => 'Lưu nháp',
   ),
   'categories' => 
@@ -81,6 +91,10 @@ return array (
     'quick_edit' => 'Sửa nhanh danh mục',
     'sorted' => 'Đã cập nhật vị trí danh mục.',
     'sort_failed' => 'Không thể cập nhật vị trí danh mục.',
+    'search_placeholder' => 'Tìm theo tên, đường dẫn hoặc mô tả',
+    'status_help' => 'Bỏ tick để tạm ẩn danh mục khỏi website.',
+    'draft_help' => 'Đánh dấu nội dung chưa hoàn thiện. Không ảnh hưởng tới việc hiển thị.',
+    'filtered_notice' => 'Đang lọc danh sách nên hiển thị dạng phẳng; kéo thả đổi thứ tự tạm thời tắt.',
   ),
   'brands' => 
   array (
@@ -103,6 +117,8 @@ return array (
     'edit' => 'Sửa sản phẩm',
     'details' => 'Thông tin sản phẩm',
     'search_placeholder' => 'Tìm theo tên, SKU hoặc đường dẫn',
+    'sorted' => 'Đã cập nhật vị trí sản phẩm.',
+    'sort_failed' => 'Không thể cập nhật vị trí sản phẩm.',
     'actions' => 
     array (
       'add_variation_row' => 'Thêm dòng biến thể',

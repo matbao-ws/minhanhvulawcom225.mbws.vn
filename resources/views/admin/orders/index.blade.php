@@ -7,7 +7,7 @@
         <!-- Header Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3">
                     <div class="row align-items-center">
                         <div class="col-12">
@@ -31,14 +31,25 @@
 
     <!-- Orders List Card -->
     <div class="card">
-        <div class="card-body border-bottom p-4">
-            <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-4">
+        <div class="card-body border-bottom p-3 p-md-4">
+            <button class="btn btn-outline-primary d-md-none w-100 d-flex align-items-center justify-content-between"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#order-filters"
+                    aria-expanded="{{ request()->hasAny(['q', 'status', 'payment_status', 'shipping_status']) ? 'true' : 'false' }}"
+                    aria-controls="order-filters">
+                <span><i class="ti ti-adjustments-horizontal me-2"></i>Bộ lọc đơn hàng</span>
+                <i class="ti ti-chevron-down"></i>
+            </button>
+
+            <div class="collapse d-md-block {{ request()->hasAny(['q', 'status', 'payment_status', 'shipping_status']) ? 'show' : '' }}" id="order-filters">
+            <form method="GET" class="row g-2 align-items-end mt-1 mt-md-0">
+                <div class="col-12 col-sm-6 col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
                         placeholder="{{ __('admin.orders.search_placeholder') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-sm-6 col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.status') }}</label>
                     <select name="status" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
@@ -48,7 +59,7 @@
                         <option value="cancelled" @selected(request('status') === 'cancelled')>{{ __('admin.orders.statuses.cancelled') }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-sm-6 col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.payment_status') }}</label>
                     <select name="payment_status" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
@@ -57,7 +68,7 @@
                         <option value="failed" @selected(request('payment_status') === 'failed')>{{ __('admin.orders.payment_statuses.failed') }}</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-sm-6 col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.fields.shipping_status') }}</label>
                     <select name="shipping_status" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
@@ -66,12 +77,14 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-12 col-md-1">
                     <button class="btn btn-primary w-100" type="submit" title="{{ __('catalog.actions.search') }}">
-                        <i class="ti ti-search fs-5"></i>
+                        <i class="ti ti-search fs-5 me-1 me-md-0"></i>
+                        <span class="d-md-none">{{ __('catalog.actions.search') }}</span>
                     </button>
                 </div>
             </form>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -88,8 +101,9 @@
                             <th></th>
                         </tr>
                     </thead>
+                    @if($orders->isNotEmpty())
                     <tbody>
-                        @forelse($orders as $order)
+                        @foreach($orders as $order)
                             <tr class="text-nowrap">
                                 <td class="ps-4">
                                     <span class="fw-bold text-primary">{{ $order->order_number }}</span>
@@ -151,17 +165,19 @@
                                     </a>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="text-center py-5">
-                                    <iconify-icon icon="solar:bill-list-broken" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
-                                    <p class="text-muted mb-0 fs-3">{{ __('admin.orders.not_found') }}</p>
-                                </td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
+                    @endif
                 </table>
             </div>
+
+            @if($orders->isEmpty())
+                @include('admin.shared.empty-state', [
+                    'emptyId' => 'orders-empty-state',
+                    'emptyImage' => asset('admin-assets/images/icons/order-empty.png'),
+                    'emptyMessage' => __('admin.orders.not_found'),
+                ])
+            @endif
 
             @if($orders->hasPages())
                 <div class="card-footer bg-transparent border-top py-3">

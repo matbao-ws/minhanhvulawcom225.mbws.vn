@@ -70,6 +70,7 @@ class CategoryService
             'image_url' => $imageUrl,
             'sort_order' => (int) ($data['sort_order'] ?? $category?->sort_order ?? 0),
             'is_active' => (bool) ($data['is_active'] ?? false),
+            'is_draft' => (bool) ($data['is_draft'] ?? false),
         ];
     }
 

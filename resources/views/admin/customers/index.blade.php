@@ -29,7 +29,7 @@
 
 @section('content')
 <div class="customer-filter-bar">
-    <form method="GET" class="row g-2 align-items-center mb-0">
+    <form method="GET" data-responsive-filters class="row g-2 align-items-center mb-0">
         <div class="col-md-6">
             <input type="search" name="q" value="{{ request('q') }}" class="form-control" placeholder="{{ __('admin.customers.search_placeholder') }}">
         </div>

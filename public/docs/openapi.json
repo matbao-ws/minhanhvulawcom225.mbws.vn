@@ -41,6 +41,7 @@
                             "online_payment": false,
                             "voucher": true,
                             "review": true,
+                            "shipping": true,
                             "cms_page": true
                           }
                         },

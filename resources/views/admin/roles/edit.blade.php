@@ -6,7 +6,7 @@
         <!-- Header Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3">
                     <h4 class="fw-semibold mb-0 text-white">{{ __('admin.roles.edit') }}: {{ $role->name }}</h4>
                 </div>

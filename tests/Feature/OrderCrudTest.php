@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,6 +16,7 @@ class OrderCrudTest extends TestCase
     use RefreshDatabase;
 
     private Role $adminRole;
+
     private Order $order;
 
     protected function setUp(): void
@@ -62,6 +64,7 @@ class OrderCrudTest extends TestCase
     {
         $response = $this->get('/vi/admin/orders');
         $response->assertRedirect('/vi/admin/login');
+        $this->getJson('/vi/admin/orders/customer-suggestions?q=test')->assertUnauthorized();
     }
 
     public function test_users_without_admin_role_cannot_access_orders(): void
@@ -74,6 +77,67 @@ class OrderCrudTest extends TestCase
 
         $response = $this->get('/vi/admin/orders');
         $response->assertStatus(403);
+        $this->getJson('/vi/admin/orders/customer-suggestions?q=test')->assertForbidden();
+    }
+
+    public function test_manual_order_form_has_ajax_customer_autofill(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->get('/vi/admin/orders/create')
+            ->assertOk()
+            ->assertSee('placeholder="Nhập tên khách hàng..."', false)
+            ->assertSee('placeholder="Nhập email..."', false)
+            ->assertSee('placeholder="Nhập số điện thoại..."', false)
+            ->assertSee('id="customer-suggestions"', false)
+            ->assertSee('const lookupUrl =', false);
+    }
+
+    public function test_admin_can_find_registered_and_previous_order_customers_for_autofill(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+        $customer = User::factory()->create([
+            'role_id' => null,
+            'name' => 'Nguyễn Minh Anh',
+            'email' => 'minhanh@example.com',
+        ]);
+        UserAddress::query()->create([
+            'user_id' => $customer->id,
+            'customer_name' => 'Nguyễn Minh Anh',
+            'customer_phone' => '0909123456',
+            'address' => '12 Nguyễn Huệ, Quận 1',
+            'is_default' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson('/vi/admin/orders/customer-suggestions?q=090912')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Nguyễn Minh Anh')
+            ->assertJsonPath('data.0.email', 'minhanh@example.com')
+            ->assertJsonPath('data.0.phone', '0909123456')
+            ->assertJsonPath('data.0.address', '12 Nguyễn Huệ, Quận 1')
+            ->assertJsonPath('data.0.source', 'account');
+
+        $this->actingAs($admin)
+            ->getJson('/vi/admin/orders/customer-suggestions?q=098765')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Test Customer')
+            ->assertJsonPath('data.0.email', 'customer@test.com')
+            ->assertJsonPath('data.0.phone', '0987654321')
+            ->assertJsonPath('data.0.address', '123 Test Street, Hanoi')
+            ->assertJsonPath('data.0.source', 'order');
+    }
+
+    public function test_customer_autofill_requires_a_meaningful_search_term(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->getJson('/vi/admin/orders/customer-suggestions?q=a')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('q');
     }
 
     public function test_admin_can_access_orders_listing(): void
@@ -93,6 +157,21 @@ class OrderCrudTest extends TestCase
         $this->assertTrue($orders->contains($this->order));
     }
 
+    public function test_empty_order_state_is_rendered_outside_the_responsive_table(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => $this->adminRole->id,
+        ]);
+        $this->order->delete();
+
+        $this->actingAs($admin)
+            ->get('/vi/admin/orders')
+            ->assertOk()
+            ->assertSee('id="orders-empty-state"', false)
+            ->assertSee('admin-assets/images/icons/order-empty.png', false)
+            ->assertDontSee('colspan="8"', false);
+    }
+
     public function test_admin_can_view_order_details(): void
     {
         $admin = User::factory()->create([
@@ -101,11 +180,11 @@ class OrderCrudTest extends TestCase
 
         $this->actingAs($admin);
 
-        $response = $this->get('/vi/admin/orders/' . $this->order->id);
+        $response = $this->get('/vi/admin/orders/'.$this->order->id);
         $response->assertOk();
         $response->assertViewIs('admin.orders.show');
         $response->assertViewHas('order');
-        
+
         $response->assertSee('ORD-TEST-001');
         $response->assertSee('Test Customer');
         $response->assertSee('0987654321');
@@ -174,12 +253,12 @@ class OrderCrudTest extends TestCase
 
         $this->actingAs($admin);
 
-        $response = $this->patch('/vi/admin/orders/' . $this->order->id . '/status', [
+        $response = $this->patch('/vi/admin/orders/'.$this->order->id.'/status', [
             'status' => 'processing',
             'payment_status' => 'paid',
         ]);
 
-        $response->assertRedirect('/vi/admin/orders/' . $this->order->id);
+        $response->assertRedirect('/vi/admin/orders/'.$this->order->id);
         $response->assertSessionHas('success');
 
         $this->order->refresh();

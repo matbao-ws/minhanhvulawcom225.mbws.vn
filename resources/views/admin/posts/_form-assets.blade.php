@@ -209,6 +209,7 @@
                 if (!target) return;
                 const editor = new Quill(editorElement, {
                     theme: 'snow',
+                    placeholder: editorElement.dataset.placeholder || '',
                     modules: {
                         toolbar: [
                             [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],

@@ -23,7 +23,7 @@
         <!-- Header Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
                     <div>
                 <h4 class="fw-semibold mb-1 text-white">{{ __('admin.blog_categories.title') }}</h4>
@@ -60,7 +60,7 @@
     <!-- Categories List Card -->
     <div class="card">
         <div class="card-body border-bottom p-4">
-            <form method="GET" class="row g-2 align-items-end">
+            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-11">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"

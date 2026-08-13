@@ -37,6 +37,7 @@ class Product extends Model
         'manage_stock',
         'is_active',
         'is_featured',
+        'sort_order',
         'published_at',
     ];
 
@@ -48,6 +49,7 @@ class Product extends Model
         'manage_stock' => 'boolean',
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
+        'sort_order' => 'integer',
         'published_at' => 'datetime',
     ];
 

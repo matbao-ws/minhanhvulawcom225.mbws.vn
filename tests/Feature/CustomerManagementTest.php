@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\CustomerDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -83,6 +84,22 @@ class CustomerManagementTest extends TestCase
         $user = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($user)->get('/vi/admin/customers')->assertForbidden();
+    }
+
+    public function test_customer_demo_seeder_is_idempotent_and_does_not_create_admins(): void
+    {
+        $this->seed(CustomerDemoSeeder::class);
+        $this->seed(CustomerDemoSeeder::class);
+
+        $this->assertSame(8, User::query()->whereNull('role_id')->where('email', 'like', '%.customer@example.test')->count());
+        $this->assertDatabaseCount('user_addresses', 8);
+        $this->assertSame(8, Order::query()->where('order_number', 'like', 'CUSTOMER-DEMO-%')->count());
+        $this->assertSame(1, User::query()->whereNotNull('role_id')->count());
+        $this->assertDatabaseHas('user_addresses', [
+            'customer_name' => 'Nguyễn Minh Anh',
+            'customer_phone' => '0909123456',
+            'is_default' => true,
+        ]);
     }
 
     /** @param array<string, mixed> $overrides */

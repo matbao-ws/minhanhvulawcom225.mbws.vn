@@ -3,7 +3,7 @@
 @section('title', 'Ngôn ngữ nội dung')
 
 @section('content')
-    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
         <div class="card-body px-4 py-3">
             <h4 class="fw-semibold mb-1 text-white">Ngôn ngữ nội dung</h4>
             <p class="mb-0 text-white-50">Quản lý locale dùng cho URL, nội dung và dữ liệu trả về API.</p>

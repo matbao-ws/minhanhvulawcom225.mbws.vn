@@ -5,7 +5,7 @@
 @section('content')
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3">
                     <div class="row align-items-center">
                         <div class="col-12">
@@ -25,7 +25,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" class="row g-2 align-items-end">
+            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-6 col-lg-4">
                     <label class="form-label small fw-bold text-dark mb-1">Tìm kiếm</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="Tên, SĐT, email, nội dung...">
@@ -96,13 +96,17 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="6" class="text-center py-4 text-dark">Chưa có liên hệ nào.</td>
-                            </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
+            @if($submissions->isEmpty())
+                @include('admin.shared.empty-state', [
+                    'emptyImage' => asset('admin-assets/images/icons/emptycomment.png'),
+                    'emptyMessage' => 'Hiện tại chưa có liên hệ nào',
+                ])
+            @endif
 
             @if($submissions->hasPages())
                 <div class="px-4 py-3 border-top">

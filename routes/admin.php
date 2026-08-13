@@ -90,6 +90,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware(['feature:cms_page', 'can:manage_posts'])->group(function () {
         Route::patch('posts/bulk', [PostController::class, 'bulk'])->name('posts.bulk');
+        Route::post('posts/import-wordpress', [PostController::class, 'importWordPress'])->name('posts.import-wordpress');
         Route::post('post-categories/sort', [PostCategoryController::class, 'sort'])->name('post-categories.sort');
         Route::put('post-categories/{post_category}/quick-update', [PostCategoryController::class, 'quickUpdate'])->name('post-categories.quick-update');
         Route::resource('post-categories', PostCategoryController::class)->except(['show']);
@@ -137,15 +138,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('notification-settings', [NotificationSettingController::class, 'update'])->name('notification-settings.update');
         Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->name('notification-settings.get-chat-id');
 
-        Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->name('shipping-partners.toggle-status');
-        Route::get('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'settings'])->name('shipping-partners.settings');
-        Route::post('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'updateSettings'])->name('shipping-partners.update-settings');
-        Route::resource('shipping-partners', ShippingPartnerController::class)->except(['show']);
+        Route::middleware('feature:shipping')->group(function () {
+            Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->name('shipping-partners.toggle-status');
+            Route::get('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'settings'])->name('shipping-partners.settings');
+            Route::post('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'updateSettings'])->name('shipping-partners.update-settings');
+            Route::resource('shipping-partners', ShippingPartnerController::class)->except(['show']);
+        });
 
-        Route::post('payment-methods/{payment_method}/toggle-status', [PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
-        Route::get('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'settings'])->name('payment-methods.settings');
-        Route::post('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'updateSettings'])->name('payment-methods.update-settings');
-        Route::resource('payment-methods', PaymentMethodController::class)->except(['show']);
+        // Either payment feature makes this screen meaningful; the controller
+        // still decides which individual methods may be listed or edited.
+        Route::middleware('feature:cod_order,online_payment')->group(function () {
+            Route::post('payment-methods/{payment_method}/toggle-status', [PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
+            Route::get('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'settings'])->name('payment-methods.settings');
+            Route::post('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'updateSettings'])->name('payment-methods.update-settings');
+            Route::resource('payment-methods', PaymentMethodController::class)->except(['show']);
+        });
 
         // Integration catalogue. Activation is handled by support; no in-app addon sales.
         Route::get('addons', [AddonController::class, 'index'])->name('addons.index');
@@ -168,8 +175,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware('feature:catalog')->group(function () {
         Route::middleware('can:manage_orders')->group(function () {
+            Route::get('orders/customer-suggestions', [OrderController::class, 'customerSuggestions'])->name('orders.customer-suggestions');
             Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
-            Route::post('orders/{order}/push-shipping', [OrderController::class, 'pushShipping'])->name('orders.push-shipping');
+            // Pushing a waybill drives the carrier integration configured on the
+            // shipping screen, so it follows the same switch.
+            Route::post('orders/{order}/push-shipping', [OrderController::class, 'pushShipping'])
+                ->middleware('feature:shipping')
+                ->name('orders.push-shipping');
             Route::post('orders/{order}/refund', [OrderController::class, 'refund'])->name('orders.refund');
             Route::resource('orders', OrderController::class)->only(['index', 'show', 'create', 'store']);
         });
@@ -186,6 +198,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::resource('brands', BrandController::class)->except(['show']);
 
             Route::patch('products/bulk', [ProductController::class, 'bulk'])->name('products.bulk');
+            Route::post('products/sort', [ProductController::class, 'sort'])->name('products.sort');
             Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
             Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->name('products.template');
             Route::post('products/import', [ProductController::class, 'import'])->name('products.import');

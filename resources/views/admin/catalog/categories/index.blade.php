@@ -22,7 +22,7 @@
         <!-- Header Card -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;">
+            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
                 <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
                     <div>
                 <h4 class="fw-semibold mb-1 text-white">{{ __('catalog.categories.title') }}</h4>
@@ -34,7 +34,58 @@
         </div>
     </div>
 
+    @php $isFiltered = $isFiltered ?? false; @endphp
+
     <div class="card">
+        <div class="card-body">
+            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1" for="filter_q">{{ __('catalog.actions.search') }}</label>
+                    <input type="search" name="q" id="filter_q" class="form-control" value="{{ request('q') }}" placeholder="{{ __('catalog.categories.search_placeholder') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1" for="filter_parent_id">{{ __('catalog.fields.parent_category') }}</label>
+                    <select name="parent_id" id="filter_parent_id" class="form-select">
+                        <option value="">{{ __('catalog.filters.all') }}</option>
+                        <option value="root" @selected(request('parent_id') === 'root')>{{ __('catalog.filters.root_only') }}</option>
+                        @foreach($parentOptions as $parent)
+                            <option value="{{ $parent->id }}" @selected((string) request('parent_id') === (string) $parent->id)>
+                                {!! str_repeat('&nbsp;&nbsp;', $parent->depth ?? 0) !!}{{ $parent->depth ? '↳ ' : '' }}{{ $parent->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted mb-1" for="filter_status">{{ __('catalog.fields.status') }}</label>
+                    <select name="status" id="filter_status" class="form-select">
+                        <option value="">{{ __('catalog.filters.all') }}</option>
+                        <option value="1" @selected(request('status') === '1')>{{ __('catalog.status.active') }}</option>
+                        <option value="0" @selected(request('status') === '0')>{{ __('catalog.status.inactive') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted mb-1" for="filter_draft">{{ __('catalog.fields.save_draft') }}</label>
+                    <select name="draft" id="filter_draft" class="form-select">
+                        <option value="">{{ __('catalog.filters.all') }}</option>
+                        <option value="1" @selected(request('draft') === '1')>{{ __('catalog.filters.draft_only') }}</option>
+                        <option value="0" @selected(request('draft') === '0')>{{ __('catalog.filters.published_only') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" type="submit">{{ __('catalog.actions.search') }}</button>
+                    @if($isFiltered)
+                        <a href="{{ route('admin.categories.index') }}" class="btn bg-secondary-subtle text-secondary" title="{{ __('catalog.actions.reset_filters') }}">
+                            <i class="ti ti-x"></i>
+                        </a>
+                    @endif
+                </div>
+            </form>
+            @if($isFiltered)
+                <div class="text-muted fs-2 mt-2">
+                    <i class="ti ti-info-circle me-1"></i>{{ __('catalog.categories.filtered_notice') }}
+                </div>
+            @endif
+        </div>
         @include('admin.shared.bulk-actions', [
             'bulkFormId' => 'bulk-categories-form',
             'bulkActionUrl' => route('admin.categories.bulk'),
@@ -81,14 +132,12 @@
                             <div class="d-flex align-items-center" style="padding-left: {{ ($category->depth ?? 0) * 32 }}px;">
                                 @if(($category->depth ?? 0) > 0)
                                     <span class="text-muted me-2" style="font-family: monospace; font-weight: bold;">↳</span>
-                                    <span class="catalog-drag-handle me-2 cursor-grab" title="{{ __('catalog.actions.drag_sort') }}">
-                                        <i class="ti ti-grip-vertical fs-5"></i>
-                                    </span>
-                                @else
-                                    <span class="catalog-drag-handle me-2 cursor-grab" title="{{ __('catalog.actions.drag_sort') }}">
-                                        <i class="ti ti-grip-vertical fs-5"></i>
-                                    </span>
                                 @endif
+                                @unless($isFiltered)
+                                    <span class="catalog-drag-handle me-2 cursor-grab" title="{{ __('catalog.actions.drag_sort') }}">
+                                        <i class="ti ti-grip-vertical fs-5"></i>
+                                    </span>
+                                @endunless
                                 @if($category->image_url)
                                     <img src="{{ $category->image_url }}" alt="{{ $categoryName }}" class="rounded-2 object-fit-cover" width="42" height="42" onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">
                                 @else
@@ -117,6 +166,9 @@
                             <span class="badge {{ $category->is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
                                 {{ $category->is_active ? __('catalog.status.active') : __('catalog.status.inactive') }}
                             </span>
+                            @if($category->is_draft)
+                                <span class="badge bg-warning-subtle text-warning">{{ __('catalog.status.draft') }}</span>
+                            @endif
                         </td>
                         <td class="text-center">
                             <p class="mb-0 fw-bold text-primary">{{ $category->total_products_count ?? $category->products_count }}</p>
@@ -139,6 +191,7 @@
                                             data-parent-id="{{ $category->parent_id }}"
                                             data-description="{{ $categoryDescription }}"
                                             data-is-active="{{ $category->is_active ? 1 : 0 }}"
+                                            data-is-draft="{{ $category->is_draft ? 1 : 0 }}"
                                             data-image-url="{{ $category->image_url }}"
                                         >
                                             <i class="fs-4 ti ti-bolt"></i>{{ __('catalog.actions.quick_edit') }}
@@ -163,22 +216,17 @@
                         </td>
                     </tr>
                 @empty
-                    <tbody id="category-empty-body">
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <img src="{{ asset('admin-assets/images/icons/emptydata.png') }}" alt="No data" class="img-fluid mb-2" style="max-height: 60px;">
-                                <p class="text-muted fw-bold mb-0">{{ __('catalog.common.no_data') }}</p>
-                            </td>
-                        </tr>
-                    </tbody>
                 @endforelse
                 @if(!$categories->isEmpty())
                     </tbody>
                 @endif
             </table>
         </div>
+        @if($categories->isEmpty())
+            @include('admin.shared.empty-state')
+        @endif
         <div class="card-body">
-            {{ $categories->links() }}
+            @include('admin.shared.pagination', ['paginator' => $categories])
         </div>
     </div>
 
@@ -224,11 +272,18 @@
                             <textarea class="form-control d-none" id="quick_description" name="description"></textarea>
                             <div id="quick_description_editor" class="catalog-quill" data-target="quick_description"></div>
                         </div>
-                        <div class="col-12">
-                            <input type="hidden" name="is_active" value="1">
-                            <div class="form-check">
-                                <input class="form-check-input primary" type="checkbox" name="is_active" value="0" id="quick_is_active">
-                                <label class="form-check-label" for="quick_is_active">{{ __('catalog.fields.save_draft') }}</label>
+                        <div class="col-md-6">
+                            <input type="hidden" name="is_active" value="0">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input primary" type="checkbox" name="is_active" value="1" id="quick_is_active">
+                                <label class="form-check-label" for="quick_is_active">{{ __('catalog.fields.visible') }}</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="hidden" name="is_draft" value="0">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input primary" type="checkbox" name="is_draft" value="1" id="quick_is_draft">
+                                <label class="form-check-label" for="quick_is_draft">{{ __('catalog.fields.save_draft') }}</label>
                             </div>
                         </div>
                     </div>
@@ -290,7 +345,9 @@
                 }
             }
 
-            if (sortable && sortable.querySelector('tbody.category-group-sortable') && window.dragula) {
+            const sortingEnabled = @json(! $isFiltered);
+
+            if (sortingEnabled && sortable && sortable.querySelector('tbody.category-group-sortable') && window.dragula) {
                 // Dragula initialization for reordering root categories (tbody elements)
                 dragula([sortable], {
                     moves: function (el, container, handle) {
@@ -400,7 +457,8 @@
                         quickEditor.__quill.root.innerHTML = descriptionVal;
                     }
 
-                    document.getElementById('quick_is_active').checked = button.dataset.isActive !== '1';
+                    document.getElementById('quick_is_active').checked = button.dataset.isActive === '1';
+                    document.getElementById('quick_is_draft').checked = button.dataset.isDraft === '1';
                     document.getElementById('quick_image_file').value = '';
 
                     Array.from(parentSelect.options).forEach(function (option) {
