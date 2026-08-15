@@ -2,52 +2,59 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AuthorizesPermissionGrants;
 use App\Http\Controllers\Controller;
-use App\Models\Permission;
 use App\Models\Role;
 use App\Services\ActivityLogger;
+use App\Support\PermissionRegistry;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
-    private function permissionsByGroup()
-    {
-        return Permission::query()->orderBy('group')->orderBy('name')->get()->groupBy('group');
-    }
+    use AuthorizesPermissionGrants;
 
-    private function permissionRule(): string
+    /**
+     * Codes come from the registry rather than the table so an unseeded
+     * database rejects input with a real message instead of an empty `in:` rule
+     * that silently refuses everything.
+     *
+     * @return array<int, mixed>
+     */
+    private function permissionRule(): array
     {
-        return 'string|in:'.Permission::query()->pluck('code')->implode(',');
+        return ['string', Rule::in(PermissionRegistry::codes())];
     }
 
     /**
-     * Display a listing of the roles.
+     * A role nobody but a superadmin may read, write or delete.
      */
+    private function assertManageable(Role $role): bool
+    {
+        return ! (($role->is_system || $role->is_superadmin) && ! auth()->user()->isSuperAdmin());
+    }
+
     public function index()
     {
-        $query = Role::query()->withCount('users');
+        $query = Role::query()->with('permissionRecords')->withCount('users');
         if (! auth()->user()->isSuperAdmin()) {
-            $query->where('is_system', false);
+            $query->where('is_system', false)->where('is_superadmin', false);
         }
         $roles = $query->orderBy('id')->paginate(15);
 
         return view('admin.roles.index', compact('roles'));
     }
 
-    /**
-     * Show the form for creating a new role.
-     */
     public function create()
     {
         $role = new Role();
-        $permissionsByGroup = $this->permissionsByGroup();
 
-        return view('admin.roles.create', compact('role', 'permissionsByGroup'));
+        return view('admin.roles.create', [
+            'role' => $role,
+            'modules' => $this->grantableModules(),
+        ]);
     }
 
-    /**
-     * Store a newly created role in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -56,9 +63,12 @@ class RoleController extends Controller
             'permissions.*' => $this->permissionRule(),
         ]);
 
+        $permissions = $validated['permissions'] ?? [];
+        $this->assertCanGrant($permissions);
+
         $role = Role::create([
             'name' => $validated['name'],
-            'permissions' => $validated['permissions'] ?? [],
+            'permissions' => $permissions,
         ]);
         ActivityLogger::log('created', $role, "Tạo vai trò {$role->name}", [
             'new' => ['name' => $role->name, 'permissions' => $role->permissions],
@@ -76,28 +86,23 @@ class RoleController extends Controller
             ->with('success', 'Đã tạo vai trò mới thành công.');
     }
 
-    /**
-     * Show the form for editing the specified role.
-     */
     public function edit(string $locale, Role $role)
     {
-        if ($role->is_system) {
+        if (! $this->assertManageable($role)) {
             return redirect()
                 ->route('admin.roles.index')
                 ->with('error', 'Không thể chỉnh sửa vai trò hệ thống.');
         }
 
-        $permissionsByGroup = $this->permissionsByGroup();
-
-        return view('admin.roles.edit', compact('role', 'permissionsByGroup'));
+        return view('admin.roles.edit', [
+            'role' => $role,
+            'modules' => $this->grantableModules(),
+        ]);
     }
 
-    /**
-     * Update the specified role in storage.
-     */
     public function update(Request $request, string $locale, Role $role)
     {
-        if ($role->is_system) {
+        if (! $this->assertManageable($role)) {
             return redirect()
                 ->route('admin.roles.index')
                 ->with('error', 'Không thể chỉnh sửa vai trò hệ thống.');
@@ -110,9 +115,20 @@ class RoleController extends Controller
         ]);
 
         $oldValues = $role->only(['name', 'permissions']);
+        $submitted = $validated['permissions'] ?? [];
+
+        // Only newly added codes need to be within reach. Otherwise an admin who
+        // may edit a role could never save it without first holding every
+        // permission somebody else already granted it.
+        $this->assertCanGrant(array_diff($submitted, $oldValues['permissions']));
+
+        // Codes the actor cannot grant are also codes they cannot strip, so
+        // anything outside their reach is carried over untouched.
+        $retained = array_diff($oldValues['permissions'], $this->grantableCodes());
+
         $role->update([
             'name' => $validated['name'],
-            'permissions' => $validated['permissions'] ?? [],
+            'permissions' => array_values(array_unique(array_merge($submitted, $retained))),
         ]);
         ActivityLogger::log('updated', $role, "Cập nhật vai trò {$role->name}", [
             'old' => $oldValues,
@@ -131,12 +147,9 @@ class RoleController extends Controller
             ->with('success', 'Đã cập nhật vai trò thành công.');
     }
 
-    /**
-     * Remove the specified role from storage.
-     */
     public function destroy(string $locale, Role $role)
     {
-        if ($role->is_system) {
+        if (! $this->assertManageable($role)) {
             return redirect()
                 ->route('admin.roles.index')
                 ->with('error', 'Không thể xoá vai trò hệ thống.');

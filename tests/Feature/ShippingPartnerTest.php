@@ -24,7 +24,7 @@ class ShippingPartnerTest extends TestCase
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['manage_settings'],
+            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
         ]);
 
         $guestRole = Role::query()->create([

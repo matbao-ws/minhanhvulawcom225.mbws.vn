@@ -121,7 +121,7 @@
 
                           <!-- Đơn hàng -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'catalog'))
-                              @can('manage_orders')
+                              @can('orders.view')
                               <li class="sidebar-item">
                                   <a class="sidebar-link" href="{{ route('admin.orders.index') }}" aria-expanded="false">
                                       <iconify-icon icon="solar:bill-list-line-duotone"></iconify-icon>
@@ -131,7 +131,7 @@
                               @endcan
                           @endif
 
-                          @can('view_customers')
+                          @can('customers.view')
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.customers.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:users-group-two-rounded-line-duotone"></iconify-icon>
@@ -142,7 +142,7 @@
 
                           <!-- Sản phẩm (Products, Categories, Brands) -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'catalog'))
-                              @can('manage_products')
+                              @can('products.view')
                               <li class="sidebar-item">
                                   <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                       <iconify-icon icon="solar:cart-3-line-duotone"></iconify-icon>
@@ -171,7 +171,7 @@
 
                           <!-- Đánh giá bình luận -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'review'))
-                              @can('manage_reviews')
+                              @can('reviews.view')
                               <li class="sidebar-item">
                                   <a class="sidebar-link" href="{{ route('admin.reviews.index') }}" aria-expanded="false">
                                       <iconify-icon icon="solar:chat-round-line-line-duotone"></iconify-icon>
@@ -182,7 +182,7 @@
                           @endif
 
                           <!-- Liên hệ -->
-                          @can('manage_contacts')
+                          @can('contacts.view')
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.contact-submissions.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:letter-line-duotone"></iconify-icon>
@@ -193,27 +193,27 @@
 
                           <!-- Mã giảm giá -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'voucher') || $sidebarFeatures->availableTo($sidebarUser, 'catalog'))
-                              @can('manage_vouchers')
+                              @if($sidebarUser?->can('vouchers.view') || $sidebarUser?->can('promotions.view'))
                               <li class="sidebar-item">
                                   <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                       <iconify-icon icon="solar:ticket-sale-line-duotone"></iconify-icon>
                                       <span class="hide-menu">{{ __('admin.sidebar.promotions') }}</span>
                                   </a>
                                   <ul aria-expanded="false" class="collapse first-level">
-                                      @if($sidebarFeatures->availableTo($sidebarUser, 'voucher'))
+                                      @if($sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarUser?->can('vouchers.view'))
                                       <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.vouchers.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.vouchers') }}</a></li>
                                       @endif
-                                      @if($sidebarFeatures->availableTo($sidebarUser, 'catalog'))
+                                      @if($sidebarFeatures->availableTo($sidebarUser, 'catalog') && $sidebarUser?->can('promotions.view'))
                                       <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.promotions.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.promotions_flash_sale') }}</a></li>
                                       @endif
                                   </ul>
                               </li>
-                              @endcan
+                              @endif
                           @endif
 
                           <!-- Quản lý Banner -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'banner'))
-                              @can('manage_banners')
+                              @can('banners.view')
                               <li class="sidebar-item">
                                   <a class="sidebar-link" href="{{ route('admin.banners.index') }}" aria-expanded="false">
                                       <iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon>
@@ -223,9 +223,21 @@
                               @endcan
                           @endif
 
+                          <!-- Menu điều hướng storefront -->
+                          @if($sidebarFeatures->availableTo($sidebarUser, 'menu'))
+                              @can('menus.view')
+                              <li class="sidebar-item">
+                                  <a class="sidebar-link" href="{{ route('admin.menus.index') }}" aria-expanded="false">
+                                      <iconify-icon icon="solar:list-arrow-down-line-duotone"></iconify-icon>
+                                      <span class="hide-menu">{{ __('admin.menu.menus') }}</span>
+                                  </a>
+                              </li>
+                              @endcan
+                          @endif
+
                           <!-- Bài viết (Posts, Post Categories) -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'cms_page'))
-                              @can('manage_posts')
+                              @can('posts.view')
                               <li class="sidebar-item">
                                   <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                       <iconify-icon icon="solar:widget-4-line-duotone"></iconify-icon>
@@ -248,7 +260,7 @@
                           @endif
 
                           @if($sidebarFeatures->availableTo($sidebarUser, 'cms_page'))
-                              @can('manage_pages')
+                              @can('pages.view')
                               <li class="sidebar-item">
                                   <a class="sidebar-link" href="{{ route('admin.pages.index') }}" aria-expanded="false">
                                       <i class="ti ti-file-text fs-6" aria-hidden="true"></i>
@@ -260,72 +272,76 @@
 
                           <!-- Quản lý người dùng -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'multi_admin'))
-                               @if(auth()->user()->can('manage_users') || auth()->user()->isSuperAdmin())
+                               @if($sidebarUser?->can('users.view') || $sidebarUser?->can('roles.view'))
                                <li class="sidebar-item">
                                   <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                       <iconify-icon icon="solar:shield-user-line-duotone"></iconify-icon>
                                       <span class="hide-menu">{{ __('admin.sidebar.user_management') }}</span>
                                   </a>
                                   <ul aria-expanded="false" class="collapse first-level">
-                                      @can('manage_users')
+                                      @can('users.view')
                                       <li class="sidebar-item">
                                           <a class="sidebar-link" href="{{ route('admin.users.index') }}">
                                               <span class="icon-small"></span>{{ __('admin.sidebar.user_list') }}
                                           </a>
                                       </li>
                                       @endcan
-                                      @if(auth()->user()->isSuperAdmin())
+                                      @can('roles.view')
                                       <li class="sidebar-item">
                                           <a class="sidebar-link" href="{{ route('admin.roles.index') }}">
                                               <span class="icon-small"></span>{{ __('admin.sidebar.roles_permissions') }}
                                           </a>
                                       </li>
-                                      @endif
+                                      @endcan
                                   </ul>
                               </li>
                               @endif
                           @endif
 
                           <!-- Cấu hình -->
-                          @if($sidebarUser?->can('manage_settings') || $sidebarUser?->isSuperAdmin())
+                          @if($sidebarUser?->can('settings.view') || $sidebarUser?->can('shipping.view') || $sidebarUser?->can('payments.view') || $sidebarUser?->can('languages.view') || $sidebarUser?->isSuperAdmin())
                           <li class="sidebar-item" data-sidebar-settings-menu>
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                   <iconify-icon icon="solar:settings-line-duotone"></iconify-icon>
                                   <span class="hide-menu">{{ __('admin.sidebar.settings') }}</span>
                               </a>
                               <ul aria-expanded="false" class="collapse first-level">
-                                  @can('manage_settings')
+                                  @can('settings.view')
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.settings.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.general_settings') }}
                                       </a>
                                   </li>
-                                  @if($sidebarFeatures->availableTo($sidebarUser, 'shipping'))
+                                  @endcan
+                                  @if($sidebarFeatures->availableTo($sidebarUser, 'shipping') && $sidebarUser?->can('shipping.view'))
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.shipping-partners.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.shipping_settings') }}
                                       </a>
                                   </li>
                                   @endif
-                                  @if($sidebarFeatures->availableTo($sidebarUser, 'cod_order') || $sidebarFeatures->availableTo($sidebarUser, 'online_payment'))
+                                  @if(($sidebarFeatures->availableTo($sidebarUser, 'cod_order') || $sidebarFeatures->availableTo($sidebarUser, 'online_payment')) && $sidebarUser?->can('payments.view'))
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.payment-methods.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.payment_settings') }}
                                       </a>
                                   </li>
                                   @endif
+                                  @can('settings.view')
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.notification-settings.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.notification_settings') }}
                                       </a>
                                   </li>
                                   @endcan
-                                  @if($sidebarUser?->isSuperAdmin())
+                                  @can('languages.view')
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.languages.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.content_languages') }}
                                       </a>
                                   </li>
+                                  @endcan
+                                  @if($sidebarUser?->isSuperAdmin())
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.features.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.feature_settings') }}
@@ -336,7 +352,7 @@
                           </li>
                           @endif
 
-                          @can('view_audit_log')
+                          @can('activity_logs.view')
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.activity-logs.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:history-line-duotone"></iconify-icon>
@@ -346,7 +362,7 @@
                           @endcan
 
                           {{-- <!-- Hóa đơn của tôi -->
-                          @can('manage_settings')
+                          @can('settings.view')
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.invoices.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:receipt-line-duotone"></iconify-icon>
@@ -356,7 +372,7 @@
                           @endcan --}}
 
                           <!-- Media Library -->
-                          @can('manage_media')
+                          @can('media.view')
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.media.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:gallery-line-duotone"></iconify-icon>

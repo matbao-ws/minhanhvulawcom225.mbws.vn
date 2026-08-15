@@ -12,6 +12,20 @@ use Illuminate\Support\Facades\Log;
 
 class CloudinaryService
 {
+    /**
+     * Page size used when walking the Cloudinary Admin API; 500 is the maximum
+     * the endpoint accepts.
+     */
+    private const REMOTE_PAGE_SIZE = 500;
+
+    /**
+     * Upper bound on how many assets the media library will collect in one
+     * request. Pagination happens in PHP, so the whole listing has to be
+     * fetched; this keeps a very large Cloudinary account from turning a page
+     * view into an unbounded number of API calls.
+     */
+    private const REMOTE_LISTING_LIMIT = 2000;
+
     public function __construct()
     {
         if ($this->isConfigured()) {
@@ -114,22 +128,33 @@ class CloudinaryService
 
         try {
             $adminApi = new AdminApi();
-            $results = $adminApi->resources([
-                'type' => 'upload',
-                'prefix' => $folder === 'all' ? '' : $folder,
-                'max_results' => 50,
-            ]);
-
             $resources = [];
-            foreach ($results['resources'] ?? [] as $resource) {
-                $resources[] = [
-                    'secure_url' => $resource['secure_url'],
-                    'public_id' => $resource['public_id'],
-                    'bytes' => $resource['bytes'],
-                    'created_at' => $resource['created_at'],
-                    'format' => $resource['format'] ?? 'file',
+            $cursor = null;
+
+            do {
+                $options = [
+                    'type' => 'upload',
+                    'prefix' => $folder === 'all' ? '' : $folder,
+                    'max_results' => self::REMOTE_PAGE_SIZE,
                 ];
-            }
+                if ($cursor !== null) {
+                    $options['next_cursor'] = $cursor;
+                }
+
+                $results = $adminApi->resources($options);
+
+                foreach ($results['resources'] ?? [] as $resource) {
+                    $resources[] = [
+                        'secure_url' => $resource['secure_url'],
+                        'public_id' => $resource['public_id'],
+                        'bytes' => $resource['bytes'],
+                        'created_at' => $resource['created_at'],
+                        'format' => $resource['format'] ?? 'file',
+                    ];
+                }
+
+                $cursor = $results['next_cursor'] ?? null;
+            } while ($cursor !== null && count($resources) < self::REMOTE_LISTING_LIMIT);
 
             return $resources;
         } catch (\Exception $e) {

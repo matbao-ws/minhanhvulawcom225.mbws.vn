@@ -12,7 +12,7 @@ class RoleCrudTest extends TestCase
 {
     use RefreshDatabase;
 
-    private Role $adminRole;
+    private Role $superadminRole;
 
     protected function setUp(): void
     {
@@ -25,10 +25,15 @@ class RoleCrudTest extends TestCase
             'is_enabled' => true,
         ]);
 
-        $this->adminRole = Role::query()->create([
+        $this->superadminRole = Role::query()->create([
             'name' => 'Superadmin',
             'permissions' => ['*'],
         ]);
+    }
+
+    private function superadmin(): User
+    {
+        return User::factory()->create(['role_id' => $this->superadminRole->id]);
     }
 
     public function test_guests_cannot_access_roles(): void
@@ -48,12 +53,11 @@ class RoleCrudTest extends TestCase
 
     public function test_admin_can_browse_roles(): void
     {
-        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
-        $this->actingAs($admin);
+        $this->actingAs($this->superadmin());
 
         Role::create([
             'name' => 'Editor',
-            'permissions' => ['manage_posts'],
+            'permissions' => ['posts.view', 'posts.update'],
         ]);
 
         $response = $this->get('/vi/admin/roles');
@@ -61,131 +65,239 @@ class RoleCrudTest extends TestCase
         $response->assertSee('Editor');
     }
 
+    /**
+     * The matrix keys every switch by module name, so a rendering bug that
+     * replaces those keys with list indexes would silently produce
+     * `permissions[]=0.view`.
+     */
+    public function test_permission_matrix_renders_switches_keyed_by_module(): void
+    {
+        $this->actingAs($this->superadmin());
+        $role = Role::create(['name' => 'Editor', 'permissions' => ['posts.view']]);
+
+        $this->get('/vi/admin/roles/create')
+            ->assertOk()
+            ->assertSee('perm_products_view', false)
+            ->assertSee('value="orders.update"', false);
+
+        $this->get("/vi/admin/roles/{$role->id}/edit")
+            ->assertOk()
+            ->assertSee('perm_posts_view', false);
+    }
+
+    public function test_the_form_only_offers_permissions_the_actor_can_grant(): void
+    {
+        $managerRole = Role::create([
+            'name' => 'Permission Manager',
+            'permissions' => ['roles.view', 'roles.create', 'posts.view'],
+        ]);
+        $this->actingAs(User::factory()->create(['role_id' => $managerRole->id]));
+
+        $this->get('/vi/admin/roles/create')
+            ->assertOk()
+            ->assertSee('value="posts.view"', false)
+            ->assertDontSee('value="settings.update"', false);
+    }
+
     public function test_admin_can_create_role_via_form(): void
     {
-        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
-        $this->actingAs($admin);
+        $this->actingAs($this->superadmin());
 
         $response = $this->post('/vi/admin/roles', [
             'name' => 'Product Manager',
-            'permissions' => ['manage_products', 'manage_orders'],
+            'permissions' => ['products.view', 'products.update', 'orders.view'],
         ]);
 
         $response->assertRedirect('/vi/admin/roles');
-        
-        $this->assertDatabaseHas('roles', [
-            'name' => 'Product Manager',
-        ]);
+
+        $this->assertDatabaseHas('roles', ['name' => 'Product Manager']);
 
         $role = Role::where('name', 'Product Manager')->first();
-        $this->assertContains('manage_products', $role->permissions);
-        $this->assertContains('manage_orders', $role->permissions);
+        $this->assertEqualsCanonicalizing(
+            ['products.view', 'products.update', 'orders.view'],
+            $role->permissions,
+        );
+        // Stored on the pivot, not on a JSON column.
+        $this->assertDatabaseCount('role_permission', 3);
     }
 
     public function test_admin_can_update_role(): void
     {
-        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
-        $this->actingAs($admin);
+        $this->actingAs($this->superadmin());
 
         $role = Role::create([
             'name' => 'Staff',
-            'permissions' => ['manage_vouchers'],
+            'permissions' => ['vouchers.view'],
         ]);
 
         $response = $this->put("/vi/admin/roles/{$role->id}", [
             'name' => 'Senior Staff',
-            'permissions' => ['manage_vouchers', 'manage_orders'],
+            'permissions' => ['vouchers.view', 'orders.view'],
         ]);
 
         $response->assertRedirect('/vi/admin/roles');
+        $this->assertDatabaseHas('roles', ['id' => $role->id, 'name' => 'Senior Staff']);
+        $this->assertEqualsCanonicalizing(['vouchers.view', 'orders.view'], $role->fresh()->permissions);
+    }
 
-        $this->assertDatabaseHas('roles', [
-            'id' => $role->id,
-            'name' => 'Senior Staff',
-        ]);
+    public function test_unknown_permission_codes_are_rejected(): void
+    {
+        $this->actingAs($this->superadmin());
 
-        $this->assertContains('manage_orders', $role->fresh()->permissions);
+        $this->post('/vi/admin/roles', [
+            'name' => 'Bogus',
+            'permissions' => ['products.launch_missiles'],
+        ])->assertSessionHasErrors('permissions.0');
+
+        $this->assertDatabaseMissing('roles', ['name' => 'Bogus']);
     }
 
     public function test_admin_can_delete_unused_role(): void
     {
-        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
-        $this->actingAs($admin);
+        $this->actingAs($this->superadmin());
 
-        $role = Role::create([
-            'name' => 'Unused Role',
-            'permissions' => [],
-        ]);
+        $role = Role::create(['name' => 'Unused Role', 'permissions' => []]);
 
-        $response = $this->delete("/vi/admin/roles/{$role->id}");
-        $response->assertRedirect('/vi/admin/roles');
-
-        $this->assertDatabaseMissing('roles', [
-            'id' => $role->id,
-        ]);
+        $this->delete("/vi/admin/roles/{$role->id}")->assertRedirect('/vi/admin/roles');
+        $this->assertDatabaseMissing('roles', ['id' => $role->id]);
     }
 
     public function test_admin_cannot_delete_role_in_use(): void
     {
-        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
-        $this->actingAs($admin);
+        $this->actingAs($this->superadmin());
 
-        $role = Role::create([
-            'name' => 'In Use Role',
-            'permissions' => [],
-        ]);
-
-        // Assign a user to this role
+        $role = Role::create(['name' => 'In Use Role', 'permissions' => []]);
         User::factory()->create(['role_id' => $role->id]);
 
         $response = $this->delete("/vi/admin/roles/{$role->id}");
         $response->assertRedirect('/vi/admin/roles');
         $response->assertSessionHas('error');
 
-        $this->assertDatabaseHas('roles', [
-            'id' => $role->id,
-        ]);
+        $this->assertDatabaseHas('roles', ['id' => $role->id]);
     }
 
-    public function test_user_without_manage_roles_permission_cannot_access_roles(): void
+    public function test_user_without_roles_permission_cannot_access_roles(): void
     {
-        $roleWithoutRolesPermission = Role::create([
-            'name' => 'Staff',
-            'permissions' => ['manage_products'],
-        ]);
-        $staff = User::factory()->create(['role_id' => $roleWithoutRolesPermission->id]);
-        $this->actingAs($staff);
+        $role = Role::create(['name' => 'Staff', 'permissions' => ['products.view']]);
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
 
-        $response = $this->get('/vi/admin/roles');
-        $response->assertStatus(403);
+        $this->get('/vi/admin/roles')->assertStatus(403);
     }
 
-    public function test_non_superadmin_cannot_see_or_manage_superadmin_role(): void
+    /**
+     * The point of activating `roles.*`: permission management no longer
+     * requires a superadmin.
+     */
+    public function test_non_superadmin_with_roles_permission_can_manage_roles(): void
     {
-        $nonSuperadminRole = Role::create([
+        $managerRole = Role::create([
+            'name' => 'Permission Manager',
+            'permissions' => ['roles.view', 'roles.create', 'roles.update', 'roles.delete', 'posts.view', 'posts.update'],
+        ]);
+        $this->actingAs(User::factory()->create(['role_id' => $managerRole->id]));
+
+        $this->get('/vi/admin/roles')->assertOk();
+
+        $this->post('/vi/admin/roles', [
+            'name' => 'Junior Editor',
+            'permissions' => ['posts.view'],
+        ])->assertRedirect('/vi/admin/roles');
+
+        $this->assertSame(['posts.view'], Role::where('name', 'Junior Editor')->first()->permissions);
+    }
+
+    public function test_role_manager_cannot_grant_permissions_they_do_not_hold(): void
+    {
+        $managerRole = Role::create([
+            'name' => 'Permission Manager',
+            'permissions' => ['roles.view', 'roles.create', 'roles.update', 'posts.view'],
+        ]);
+        $this->actingAs(User::factory()->create(['role_id' => $managerRole->id]));
+
+        $this->post('/vi/admin/roles', [
+            'name' => 'Escalated',
+            'permissions' => ['posts.view', 'users.create'],
+        ])->assertStatus(403);
+
+        $this->assertDatabaseMissing('roles', ['name' => 'Escalated']);
+    }
+
+    public function test_role_manager_cannot_escalate_their_own_role(): void
+    {
+        $managerRole = Role::create([
+            'name' => 'Permission Manager',
+            'permissions' => ['roles.view', 'roles.update', 'posts.view'],
+        ]);
+        $this->actingAs(User::factory()->create(['role_id' => $managerRole->id]));
+
+        $this->put("/vi/admin/roles/{$managerRole->id}", [
+            'name' => 'Permission Manager',
+            'permissions' => ['roles.view', 'roles.update', 'posts.view', 'settings.update'],
+        ])->assertStatus(403);
+
+        $this->assertNotContains('settings.update', $managerRole->fresh()->permissions);
+    }
+
+    /**
+     * Editing a role must not quietly strip permissions the editor cannot see,
+     * otherwise a narrow admin becomes a demotion tool.
+     */
+    public function test_editing_a_role_preserves_permissions_beyond_the_editor_reach(): void
+    {
+        $managerRole = Role::create([
+            'name' => 'Permission Manager',
+            'permissions' => ['roles.view', 'roles.update', 'posts.view', 'posts.update'],
+        ]);
+        $target = Role::create([
+            'name' => 'Mixed',
+            'permissions' => ['posts.view', 'settings.update'],
+        ]);
+        $this->actingAs(User::factory()->create(['role_id' => $managerRole->id]));
+
+        $this->put("/vi/admin/roles/{$target->id}", [
+            'name' => 'Mixed',
+            'permissions' => ['posts.view', 'posts.update'],
+        ])->assertRedirect('/vi/admin/roles');
+
+        $this->assertEqualsCanonicalizing(
+            ['posts.view', 'posts.update', 'settings.update'],
+            $target->fresh()->permissions,
+        );
+    }
+
+    public function test_non_superadmin_cannot_see_or_manage_the_superadmin_role(): void
+    {
+        $role = Role::create([
             'name' => 'Regular Admin',
-            'permissions' => ['manage_users', 'manage_roles'],
+            'permissions' => ['users.view', 'roles.view', 'roles.update', 'roles.delete'],
         ]);
-        $admin = User::factory()->create(['role_id' => $nonSuperadminRole->id]);
-        $this->actingAs($admin);
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
 
-        // 1. Should not be able to access roles index
-        $response = $this->get('/vi/admin/roles');
-        $response->assertStatus(403);
+        $this->get('/vi/admin/roles')
+            ->assertOk()
+            ->assertDontSee('Superadmin');
 
-        // 2. Should get 403 on edit/update/delete Superadmin role
-        $superadminRole = Role::where('name', 'Superadmin')->first();
+        $this->get("/vi/admin/roles/{$this->superadminRole->id}/edit")
+            ->assertRedirect('/vi/admin/roles')
+            ->assertSessionHas('error');
 
-        $responseEdit = $this->get("/vi/admin/roles/{$superadminRole->id}/edit");
-        $responseEdit->assertStatus(403);
-
-        $responseUpdate = $this->put("/vi/admin/roles/{$superadminRole->id}", [
+        $this->put("/vi/admin/roles/{$this->superadminRole->id}", [
             'name' => 'Superadmin Hack',
-            'permissions' => ['*'],
-        ]);
-        $responseUpdate->assertStatus(403);
+            'permissions' => [],
+        ])->assertRedirect('/vi/admin/roles');
 
-        $responseDelete = $this->delete("/vi/admin/roles/{$superadminRole->id}");
-        $responseDelete->assertStatus(403);
+        $this->delete("/vi/admin/roles/{$this->superadminRole->id}")->assertRedirect('/vi/admin/roles');
+
+        $this->assertDatabaseHas('roles', ['id' => $this->superadminRole->id, 'name' => 'Superadmin']);
+        $this->assertTrue($this->superadminRole->fresh()->is_superadmin);
+    }
+
+    public function test_wildcard_on_an_ordinary_role_is_expanded_without_permission_management(): void
+    {
+        $role = Role::create(['name' => 'Broad', 'permissions' => ['*']]);
+
+        $this->assertFalse($role->fresh()->is_superadmin);
+        $this->assertContains('products.delete', $role->fresh()->permissions);
+        $this->assertNotContains('roles.create', $role->fresh()->permissions);
     }
 }

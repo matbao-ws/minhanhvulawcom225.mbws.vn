@@ -59,8 +59,8 @@ Core cung cấp:
 - Catalog, biến thể V2, tồn kho, checkout, khuyến mãi, voucher và review.
 - Vòng đời đơn hàng, hoàn tiền, payment transaction và VNPAY.
 - Shipping configuration, GHTK push/webhook.
-- CMS post, CMS page (HTML thuần, không có builder kéo-thả), banner, đa ngôn ngữ, media và
-  notification.
+- CMS post, CMS page (HTML thuần, không có builder kéo-thả), banner, menu điều hướng storefront, đa
+  ngôn ngữ, media và notification.
 - Feature flags do support cấu hình; package/subscription cũ chỉ giữ tương thích dữ liệu lịch sử.
 
 Core không có storefront mặc định. Khi repository có thư mục `theme/` ở root, coi đây là giao diện
@@ -172,6 +172,37 @@ app(\App\Support\FeatureGate::class)->require('voucher');
 - Thao tác superadmin, role, impersonation và feature settings phải giữ audit/guard hiện có.
 - Khi vô hiệu hóa user hoặc thay đổi quyền nhạy cảm, xem xét thu hồi token/session qua
   `UserAccessService`.
+
+Mã quyền là `<module>.<action>` (`products.view`, `orders.update`, `roles.delete`), khai báo **duy
+nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là hình chiếu của registry qua
+`PermissionSeeder`/`php artisan permissions:sync`.
+
+- Thêm quyền = thêm vào registry rồi gắn `can:<code>` vào route. `PermissionRegistryDriftTest` fail
+  nếu route đòi quyền chưa khai báo, **hoặc** registry khai báo quyền không route nào kiểm tra. Đừng
+  tạo quyền không có chỗ thực thi — `manage_roles` từng nằm chết trong bảng nhiều bản phát hành.
+- Quyền của role nằm ở pivot `role_permission`. `$role->permissions` là thuộc tính đọc/ghi xuyên
+  xuống pivot, trả `['*']` khi `roles.is_superadmin`.
+- `user_permissions` cho phép cấp thêm/thu hồi theo từng tài khoản. Thứ tự trong `Gate::before`:
+  superadmin → override → role.
+- Ai cũng chỉ được cấp quyền mình đang có (`AuthorizesPermissionGrants`). Sửa role không được xoá
+  quyền nằm ngoài tầm của người sửa, và không ai tự sửa override của chính mình.
+- `features` và impersonation vẫn là `superadmin` thuần, không hạ xuống `can:`.
+- Endpoint dùng chung cho nhiều hành động phải tự kiểm tra hành động nguy hiểm hơn: `bulk` chạy dưới
+  `<module>.update` nhưng `action=delete` phải kiểm thêm `<module>.delete`.
+
+### Menu điều hướng storefront
+
+- `menus.key` là thứ layout dùng để gọi menu (`client.partials.navigation` gọi `primary`). Mỗi
+  `menu_items` trỏ tới đúng một đích do cột `type` quyết định: `page`, `category`, `post_category`
+  hoặc `url`. Đổi `type` phải xoá các cột đích còn lại.
+- `App\Services\MenuService` là nơi duy nhất đọc và sắp xếp menu; cả Blade lẫn `/api/public/menus/{key}`
+  đều đi qua đây. Không viết lại truy vấn menu trong controller hay Blade.
+- `resolveUrl()` trả `null` khi chưa có route storefront cho đích (hiện là danh mục sản phẩm và
+  chuyên mục bài viết). Client render chữ thường, không tạo link dẫn tới 404.
+- URL tự nhập chỉ chấp nhận đường dẫn bắt đầu bằng `/` hoặc link `http`/`https`; `javascript:` và
+  `data:` bị chặn ở cả FormRequest lẫn service.
+- Kéo-thả chỉ đổi thứ tự trong cùng một cấp; đổi cấp cha đi qua form và bị chặn tạo vòng lặp.
+- Navigation là block động render trên trang CMS nên wrapper phải giữ `contenteditable="false"`.
 
 ### Đa ngôn ngữ
 
@@ -389,7 +420,7 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
   `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
   Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
-- Chỉ admin đang active, có `role_id` và quyền `manage_pages` mới thấy admin bar và **Sửa trực
+- Chỉ admin đang active, có `role_id` và quyền `pages.update` mới thấy admin bar và **Sửa trực
   tiếp**. Guest, customer và admin thiếu quyền không được thấy markup, asset hoặc endpoint editor.
 - Lưu trực tiếp phải gọi `admin.pages.inline-update` bằng session + CSRF, đi qua
   `InlinePageUpdateRequest`, `PageContentService::updateLocale()`, `PageHtmlSanitizer`, revision và
@@ -400,7 +431,7 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 - Block động (dữ liệu từ DB) render trên trang CMS phải server-render kèm `contenteditable="false"`
   ở wrapper để nằm ngoài vùng sửa.
 - Ảnh trong Page phải chọn và thay được từ thư viện Media ngay trong inline editor. Chỉ admin có
-  thêm `manage_media` mới thấy công cụ ảnh; upload dùng route admin hiện có, giữ popup mở sau upload
+  thêm `media.view` mới thấy công cụ ảnh; upload dùng route admin hiện có, giữ popup mở sau upload
   và giữ phân trang thư viện.
 - Theme CSS không được che admin bar/editor; giữ namespace selector và z-index hiện có. Client asset
   vẫn tách khỏi admin asset.

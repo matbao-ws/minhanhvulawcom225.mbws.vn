@@ -35,7 +35,7 @@ class UserControllerTest extends TestCase
 
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['manage_users'],
+            'permissions' => ['users.view', 'users.create', 'users.update', 'users.delete'],
         ]);
 
         $this->editorRole = Role::query()->create([

@@ -1,45 +1,49 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use App\Models\Role;
-use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Data migration: seed the Superadmin role and point the default admin at it.
+ *
+ * Deliberately written against the query builder rather than the Role/User
+ * models. Models describe today's schema, and replaying this migration on a
+ * fresh database must work against the schema as it stood here — once Role
+ * gained pivot-backed permissions, the Eloquent version started writing columns
+ * that later migrations had not created yet.
+ */
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // 1. Create Superadmin role if it doesn't exist
-        $superadminRole = Role::query()->firstOrCreate(
-            ['name' => 'Superadmin'],
-            ['permissions' => ['*']]
-        );
+        $superadminRoleId = DB::table('roles')->where('name', 'Superadmin')->value('id');
 
-        // 2. Assign default admin user to Superadmin role
-        $adminEmail = env('ADMIN_EMAIL', 'admin@example.com');
-        $user = User::query()->where('email', $adminEmail)->first();
-        if ($user) {
-            $user->update(['role_id' => $superadminRole->id]);
+        if ($superadminRoleId === null) {
+            $superadminRoleId = DB::table('roles')->insertGetId([
+                'name' => 'Superadmin',
+                'permissions' => json_encode(['*']),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
+
+        $adminEmail = env('ADMIN_EMAIL', 'admin@example.com');
+
+        DB::table('users')
+            ->where('email', $adminEmail)
+            ->update(['role_id' => $superadminRoleId, 'updated_at' => now()]);
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Restore the user to the Admin role if down is run
-        $adminRole = Role::query()->where('name', 'Admin')->first();
-        if ($adminRole) {
-            $adminEmail = env('ADMIN_EMAIL', 'admin@example.com');
-            $user = User::query()->where('email', $adminEmail)->first();
-            if ($user) {
-                $user->update(['role_id' => $adminRole->id]);
-            }
+        $adminRoleId = DB::table('roles')->where('name', 'Admin')->value('id');
+
+        if ($adminRoleId === null) {
+            return;
         }
+
+        DB::table('users')
+            ->where('email', env('ADMIN_EMAIL', 'admin@example.com'))
+            ->update(['role_id' => $adminRoleId, 'updated_at' => now()]);
     }
 };

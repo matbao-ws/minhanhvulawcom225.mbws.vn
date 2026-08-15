@@ -67,9 +67,21 @@
                                     @elseif(empty($role->permissions))
                                         <span class="badge bg-secondary-subtle text-dark fs-2">{{ __('admin.roles.fields.no_permissions') }}</span>
                                     @else
+                                        {{-- One badge per module rather than per code: a broad role holds
+                                             dozens of granular codes and would otherwise flood the cell. --}}
+                                        @php
+                                            $modules = \App\Support\PermissionRegistry::modules();
+                                            $held = collect($role->permissions)
+                                                ->map(fn (string $code): array => explode('.', $code, 2))
+                                                ->filter(fn (array $parts): bool => count($parts) === 2)
+                                                ->groupBy(fn (array $parts): string => $parts[0]);
+                                        @endphp
                                         <div class="d-flex flex-wrap gap-1">
-                                            @foreach($role->permissions as $p)
-                                                <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">{{ __('admin.roles.permissions.' . $p) }}</span>
+                                            @foreach($held as $module => $parts)
+                                                <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">
+                                                    {{ $modules[$module]['label'] ?? $module }}:
+                                                    {{ collect($parts)->map(fn (array $p): string => __('admin.roles.actions.'.$p[1]))->implode(', ') }}
+                                                </span>
                                             @endforeach
                                         </div>
                                     @endif
@@ -77,9 +89,12 @@
                                 <td class="text-end pe-4">
                                     @if(!$isSystemRole)
                                         <div class="d-flex justify-content-end gap-2">
+                                            @can('roles.update')
                                             <a href="{{ route('admin.roles.edit', $role) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
                                                 <i class="ti ti-edit fs-4"></i>
                                             </a>
+                                            @endcan
+                                            @can('roles.delete')
                                             <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="js-delete-form" style="display:inline-block;">
                                                 @csrf
                                                 @method('DELETE')
@@ -87,6 +102,7 @@
                                                     <i class="ti ti-trash fs-4"></i>
                                                 </button>
                                             </form>
+                                            @endcan
                                         </div>
                                     @else
                                         <span class="text-dark small fw-semibold">{{ __('admin.roles.fields.default_system') }}</span>

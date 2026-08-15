@@ -11,7 +11,7 @@ InlineEditing::canReplaceImages() // allowed() + the media permission
 ```
 
 Reuse the permission the project already has for content (in this core:
-`manage_pages`, and `manage_media` for the picker). Do not invent a new
+`pages.update`, and `media.view` for the picker). Do not invent a new
 permission code — it will not be in any existing role and nobody will notice
 until an admin reports the button missing.
 

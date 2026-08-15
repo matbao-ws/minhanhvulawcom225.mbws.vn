@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\FeatureSetting;
 use App\Models\ProjectSetting;
-use App\Models\Permission;
+use App\Support\PermissionRegistry;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -54,16 +54,25 @@ class FoundationSeeder extends Seeder
             ['permissions' => ['*'], 'is_system' => true]
         );
 
+        // Everything except permission management and language configuration,
+        // which stay with the superadmin.
         $adminRole = Role::query()->updateOrCreate(
             ['name' => 'Admin'],
             [
-                'permissions' => Permission::query()
-                    ->whereNotIn('code', ['manage_roles', 'manage_languages'])
-                    ->orderBy('code')
-                    ->pluck('code')
-                    ->all(),
+                'permissions' => array_values(array_filter(
+                    PermissionRegistry::codes(),
+                    static fn (string $code): bool => ! str_starts_with($code, 'roles.')
+                        && ! str_starts_with($code, 'languages.'),
+                )),
                 'is_system' => false,
             ]
+        );
+
+        // The client layout asks for the `primary` menu, so the install always
+        // has one to fill in rather than a missing key.
+        \App\Models\Menu::query()->updateOrCreate(
+            ['key' => 'primary'],
+            ['name' => 'Menu chính', 'is_active' => true],
         );
 
         $adminPassword = env('ADMIN_PASSWORD');

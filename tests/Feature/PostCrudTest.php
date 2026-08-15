@@ -121,6 +121,50 @@ class PostCrudTest extends TestCase
         $responseCategory->assertViewHas('categories');
     }
 
+    public function test_post_list_cells_line_up_with_their_column_headers(): void
+    {
+        $this->post->update(['seo_score' => 72]);
+        $this->actingAs($this->adminUser);
+
+        $html = $this->get('/vi/admin/posts')->assertOk()->getContent();
+
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $document->loadHTML('<?xml encoding="utf-8" ?>'.$html);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        $xpath = new \DOMXPath($document);
+
+        $textOf = static function (\DOMNodeList $nodes): array {
+            $values = [];
+            foreach ($nodes as $node) {
+                $values[] = trim(preg_replace('/\s+/u', ' ', $node->textContent));
+            }
+
+            return $values;
+        };
+
+        $headers = $textOf($xpath->query('//table//thead/tr/th'));
+        $cells = $textOf($xpath->query('(//table//tbody/tr)[1]/td'));
+
+        $this->assertSame(count($headers), count($cells));
+
+        $columnOf = function (string $label) use ($headers): int {
+            $index = array_search($label, $headers, true);
+            $this->assertIsInt($index, "Missing column header [{$label}].");
+
+            return $index;
+        };
+
+        $this->assertSame('Tin Tức', $cells[$columnOf('Chuyên mục')]);
+        $this->assertSame(
+            $this->post->published_at->format('d-m-Y H:i'),
+            $cells[$columnOf('Ngày xuất bản')],
+        );
+        $this->assertSame('72/100', $cells[$columnOf('Điểm SEO')]);
+        $this->assertSame(__('admin.posts.fields.active'), $cells[$columnOf('Trạng thái')]);
+    }
+
     public function test_empty_post_list_uses_the_post_empty_image(): void
     {
         $this->post->delete();

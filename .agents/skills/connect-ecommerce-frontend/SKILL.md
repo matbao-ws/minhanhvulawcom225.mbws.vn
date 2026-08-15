@@ -162,7 +162,7 @@ Check:
 - Checkout displays authoritative response totals.
 - No sensitive data is stored in logs, HTML, analytics, or long-lived browser state.
 - Authorized admins can open and save the CMS Page inline editor; guests, customers, and admins
-  without `manage_pages` neither see nor load it.
+  without `pages.update` neither see nor load it.
 
 When backend behavior is wrong, fix the backend contract and its tests first; do not hide backend
 errors with frontend workarounds.

@@ -26,7 +26,7 @@ class PageContentTest extends TestCase
         );
         $role = Role::query()->create([
             'name' => 'Page editor',
-            'permissions' => ['manage_pages', 'manage_media'],
+            'permissions' => ['pages.view', 'pages.create', 'pages.update', 'pages.delete', 'media.view', 'media.create', 'media.delete'],
         ]);
         $this->admin = User::factory()->create(['role_id' => $role->id]);
     }
@@ -162,7 +162,7 @@ class PageContentTest extends TestCase
 
         $pageOnlyRole = Role::query()->create([
             'name' => 'Chỉ sửa trang',
-            'permissions' => ['manage_pages'],
+            'permissions' => ['pages.view', 'pages.create', 'pages.update', 'pages.delete'],
         ]);
         $pageOnlyAdmin = User::factory()->create(['role_id' => $pageOnlyRole->id]);
         $this->actingAs($pageOnlyAdmin)

@@ -18,6 +18,10 @@ class DemoSeeder extends Seeder
             VoucherSeeder::class,
             PostSeeder::class,
             ReviewSeeder::class,
+            // Additive and idempotent, unlike the seeders above. Ordered last
+            // so the menu can link to the pages and categories they created.
+            PageContentSeeder::class,
+            MenuSeeder::class,
         ]);
     }
 }

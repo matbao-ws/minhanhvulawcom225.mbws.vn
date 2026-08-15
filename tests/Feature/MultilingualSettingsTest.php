@@ -33,7 +33,7 @@ class MultilingualSettingsTest extends TestCase
         ]);
         $adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['manage_settings', 'translate_content'],
+            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete', 'translations.use'],
             'is_system' => false,
         ]);
 
@@ -128,6 +128,39 @@ class MultilingualSettingsTest extends TestCase
             ->assertJsonPath('data.multilingual.widget', null);
 
         $this->assertSame('', trim(Blade::render('<x-gtranslate-widget />')));
+    }
+
+    public function test_all_gtranslate_widget_looks_resolve_correct_script_urls(): void
+    {
+        $map = [
+            'float' => 'https://cdn.gtranslate.net/widgets/latest/float.js',
+            'dropdown_with_flags' => 'https://cdn.gtranslate.net/widgets/latest/dwf.js',
+            'flags_dropdown' => 'https://cdn.gtranslate.net/widgets/latest/fd.js',
+            'dropdown' => 'https://cdn.gtranslate.net/widgets/latest/dropdown.js',
+            'flags' => 'https://cdn.gtranslate.net/widgets/latest/flags.js',
+            'flags_name' => 'https://cdn.gtranslate.net/widgets/latest/fn.js',
+            'flags_code' => 'https://cdn.gtranslate.net/widgets/latest/fc.js',
+            'lang_names' => 'https://cdn.gtranslate.net/widgets/latest/ln.js',
+            'lang_codes' => 'https://cdn.gtranslate.net/widgets/latest/lc.js',
+            'globe' => 'https://cdn.gtranslate.net/widgets/latest/globe.js',
+            'popup' => 'https://cdn.gtranslate.net/widgets/latest/popup.js',
+            'popup_search' => 'https://cdn.gtranslate.net/widgets/latest/ps.js',
+            'uswds' => 'https://cdn.gtranslate.net/widgets/latest/uswds.js',
+        ];
+
+        foreach ($map as $look => $expectedUrl) {
+            $payload = $this->payload();
+            $payload['multilingual']['gtranslate']['widget_look'] = $look;
+
+            $this->actingAs($this->superadmin)
+                ->postJson('/vi/admin/settings', $payload)
+                ->assertOk();
+
+            $service = app(MultilingualSettings::class);
+            $service->forget();
+
+            $this->assertSame($expectedUrl, $service->widgetScriptUrl());
+        }
     }
 
     /** @return array<string, mixed> */

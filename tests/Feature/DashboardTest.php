@@ -109,7 +109,7 @@ class DashboardTest extends TestCase
     {
         $role = Role::query()->create([
             'name' => 'Content editor',
-            'permissions' => ['manage_posts'],
+            'permissions' => ['posts.view', 'posts.create', 'posts.update', 'posts.delete'],
         ]);
         $editor = User::factory()->create(['role_id' => $role->id]);
 

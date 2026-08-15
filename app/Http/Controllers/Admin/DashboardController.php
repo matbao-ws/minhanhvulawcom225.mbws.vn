@@ -14,7 +14,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $canViewOrders = request()->user()->can('manage_orders');
+        $canViewOrders = request()->user()->can('orders.view');
         if (! $canViewOrders) {
             return view('admin.dashboard.index', compact('canViewOrders'));
         }
@@ -228,7 +228,7 @@ class DashboardController extends Controller
         $user = request()->user();
 
         // Fetch recent orders
-        if ($user->can('manage_orders') && \Illuminate\Support\Facades\Schema::hasTable('orders') && (!$type || $type === 'orders')) {
+        if ($user->can('orders.view') && \Illuminate\Support\Facades\Schema::hasTable('orders') && (!$type || $type === 'orders')) {
             $ordersQuery = \App\Models\Order::query()->latest();
             if (!empty($q)) {
                 $ordersQuery->where(function($query) use ($q) {
@@ -252,7 +252,7 @@ class DashboardController extends Controller
         }
 
         // Fetch recent reviews
-        if ($user->can('manage_reviews') && \Illuminate\Support\Facades\Schema::hasTable('reviews') && (!$type || $type === 'reviews')) {
+        if ($user->can('reviews.view') && \Illuminate\Support\Facades\Schema::hasTable('reviews') && (!$type || $type === 'reviews')) {
             $reviewsQuery = \App\Models\Review::query()->latest();
             if (!empty($q)) {
                 $reviewsQuery->where(function($query) use ($q) {
@@ -280,7 +280,7 @@ class DashboardController extends Controller
         }
 
         // Fetch recent registered users
-        if ($user->can('manage_users') && \Illuminate\Support\Facades\Schema::hasTable('users') && (!$type || $type === 'users')) {
+        if ($user->can('users.view') && \Illuminate\Support\Facades\Schema::hasTable('users') && (!$type || $type === 'users')) {
             $usersQuery = \App\Models\User::query()->latest();
             if (!empty($q)) {
                 $usersQuery->where(function($query) use ($q) {

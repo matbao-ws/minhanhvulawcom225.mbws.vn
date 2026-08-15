@@ -137,7 +137,7 @@ class VoucherController extends Controller
 
     public function bulk(Request $request, string $locale)
     {
-        $validated = $this->validatedBulkAction($request, 'vouchers');
+        $validated = $this->validatedBulkAction($request, 'vouchers', 'vouchers');
         $ids = $validated['ids'];
 
         if ($validated['action'] === 'delete') {

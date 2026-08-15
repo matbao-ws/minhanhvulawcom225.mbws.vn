@@ -114,7 +114,7 @@ class MultilingualTest extends TestCase
             }
         });
 
-        $role = Role::query()->create(['name' => 'Translator', 'permissions' => ['translate_content']]);
+        $role = Role::query()->create(['name' => 'Translator', 'permissions' => ['translations.use']]);
         $user = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($user)->postJson('/vi/admin/translations/preview', [
@@ -245,7 +245,12 @@ class MultilingualTest extends TestCase
         $this->assertDatabaseHas('languages', ['code' => 'vi', 'is_default' => true]);
     }
 
-    public function test_content_language_management_is_restricted_to_superadmins(): void
+    /**
+     * Language management is no longer hard-wired to the superadmin, but a
+     * blanket wildcard still does not reach it: `languages.*` has to be granted
+     * on purpose, so an upgrade cannot widen access by itself.
+     */
+    public function test_content_language_management_requires_an_explicit_grant(): void
     {
         $adminRole = Role::query()->create([
             'name' => 'Admin',
@@ -276,5 +281,15 @@ class MultilingualTest extends TestCase
             ->assertOk()
             ->assertSee('Cấu hình đa ngôn ngữ')
             ->assertDontSee('Chỉ Superadmin được thay đổi trạng thái và cơ chế dịch của dự án.');
+
+        // Delegation works once the permission is granted deliberately.
+        $translatorRole = Role::query()->create([
+            'name' => 'Translator',
+            'permissions' => ['languages.view', 'languages.update'],
+        ]);
+
+        $this->actingAs(User::factory()->create(['role_id' => $translatorRole->id]))
+            ->get('/vi/admin/languages')
+            ->assertOk();
     }
 }

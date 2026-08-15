@@ -67,13 +67,17 @@ Admin URLs are locale-prefixed: `/{locale}/admin`. Public storefront APIs use `/
 - Shipping settings/push: `ShippingService`.
 - GHTK callback: `Api/WebhookController`.
 - Media: `CloudinaryService`.
+- Storefront navigation: `MenuService` (shared by `client.partials.navigation` and
+  `/api/public/menus/{key}`), `Menu`, `MenuItem`.
 - Translation: `Services/Translation`.
 - Notifications: jobs, mail classes, `NotificationHelper`.
 
 ### Administration
 
 - Feature policy: `FeatureGate`, `EnsureFeatureEnabled`.
-- Roles/permissions: `User`, `Role`, `Permission`, authorization middleware, `AppServiceProvider`.
+- Roles/permissions: `PermissionRegistry` (the catalogue), `User`, `Role`, `Permission`,
+  `role_permission` and `user_permissions` pivots, `AuthorizesPermissionGrants`, the `Gate::before`
+  hook in `AppServiceProvider`, and authorization middleware.
 - Session/token revocation: `UserAccessService`.
 - Audit: `ActivityLogger`, `AdminActivityLog`.
 - Installation health: `InstallCore`, `CheckCore`, `FoundationSeeder`.

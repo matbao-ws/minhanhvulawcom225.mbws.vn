@@ -24,7 +24,7 @@ class SearchController extends Controller
             return response()->json(['results' => []]);
         }
 
-        if ($user->can('manage_products')) {
+        if ($user->can('products.view')) {
         $products = Product::query()
             ->where('name', 'like', "%{$q}%")
             ->orWhere('sku', 'like', "%{$q}%")
@@ -48,7 +48,7 @@ class SearchController extends Controller
         }
         }
 
-        if ($user->can('manage_orders')) {
+        if ($user->can('orders.view')) {
         $orders = Order::query()
             ->where('order_number', 'like', "%{$q}%")
             ->orWhere('customer_name', 'like', "%{$q}%")
@@ -74,7 +74,7 @@ class SearchController extends Controller
         }
         }
 
-        if ($user->can('manage_products')) {
+        if ($user->can('products.view')) {
         $categories = Category::query()
             ->where('name', 'like', "%{$q}%")
             ->limit(5)
@@ -119,7 +119,7 @@ class SearchController extends Controller
         }
         }
 
-        if ($user->can('manage_users')) {
+        if ($user->can('users.view')) {
         $users = User::query()
             ->where('name', 'like', "%{$q}%")
             ->orWhere('email', 'like', "%{$q}%")
@@ -143,7 +143,7 @@ class SearchController extends Controller
         }
         }
 
-        if ($user->can('manage_posts')) {
+        if ($user->can('posts.view')) {
         $posts = Post::query()
             ->where('title', 'like', "%{$q}%")
             ->limit(5)

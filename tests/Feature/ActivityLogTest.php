@@ -16,7 +16,7 @@ class ActivityLogTest extends TestCase
 
     public function test_authorized_admin_can_view_and_filter_activity_logs(): void
     {
-        $role = Role::query()->create(['name' => 'Auditor', 'permissions' => ['view_audit_log']]);
+        $role = Role::query()->create(['name' => 'Auditor', 'permissions' => ['activity_logs.view']]);
         $user = User::factory()->create(['role_id' => $role->id]);
         $subject = Role::query()->create(['name' => 'Sales', 'permissions' => []]);
 
@@ -38,7 +38,7 @@ class ActivityLogTest extends TestCase
 
     public function test_admin_without_audit_permission_cannot_view_activity_logs(): void
     {
-        $role = Role::query()->create(['name' => 'Staff', 'permissions' => ['manage_orders']]);
+        $role = Role::query()->create(['name' => 'Staff', 'permissions' => ['orders.view', 'orders.create', 'orders.update']]);
         $user = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($user)->get('/vi/admin/activity-logs')->assertForbidden();
@@ -46,7 +46,7 @@ class ActivityLogTest extends TestCase
 
     public function test_bulk_activity_log_is_presented_in_plain_language(): void
     {
-        $role = Role::query()->create(['name' => 'Auditor', 'permissions' => ['view_audit_log']]);
+        $role = Role::query()->create(['name' => 'Auditor', 'permissions' => ['activity_logs.view']]);
         $user = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($user);

@@ -1,7 +1,12 @@
 @extends('client.layouts.app')
 
 @section('title', $metaTitle ?: $title)
-@section('meta_description', $metaDescription)
+
+{{-- Guarded: `@section($name, null)` makes Blade open an output buffer it never
+     closes, because a null body means "the section content follows". --}}
+@if($metaDescription)
+    @section('meta_description', $metaDescription)
+@endif
 
 @push('styles')
 <style>
