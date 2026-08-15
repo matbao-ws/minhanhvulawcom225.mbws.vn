@@ -66,6 +66,10 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
         Route::get('/products/{id_or_slug}', [PublicController::class, 'productDetail']);
     });
 
+    Route::middleware('feature:menu')->group(function () {
+        Route::get('/menus/{key}', [PublicController::class, 'menu'])->where('key', '[a-z0-9-]+');
+    });
+
     Route::middleware('feature:cms_page')->group(function () {
         Route::get('/post-categories', [PublicController::class, 'postCategories']);
         Route::get('/posts', [PublicController::class, 'posts']);

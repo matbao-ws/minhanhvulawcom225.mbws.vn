@@ -15,6 +15,8 @@ use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\NotificationSettingController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PageController;
@@ -56,158 +58,217 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
     Route::get('search', [SearchController::class, 'search'])->name('search');
     Route::post('translations/preview', [TranslationController::class, 'preview'])
-        ->middleware(['can:translate_content', 'throttle:admin-translation'])
+        ->middleware(['can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
-    Route::middleware('can:manage_media')->group(function () {
+    Route::middleware('can:media.view')->group(function () {
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
         Route::get('media/resources', [MediaController::class, 'resources'])->name('media.resources');
-        Route::post('media/upload', [MediaController::class, 'upload'])->name('media.upload');
-        Route::delete('media/delete', [MediaController::class, 'destroy'])->name('media.delete');
     });
+    Route::post('media/upload', [MediaController::class, 'upload'])->middleware('can:media.create')->name('media.upload');
+    Route::delete('media/delete', [MediaController::class, 'destroy'])->middleware('can:media.delete')->name('media.delete');
 
+    // Feature flags and impersonation stay superadmin-only: they can hand out
+    // access rather than merely use it.
     Route::middleware('superadmin')->group(function () {
         Route::get('features', [FeatureController::class, 'index'])->name('features.index');
         Route::post('features', [FeatureController::class, 'update'])->name('features.update');
         Route::post('features/toggle', [FeatureController::class, 'toggle'])->name('features.toggle');
         Route::post('features/group-toggle', [FeatureController::class, 'toggleGroup'])->name('features.group-toggle');
-        Route::get('languages', [LanguageController::class, 'index'])->name('languages.index');
-        Route::post('languages', [LanguageController::class, 'store'])->name('languages.store');
-        Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->name('languages.preferences');
-        Route::put('languages/{language}', [LanguageController::class, 'update'])->name('languages.update');
     });
 
+    Route::get('languages', [LanguageController::class, 'index'])->middleware('can:languages.view')->name('languages.index');
+    Route::post('languages', [LanguageController::class, 'store'])->middleware('can:languages.create')->name('languages.store');
+    Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->middleware('can:languages.update')->name('languages.preferences');
+    Route::put('languages/{language}', [LanguageController::class, 'update'])->middleware('can:languages.update')->name('languages.update');
+
     Route::middleware('feature:multi_admin')->group(function () {
-        Route::resource('users', UserController::class)->middleware('can:manage_users');
+        // Literal segments are registered before `{user}` so /users/create is
+        // not swallowed by the show route.
+        Route::resource('users', UserController::class)->only(['create', 'store'])->middleware('can:users.create');
+        Route::resource('users', UserController::class)->only(['index', 'show'])->middleware('can:users.view');
         Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
             ->name('users.toggle-status')
-            ->middleware('can:manage_users');
+            ->middleware('can:users.update');
+        Route::resource('users', UserController::class)->only(['edit', 'update'])->middleware('can:users.update');
+        Route::resource('users', UserController::class)->only(['destroy'])->middleware('can:users.delete');
         Route::post('users/{user}/impersonate', [UserController::class, 'impersonate'])
             ->name('users.impersonate')
             ->middleware('superadmin');
-        Route::resource('roles', RoleController::class)->middleware('superadmin');
+
+        Route::resource('roles', RoleController::class)->only(['create', 'store'])->middleware('can:roles.create');
+        Route::resource('roles', RoleController::class)->only(['index'])->middleware('can:roles.view');
+        Route::resource('roles', RoleController::class)->only(['edit', 'update'])->middleware('can:roles.update');
+        Route::resource('roles', RoleController::class)->only(['destroy'])->middleware('can:roles.delete');
     });
 
-    Route::middleware(['feature:cms_page', 'can:manage_posts'])->group(function () {
-        Route::patch('posts/bulk', [PostController::class, 'bulk'])->name('posts.bulk');
-        Route::post('posts/import-wordpress', [PostController::class, 'importWordPress'])->name('posts.import-wordpress');
-        Route::post('post-categories/sort', [PostCategoryController::class, 'sort'])->name('post-categories.sort');
-        Route::put('post-categories/{post_category}/quick-update', [PostCategoryController::class, 'quickUpdate'])->name('post-categories.quick-update');
-        Route::resource('post-categories', PostCategoryController::class)->except(['show']);
-        Route::resource('posts', PostController::class);
+    Route::middleware('feature:cms_page')->group(function () {
+        Route::post('posts/import-wordpress', [PostController::class, 'importWordPress'])->middleware('can:posts.create')->name('posts.import-wordpress');
+        Route::patch('posts/bulk', [PostController::class, 'bulk'])->middleware('can:posts.update')->name('posts.bulk');
+        Route::post('post-categories/sort', [PostCategoryController::class, 'sort'])->middleware('can:posts.update')->name('post-categories.sort');
+        Route::put('post-categories/{post_category}/quick-update', [PostCategoryController::class, 'quickUpdate'])->middleware('can:posts.update')->name('post-categories.quick-update');
+
+        Route::resource('post-categories', PostCategoryController::class)->only(['create', 'store'])->middleware('can:posts.create');
+        Route::resource('post-categories', PostCategoryController::class)->only(['index'])->middleware('can:posts.view');
+        Route::resource('post-categories', PostCategoryController::class)->only(['edit', 'update'])->middleware('can:posts.update');
+        Route::resource('post-categories', PostCategoryController::class)->only(['destroy'])->middleware('can:posts.delete');
+
+        Route::resource('posts', PostController::class)->only(['create', 'store'])->middleware('can:posts.create');
+        Route::resource('posts', PostController::class)->only(['index', 'show'])->middleware('can:posts.view');
+        Route::resource('posts', PostController::class)->only(['edit', 'update'])->middleware('can:posts.update');
+        Route::resource('posts', PostController::class)->only(['destroy'])->middleware('can:posts.delete');
     });
 
-    Route::middleware(['feature:cms_page', 'can:manage_pages'])->group(function () {
-        Route::get('pages/{page}/preview', [PageController::class, 'preview'])->name('pages.preview');
-        Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->middleware('throttle:admin-page-inline')->name('pages.inline-update');
-        Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restore'])->name('pages.revisions.restore');
-        Route::resource('pages', PageController::class)->except(['show']);
+    Route::middleware('feature:cms_page')->group(function () {
+        Route::get('pages/{page}/preview', [PageController::class, 'preview'])->middleware('can:pages.view')->name('pages.preview');
+        Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->middleware(['can:pages.update', 'throttle:admin-page-inline'])->name('pages.inline-update');
+        Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restore'])->middleware('can:pages.update')->name('pages.revisions.restore');
+
+        Route::resource('pages', PageController::class)->only(['create', 'store'])->middleware('can:pages.create');
+        Route::resource('pages', PageController::class)->only(['index'])->middleware('can:pages.view');
+        Route::resource('pages', PageController::class)->only(['edit', 'update'])->middleware('can:pages.update');
+        Route::resource('pages', PageController::class)->only(['destroy'])->middleware('can:pages.delete');
     });
 
-    Route::middleware(['feature:voucher', 'can:manage_vouchers'])->group(function () {
-        Route::patch('vouchers/bulk', [VoucherController::class, 'bulk'])->name('vouchers.bulk');
-        Route::resource('vouchers', VoucherController::class);
+    Route::middleware('feature:voucher')->group(function () {
+        Route::patch('vouchers/bulk', [VoucherController::class, 'bulk'])->middleware('can:vouchers.update')->name('vouchers.bulk');
+        Route::resource('vouchers', VoucherController::class)->only(['create', 'store'])->middleware('can:vouchers.create');
+        Route::resource('vouchers', VoucherController::class)->only(['index', 'show'])->middleware('can:vouchers.view');
+        Route::resource('vouchers', VoucherController::class)->only(['edit', 'update'])->middleware('can:vouchers.update');
+        Route::resource('vouchers', VoucherController::class)->only(['destroy'])->middleware('can:vouchers.delete');
     });
 
-    Route::middleware(['feature:catalog', 'can:manage_vouchers'])->group(function () {
-        Route::resource('promotions', PromotionController::class)->except(['show']);
+    Route::middleware('feature:catalog')->group(function () {
+        Route::resource('promotions', PromotionController::class)->only(['create', 'store'])->middleware('can:promotions.create');
+        Route::resource('promotions', PromotionController::class)->only(['index'])->middleware('can:promotions.view');
+        Route::resource('promotions', PromotionController::class)->only(['edit', 'update'])->middleware('can:promotions.update');
+        Route::resource('promotions', PromotionController::class)->only(['destroy'])->middleware('can:promotions.delete');
     });
 
-    Route::middleware(['feature:review', 'can:manage_reviews'])->group(function () {
-        Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
-        Route::put('reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
-        Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
-        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+    Route::middleware('feature:review')->group(function () {
+        Route::get('reviews', [ReviewController::class, 'index'])->middleware('can:reviews.view')->name('reviews.index');
+        Route::put('reviews/{review}', [ReviewController::class, 'update'])->middleware('can:reviews.update')->name('reviews.update');
+        Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->middleware('can:reviews.update')->name('reviews.toggle-visibility');
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->middleware('can:reviews.delete')->name('reviews.destroy');
     });
 
-    Route::middleware('can:manage_contacts')->group(function () {
-        Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->name('contact-submissions.index');
-        Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->name('contact-submissions.toggle-read');
-        Route::delete('contact-submissions/{contactSubmission}', [ContactSubmissionController::class, 'destroy'])->name('contact-submissions.destroy');
+    Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->middleware('can:contacts.view')->name('contact-submissions.index');
+    Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');
+    Route::delete('contact-submissions/{contactSubmission}', [ContactSubmissionController::class, 'destroy'])->middleware('can:contacts.delete')->name('contact-submissions.destroy');
+
+    Route::get('invoices', [InvoiceController::class, 'index'])->middleware('can:invoices.view')->name('invoices.index');
+    Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can:invoices.view')->name('invoices.show');
+    Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->middleware('can:invoices.update')->name('invoices.send-email');
+
+    Route::get('settings', [SettingController::class, 'index'])->middleware('can:settings.view')->name('settings.index');
+    Route::post('settings', [SettingController::class, 'update'])->middleware('can:settings.update')->name('settings.update');
+
+    Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');
+    Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');
+    Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->middleware('can:settings.update')->name('notification-settings.get-chat-id');
+
+    // Integration catalogue. Activation is handled by support; no in-app addon sales.
+    Route::get('addons', [AddonController::class, 'index'])->middleware('can:settings.view')->name('addons.index');
+
+    Route::middleware('feature:shipping')->group(function () {
+        Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->middleware('can:shipping.update')->name('shipping-partners.toggle-status');
+        Route::get('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'settings'])->middleware('can:shipping.view')->name('shipping-partners.settings');
+        Route::post('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'updateSettings'])->middleware('can:shipping.update')->name('shipping-partners.update-settings');
+
+        Route::resource('shipping-partners', ShippingPartnerController::class)->only(['create', 'store'])->middleware('can:shipping.create');
+        Route::resource('shipping-partners', ShippingPartnerController::class)->only(['index'])->middleware('can:shipping.view');
+        Route::resource('shipping-partners', ShippingPartnerController::class)->only(['edit', 'update'])->middleware('can:shipping.update');
+        Route::resource('shipping-partners', ShippingPartnerController::class)->only(['destroy'])->middleware('can:shipping.delete');
     });
 
-    Route::middleware('can:manage_settings')->group(function () {
-        Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
-        Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
-        Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
+    // Either payment feature makes this screen meaningful; the controller
+    // still decides which individual methods may be listed or edited.
+    Route::middleware('feature:cod_order,online_payment')->group(function () {
+        Route::post('payment-methods/{payment_method}/toggle-status', [PaymentMethodController::class, 'toggleStatus'])->middleware('can:payments.update')->name('payment-methods.toggle-status');
+        Route::get('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'settings'])->middleware('can:payments.view')->name('payment-methods.settings');
+        Route::post('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'updateSettings'])->middleware('can:payments.update')->name('payment-methods.update-settings');
 
-        Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
-        Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
-
-        Route::get('notification-settings', [NotificationSettingController::class, 'index'])->name('notification-settings.index');
-        Route::post('notification-settings', [NotificationSettingController::class, 'update'])->name('notification-settings.update');
-        Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->name('notification-settings.get-chat-id');
-
-        Route::middleware('feature:shipping')->group(function () {
-            Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->name('shipping-partners.toggle-status');
-            Route::get('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'settings'])->name('shipping-partners.settings');
-            Route::post('shipping-partners/{shipping_partner}/settings', [ShippingPartnerController::class, 'updateSettings'])->name('shipping-partners.update-settings');
-            Route::resource('shipping-partners', ShippingPartnerController::class)->except(['show']);
-        });
-
-        // Either payment feature makes this screen meaningful; the controller
-        // still decides which individual methods may be listed or edited.
-        Route::middleware('feature:cod_order,online_payment')->group(function () {
-            Route::post('payment-methods/{payment_method}/toggle-status', [PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
-            Route::get('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'settings'])->name('payment-methods.settings');
-            Route::post('payment-methods/{payment_method}/settings', [PaymentMethodController::class, 'updateSettings'])->name('payment-methods.update-settings');
-            Route::resource('payment-methods', PaymentMethodController::class)->except(['show']);
-        });
-
-        // Integration catalogue. Activation is handled by support; no in-app addon sales.
-        Route::get('addons', [AddonController::class, 'index'])->name('addons.index');
-
+        Route::resource('payment-methods', PaymentMethodController::class)->only(['create', 'store'])->middleware('can:payments.create');
+        Route::resource('payment-methods', PaymentMethodController::class)->only(['index'])->middleware('can:payments.view');
+        Route::resource('payment-methods', PaymentMethodController::class)->only(['edit', 'update'])->middleware('can:payments.update');
+        Route::resource('payment-methods', PaymentMethodController::class)->only(['destroy'])->middleware('can:payments.delete');
     });
 
-    Route::middleware(['feature:banner', 'can:manage_banners'])->group(function () {
-        Route::patch('banners/bulk', [BannerController::class, 'bulk'])->name('banners.bulk');
-        Route::resource('banners', BannerController::class)->except(['show']);
+    Route::middleware('feature:menu')->group(function () {
+        // Item routes come first: `menus/create` would otherwise be captured by
+        // `menus/{menu}` once the menu resource registers its show-shaped paths.
+        Route::post('menus/{menu}/items/sort', [MenuItemController::class, 'sort'])->middleware('can:menus.update')->name('menus.items.sort');
+        Route::get('menus/{menu}/items/create', [MenuItemController::class, 'create'])->middleware('can:menus.update')->name('menus.items.create');
+        Route::post('menus/{menu}/items', [MenuItemController::class, 'store'])->middleware('can:menus.update')->name('menus.items.store');
+        Route::get('menus/{menu}/items', [MenuItemController::class, 'index'])->middleware('can:menus.view')->name('menus.items.index');
+        Route::get('menus/{menu}/items/{item}/edit', [MenuItemController::class, 'edit'])->middleware('can:menus.update')->name('menus.items.edit');
+        Route::put('menus/{menu}/items/{item}', [MenuItemController::class, 'update'])->middleware('can:menus.update')->name('menus.items.update');
+        Route::delete('menus/{menu}/items/{item}', [MenuItemController::class, 'destroy'])->middleware('can:menus.delete')->name('menus.items.destroy');
+
+        Route::resource('menus', MenuController::class)->only(['create', 'store'])->middleware('can:menus.create');
+        Route::resource('menus', MenuController::class)->only(['index'])->middleware('can:menus.view');
+        Route::resource('menus', MenuController::class)->only(['edit', 'update'])->middleware('can:menus.update');
+        Route::resource('menus', MenuController::class)->only(['destroy'])->middleware('can:menus.delete');
     });
 
-    Route::middleware('can:view_audit_log')->group(function () {
-        Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::middleware('feature:banner')->group(function () {
+        Route::patch('banners/bulk', [BannerController::class, 'bulk'])->middleware('can:banners.update')->name('banners.bulk');
+        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware('can:banners.create');
+        Route::resource('banners', BannerController::class)->only(['index'])->middleware('can:banners.view');
+        Route::resource('banners', BannerController::class)->only(['edit', 'update'])->middleware('can:banners.update');
+        Route::resource('banners', BannerController::class)->only(['destroy'])->middleware('can:banners.delete');
     });
 
-    Route::middleware('can:view_customers')->group(function () {
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:activity_logs.view')->name('activity-logs.index');
+
+    Route::middleware('can:customers.view')->group(function () {
         Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::get('customers/profile', [CustomerController::class, 'show'])->name('customers.show');
     });
 
     Route::middleware('feature:catalog')->group(function () {
-        Route::middleware('can:manage_orders')->group(function () {
-            Route::get('orders/customer-suggestions', [OrderController::class, 'customerSuggestions'])->name('orders.customer-suggestions');
-            Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
-            // Pushing a waybill drives the carrier integration configured on the
-            // shipping screen, so it follows the same switch.
-            Route::post('orders/{order}/push-shipping', [OrderController::class, 'pushShipping'])
-                ->middleware('feature:shipping')
-                ->name('orders.push-shipping');
-            Route::post('orders/{order}/refund', [OrderController::class, 'refund'])->name('orders.refund');
-            Route::resource('orders', OrderController::class)->only(['index', 'show', 'create', 'store']);
-        });
+        Route::get('orders/customer-suggestions', [OrderController::class, 'customerSuggestions'])->middleware('can:orders.create')->name('orders.customer-suggestions');
+        Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->middleware('can:orders.update')->name('orders.update-status');
+        // Pushing a waybill drives the carrier integration configured on the
+        // shipping screen, so it follows the same switch.
+        Route::post('orders/{order}/push-shipping', [OrderController::class, 'pushShipping'])
+            ->middleware(['can:orders.update', 'feature:shipping'])
+            ->name('orders.push-shipping');
+        Route::post('orders/{order}/refund', [OrderController::class, 'refund'])->middleware('can:orders.update')->name('orders.refund');
+        Route::resource('orders', OrderController::class)->only(['create', 'store'])->middleware('can:orders.create');
+        Route::resource('orders', OrderController::class)->only(['index', 'show'])->middleware('can:orders.view');
 
-        Route::middleware('can:manage_products')->group(function () {
-            Route::patch('categories/bulk', [CategoryController::class, 'bulk'])->name('categories.bulk');
-            Route::post('categories/sort', [CategoryController::class, 'sort'])->name('categories.sort');
-            Route::put('categories/{category}/quick-update', [CategoryController::class, 'quickUpdate'])->name('categories.quick-update');
-            Route::resource('categories', CategoryController::class)->except(['show']);
+        Route::patch('categories/bulk', [CategoryController::class, 'bulk'])->middleware('can:products.update')->name('categories.bulk');
+        Route::post('categories/sort', [CategoryController::class, 'sort'])->middleware('can:products.update')->name('categories.sort');
+        Route::put('categories/{category}/quick-update', [CategoryController::class, 'quickUpdate'])->middleware('can:products.update')->name('categories.quick-update');
+        Route::resource('categories', CategoryController::class)->only(['create', 'store'])->middleware('can:products.create');
+        Route::resource('categories', CategoryController::class)->only(['index'])->middleware('can:products.view');
+        Route::resource('categories', CategoryController::class)->only(['edit', 'update'])->middleware('can:products.update');
+        Route::resource('categories', CategoryController::class)->only(['destroy'])->middleware('can:products.delete');
 
-            Route::patch('brands/bulk', [BrandController::class, 'bulk'])->name('brands.bulk');
-            Route::post('brands/sort', [BrandController::class, 'sort'])->name('brands.sort');
-            Route::put('brands/{brand}/quick-update', [BrandController::class, 'quickUpdate'])->name('brands.quick-update');
-            Route::resource('brands', BrandController::class)->except(['show']);
+        Route::patch('brands/bulk', [BrandController::class, 'bulk'])->middleware('can:products.update')->name('brands.bulk');
+        Route::post('brands/sort', [BrandController::class, 'sort'])->middleware('can:products.update')->name('brands.sort');
+        Route::put('brands/{brand}/quick-update', [BrandController::class, 'quickUpdate'])->middleware('can:products.update')->name('brands.quick-update');
+        Route::resource('brands', BrandController::class)->only(['create', 'store'])->middleware('can:products.create');
+        Route::resource('brands', BrandController::class)->only(['index'])->middleware('can:products.view');
+        Route::resource('brands', BrandController::class)->only(['edit', 'update'])->middleware('can:products.update');
+        Route::resource('brands', BrandController::class)->only(['destroy'])->middleware('can:products.delete');
 
-            Route::patch('products/bulk', [ProductController::class, 'bulk'])->name('products.bulk');
-            Route::post('products/sort', [ProductController::class, 'sort'])->name('products.sort');
-            Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
-            Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->name('products.template');
-            Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
-            Route::resource('products', ProductController::class);
-            Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->name('products.options.edit');
-            Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->name('products.options.update');
-            Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->name('products.variants.generate');
-            Route::resource('products.variants', ProductVariantController::class)
-                ->except(['index', 'show']);
-        });
+        Route::patch('products/bulk', [ProductController::class, 'bulk'])->middleware('can:products.update')->name('products.bulk');
+        Route::post('products/sort', [ProductController::class, 'sort'])->middleware('can:products.update')->name('products.sort');
+        Route::get('products/export', [ProductController::class, 'export'])->middleware('can:products.view')->name('products.export');
+        Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
+        Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.create')->name('products.import');
+        Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware('can:products.create');
+        Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('can:products.view');
+        Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('can:products.update');
+        Route::resource('products', ProductController::class)->only(['destroy'])->middleware('can:products.delete');
+
+        Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->middleware('can:products.update')->name('products.options.edit');
+        Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->middleware('can:products.update')->name('products.options.update');
+        Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->middleware('can:products.create')->name('products.variants.generate');
+        Route::resource('products.variants', ProductVariantController::class)->only(['create', 'store'])->middleware('can:products.create');
+        Route::resource('products.variants', ProductVariantController::class)->only(['edit', 'update'])->middleware('can:products.update');
+        Route::resource('products.variants', ProductVariantController::class)->only(['destroy'])->middleware('can:products.delete');
     });
 });

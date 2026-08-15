@@ -3,7 +3,7 @@
         <style>
             .content-language-tabs .nav-link { font-weight: 600; }
             .content-language-tabs .language-required { font-size: .72rem; }
-            @cannot('translate_content')
+            @cannot('translations.use')
                 .js-translate-locale { display: none !important; }
             @endcannot
         </style>

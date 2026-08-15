@@ -10,6 +10,12 @@
     @stack('styles')
 </head>
 <body>
+    {{-- Server-rendered from the database and marked uneditable: the inline
+         page editor must never treat navigation as page content. --}}
+    <header class="client-header" contenteditable="false">
+        @include('client.partials.navigation', ['menuKey' => 'primary'])
+    </header>
+
     @yield('content')
 
     @include('client.partials.admin-bar')

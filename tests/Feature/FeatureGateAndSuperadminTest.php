@@ -29,7 +29,7 @@ class FeatureGateAndSuperadminTest extends TestCase
 
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['manage_users', 'manage_products'],
+            'permissions' => ['users.view', 'users.create', 'users.update', 'users.delete', 'products.view', 'products.create', 'products.update', 'products.delete'],
         ]);
 
         // Seed some feature settings

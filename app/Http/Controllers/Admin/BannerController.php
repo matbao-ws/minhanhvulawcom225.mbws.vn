@@ -147,7 +147,7 @@ class BannerController extends Controller
 
     public function bulk(Request $request, string $locale)
     {
-        $validated = $this->validatedBulkAction($request, 'banners');
+        $validated = $this->validatedBulkAction($request, 'banners', 'banners');
         $ids = $validated['ids'];
 
         if ($validated['action'] === 'delete') {

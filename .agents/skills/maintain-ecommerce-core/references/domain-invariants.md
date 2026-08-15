@@ -22,6 +22,12 @@
 ## Identity and ownership
 
 - Admin users have a non-null role; customers have `role_id = null`.
+- Permission codes are `<module>.<action>` and are declared only in `App\Support\PermissionRegistry`;
+  never add a code without a route that enforces it, and never enforce a code the registry lacks.
+- Role permissions live on the `role_permission` pivot; `user_permissions` grants or revokes per
+  account. `Gate::before` resolves superadmin, then override, then role.
+- Nobody may grant a permission they do not themselves hold, edit their own overrides, or strip
+  permissions that sit outside their own reach.
 - Admin/customer Sanctum tokens have distinct abilities.
 - Inactive users must lose usable access; consider token/session revocation on sensitive changes.
 - Every user-owned query must scope by authenticated user, not only by route-model binding.

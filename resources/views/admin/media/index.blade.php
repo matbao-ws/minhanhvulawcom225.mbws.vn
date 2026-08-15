@@ -2,6 +2,35 @@
 
 @section('title', __('catalog.media.title'))
 
+@push('styles')
+    <style>
+        /*
+         * The folder list is short while the file grid can run for pages, so it
+         * follows the scroll instead of leaving a tall empty column behind.
+         * The offset clears the fixed .topbar (min-height 72px).
+         */
+        @media (min-width: 768px) {
+            /*
+             * .page-wrapper sets overflow-x: hidden, which makes it a scroll
+             * container and would anchor the sticky offset to that box instead
+             * of the viewport. overflow-x: clip keeps the same horizontal
+             * clipping without creating a scrollport; :has() keeps the override
+             * on this screen only.
+             */
+            .page-wrapper:has(.media-folder-sidebar) {
+                overflow-x: clip;
+            }
+
+            .media-folder-sidebar {
+                position: sticky;
+                top: 88px;
+                max-height: calc(100vh - 104px);
+                overflow-y: auto;
+            }
+        }
+    </style>
+@endpush
+
 @section('content')
     <!-- Header Card -->
         <!-- Header Card -->
@@ -42,30 +71,32 @@
     <div class="row">
         <!-- Sidebar Folders -->
         <div class="col-lg-3 col-md-4 mb-4">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-transparent border-bottom">
-                    <h5 class="card-title mb-0 fw-semibold">{{ __('catalog.media.cloud_folders') }}</h5>
-                </div>
-                <div class="list-group list-group-flush rounded">
-                    <!-- Option to see all files -->
-                    <a href="{{ route('admin.media.index', ['folder' => 'all']) }}" 
-                       class="list-group-item list-group-item-action d-flex align-items-center justify-content-between {{ $activeFolder === 'all' ? 'active bg-primary-subtle text-primary border-primary fw-semibold' : '' }}">
-                        <div class="d-flex align-items-center gap-2">
-                            <iconify-icon icon="solar:folder-with-files-bold" class="fs-5"></iconify-icon>
-                            <span>{{ __('catalog.media.all_folders') }}</span>
-                        </div>
-                    </a>
-
-                    @foreach($folders as $folder)
-                        <a href="{{ route('admin.media.index', ['folder' => $folder]) }}" 
-                           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between {{ $activeFolder === $folder ? 'active bg-primary-subtle text-primary border-primary fw-semibold' : '' }}">
+            <div class="media-folder-sidebar">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-transparent border-bottom">
+                        <h5 class="card-title mb-0 fw-semibold">{{ __('catalog.media.cloud_folders') }}</h5>
+                    </div>
+                    <div class="list-group list-group-flush rounded">
+                        <!-- Option to see all files -->
+                        <a href="{{ route('admin.media.index', ['folder' => 'all']) }}"
+                           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between {{ $activeFolder === 'all' ? 'active bg-primary-subtle text-primary border-primary fw-semibold' : '' }}">
                             <div class="d-flex align-items-center gap-2">
-                                <iconify-icon icon="solar:folder-open-bold-duotone" class="fs-5"></iconify-icon>
-                                <span class="text-capitalize">{{ $folder }}</span>
+                                <iconify-icon icon="solar:folder-with-files-bold" class="fs-5"></iconify-icon>
+                                <span>{{ __('catalog.media.all_folders') }}</span>
                             </div>
-                            <span class="badge bg-light text-dark rounded-pill fs-2">📂</span>
                         </a>
-                    @endforeach
+
+                        @foreach($folders as $folder)
+                            <a href="{{ route('admin.media.index', ['folder' => $folder]) }}"
+                               class="list-group-item list-group-item-action d-flex align-items-center justify-content-between {{ $activeFolder === $folder ? 'active bg-primary-subtle text-primary border-primary fw-semibold' : '' }}">
+                                <div class="d-flex align-items-center gap-2">
+                                    <iconify-icon icon="solar:folder-open-bold-duotone" class="fs-5"></iconify-icon>
+                                    <span class="text-capitalize">{{ $folder }}</span>
+                                </div>
+                                <span class="badge bg-light text-dark rounded-pill fs-2">📂</span>
+                            </a>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
@@ -107,10 +138,10 @@
             <!-- Media Library Grid -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-bottom d-flex align-items-center justify-content-between">
-                    <h5 class="card-title mb-0 fw-semibold">{{ __('catalog.media.files') }} ({{ count($resources) }})</h5>
+                    <h5 class="card-title mb-0 fw-semibold">{{ __('catalog.media.files') }} ({{ $resources->total() }})</h5>
                 </div>
                 <div class="card-body">
-                    @if(count($resources) === 0)
+                    @if($resources->isEmpty())
                         <div class="text-center py-5">
                             <iconify-icon icon="solar:gallery-wide-line-duotone" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
                             <p class="text-muted mb-0 fs-3">{{ __('catalog.media.no_files') }}</p>
@@ -181,6 +212,12 @@
                         </div>
                     @endif
                 </div>
+
+                @if($resources->total() > 0)
+                    <div class="card-footer bg-transparent border-top py-3">
+                        @include('admin.shared.pagination', ['paginator' => $resources])
+                    </div>
+                @endif
             </div>
         </div>
     </div>

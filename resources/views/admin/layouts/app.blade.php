@@ -288,12 +288,12 @@
             padding: 5px 10px !important;
             font-weight: 600 !important;
         }
-        .bg-primary-subtle {
+        /* .bg-primary-subtle {
             background-color: #ecf2ff !important;
-        }
-        .text-primary {
+        } */
+        /* .text-primary {
             color: #3e66fb !important;
-        }
+        } */
         .bg-success-subtle {
             background-color: #e6f9ed !important;
         }
@@ -501,7 +501,7 @@
 
     <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-    @can('manage_media')
+    @can('media.view')
         @include('admin.layouts.media-picker')
     @endcan
     <script src="{{ asset('admin-assets/libs/simplebar/dist/simplebar.min.js') }}"></script>

@@ -114,6 +114,47 @@
     </div>
 </div>
 
+@if(!empty($overrideModules ?? []))
+    {{-- Exceptions layered on top of the role. Only permissions the signed-in
+         admin holds are listed, and the controller re-checks that on submit. --}}
+    <div class="card mt-4">
+        <div class="card-header bg-transparent border-bottom">
+            <h5 class="card-title mb-1 fw-semibold">{{ __('admin.roles.overrides_title') }}</h5>
+            <p class="fs-2 text-muted mb-0">{{ __('admin.roles.overrides_hint') }}</p>
+        </div>
+        <div class="card-body">
+            {{-- preserveKeys: the module name is the key and it becomes the permission code. --}}
+            @foreach(collect($overrideModules)->groupBy('group', true) as $group => $groupModules)
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold text-dark mb-3">{{ __('admin.roles.groups.'.$group) }}</h6>
+                    <div class="row g-3">
+                        @foreach($groupModules as $module => $definition)
+                            @foreach($definition['actions'] as $action)
+                                @php
+                                    $code = $module.'.'.$action;
+                                    $state = old('permission_overrides.'.$code, array_key_exists($code, $currentOverrides ?? [])
+                                        ? ($currentOverrides[$code] ? 'grant' : 'revoke')
+                                        : 'inherit');
+                                @endphp
+                                <div class="col-md-6 col-xl-4">
+                                    <label class="form-label fs-2 text-muted mb-1" for="override_{{ $module }}_{{ $action }}">
+                                        {{ __('admin.roles.actions.'.$action) }} — {{ $definition['label'] }}
+                                    </label>
+                                    <select class="form-select form-select-sm" id="override_{{ $module }}_{{ $action }}" name="permission_overrides[{{ $code }}]">
+                                        <option value="inherit" @selected($state === 'inherit')>{{ __('admin.roles.override_inherit') }}</option>
+                                        <option value="grant" @selected($state === 'grant')>{{ __('admin.roles.override_grant') }}</option>
+                                        <option value="revoke" @selected($state === 'revoke')>{{ __('admin.roles.override_revoke') }}</option>
+                                    </select>
+                                </div>
+                            @endforeach
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
+
 <!-- Unsaved Changes Modal -->
 <div class="modal fade" id="unsavedChangesModal" tabindex="-1" aria-labelledby="unsavedChangesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">

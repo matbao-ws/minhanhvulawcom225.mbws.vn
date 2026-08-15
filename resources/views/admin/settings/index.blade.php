@@ -335,6 +335,7 @@
                     $multilingualMode = data_get($multilingual, 'mode', 'manual');
                     $gtranslateTargets = collect(data_get($multilingual, 'gtranslate.target_locales', []));
                     $sourceLanguage = $contentLanguages->firstWhere('is_default', true) ?? $contentLanguages->first();
+                    $allGTranslateLanguages = \App\Services\MultilingualSettings::allGTranslateLanguages();
                 @endphp
                 <div class="tab-pane fade" id="multilingual-pane" role="tabpanel">
                     <div class="card">
@@ -383,67 +384,137 @@
                                 </div>
                             </div>
 
-                            <div id="gtranslate-settings" @class(['d-none' => $multilingualMode !== 'gtranslate'])>
-                                <div class="border rounded-3 p-4">
-                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-                                        <div>
-                                            <h6 class="fw-bold text-dark mb-1">{{ __('admin.settings.multilingual.gtranslate_options') }}</h6>
-                                            <p class="text-muted mb-0">{{ __('admin.settings.multilingual.source_language') }}: <strong>{{ $sourceLanguage?->native_name ?? strtoupper(config('multilingual.default_locale', 'vi')) }}</strong></p>
-                                        </div>
-                                        <a href="https://gtranslate.io/website-translator-widget" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
-                                            <i class="ti ti-external-link me-1"></i>{{ __('admin.settings.multilingual.widget_docs') }}
-                                        </a>
-                                    </div>
+                            <div id="gtranslate-settings" 
+                                @class(['d-none' => $multilingualMode !== 'gtranslate'])
+                                data-source-locale="{{ $sourceLanguage?->code ?? 'vi' }}"
+                                data-locales-map='@json($contentLanguages->pluck("regional", "code"))'>
+                                <div class="row g-4">
+                                    <div class="col-xl-7 col-lg-6">
+                                        <div class="border rounded-3 p-4 h-100">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                                                 <div>
+                                                     <h6 class="fw-bold text-dark mb-1">{{ __('admin.settings.multilingual.gtranslate_options') }}</h6>
+                                                     <p class="text-muted mb-0 small">{{ __('admin.settings.multilingual.free_limit_note') }}</p>
+                                                 </div>
+                                                 <a href="https://gtranslate.io/website-translator-widget" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                                                     <i class="ti ti-external-link me-1"></i>{{ __('admin.settings.multilingual.widget_docs') }}
+                                                 </a>
+                                             </div>
 
-                                    <label class="form-label">{{ __('admin.settings.multilingual.target_languages') }}</label>
-                                    <div class="row g-2 mb-3">
-                                        @forelse($contentLanguages->where('code', '!=', $sourceLanguage?->code) as $language)
-                                            <div class="col-md-4">
-                                                <div class="form-check border rounded px-3 py-2">
-                                                    <input class="form-check-input" type="checkbox" name="multilingual[gtranslate][target_locales][]" value="{{ $language->code }}" id="gtranslate_locale_{{ $language->code }}" @checked($gtranslateTargets->contains($language->code))>
-                                                    <label class="form-check-label" for="gtranslate_locale_{{ $language->code }}">{{ $language->native_name }} ({{ strtoupper($language->code) }})</label>
+                                             <div class="mb-3">
+                                                 <label class="form-label fw-semibold" for="gtranslate_source_locale">
+                                                     {{ __('admin.settings.multilingual.source_language') }}
+                                                 </label>
+                                                 @php
+                                                     $selectedSourceLocale = data_get($multilingual, 'gtranslate.source_locale', $sourceLanguage?->code ?? 'vi');
+                                                 @endphp
+                                                 <select class="form-select text-dark js-gtranslate-input" id="gtranslate_source_locale" name="multilingual[gtranslate][source_locale]" style="width: 100%;">
+                                                     @foreach($allGTranslateLanguages as $code => $name)
+                                                         <option value="{{ $code }}" @selected($selectedSourceLocale === $code)>
+                                                             {{ $name }} ({{ strtoupper($code) }})
+                                                         </option>
+                                                     @endforeach
+                                                 </select>
+                                             </div>
+
+                                            <div class="mb-3">
+                                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                                    <label class="form-label mb-0 fw-semibold" for="gtranslate_target_locales">
+                                                        {{ __('admin.settings.multilingual.target_languages') }}
+                                                    </label>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" id="js-gtranslate-select-all" style="font-size: 11px;">
+                                                            <i class="ti ti-checks me-1"></i>{{ __('admin.settings.multilingual.select_all') }}
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-info py-0 px-2 rounded-pill" id="js-gtranslate-select-popular" style="font-size: 11px;">
+                                                            <i class="ti ti-star me-1"></i>{{ __('admin.settings.multilingual.popular_languages') }}
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 rounded-pill" id="js-gtranslate-deselect-all" style="font-size: 11px;">
+                                                            <i class="ti ti-x me-1"></i>{{ __('admin.settings.multilingual.deselect_all') }}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <select class="form-select text-dark" id="gtranslate_target_locales" name="multilingual[gtranslate][target_locales][]" multiple="multiple" style="width: 100%;">
+                                                    <option value="all" @selected($gtranslateTargets->contains('all'))>
+                                                        ★ {{ __('admin.settings.multilingual.all_languages_option') }}
+                                                    </option>
+                                                    @foreach($allGTranslateLanguages as $code => $name)
+                                                        @if($code !== ($sourceLanguage?->code ?? 'vi'))
+                                                            <option value="{{ $code }}" @selected($gtranslateTargets->contains($code) && !$gtranslateTargets->contains('all'))>
+                                                                {{ $name }} ({{ strtoupper($code) }})
+                                                            </option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                                    <span class="text-muted small" id="js-gtranslate-count-text">
+                                                        {{ __('admin.settings.multilingual.selected_count', ['count' => $gtranslateTargets->count(), 'total' => count($allGTranslateLanguages) - 1]) }}
+                                                    </span>
+                                                </div>
+                                                @error('multilingual.gtranslate.target_locales')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label" for="gtranslate_widget_look">{{ __('admin.settings.multilingual.widget_look') }}</label>
+                                                    <select class="form-select js-gtranslate-input" id="gtranslate_widget_look" name="multilingual[gtranslate][widget_look]">
+                                                        @foreach(['float', 'dropdown_with_flags', 'flags_dropdown', 'dropdown', 'flags', 'flags_name', 'flags_code', 'lang_names', 'lang_codes', 'globe', 'popup', 'popup_search', 'uswds'] as $look)
+                                                            <option value="{{ $look }}" @selected(data_get($multilingual, 'gtranslate.widget_look', 'float') === $look)>{{ __('admin.settings.multilingual.look_'.$look) }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label" for="gtranslate_position">{{ __('admin.settings.multilingual.position') }}</label>
+                                                    <select class="form-select js-gtranslate-input" id="gtranslate_position" name="multilingual[gtranslate][position]">
+                                                        @foreach(['bottom_right', 'bottom_left', 'top_right', 'top_left', 'inline'] as $position)
+                                                            <option value="{{ $position }}" @selected(data_get($multilingual, 'gtranslate.position', 'bottom_right') === $position)>{{ __('admin.settings.multilingual.position_'.$position) }}</option>
+                                                        @endforeach
+                                                    </select>
                                                 </div>
                                             </div>
-                                        @empty
-                                            <div class="col-12">
-                                                <div class="alert alert-danger mb-0">{{ __('admin.settings.multilingual.no_target_languages') }}</div>
+
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="form-check form-switch">
+                                                    <input type="hidden" name="multilingual[gtranslate][detect_browser_language]" value="0">
+                                                    <input class="form-check-input js-gtranslate-input" type="checkbox" name="multilingual[gtranslate][detect_browser_language]" value="1" id="gtranslate_detect_browser" @checked(data_get($multilingual, 'gtranslate.detect_browser_language', false))>
+                                                    <label class="form-check-label" for="gtranslate_detect_browser">{{ __('admin.settings.multilingual.detect_browser') }}</label>
+                                                </div>
+                                                <div class="form-check form-switch">
+                                                    <input type="hidden" name="multilingual[gtranslate][native_language_names]" value="0">
+                                                    <input class="form-check-input js-gtranslate-input" type="checkbox" name="multilingual[gtranslate][native_language_names]" value="1" id="gtranslate_native_names" @checked(data_get($multilingual, 'gtranslate.native_language_names', true))>
+                                                    <label class="form-check-label" for="gtranslate_native_names">{{ __('admin.settings.multilingual.native_names') }}</label>
+                                                </div>
                                             </div>
-                                        @endforelse
-                                    </div>
-                                    @error('multilingual.gtranslate.target_locales')<div class="text-danger small mb-3">{{ $message }}</div>@enderror
 
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="gtranslate_widget_look">{{ __('admin.settings.multilingual.widget_look') }}</label>
-                                            <select class="form-select" id="gtranslate_widget_look" name="multilingual[gtranslate][widget_look]">
-                                                <option value="float" @selected(data_get($multilingual, 'gtranslate.widget_look', 'float') === 'float')>{{ __('admin.settings.multilingual.look_float') }}</option>
-                                                <option value="dropdown_with_flags" @selected(data_get($multilingual, 'gtranslate.widget_look') === 'dropdown_with_flags')>{{ __('admin.settings.multilingual.look_dropdown') }}</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="gtranslate_position">{{ __('admin.settings.multilingual.position') }}</label>
-                                            <select class="form-select" id="gtranslate_position" name="multilingual[gtranslate][position]">
-                                                @foreach(['bottom_right', 'bottom_left', 'top_right', 'top_left', 'inline'] as $position)
-                                                    <option value="{{ $position }}" @selected(data_get($multilingual, 'gtranslate.position', 'bottom_right') === $position)>{{ __('admin.settings.multilingual.position_'.$position) }}</option>
-                                                @endforeach
-                                            </select>
+                                            <p class="form-text mt-3 mb-0">{{ __('admin.settings.multilingual.free_limit_note') }}</p>
                                         </div>
                                     </div>
 
-                                    <div class="d-flex flex-column gap-2">
-                                        <div class="form-check form-switch">
-                                            <input type="hidden" name="multilingual[gtranslate][detect_browser_language]" value="0">
-                                            <input class="form-check-input" type="checkbox" name="multilingual[gtranslate][detect_browser_language]" value="1" id="gtranslate_detect_browser" @checked(data_get($multilingual, 'gtranslate.detect_browser_language', false))>
-                                            <label class="form-check-label" for="gtranslate_detect_browser">{{ __('admin.settings.multilingual.detect_browser') }}</label>
-                                        </div>
-                                        <div class="form-check form-switch">
-                                            <input type="hidden" name="multilingual[gtranslate][native_language_names]" value="0">
-                                            <input class="form-check-input" type="checkbox" name="multilingual[gtranslate][native_language_names]" value="1" id="gtranslate_native_names" @checked(data_get($multilingual, 'gtranslate.native_language_names', true))>
-                                            <label class="form-check-label" for="gtranslate_native_names">{{ __('admin.settings.multilingual.native_names') }}</label>
+                                    <div class="col-xl-5 col-lg-6">
+                                        <div class="border rounded-3 p-4 bg-light-subtle h-100 d-flex flex-column">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-device-desktop fs-5 text-primary"></i>
+                                                    {{ __('admin.settings.multilingual.preview_title') }}
+                                                </h6>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Live Demo</span>
+                                            </div>
+                                            <p class="text-muted small mb-3">{{ __('admin.settings.multilingual.preview_help') }}</p>
+
+                                            <div class="preview-browser-window border rounded-3 overflow-hidden shadow-sm flex-grow-1 d-flex flex-column bg-white">
+                                                <div class="browser-header bg-light border-bottom px-3 py-2 d-flex align-items-center gap-2">
+                                                    <span class="rounded-circle bg-danger d-inline-block" style="width: 9px; height: 9px;"></span>
+                                                    <span class="rounded-circle bg-warning d-inline-block" style="width: 9px; height: 9px;"></span>
+                                                    <span class="rounded-circle bg-success d-inline-block" style="width: 9px; height: 9px;"></span>
+                                                    <div class="bg-white border rounded-pill px-3 py-1 flex-grow-1 text-muted text-truncate font-monospace" style="font-size: 11px;">
+                                                        https://your-store.com/
+                                                    </div>
+                                                </div>
+                                                <iframe id="gtranslate-preview-iframe" class="w-100 flex-grow-1 border-0" style="min-height: 380px;"></iframe>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <p class="form-text mt-3 mb-0">{{ __('admin.settings.multilingual.free_limit_note') }}</p>
                                 </div>
                             </div>
                         </div>
@@ -471,17 +542,85 @@
                                     value="{{ old('contact.email', $contact['email'] ?? '') }}">
                             </div>
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-semibold text-dark" for="contact_address">{{ __('admin.settings.contact.address') }}</label>
-                                <textarea class="form-control text-dark" id="contact_address" name="contact[address]" rows="2">{{ old('contact.address', $contact['address'] ?? '') }}</textarea>
+                                <label class="form-label fw-semibold text-dark" for="contact_address">Trụ sở / Văn phòng chính - Địa chỉ</label>
+                                <textarea class="form-control text-dark" id="contact_address" name="contact[address]" rows="2" placeholder="Địa chỉ trụ sở chính / showroom chính">{{ old('contact.address', $contact['address'] ?? '') }}</textarea>
                             </div>
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-semibold text-dark" for="contact_google_map_url">Google Maps Link / Mã nhúng vị trí bản đồ</label>
+                                <label class="form-label fw-semibold text-dark" for="contact_google_map_url">Trụ sở chính - Google Maps Link / Mã nhúng vị trí bản đồ</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="ti ti-map-pin fs-5 text-danger"></i></span>
                                     <input type="text" class="form-control text-dark" id="contact_google_map_url" name="contact[google_map_url]" 
                                         placeholder="https://maps.google.com/?q=... hoặc <iframe src=...>" value="{{ old('contact.google_map_url', $contact['google_map_url'] ?? '') }}">
                                 </div>
-                                <div class="form-text text-muted">Nhập đường dẫn Google Maps (Share link) hoặc mã nhúng iFrame để hiển thị vị trí bản đồ trên trang liên hệ.</div>
+                                <div class="form-text text-muted">Nhập đường dẫn Google Maps (Share link) hoặc mã nhúng iFrame để hiển thị bản đồ trụ sở chính.</div>
+                            </div>
+                        </div>
+
+                        <!-- Các Văn phòng / Chi nhánh / Cửa hàng phụ -->
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                                <div>
+                                    <h6 class="fw-semibold text-dark mb-1">Văn phòng / Chi nhánh / Cửa hàng khác</h6>
+                                    <p class="small text-muted mb-0">Thêm không giới hạn các văn phòng, cửa hàng, showroom khác kèm link Google Maps / Mã nhúng bản đồ riêng biệt.</p>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-branch-btn">
+                                    <i class="ti ti-plus me-1"></i> Thêm văn phòng / cửa hàng
+                                </button>
+                            </div>
+
+                            <div id="branches-container" class="d-flex flex-column gap-3 mt-2">
+                                @php
+                                    $branches = $contact['branches'] ?? [];
+                                    if (!is_array($branches)) $branches = [];
+                                @endphp
+                                @forelse($branches as $bIndex => $branch)
+                                    <div class="card border mb-2 branch-row" data-index="{{ $bIndex }}">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
+                                            <span class="fw-semibold text-dark small"><i class="ti ti-building-store me-1 text-primary"></i> Chi nhánh / Văn phòng #{{ $loop->iteration }}</span>
+                                            <button type="button" class="btn btn-outline-danger btn-xs remove-branch-btn py-0 px-2" title="Xóa chi nhánh này">
+                                                <i class="ti ti-trash me-1"></i> Xóa
+                                            </button>
+                                        </div>
+                                        <div class="card-body p-3">
+                                            <div class="row g-2">
+                                                <div class="col-md-4 mb-2">
+                                                    <label class="form-label small fw-semibold text-dark">Tên chi nhánh / Văn phòng</label>
+                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][name]" 
+                                                        placeholder="VD: Chi nhánh Hà Nội, Showroom Q.1..." value="{{ old("contact.branches.$bIndex.name", $branch['name'] ?? '') }}">
+                                                </div>
+                                                <div class="col-md-4 mb-2">
+                                                    <label class="form-label small fw-semibold text-dark">Số điện thoại / Hotline</label>
+                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][phone]" 
+                                                        placeholder="0901 234 567" value="{{ old("contact.branches.$bIndex.phone", $branch['phone'] ?? '') }}">
+                                                </div>
+                                                <div class="col-md-4 mb-2">
+                                                    <label class="form-label small fw-semibold text-dark">Email liên hệ</label>
+                                                    <input type="email" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][email]" 
+                                                        placeholder="hanoi@domain.com" value="{{ old("contact.branches.$bIndex.email", $branch['email'] ?? '') }}">
+                                                </div>
+                                                <div class="col-md-12 mb-2">
+                                                    <label class="form-label small fw-semibold text-dark">Địa chỉ chi nhánh / Văn phòng</label>
+                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][address]" 
+                                                        placeholder="Số đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố..." value="{{ old("contact.branches.$bIndex.address", $branch['address'] ?? '') }}">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label small fw-semibold text-dark">Google Maps Link / Mã nhúng vị trí bản đồ</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text"><i class="ti ti-map-pin text-danger"></i></span>
+                                                        <input type="text" class="form-control text-dark" name="contact[branches][{{ $bIndex }}][google_map_url]" 
+                                                            placeholder="https://maps.google.com/?q=... hoặc <iframe src=...>" value="{{ old("contact.branches.$bIndex.google_map_url", $branch['google_map_url'] ?? '') }}">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="empty-branches-msg text-center text-muted p-4 rounded-3 border-dashed bg-light-subtle">
+                                        <i class="ti ti-map-pins fs-7 d-block mb-1 text-primary"></i>
+                                        <span class="small fw-semibold">Chưa có văn phòng / chi nhánh phụ nào.</span>
+                                        <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm văn phòng / cửa hàng"</strong> ở trên để tạo thêm vị trí bản đồ mới.</div>
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
 
@@ -714,6 +853,285 @@
             });
             updateMultilingualMode();
 
+            // GTranslate Live Preview Logic
+            const gtranslateContainer = document.getElementById('gtranslate-settings');
+            const previewIframe = document.getElementById('gtranslate-preview-iframe');
+
+            function toGTranslateLocale(code, regional) {
+                if (code !== 'zh') return code;
+                return (regional || '').toUpperCase().endsWith('_TW') ? 'zh-TW' : 'zh-CN';
+            }
+
+            function updateGTranslatePreview() {
+                if (!gtranslateContainer || !previewIframe) return;
+
+                const sourceSelect = document.getElementById('gtranslate_source_locale');
+                const sourceLocale = sourceSelect ? sourceSelect.value : (gtranslateContainer.dataset.sourceLocale || 'vi');
+                let localesMap = {};
+                try {
+                    localesMap = JSON.parse(gtranslateContainer.dataset.localesMap || '{}');
+                } catch (e) {
+                    localesMap = {};
+                }
+
+                const targetSelect = document.getElementById('gtranslate_target_locales');
+                let selectedTargetLocales = [];
+                if (targetSelect) {
+                    selectedTargetLocales = Array.from(targetSelect.selectedOptions).map(opt => opt.value);
+                } else {
+                    selectedTargetLocales = Array.from(document.querySelectorAll('input[name="multilingual[gtranslate][target_locales][]"]:checked')).map(cb => cb.value);
+                }
+
+                if (selectedTargetLocales.includes('all')) {
+                    if (targetSelect) {
+                        selectedTargetLocales = Array.from(targetSelect.options)
+                            .map(opt => opt.value)
+                            .filter(val => val !== 'all');
+                    }
+                }
+
+                const defaultGLocale = toGTranslateLocale(sourceLocale, localesMap[sourceLocale]);
+                const targetGLocales = selectedTargetLocales.map(code => toGTranslateLocale(code, localesMap[code]));
+                const languages = Array.from(new Set([defaultGLocale, ...targetGLocales]));
+
+                const widgetLook = document.getElementById('gtranslate_widget_look')?.value || 'float';
+                const position = document.getElementById('gtranslate_position')?.value || 'bottom_right';
+                const detectBrowser = document.getElementById('gtranslate_detect_browser')?.checked || false;
+                const nativeNames = document.getElementById('gtranslate_native_names')?.checked || false;
+
+                const widgetSettings = {
+                    default_language: defaultGLocale,
+                    languages: languages,
+                    wrapper_selector: '.gtranslate_wrapper',
+                    native_language_names: nativeNames,
+                    detect_browser_language: detectBrowser
+                };
+
+                if (position === 'inline') {
+                    widgetSettings.switcher_horizontal_position = 'inline';
+                } else {
+                    const parts = position.split('_');
+                    widgetSettings.switcher_vertical_position = parts[0] || 'bottom';
+                    widgetSettings.switcher_horizontal_position = parts[1] || 'right';
+                }
+
+                const scriptMap = {
+                    'float': 'https://cdn.gtranslate.net/widgets/latest/float.js',
+                    'dropdown_with_flags': 'https://cdn.gtranslate.net/widgets/latest/dwf.js',
+                    'flags_dropdown': 'https://cdn.gtranslate.net/widgets/latest/fd.js',
+                    'dropdown': 'https://cdn.gtranslate.net/widgets/latest/dropdown.js',
+                    'flags': 'https://cdn.gtranslate.net/widgets/latest/flags.js',
+                    'flags_name': 'https://cdn.gtranslate.net/widgets/latest/fn.js',
+                    'flags_code': 'https://cdn.gtranslate.net/widgets/latest/fc.js',
+                    'lang_names': 'https://cdn.gtranslate.net/widgets/latest/ln.js',
+                    'lang_codes': 'https://cdn.gtranslate.net/widgets/latest/lc.js',
+                    'globe': 'https://cdn.gtranslate.net/widgets/latest/globe.js',
+                    'popup': 'https://cdn.gtranslate.net/widgets/latest/popup.js',
+                    'popup_search': 'https://cdn.gtranslate.net/widgets/latest/ps.js',
+                    'uswds': 'https://cdn.gtranslate.net/widgets/latest/uswds.js'
+                };
+                const scriptUrl = scriptMap[widgetLook] || scriptMap['float'];
+
+                const inlineWrapperHtml = position === 'inline'
+                    ? '<div class="gtranslate_wrapper notranslate"></div>'
+                    : '';
+                const floatWrapperHtml = position !== 'inline'
+                    ? '<div class="gtranslate_wrapper notranslate"></div>'
+                    : '';
+
+                const docHtml = `<!DOCTYPE html>
+<html lang="${sourceLocale}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-size: 13px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .store-header {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .store-hero {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .store-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .gtranslate_wrapper {
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div class="store-header">
+        <div class="fw-bold text-primary d-flex align-items-center gap-1">
+            <i class="ti ti-shopping-bag fs-5"></i>
+            <span>Demo Store</span>
+        </div>
+        <div id="inline-slot">
+            ${inlineWrapperHtml}
+        </div>
+    </div>
+
+    <div class="store-hero">
+        <h6 class="fw-bold mb-1">Chào mừng đến với Cửa hàng!</h6>
+        <p class="mb-0 small opacity-90">Nơi mua sắm các sản phẩm công nghệ cao cấp với hỗ trợ dịch đa ngôn ngữ trực tiếp.</p>
+    </div>
+
+    <div class="store-card flex-grow-1">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-semibold">Sản phẩm nổi bật</span>
+            <span class="badge bg-primary-subtle text-primary">Giảm 20%</span>
+        </div>
+        <p class="text-muted small mb-2">Chọn ngôn ngữ để thử nghiệm tính năng tự động dịch toàn bộ nội dung trang này.</p>
+        <div class="row g-2">
+            <div class="col-6">
+                <div class="p-2 border rounded bg-light text-center">
+                    <div class="fw-bold">Điện thoại Smart</div>
+                    <div class="text-success small fw-semibold">12.500.000 đ</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-2 border rounded bg-light text-center">
+                    <div class="fw-bold">Tai nghe bluetooth</div>
+                    <div class="text-success small fw-semibold">2.100.000 đ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-muted text-center pt-2" style="font-size: 11px;">
+        &copy; 2026 Demo Store &bull; GTranslate Live Preview
+    </div>
+
+    ${floatWrapperHtml}
+
+    <script>
+        window.gtranslateSettings = ${JSON.stringify(widgetSettings)};
+    <\/script>
+    <script src="${scriptUrl}"><\/script>
+</body>
+</html>`;
+
+                previewIframe.srcdoc = docHtml;
+            }
+
+            let gtranslatePreviewTimeout = null;
+            function updateGTranslatePreviewDebounced() {
+                clearTimeout(gtranslatePreviewTimeout);
+                gtranslatePreviewTimeout = setTimeout(updateGTranslatePreview, 150);
+            }
+
+            if (gtranslateContainer) {
+                document.querySelectorAll('.js-gtranslate-input').forEach(function (input) {
+                    input.addEventListener('change', updateGTranslatePreviewDebounced);
+                });
+                document.querySelectorAll('.js-multilingual-mode').forEach(function (input) {
+                    input.addEventListener('change', function () {
+                        if (this.checked && this.value === 'gtranslate') {
+                            updateGTranslatePreviewDebounced();
+                        }
+                    });
+                });
+
+                // Init Select2 for Source Language
+                const $sourceSelect = $('#gtranslate_source_locale');
+                if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.select2 !== 'undefined' && $sourceSelect.length) {
+                    $sourceSelect.select2({
+                        width: '100%'
+                    });
+                    $sourceSelect.on('change', updateGTranslatePreviewDebounced);
+                }
+
+                // Init Select2 for GTranslate Target Languages
+                const $targetSelect = $('#gtranslate_target_locales');
+                if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.select2 !== 'undefined' && $targetSelect.length) {
+                    $targetSelect.select2({
+                        placeholder: '{{ __('admin.settings.multilingual.search_language') }}',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false
+                    });
+
+                    function updateCountText() {
+                        const vals = $targetSelect.val() || [];
+                        const total = $targetSelect.find('option').length - 1;
+                        let text = '';
+                        if (vals.includes('all')) {
+                            text = `{{ __('admin.settings.multilingual.selected_count', ['count' => ':count', 'total' => ':total']) }}`
+                                .replace(':count', `${total} (${'{{ __('admin.settings.multilingual.select_all') }}'})`)
+                                .replace(':total', total);
+                        } else {
+                            text = `{{ __('admin.settings.multilingual.selected_count', ['count' => ':count', 'total' => ':total']) }}`
+                                .replace(':count', vals.length)
+                                .replace(':total', total);
+                        }
+                        $('#js-gtranslate-count-text').text(text);
+                    }
+
+                    $targetSelect.on('change', function () {
+                        const vals = $targetSelect.val() || [];
+                        if (vals.length > 1 && vals.includes('all')) {
+                            if (vals[vals.length - 1] === 'all') {
+                                $targetSelect.val(['all']);
+                            } else {
+                                $targetSelect.val(vals.filter(v => v !== 'all'));
+                            }
+                        }
+                        updateGTranslatePreviewDebounced();
+                        updateCountText();
+                    });
+
+                    $('#js-gtranslate-select-all').on('click', function (e) {
+                        e.preventDefault();
+                        $targetSelect.val(['all']).trigger('change');
+                    });
+
+                    $('#js-gtranslate-select-popular').on('click', function (e) {
+                        e.preventDefault();
+                        const popular = ['en', 'zh-CN', 'zh-TW', 'ja', 'ko', 'fr', 'de', 'es', 'ru', 'th'];
+                        $targetSelect.val(popular).trigger('change');
+                    });
+
+                    $('#js-gtranslate-deselect-all').on('click', function (e) {
+                        e.preventDefault();
+                        $targetSelect.val([]).trigger('change');
+                    });
+
+                    updateCountText();
+                }
+
+                updateGTranslatePreview();
+            }
+
             // Site Icon Live Preview Logic
             const faviconInput = document.getElementById('favicon');
             if (faviconInput) {
@@ -911,6 +1329,81 @@
                                     <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm đường dẫn mới"</strong> ở trên để tạo thêm.</div>
                                 </div>
                             `;
+                        }
+                    }
+                });
+            }
+
+            // Add Office / Branch Location Row
+            const addBranchBtn = document.getElementById('add-branch-btn');
+            const branchesContainer = document.getElementById('branches-container');
+
+            if (addBranchBtn && branchesContainer) {
+                addBranchBtn.addEventListener('click', function () {
+                    const emptyMsg = branchesContainer.querySelector('.empty-branches-msg');
+                    if (emptyMsg) {
+                        emptyMsg.remove();
+                    }
+
+                    const index = Date.now();
+                    const count = branchesContainer.querySelectorAll('.branch-row').length + 1;
+                    const branchCard = document.createElement('div');
+                    branchCard.className = 'card border mb-2 branch-row';
+                    branchCard.dataset.index = index;
+                    branchCard.innerHTML = `
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
+                            <span class="fw-semibold text-dark small"><i class="ti ti-building-store me-1 text-primary"></i> Chi nhánh / Văn phòng #${count}</span>
+                            <button type="button" class="btn btn-outline-danger btn-xs remove-branch-btn py-0 px-2" title="Xóa chi nhánh này">
+                                <i class="ti ti-trash me-1"></i> Xóa
+                            </button>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2">
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label small fw-semibold text-dark">Tên chi nhánh / Văn phòng</label>
+                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][name]" placeholder="VD: Chi nhánh Hà Nội, Showroom Q.1...">
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label small fw-semibold text-dark">Số điện thoại / Hotline</label>
+                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][phone]" placeholder="0901 234 567">
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label small fw-semibold text-dark">Email liên hệ</label>
+                                    <input type="email" class="form-control form-control-sm text-dark" name="contact[branches][${index}][email]" placeholder="hanoi@domain.com">
+                                </div>
+                                <div class="col-md-12 mb-2">
+                                    <label class="form-label small fw-semibold text-dark">Địa chỉ chi nhánh / Văn phòng</label>
+                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][address]" placeholder="Số đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố...">
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-semibold text-dark">Google Maps Link / Mã nhúng vị trí bản đồ</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="ti ti-map-pin text-danger"></i></span>
+                                        <input type="text" class="form-control text-dark" name="contact[branches][${index}][google_map_url]" placeholder="https://maps.google.com/?q=... hoặc <iframe src=...>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    branchesContainer.appendChild(branchCard);
+                });
+
+                branchesContainer.addEventListener('click', function (e) {
+                    const removeBtn = e.target.closest('.remove-branch-btn');
+                    if (removeBtn) {
+                        const row = removeBtn.closest('.branch-row');
+                        if (row) {
+                            row.remove();
+                            if (branchesContainer.querySelectorAll('.branch-row').length === 0) {
+                                branchesContainer.innerHTML = `
+                                    <div class="empty-branches-msg text-center text-muted p-4 rounded-3 border-dashed bg-light-subtle">
+                                        <i class="ti ti-map-pins fs-7 d-block mb-1 text-primary"></i>
+                                        <span class="small fw-semibold">Chưa có văn phòng / chi nhánh phụ nào.</span>
+                                        <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm văn phòng / cửa hàng"</strong> ở trên để tạo thêm vị trí bản đồ mới.</div>
+                                    </div>
+                                `;
+                            }
                         }
                     }
                 });

@@ -934,6 +934,44 @@
         }
       }
     },
+    "/public/menus/{key}": {
+      "get": {
+        "tags": ["Menus"],
+        "summary": "Lấy cây menu điều hướng của storefront",
+        "description": "Trả về các mục đang hiển thị của menu theo key, đã lồng cấp và đã resolve sẵn URL. Mục trỏ tới đối tượng chưa có trang storefront sẽ có url = null; client nên render dạng chữ thay vì link. Yêu cầu tính năng menu đang bật.",
+        "parameters": [
+          { "name": "key", "in": "path", "required": true, "description": "Mã menu, ví dụ primary hoặc footer.", "schema": { "type": "string", "example": "primary" } },
+          { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string", "example": "primary" },
+                        "items": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/PublicMenuItem" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Tính năng menu đang tắt" },
+          "404": { "description": "Không tìm thấy menu hoặc menu đang ẩn" }
+        }
+      }
+    },
     "/public/pages": {
       "get": {
         "tags": ["Content Pages"],
@@ -1033,6 +1071,25 @@
       }
     },
     "schemas": {
+      "PublicMenuItem": {
+        "type": "object",
+        "required": ["id", "label", "url", "target_blank", "children"],
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "label": { "type": "string", "example": "Giới thiệu" },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "example": "/vi/pages/gioi-thieu",
+            "description": "null khi mục chưa có trang storefront tương ứng; client nên render dạng chữ."
+          },
+          "target_blank": { "type": "boolean", "example": false },
+          "children": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PublicMenuItem" }
+          }
+        }
+      },
       "PublicPost": {
         "type": "object",
         "required": ["id", "title", "slug", "robots", "published_at"],

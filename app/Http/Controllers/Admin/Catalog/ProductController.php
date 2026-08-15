@@ -211,7 +211,7 @@ class ProductController extends Controller
 
     public function bulk(Request $request, string $locale)
     {
-        $validated = $this->validatedBulkAction($request, 'products');
+        $validated = $this->validatedBulkAction($request, 'products', 'products');
         $ids = $validated['ids'];
 
         if ($validated['action'] === 'delete') {

@@ -8,6 +8,8 @@ use Illuminate\Database\Seeder;
 
 class PostSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ClearsLocalizedSlugs;
+
     /**
      * Run the database seeds.
      */
@@ -17,6 +19,8 @@ class PostSeeder extends Seeder
         Post::truncate();
         PostCategory::truncate();
         \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
+        $this->clearLocalizedSlugs([Post::class, PostCategory::class]);
 
         $categories = [
             [

@@ -151,7 +151,7 @@ class PromotionTest extends TestCase
         );
         $role = Role::query()->create([
             'name' => 'Promotion Admin',
-            'permissions' => ['manage_vouchers'],
+            'permissions' => ['vouchers.view', 'vouchers.create', 'vouchers.update', 'vouchers.delete', 'promotions.view', 'promotions.create', 'promotions.update', 'promotions.delete'],
         ]);
         $admin = User::factory()->create(['role_id' => $role->id]);
 

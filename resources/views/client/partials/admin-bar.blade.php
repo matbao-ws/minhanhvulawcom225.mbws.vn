@@ -3,7 +3,7 @@
     $showClientAdminBar = $clientAdmin
         && $clientAdmin->is_active
         && $clientAdmin->role_id !== null
-        && $clientAdmin->can('manage_pages');
+        && $clientAdmin->can('pages.update');
 @endphp
 
 {{--
@@ -132,7 +132,7 @@
                 cursor: default !important;
                 outline: none !important;
             }
-            @can('manage_media')
+            @can('media.view')
             #client-inline-media-picker {
                 align-items: center !important;
                 background: rgba(10, 18, 28, .72) !important;
@@ -272,7 +272,7 @@
             @endcan
         </style>
 
-        @can('manage_media')
+        @can('media.view')
             <aside id="client-inline-media-picker" aria-hidden="true">
                 <div id="client-inline-media-dialog" role="dialog" aria-modal="true" aria-labelledby="client-inline-media-title">
                     <div id="client-inline-media-head">
@@ -426,7 +426,7 @@
                 });
             });
 
-            @can('manage_media')
+            @can('media.view')
             const mediaPicker = document.getElementById('client-inline-media-picker');
             const mediaFolder = document.getElementById('client-inline-media-folder');
             const mediaGrid = document.getElementById('client-inline-media-grid');
