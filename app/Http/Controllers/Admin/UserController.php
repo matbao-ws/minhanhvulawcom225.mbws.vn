@@ -2,19 +2,24 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AuthorizesPermissionGrants;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
 use App\Support\MediaUrl;
+use App\Support\PermissionRegistry;
 use App\Services\UserAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    use AuthorizesPermissionGrants;
+
     public function __construct(
         private readonly CloudinaryService $cloudinaryService,
         private readonly UserAccessService $userAccessService,
@@ -26,8 +31,7 @@ class UserController extends Controller
     {
         $query = Role::query();
         if (! auth()->user()->isSuperAdmin()) {
-            $query->where('is_system', false)
-                ->whereJsonDoesntContain('permissions', '*');
+            $query->where('is_system', false)->where('is_superadmin', false);
         }
         return $query->get();
     }
@@ -41,9 +45,68 @@ class UserController extends Controller
 
     private function assertCanAssignRole(?Role $role): void
     {
-        if (! $role || ($role->is_system || in_array('*', $role->permissions ?? [], true)) && ! auth()->user()->isSuperAdmin()) {
+        if (! $role || ($role->is_system || $role->is_superadmin) && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'Unauthorized.');
         }
+    }
+
+    /**
+     * Apply the per-account grants and revocations submitted with the form.
+     *
+     * Nobody edits their own overrides — that would be a one-click self
+     * promotion — and no code outside the actor's own reach may be touched, in
+     * either direction.
+     *
+     * @param  array<string, string>  $submitted  code => grant|revoke|inherit
+     * @return bool  whether the effective access changed
+     */
+    private function syncPermissionOverrides(User $user, array $submitted): bool
+    {
+        if ($user->is(auth()->user())) {
+            abort_if($submitted !== [], 403, 'Không thể tự sửa quyền riêng của chính mình.');
+
+            return false;
+        }
+
+        $grantable = $this->grantableCodes();
+        $desired = [];
+
+        foreach ($submitted as $code => $state) {
+            if (! in_array($state, ['grant', 'revoke'], true) || ! PermissionRegistry::has($code)) {
+                continue;
+            }
+
+            $this->assertCanGrant([$code]);
+            $desired[$code] = $state === 'grant';
+        }
+
+        $permissionIds = Permission::query()->pluck('id', 'code');
+        $existing = $user->permissionOverrides()->pluck('user_permissions.granted', 'permissions.code')
+            ->map(fn ($granted): bool => (bool) $granted)
+            ->all();
+
+        // Overrides on codes the actor cannot reach stay exactly as they are.
+        $sync = [];
+        foreach ($existing as $code => $granted) {
+            if (! in_array($code, $grantable, true) && isset($permissionIds[$code])) {
+                $sync[$permissionIds[$code]] = ['granted' => $granted];
+            }
+        }
+        foreach ($desired as $code => $granted) {
+            if (isset($permissionIds[$code])) {
+                $sync[$permissionIds[$code]] = ['granted' => $granted];
+            }
+        }
+
+        $user->permissionOverrides()->sync($sync);
+        $user->forgetPermissionOverrideCache();
+
+        $before = $existing;
+        ksort($before);
+        $after = $desired + array_filter($existing, fn ($granted, $code): bool => ! in_array($code, $grantable, true), ARRAY_FILTER_USE_BOTH);
+        ksort($after);
+
+        return $before !== $after;
     }
 
     public function index(Request $request)
@@ -53,8 +116,7 @@ class UserController extends Controller
 
         if (! auth()->user()->isSuperAdmin()) {
             $query->whereHas('role', function ($q) {
-                $q->where('is_system', false)
-                    ->whereJsonDoesntContain('permissions', '*');
+                $q->where('is_system', false)->where('is_superadmin', false);
             });
         }
 
@@ -90,6 +152,8 @@ class UserController extends Controller
                 'is_active' => true,
             ]),
             'roles' => $this->getAvailableRoles(),
+            'overrideModules' => $this->grantableModules(),
+            'currentOverrides' => [],
         ]);
     }
 
@@ -107,6 +171,7 @@ class UserController extends Controller
         $data['is_active'] = (bool) ($request->input('is_active', false));
 
         $user = User::query()->create($data);
+        $this->syncPermissionOverrides($user, (array) $request->input('permission_overrides', []));
         ActivityLogger::log('created', $user, "Tạo tài khoản {$user->email}", ['new' => $user->only(['name', 'email', 'role_id', 'is_active'])]);
 
         return redirect()
@@ -121,6 +186,10 @@ class UserController extends Controller
         return view('admin.users.edit', [
             'user' => $user,
             'roles' => $this->getAvailableRoles(),
+            // Self-editing never shows the override matrix; the controller
+            // rejects it anyway.
+            'overrideModules' => $user->is(auth()->user()) ? [] : $this->grantableModules(),
+            'currentOverrides' => $user->permissionOverrideMap(),
         ]);
     }
 
@@ -161,6 +230,8 @@ class UserController extends Controller
             || (bool) $data['is_active'] !== $user->is_active;
 
         $user->update($data);
+        $accessChanged = $this->syncPermissionOverrides($user, (array) $request->input('permission_overrides', []))
+            || $accessChanged;
         if ($accessChanged) {
             $this->userAccessService->revoke($user, $user->is(auth()->user()) ? $request->session()->getId() : null);
         }

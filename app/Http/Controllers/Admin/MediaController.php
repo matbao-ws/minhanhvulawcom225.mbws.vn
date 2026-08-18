@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class MediaController extends Controller
 {
+    use HandlesPagination;
+
     public function __construct(private readonly CloudinaryService $cloudinaryService)
     {
     }
@@ -18,13 +22,26 @@ class MediaController extends Controller
     {
         $activeFolder = $request->query('folder', 'general');
         $folders = $this->cloudinaryService->listFolders();
-        
+
         if (!in_array($activeFolder, $folders) && $activeFolder !== 'all') {
             $activeFolder = 'general';
         }
 
-        $resources = $this->cloudinaryService->listResources($activeFolder);
-        
+        // Neither Cloudinary nor the local disk fallback is a query builder, so
+        // the listing is paginated in PHP over the resolved collection.
+        $allResources = $this->cloudinaryService->listResources($activeFolder);
+        $perPage = $this->perPage(25);
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+
+        $resources = new LengthAwarePaginator(
+            array_slice($allResources, ($currentPage - 1) * $perPage, $perPage),
+            count($allResources),
+            $perPage,
+            $currentPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath()],
+        );
+        $resources->withQueryString();
+
         return view('admin.media.index', [
             'folders' => $folders,
             'activeFolder' => $activeFolder,

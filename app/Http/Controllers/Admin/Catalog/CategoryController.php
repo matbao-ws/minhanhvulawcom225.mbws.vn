@@ -208,7 +208,7 @@ class CategoryController extends Controller
 
     public function bulk(Request $request, string $locale)
     {
-        $validated = $this->validatedBulkAction($request, 'categories');
+        $validated = $this->validatedBulkAction($request, 'categories', 'products');
         $ids = $validated['ids'];
 
         if ($validated['action'] === 'delete') {

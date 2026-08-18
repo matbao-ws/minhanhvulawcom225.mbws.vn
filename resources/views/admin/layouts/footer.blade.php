@@ -172,18 +172,26 @@
                     <span class="fs-2 d-block text-muted">/admin/dashboard</span>
                   </a>
                 </li>
+                {{-- Each shortcut follows its own permission: listing a link the
+                     account cannot open only advertises screens it will be
+                     bounced from. --}}
+                @can('products.view')
                 <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
                   <a href="{{ route('admin.products.index') }}" class="text-decoration-none d-block">
                     <span class="text-dark fw-semibold d-block">{{ __('admin.menu.products') }}</span>
                     <span class="fs-2 d-block text-muted">/admin/catalog/products</span>
                   </a>
                 </li>
+                @endcan
+                @can('orders.view')
                 <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
                   <a href="{{ route('admin.orders.index') }}" class="text-decoration-none d-block">
                     <span class="text-dark fw-semibold d-block">{{ __('admin.menu.orders') }}</span>
                     <span class="fs-2 d-block text-muted">/admin/orders</span>
                   </a>
                 </li>
+                @endcan
+                @can('products.view')
                 <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
                   <a href="{{ route('admin.categories.index') }}" class="text-decoration-none d-block">
                     <span class="text-dark fw-semibold d-block">{{ __('admin.menu.categories') }}</span>
@@ -196,18 +204,23 @@
                     <span class="fs-2 d-block text-muted">/admin/catalog/brands</span>
                   </a>
                 </li>
+                @endcan
+                @can('users.view')
                 <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
                   <a href="{{ route('admin.users.index') }}" class="text-decoration-none d-block">
                     <span class="text-dark fw-semibold d-block">{{ __('admin.menu.users') }}</span>
                     <span class="fs-2 d-block text-muted">/admin/users</span>
                   </a>
                 </li>
+                @endcan
+                @can('settings.view')
                 <li class="p-1 mb-1 bg-hover-light-black rounded px-2">
                   <a href="{{ route('admin.settings.index') }}" class="text-decoration-none d-block">
                     <span class="text-dark fw-semibold d-block">{{ __('admin.menu.settings') }}</span>
                     <span class="fs-2 d-block text-muted">/admin/settings</span>
                   </a>
                 </li>
+                @endcan
               </ul>
             </div>
             <div id="searchResultsContainer" style="display: none;"></div>

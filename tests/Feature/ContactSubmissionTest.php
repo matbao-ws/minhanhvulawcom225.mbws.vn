@@ -59,7 +59,7 @@ class ContactSubmissionTest extends TestCase
     {
         $role = Role::query()->create([
             'name' => 'Contact manager',
-            'permissions' => ['manage_contacts'],
+            'permissions' => ['contacts.view', 'contacts.update', 'contacts.delete'],
         ]);
         $admin = User::factory()->create(['role_id' => $role->id]);
 
@@ -75,7 +75,7 @@ class ContactSubmissionTest extends TestCase
     {
         $role = Role::query()->create([
             'name' => 'Contact manager',
-            'permissions' => ['manage_contacts'],
+            'permissions' => ['contacts.view', 'contacts.update', 'contacts.delete'],
         ]);
         $admin = User::factory()->create(['role_id' => $role->id]);
 

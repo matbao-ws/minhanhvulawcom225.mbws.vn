@@ -50,7 +50,7 @@ it stays outside the editable region.
 Inline save must continue through the localized admin route protected by:
 
 ```text
-web session -> auth -> active admin -> feature:cms_page -> can:manage_pages
+web session -> auth -> active admin -> feature:cms_page -> can:pages.update
 ```
 
 Send the CSRF token, the current content locale and the edited HTML — nothing else. Persist through
@@ -69,18 +69,18 @@ Page model directly from a storefront controller.
 ## Load editor assets conditionally
 
 Only render the toolbar, editor script and save URL when the session user is active, has an admin
-role (`role_id` is not null) and can `manage_pages`. Guest/customer HTML must contain none of them.
+role (`role_id` is not null) and can `pages.update`. Guest/customer HTML must contain none of them.
 
 Namespace toolbar/editor CSS so imported theme rules cannot hide or resize it, and keep its z-index.
 
 For images, preserve the inline Media picker:
 
-- Require `manage_media` separately from `manage_pages`.
+- Require `media.view` separately from `pages.update`.
 - Read paginated images from the protected admin media resources route.
 - Replace only the selected image element.
 - Upload through the existing protected media upload route with CSRF.
 - Keep the picker open after upload, refresh its first page and let the admin choose the image.
-- Do not expose media endpoints, URLs or picker code to admins without `manage_media`.
+- Do not expose media endpoints, URLs or picker code to admins without `media.view`.
 
 Image sources written into Page HTML must stay portable: our own media is stored as a relative path
 and resolved on read by `App\Support\MediaUrl`, which `PageHtmlSanitizer` applies on save. Do not
@@ -96,7 +96,7 @@ endpoint merely to make the UI appear editable.
 ## Verify after every theme cut
 
 - Guest and customer do not see `client-admin-bar` or editor assets.
-- Admin without `manage_pages` cannot see or call inline editing.
+- Admin without `pages.update` cannot see or call inline editing.
 - Authorized admin can toggle edit mode, save and see sanitized content without reloading.
 - Saving creates a revision and preserves translations in other locales.
 - Dangerous HTML is rejected or removed.

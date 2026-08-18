@@ -21,7 +21,7 @@ class CustomerManagementTest extends TestCase
 
         $role = Role::query()->create([
             'name' => 'Sales manager',
-            'permissions' => ['view_customers'],
+            'permissions' => ['customers.view'],
         ]);
         $this->admin = User::factory()->create(['role_id' => $role->id]);
     }
@@ -80,7 +80,7 @@ class CustomerManagementTest extends TestCase
 
     public function test_admin_without_customer_permission_cannot_access_customer_directory(): void
     {
-        $role = Role::query()->create(['name' => 'Order staff', 'permissions' => ['manage_orders']]);
+        $role = Role::query()->create(['name' => 'Order staff', 'permissions' => ['orders.view', 'orders.create', 'orders.update']]);
         $user = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($user)->get('/vi/admin/customers')->assertForbidden();

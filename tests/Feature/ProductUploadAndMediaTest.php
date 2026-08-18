@@ -41,6 +41,42 @@ class ProductUploadAndMediaTest extends TestCase
         $response->assertViewHas('resources');
         $response->assertSee('row-cols-xl-8', false);
         $response->assertSee('object-fit: contain', false);
+        // The folder list follows the scroll instead of sitting in a tall empty column.
+        $response->assertSee('media-folder-sidebar', false);
+        $response->assertSee('position: sticky', false);
+    }
+
+    public function test_media_library_paginates_the_file_grid(): void
+    {
+        $this->actingAs(User::factory()->create());
+        foreach (range(1, 30) as $number) {
+            Storage::disk('public')->put(sprintf('general/library-%02d.jpg', $number), 'image');
+        }
+
+        $firstPage = $this->get('/vi/admin/media?folder=general');
+        $firstPage->assertOk();
+        $paginator = $firstPage->viewData('resources');
+        $this->assertSame(30, $paginator->total());
+        $this->assertCount(25, $paginator->items());
+        $this->assertSame(2, $paginator->lastPage());
+        $firstPage->assertSee('folder=general&amp;page=2', false);
+
+        $secondPage = $this->get('/vi/admin/media?folder=general&page=2');
+        $secondPage->assertOk();
+        $this->assertCount(5, $secondPage->viewData('resources')->items());
+    }
+
+    public function test_media_library_honours_the_shared_per_page_option(): void
+    {
+        $this->actingAs(User::factory()->create());
+        foreach (range(1, 20) as $number) {
+            Storage::disk('public')->put(sprintf('general/library-%02d.jpg', $number), 'image');
+        }
+
+        $response = $this->get('/vi/admin/media?folder=general&per_page=15');
+
+        $response->assertOk();
+        $this->assertCount(15, $response->viewData('resources')->items());
     }
 
     public function test_admin_can_upload_media_file(): void

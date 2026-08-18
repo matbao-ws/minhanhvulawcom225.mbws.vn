@@ -45,6 +45,8 @@ class CheckCore extends Command
             'users',
             'roles',
             'permissions',
+            'role_permission',
+            'user_permissions',
             'feature_settings',
             'project_settings',
             'addons',

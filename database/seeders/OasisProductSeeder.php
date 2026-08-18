@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Schema;
 
 class OasisProductSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ClearsLocalizedSlugs;
+
     public function run(): void
     {
         Schema::disableForeignKeyConstraints();
@@ -17,6 +19,8 @@ class OasisProductSeeder extends Seeder
         Category::truncate();
         Brand::truncate();
         Schema::enableForeignKeyConstraints();
+
+        $this->clearLocalizedSlugs([Product::class, Category::class, Brand::class]);
 
         // 1. Create A&O Corporation Brand
         $brand = Brand::create([

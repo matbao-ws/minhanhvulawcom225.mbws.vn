@@ -83,10 +83,19 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        // Dynamic Role-based Permission Gate
+        // Dynamic role-based permission gate, with per-account overrides layered
+        // on top. Order matters: superadmin wins outright, then an explicit
+        // override decides in either direction, and only then does the role
+        // speak. Returning false here is a hard denial, which is exactly what a
+        // revocation must be.
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
             if ($user->isSuperAdmin()) {
                 return true;
+            }
+
+            $override = $user->permissionOverrideFor($ability);
+            if ($override !== null) {
+                return $override;
             }
 
             if ($user->role && $user->role->hasPermission($ability)) {
@@ -102,7 +111,7 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
 
             // Fetch recent orders
-            if ($user?->can('manage_orders') && \Illuminate\Support\Facades\Schema::hasTable('orders')) {
+            if ($user?->can('orders.view') && \Illuminate\Support\Facades\Schema::hasTable('orders')) {
                 $orders = \App\Models\Order::query()->latest()->limit(5)->get();
                 foreach ($orders as $order) {
                     $notifications->push([
@@ -118,7 +127,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Fetch recent reviews
-            if ($user?->can('manage_reviews') && \Illuminate\Support\Facades\Schema::hasTable('reviews')) {
+            if ($user?->can('reviews.view') && \Illuminate\Support\Facades\Schema::hasTable('reviews')) {
                 $reviews = \App\Models\Review::query()->latest()->limit(5)->get();
                 foreach ($reviews as $review) {
                     $prodName = 'Sản phẩm';
@@ -139,7 +148,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Fetch recent registered users
-            if ($user?->can('manage_users') && \Illuminate\Support\Facades\Schema::hasTable('users')) {
+            if ($user?->can('users.view') && \Illuminate\Support\Facades\Schema::hasTable('users')) {
                 $users = \App\Models\User::query()->latest()->limit(5)->get();
                 foreach ($users as $user) {
                     $notifications->push([

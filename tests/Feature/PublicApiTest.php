@@ -294,7 +294,7 @@ class PublicApiTest extends TestCase
     {
         $role = Role::query()->create([
             'name' => 'Checkout Admin',
-            'permissions' => ['manage_orders'],
+            'permissions' => ['orders.view', 'orders.create', 'orders.update'],
         ]);
         $admin = User::factory()->create(['role_id' => $role->id]);
         Sanctum::actingAs($admin, ['admin']);

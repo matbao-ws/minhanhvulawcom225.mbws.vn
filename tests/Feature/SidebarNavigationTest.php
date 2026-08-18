@@ -29,7 +29,7 @@ class SidebarNavigationTest extends TestCase
     {
         $role = Role::query()->create([
             'name' => 'Settings only',
-            'permissions' => ['manage_settings'],
+            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
         ]);
         $admin = User::factory()->create(['role_id' => $role->id]);
 

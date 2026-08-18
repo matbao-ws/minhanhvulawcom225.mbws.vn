@@ -149,6 +149,14 @@
                                     </div>
                                 </td>
                                 <td>
+                                    <span class="badge bg-primary-subtle text-primary fw-semibold">{{ $catName }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted" style="font-size: 14.5px !important;">
+                                        {{ $post->published_at ? $post->published_at->format('d-m-Y H:i') : __('admin.posts.fields.inactive') }}
+                                    </span>
+                                </td>
+                                <td>
                                     @php
                                         $seoScore = $post->seo_score;
                                         $seoClass = $seoScore === null
@@ -157,14 +165,6 @@
                                     @endphp
                                     <span class="badge {{ $seoClass }} fw-semibold">
                                         {{ $seoScore === null ? 'Chưa phân tích' : $seoScore.'/100' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary-subtle text-primary fw-semibold">{{ $catName }}</span>
-                                </td>
-                                <td>
-                                    <span class="text-muted" style="font-size: 14.5px !important;">
-                                        {{ $post->published_at ? $post->published_at->format('d-m-Y H:i') : __('admin.posts.fields.inactive') }}
                                     </span>
                                 </td>
                                 <td>

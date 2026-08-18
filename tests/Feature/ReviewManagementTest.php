@@ -30,7 +30,7 @@ class ReviewManagementTest extends TestCase
 
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['manage_reviews'],
+            'permissions' => ['reviews.view', 'reviews.update', 'reviews.delete'],
         ]);
 
         $this->admin = User::factory()->create([
@@ -57,7 +57,7 @@ class ReviewManagementTest extends TestCase
     {
         $roleWithoutPermission = Role::query()->create([
             'name' => 'Editor',
-            'permissions' => ['manage_posts'],
+            'permissions' => ['posts.view', 'posts.create', 'posts.update', 'posts.delete'],
         ]);
         $unauthorizedAdmin = User::factory()->create([
             'role_id' => $roleWithoutPermission->id,

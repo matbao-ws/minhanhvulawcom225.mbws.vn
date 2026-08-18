@@ -88,7 +88,7 @@ class BrandController extends Controller
 
     public function bulk(Request $request, string $locale)
     {
-        $validated = $this->validatedBulkAction($request, 'brands');
+        $validated = $this->validatedBulkAction($request, 'brands', 'products');
         $ids = $validated['ids'];
 
         if ($validated['action'] === 'delete') {

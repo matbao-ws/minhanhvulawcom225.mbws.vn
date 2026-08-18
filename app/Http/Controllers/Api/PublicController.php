@@ -247,6 +247,21 @@ class PublicController extends Controller
         return ApiResponse::success(new PublicPostResource($post));
     }
 
+    /**
+     * Storefront navigation for a menu key.
+     *
+     * Shares App\Services\MenuService with the Blade layout, so a headless
+     * client and the server-rendered pages cannot drift apart.
+     */
+    public function menu(string $key)
+    {
+        $items = app(\App\Services\MenuService::class)->tree($key);
+
+        abort_if($items->isEmpty() && ! \App\Models\Menu::query()->where('key', $key)->where('is_active', true)->exists(), 404);
+
+        return ApiResponse::success(['key' => $key, 'items' => $items]);
+    }
+
     public function pages()
     {
         $pages = Page::query()
