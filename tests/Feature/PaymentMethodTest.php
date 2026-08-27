@@ -31,7 +31,7 @@ class PaymentMethodTest extends TestCase
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
+            'permissions' => ['settings.view', 'settings.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
         ]);
 
         $guestRole = Role::query()->create([
@@ -72,8 +72,6 @@ class PaymentMethodTest extends TestCase
             ]);
         }
 
-        (new \Database\Seeders\AddonSeeder())->run();
-        \App\Models\Addon::query()->update(['is_purchased' => true]);
     }
 
     public function test_guests_cannot_access_payment_methods(): void

@@ -128,3 +128,6 @@ Route::prefix('admin')->group(function () {
 });
 
 Route::post('/webhooks/ghtk', [WebhookController::class, 'handleGHTK'])->middleware('throttle:webhook');
+Route::post('/webhooks/sepay', [WebhookController::class, 'handleSepay'])
+    ->middleware('throttle:webhook')
+    ->name('api.webhooks.sepay');

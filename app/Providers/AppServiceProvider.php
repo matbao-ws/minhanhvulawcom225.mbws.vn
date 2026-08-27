@@ -18,6 +18,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(\App\Services\SiteBranding::class);
+        // Scoped: a storefront page renders dozens of regions and must not
+        // issue a query per region.
+        $this->app->scoped(\App\Services\SiteContentService::class);
+        // Same reason: a repeatable region asks for its item ids once per render,
+        // and a page can hold many of them.
+        $this->app->scoped(\App\Services\SiteListService::class);
 
         $this->app->bind(
             \App\Contracts\TranslationProvider::class,
@@ -30,16 +36,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Resolve the effective SMTP configuration the first time anything asks for
+        // the mailer, so the admin screen outranks .env for every mail in the system
+        // — customer order updates, contact form, password reset, invoices, not just
+        // the store-owner notification that used to configure it inline.
+        //
+        // Hooked on resolution rather than run here directly: this fires only when
+        // mail is actually used, which keeps the settings lookup off every web
+        // request and out of `migrate` on a database that has no settings table yet.
+        $this->app->resolving('mail.manager', function () {
+            app(\App\Services\MailSettings::class)->apply();
+        });
+
         view()->composer([
             'admin.layouts.app',
             'admin.layouts.header',
             'admin.layouts.sidebar',
-            'admin.invoices.show',
             'admin.orders.show',
             'auth.login',
             'auth.forgot-password',
             'auth.reset-password',
             'api.docs',
+            'client.layouts.app',
         ], function ($view) {
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
         });
@@ -66,6 +84,13 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Paginator::useBootstrapFive();
+
+        // Storefront components live beside the rest of the client views rather
+        // than in the framework default directory.
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(
+            resource_path('views/client/components'),
+            'client',
+        );
 
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
@@ -147,18 +172,31 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            // Fetch recent registered users
+            // Fetch recent staff accounts.
+            //
+            // Restricted to users that have a role: this notification is gated on
+            // `users.view`, titled "Thành viên mới" and links to the staff edit form,
+            // so listing customers here both mislabelled them and pointed the admin
+            // at a form that does not manage them. Customers have their own screen.
             if ($user?->can('users.view') && \Illuminate\Support\Facades\Schema::hasTable('users')) {
-                $users = \App\Models\User::query()->latest()->limit(5)->get();
-                foreach ($users as $user) {
+                $staffAccounts = \App\Models\User::query()
+                    ->whereNotNull('role_id')
+                    ->latest()
+                    ->limit(5)
+                    ->get();
+
+                // Named `$staff`, not `$user`: reusing the outer name left the
+                // authenticated user pointing at the last row of this loop, which
+                // would silently break the permission check of any block added after.
+                foreach ($staffAccounts as $staff) {
                     $notifications->push([
-                        'title' => 'Thành viên mới: ' . $user->name,
-                        'message' => 'Email: ' . $user->email,
-                        'time' => $user->created_at ? $user->created_at->diffForHumans() : '',
-                        'timestamp' => $user->created_at?->getTimestamp() ?? 0,
+                        'title' => 'Thành viên mới: ' . $staff->name,
+                        'message' => 'Email: ' . $staff->email,
+                        'time' => $staff->created_at ? $staff->created_at->diffForHumans() : '',
+                        'timestamp' => $staff->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:shield-user-line-duotone',
                         'bg_color' => 'bg-success-subtle text-success',
-                        'link' => route('admin.users.edit', $user->id),
+                        'link' => route('admin.users.edit', $staff->id),
                     ]);
                 }
             }

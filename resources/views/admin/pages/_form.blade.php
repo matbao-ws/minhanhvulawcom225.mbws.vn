@@ -4,14 +4,18 @@
         <p class="text-muted mb-0">Nội dung trang được sửa trực tiếp trên trang thật (đăng nhập admin rồi mở trang, bấm "Sửa trực tiếp"). Ở đây chỉ khai báo tiêu đề, đường dẫn và SEO.</p>
     </div>
     <div class="d-flex gap-2">
+        <a class="btn btn-light" href="{{ route('admin.pages.index') }}">Quay lại</a>
+        <button type="submit" class="btn btn-outline-primary">Lưu tiêu đề &amp; SEO</button>
         @if($page->exists)
-            <a class="btn btn-outline-primary" target="_blank" rel="noopener"
+            {{-- The primary action, because content is no longer edited on this
+                 screen: this form only owns the title, the slug and the SEO fields.
+                 Same tab rather than a new one — it is a move to where the work
+                 happens, not a preview. --}}
+            <a class="btn btn-primary" id="page-open-inline-editor"
                href="{{ route('client.pages.show', ['locale' => $defaultContentLocale, 'slug' => $page->canonicalSlug($defaultContentLocale)]) }}">
-                <i class="ti ti-external-link me-1" aria-hidden="true"></i>Xem & sửa nội dung trên trang
+                <i class="ti ti-pencil me-1" aria-hidden="true"></i>Sửa nội dung trên trang
             </a>
         @endif
-        <a class="btn btn-light" href="{{ route('admin.pages.index') }}">Quay lại</a>
-        <button type="submit" class="btn btn-primary">Lưu trang</button>
     </div>
 </div>
 
@@ -54,3 +58,32 @@
         <div class="align-self-end"><button class="btn btn-primary px-4">Lưu trang</button></div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    /*
+     * Leaving for the storefront editor discards anything typed here, because this
+     * form posts nothing on the way out. Warn only when a field actually changed —
+     * a confirm on every click would train people to dismiss it.
+     */
+    document.addEventListener('DOMContentLoaded', function () {
+        const link = document.getElementById('page-open-inline-editor');
+        if (!link) return;
+
+        const form = link.closest('form') || document.querySelector('form');
+        if (!form) return;
+
+        let dirty = false;
+        ['input', 'change'].forEach(function (type) {
+            form.addEventListener(type, function () { dirty = true; }, true);
+        });
+
+        link.addEventListener('click', function (event) {
+            if (!dirty) return;
+            if (!window.confirm('Tiêu đề/SEO đang có thay đổi chưa lưu. Rời đi sẽ mất phần đó. Tiếp tục?')) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+@endpush

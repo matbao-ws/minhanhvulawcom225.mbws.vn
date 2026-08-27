@@ -486,10 +486,8 @@ class ProductController extends Controller
 
     private function safeCsvValue(mixed $value): string|int|float|null
     {
-        if (! is_string($value)) {
-            return $value;
-        }
-
-        return preg_match('/^[=+\-@\t\r]/', $value) ? "'".$value : $value;
+        // Kept as a thin alias so existing call sites stay readable; the rule itself
+        // is shared with the other exports.
+        return \App\Support\Csv::safeValue($value);
     }
 }

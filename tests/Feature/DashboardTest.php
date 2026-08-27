@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
-use App\Models\ProjectSubscription;
 use App\Models\AdminActivityLog;
 use App\Models\Role;
 use App\Models\User;
@@ -45,13 +44,6 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_access_dashboard_with_statistics(): void
     {
-        // Seed subscription and packages if needed
-        $subscription = ProjectSubscription::query()->create([
-            'status' => 'active',
-            'starts_at' => now(),
-            'ends_at' => now()->addYear(),
-        ]);
-
         // Create some orders for statistics
         Order::query()->create([
             'order_number' => 'ORD-001',
@@ -85,7 +77,6 @@ class DashboardTest extends TestCase
         $response->assertSee('admin-assets/js/form-guidance.js', false);
         $response->assertViewIs('admin.dashboard.index');
         $response->assertViewHasAll([
-            'subscription',
             'enabledFeatureCount',
             'metrics',
             'chart',

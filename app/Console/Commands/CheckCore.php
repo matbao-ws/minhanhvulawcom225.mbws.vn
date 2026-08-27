@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Addon;
 use App\Models\FeatureSetting;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -49,7 +48,6 @@ class CheckCore extends Command
             'user_permissions',
             'feature_settings',
             'project_settings',
-            'addons',
             'inventory_movements',
             'payment_transactions',
         ];
@@ -74,7 +72,7 @@ class CheckCore extends Command
             $this->components->twoColumnDetail('Active administrators', 'available');
         }
 
-        if (FeatureSetting::query()->count() === 0 || Addon::query()->count() === 0) {
+        if (FeatureSetting::query()->count() === 0) {
             $this->components->warn('Foundation settings are missing. Run "php artisan core:install".');
             $hasErrors = true;
         } else {

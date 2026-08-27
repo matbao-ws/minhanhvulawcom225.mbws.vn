@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PaymentMethod;
+use App\Services\SePayService;
 use App\Services\VNPAYService;
 use App\Support\FeatureGate;
 use Illuminate\Http\Request;
@@ -12,7 +13,10 @@ use Illuminate\Validation\Rule;
 
 class PaymentMethodController extends Controller
 {
-    public function __construct(private readonly FeatureGate $features) {}
+    public function __construct(
+        private readonly FeatureGate $features,
+        private readonly SePayService $sepay,
+    ) {}
 
     /**
      * Display a listing of payment methods.
@@ -146,11 +150,20 @@ class PaymentMethodController extends Controller
         if ($newStatus === 'active') {
             $settings = $payment_method->settings ?? [];
 
-            if (in_array($payment_method->method_code, ['stripe', 'sepay'], true)) {
+            if ($payment_method->method_code === 'stripe') {
                 return response()->json([
                     'success' => false,
                     'message' => __('admin.payment_methods.integration_unavailable'),
                 ]);
+            } elseif ($payment_method->method_code === SePayService::METHOD_CODE) {
+                // Same predicate checkout and the webhook rely on, so an active SePay
+                // method can always build a QR and always authenticates its callback.
+                if (! $this->sepay->isConfigured($payment_method)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => __('admin.payment_methods.config_required_sepay'),
+                    ]);
+                }
             } elseif ($payment_method->method_code === 'vnpay') {
                 if (empty($settings['tmn_code']) || empty($settings['hash_secret']) || empty($settings['api_url'])) {
                     return response()->json([
@@ -224,19 +237,40 @@ class PaymentMethodController extends Controller
                     'webhook_secret' => $validated['webhook_secret'] ?? '',
                 ]
             ]);
-        } elseif ($payment_method->method_code === 'sepay') {
+        } elseif ($payment_method->method_code === SePayService::METHOD_CODE) {
             $validated = $request->validate([
-                'api_key' => 'required|string|max:255',
-                'webhook_token' => 'nullable|string|max:255',
+                'bank_code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9]+$/'],
+                'account_number' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9]+$/'],
+                'account_holder' => ['nullable', 'string', 'max:255'],
+                // Optional: only needed for SePay's read APIs, not for the QR + webhook flow.
+                'api_key' => ['nullable', 'string', 'max:255'],
+                'webhook_token' => ['nullable', 'string', 'max:255'],
+                'webhook_secret' => ['nullable', 'string', 'max:255'],
+                'payment_prefix' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/'],
+                'qr_template' => ['nullable', Rule::in(SePayService::QR_TEMPLATES)],
+                'instructions' => ['nullable', 'string', 'max:1000'],
             ]);
 
-            $webhookToken = $validated['webhook_token'] ?: Str::random(32);
+            // An empty token would leave the webhook unauthenticated, so one is minted
+            // unless the operator supplied HMAC instead.
+            $webhookToken = trim((string) ($validated['webhook_token'] ?? ''));
+            $webhookSecret = trim((string) ($validated['webhook_secret'] ?? ''));
+            if ($webhookToken === '' && $webhookSecret === '') {
+                $webhookToken = Str::random(40);
+            }
 
             $payment_method->update([
-                'account_name' => $validated['api_key'] !== 'mock' ? 'Sepay Account' : 'Mock Mode',
+                'account_name' => $validated['bank_code'].' - '.$validated['account_number'],
                 'settings' => [
-                    'api_key' => $validated['api_key'],
+                    'bank_code' => $validated['bank_code'],
+                    'account_number' => $validated['account_number'],
+                    'account_holder' => $validated['account_holder'] ?? '',
+                    'api_key' => $validated['api_key'] ?? '',
                     'webhook_token' => $webhookToken,
+                    'webhook_secret' => $webhookSecret,
+                    'payment_prefix' => strtoupper((string) ($validated['payment_prefix'] ?? '')),
+                    'qr_template' => $validated['qr_template'] ?? 'compact',
+                    'instructions' => $validated['instructions'] ?? '',
                 ]
             ]);
         } elseif ($payment_method->method_code === 'bank_transfer') {

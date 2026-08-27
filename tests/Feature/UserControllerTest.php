@@ -46,6 +46,61 @@ class UserControllerTest extends TestCase
         Storage::fake('public');
     }
 
+    public function test_users_index_lists_staff_only_and_never_customers(): void
+    {
+        // Customers are users with no role. They belong on the customers screen; the
+        // visibility filter used to exclude them only as a side effect of joining
+        // `roles`, which meant a superadmin — who skips that filter — saw every
+        // shopper listed among the staff accounts.
+        $staff = User::factory()->create([
+            'name' => 'Staff Member',
+            'email' => 'staff@example.com',
+            'role_id' => $this->editorRole->id,
+        ]);
+        $customer = User::factory()->create([
+            'name' => 'Shopper Person',
+            'email' => 'shopper@example.com',
+            'role_id' => null,
+        ]);
+
+        $superadminRole = Role::query()->create([
+            'name' => 'Superadmin',
+            'permissions' => ['*'],
+            'is_system' => true,
+            'is_superadmin' => true,
+        ]);
+        $superadmin = User::factory()->create(['role_id' => $superadminRole->id]);
+
+        $response = $this->actingAs($superadmin)->get('/vi/admin/users');
+
+        $response->assertOk();
+
+        // Asserted on the paginator, not the page: the admin header also renders a
+        // notification feed, so a whole-page assertion would be testing that feed
+        // rather than this listing.
+        $listed = $response->viewData('users')->pluck('email')->all();
+        $this->assertContains($staff->email, $listed);
+        $this->assertNotContains($customer->email, $listed);
+    }
+
+    public function test_header_notifications_do_not_advertise_customers_as_staff(): void
+    {
+        // The feed is gated on users.view, titled "Thành viên mới" and links to the
+        // staff edit form, so a customer appearing there points the admin at a form
+        // that cannot manage them.
+        User::factory()->create(['name' => 'Shopper Person', 'email' => 'shopper@example.com', 'role_id' => null]);
+        $staff = User::factory()->create(['email' => 'staff@example.com', 'role_id' => $this->editorRole->id]);
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $response = $this->actingAs($admin)->get('/vi/admin/users');
+
+        // headerNotifications is bound to admin.layouts.header, not the page view, so
+        // the assertion targets the markup that feed renders.
+        $response->assertOk();
+        $response->assertDontSee('Thành viên mới: Shopper Person', false);
+        $response->assertSee('Thành viên mới: '.$staff->name, false);
+    }
+
     public function test_guests_are_redirected_to_login(): void
     {
         $response = $this->get('/vi/admin/users');

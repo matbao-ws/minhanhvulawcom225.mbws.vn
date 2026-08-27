@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityLogController;
-use App\Http\Controllers\Admin\AddonController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\Catalog\BrandController;
 use App\Http\Controllers\Admin\Catalog\CategoryController;
@@ -12,7 +11,6 @@ use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureController;
-use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\MenuController;
@@ -29,6 +27,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\ShippingPartnerController;
+use App\Http\Controllers\Admin\SiteBlockController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VoucherController;
@@ -119,6 +118,18 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('posts', PostController::class)->only(['destroy'])->middleware('can:posts.delete');
     });
 
+    // Inline edits to static storefront regions. Same permission and throttle
+    // as inline page editing: it is the same power over the same site.
+    Route::middleware(['can:pages.update', 'throttle:admin-page-inline'])->group(function () {
+        Route::patch('site-blocks', [SiteBlockController::class, 'update'])->name('site-blocks.update');
+        Route::delete('site-blocks', [SiteBlockController::class, 'restore'])->name('site-blocks.restore');
+        // How many boxes a repeatable region holds. Same gate: adding a box is
+        // editing the page, and the template still owns what the box looks like.
+        Route::post('site-lists/items', [SiteBlockController::class, 'addListItem'])->name('site-lists.items.store');
+        Route::delete('site-lists/items', [SiteBlockController::class, 'removeListItem'])->name('site-lists.items.destroy');
+        Route::patch('site-lists/items/order', [SiteBlockController::class, 'reorderListItems'])->name('site-lists.items.reorder');
+    });
+
     Route::middleware('feature:cms_page')->group(function () {
         Route::get('pages/{page}/preview', [PageController::class, 'preview'])->middleware('can:pages.view')->name('pages.preview');
         Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->middleware(['can:pages.update', 'throttle:admin-page-inline'])->name('pages.inline-update');
@@ -156,19 +167,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');
     Route::delete('contact-submissions/{contactSubmission}', [ContactSubmissionController::class, 'destroy'])->middleware('can:contacts.delete')->name('contact-submissions.destroy');
 
-    Route::get('invoices', [InvoiceController::class, 'index'])->middleware('can:invoices.view')->name('invoices.index');
-    Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can:invoices.view')->name('invoices.show');
-    Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->middleware('can:invoices.update')->name('invoices.send-email');
-
     Route::get('settings', [SettingController::class, 'index'])->middleware('can:settings.view')->name('settings.index');
     Route::post('settings', [SettingController::class, 'update'])->middleware('can:settings.update')->name('settings.update');
 
     Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');
     Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');
     Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->middleware('can:settings.update')->name('notification-settings.get-chat-id');
-
-    // Integration catalogue. Activation is handled by support; no in-app addon sales.
-    Route::get('addons', [AddonController::class, 'index'])->middleware('can:settings.view')->name('addons.index');
 
     Route::middleware('feature:shipping')->group(function () {
         Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->middleware('can:shipping.update')->name('shipping-partners.toggle-status');
@@ -223,6 +227,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware('can:customers.view')->group(function () {
         Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+        // Literal segment registered alongside the others; there is no {customer}
+        // route to shadow because customers are keyed by email, not by id.
+        Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
         Route::get('customers/profile', [CustomerController::class, 'show'])->name('customers.show');
     });
 

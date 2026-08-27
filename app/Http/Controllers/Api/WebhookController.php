@@ -10,6 +10,7 @@ use App\Models\ShippingPartner;
 use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
+use App\Services\SePayService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -153,6 +154,151 @@ class WebhookController extends Controller
             'payment_status' => $result['order']->payment_status,
             'shipping_status' => $result['order']->shipping_status,
         ]);
+    }
+
+    /**
+     * Handle an incoming bank transfer pushed by SePay.
+     *
+     * This is the only thing that may move a SePay order to `paid`. SePay requires a
+     * 200 with `{"success": true}` within 30 seconds and retries otherwise, so every
+     * outcome we have finished reasoning about — a transfer that is not ours, an
+     * unmatched code, a duplicate, an underpayment — answers success and is logged
+     * rather than left to be redelivered forever.
+     */
+    public function handleSepay(Request $request, SePayService $sepay)
+    {
+        $method = $sepay->method();
+
+        if ($method?->status !== 'active' || ! $sepay->isConfigured($method)) {
+            Log::warning('SePay webhook received while the gateway is inactive or unconfigured.');
+
+            return response()->json(['success' => false, 'message' => 'Gateway unavailable.'], 503);
+        }
+
+        if (! $sepay->verifyWebhookRequest($request, $method)) {
+            Log::warning('SePay webhook rejected due to invalid credentials.');
+
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $payload = $request->validate([
+            'id' => ['required', 'integer', 'min:1'],
+            'gateway' => ['nullable', 'string', 'max:100'],
+            'transactionDate' => ['nullable', 'string', 'max:40'],
+            'accountNumber' => ['nullable', 'string', 'max:64'],
+            'subAccount' => ['nullable', 'string', 'max:64'],
+            'code' => ['nullable', 'string', 'max:255'],
+            'content' => ['nullable', 'string', 'max:2000'],
+            'transferType' => ['required', 'string', 'in:in,out'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'transferAmount' => ['required', 'numeric', 'min:0', 'max:1000000000000'],
+            'accumulated' => ['nullable', 'numeric'],
+            'referenceCode' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        // Outgoing money is never a customer payment.
+        if ($payload['transferType'] !== 'in') {
+            return response()->json(['success' => true]);
+        }
+
+        if (! $sepay->matchesConfiguredAccount($payload, $method)) {
+            Log::warning('SePay webhook ignored: transfer landed on an unconfigured account.', [
+                'sepay_transaction_id' => $payload['id'],
+            ]);
+
+            return response()->json(['success' => true]);
+        }
+
+        $order = $sepay->resolveOrder($payload, $method);
+        if (! $order) {
+            // Expected for any transfer into the account that is not an order payment.
+            Log::info('SePay webhook has no matching order.', ['sepay_transaction_id' => $payload['id']]);
+
+            return response()->json(['success' => true]);
+        }
+
+        try {
+            $result = DB::transaction(function () use ($order, $payload): array {
+                $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+                $expectedAmount = (int) round((float) $lockedOrder->grand_total);
+                $receivedAmount = (int) round((float) $payload['transferAmount']);
+                // Bank transfers get rounded up by customers far more often than they
+                // get shorted, so the order is settled on "at least the total" and the
+                // exact figure that arrived is kept on the transaction.
+                $sufficient = $receivedAmount >= $expectedAmount;
+
+                $transaction = $this->paymentTransactionService->recordSepayWebhook(
+                    $lockedOrder,
+                    $payload,
+                    $sufficient ? 'paid' : 'pending',
+                    $sufficient ? 'paid' : 'underpaid',
+                );
+
+                if (! $transaction->wasRecentlyCreated) {
+                    return ['outcome' => 'duplicate', 'order' => $lockedOrder, 'status_changed' => false];
+                }
+
+                if (! $sufficient) {
+                    return ['outcome' => 'underpaid', 'order' => $lockedOrder, 'status_changed' => false];
+                }
+
+                if ($lockedOrder->payment_status === 'paid') {
+                    return ['outcome' => 'already_paid', 'order' => $lockedOrder, 'status_changed' => false];
+                }
+
+                if (! in_array($lockedOrder->payment_status, ['pending', 'failed'], true)) {
+                    return ['outcome' => 'not_updatable', 'order' => $lockedOrder, 'status_changed' => false];
+                }
+
+                if ($lockedOrder->status === 'cancelled') {
+                    return ['outcome' => 'order_cancelled', 'order' => $lockedOrder, 'status_changed' => false];
+                }
+
+                $oldStatus = $lockedOrder->status;
+                $oldPaymentStatus = $lockedOrder->payment_status;
+                $newStatus = $oldStatus === 'pending' ? 'processing' : $oldStatus;
+
+                $this->orderStateTransitionService->assertCanTransition($oldStatus, $newStatus, $oldPaymentStatus, 'paid');
+                $lockedOrder->update(['status' => $newStatus, 'payment_status' => 'paid']);
+                $this->paymentTransactionService->syncInitialTransaction($lockedOrder);
+
+                OrderStatusHistory::query()->create([
+                    'order_id' => $lockedOrder->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => $newStatus,
+                    'from_payment_status' => $oldPaymentStatus,
+                    'to_payment_status' => 'paid',
+                    'note' => 'Cập nhật thanh toán từ webhook SePay',
+                    'created_at' => now(),
+                ]);
+
+                return ['outcome' => 'paid', 'order' => $lockedOrder->fresh(), 'status_changed' => true];
+            }, 3);
+        } catch (\Throwable $exception) {
+            // Answer with an error so SePay retries: the transfer is real and unrecorded.
+            Log::error('Failed to process SePay webhook.', [
+                'order_number' => $order->order_number,
+                'sepay_transaction_id' => $payload['id'],
+                'message' => $exception->getMessage(),
+            ]);
+
+            return response()->json(['success' => false, 'message' => 'Unable to process webhook.'], 500);
+        }
+
+        if ($result['outcome'] !== 'paid') {
+            Log::warning('SePay webhook did not settle the order.', [
+                'order_number' => $order->order_number,
+                'sepay_transaction_id' => $payload['id'],
+                'outcome' => $result['outcome'],
+            ]);
+        }
+
+        if ($result['status_changed']) {
+            SendOrderStatusEmail::dispatch($result['order']->id, $result['order']->customer_email)->afterCommit();
+        }
+
+        return response()->json(['success' => true]);
     }
 
     private function orderStatusForGhtk(?int $statusId, string $currentStatus): string

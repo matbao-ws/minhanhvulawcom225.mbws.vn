@@ -593,7 +593,7 @@
                   "customer_email": { "type": "string", "format": "email", "example": "buyer@example.com" },
                   "customer_phone": { "type": "string", "example": "0988776655" },
                   "shipping_address": { "type": "string", "example": "123 Đường Lê Lợi, Quận 1, TP. HCM" },
-                  "payment_method": { "type": "string", "enum": ["cod", "bank_transfer"], "example": "cod" },
+                  "payment_method": { "type": "string", "description": "`method_code` của một phương thức thanh toán đang active. Cổng kết nối được hỗ trợ ở checkout: `vnpay` (trả về `payment_url`) và `sepay` (trả về `payment`).", "enum": ["cod", "bank_transfer", "vnpay", "sepay"], "example": "cod" },
                   "voucher_code": { "type": "string", "example": "DISCOUNT100K", "nullable": true },
                   "notes": { "type": "string", "example": "Giao hàng giờ hành chính", "nullable": true },
                   "items": {
@@ -631,6 +631,23 @@
                         "grand_total": { "type": "string", "example": "63930000.00" },
                         "promotion_discount": { "type": "string", "example": "20000.00", "description": "Tổng giảm từ campaign/Flash Sale tự động" },
                         "discount": { "type": "string", "example": "50000.00", "description": "Tổng giảm, gồm campaign/Flash Sale và voucher" },
+                        "payment_url": { "type": "string", "nullable": true, "description": "Chỉ có với `payment_method=vnpay`: URL chuyển hướng khách sang cổng VNPAY.", "example": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=6393000000" },
+                        "payment": {
+                          "type": "object",
+                          "nullable": true,
+                          "description": "Chỉ có với `payment_method=sepay`: thông tin để khách chuyển khoản. Không chứa credential của cổng. Sau khi khách chuyển, poll `/public/orders/track` cho tới khi `payment_status=paid`.",
+                          "properties": {
+                            "gateway": { "type": "string", "example": "sepay" },
+                            "payment_code": { "type": "string", "description": "Nội dung chuyển khoản khách phải giữ nguyên", "example": "ORDABCDE12345" },
+                            "amount": { "type": "integer", "description": "Số tiền phải chuyển (VND, đã làm tròn)", "example": 63930000 },
+                            "currency": { "type": "string", "example": "VND" },
+                            "bank_code": { "type": "string", "example": "MBBank" },
+                            "account_number": { "type": "string", "example": "0123456789" },
+                            "account_holder": { "type": "string", "example": "NGUYEN VAN A" },
+                            "qr_image_url": { "type": "string", "description": "Ảnh VietQR do SePay sinh; nhúng trực tiếp bằng thẻ img", "example": "https://qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=63930000&des=ORDABCDE12345&template=compact&download=false" },
+                            "instructions": { "type": "string", "nullable": true, "example": "Quét mã QR và chuyển đúng số tiền." }
+                          }
+                        },
                         "items": {
                           "type": "array",
                           "items": {
@@ -1058,6 +1075,55 @@
           "200": { "description": "Đồng bộ trạng thái thành công" },
           "401": { "description": "Token không hợp lệ" },
           "404": { "description": "Đơn hàng đối ứng trên hệ thống không tồn tại" }
+        }
+      }
+    },
+    "/webhooks/sepay": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Webhook nhận giao dịch chuyển khoản từ SePay",
+        "description": "SePay đẩy mọi giao dịch của tài khoản ngân hàng đã liên kết về đây. Đây là nguồn sự thật duy nhất cho trạng thái thanh toán của đơn `sepay`; storefront không được phép đổi trạng thái này.\n\nXác thực: gửi header `Authorization: Apikey <webhook_token>`, hoặc ký HMAC-SHA256 với `X-SePay-Signature: sha256=<hex>` và `X-SePay-Timestamp: <unix>` ký trên chuỗi `{timestamp}.{raw_body}` (lệch quá 300 giây bị từ chối). Cấu hình tại Admin > Cấu hình thanh toán > SePay.\n\nIdempotent theo trường `id`. Mọi kết quả đã xử lý xong — giao dịch tiền ra, tài khoản không khớp, không tìm thấy đơn, trùng lặp, chuyển thiếu tiền — đều trả `{\"success\": true}` để SePay ngừng retry.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id", "transferType", "transferAmount"],
+                "properties": {
+                  "id": { "type": "integer", "description": "ID giao dịch của SePay; dùng làm khóa idempotency", "example": 92704 },
+                  "gateway": { "type": "string", "example": "Vietcombank" },
+                  "transactionDate": { "type": "string", "example": "2026-08-17 11:08:33" },
+                  "accountNumber": { "type": "string", "description": "Phải trùng số tài khoản đã cấu hình, nếu không giao dịch bị bỏ qua", "example": "0123456789" },
+                  "subAccount": { "type": "string", "nullable": true, "example": "" },
+                  "code": { "type": "string", "nullable": true, "description": "Mã thanh toán SePay bóc tách được", "example": "ORDABCDE12345" },
+                  "content": { "type": "string", "description": "Nội dung chuyển khoản thô; dùng để dò mã đơn khi `code` rỗng", "example": "ORDABCDE12345 chuyen tien" },
+                  "transferType": { "type": "string", "enum": ["in", "out"], "description": "Chỉ `in` mới được coi là thanh toán", "example": "in" },
+                  "description": { "type": "string", "nullable": true, "example": "NGUYEN VAN A chuyen tien" },
+                  "transferAmount": { "type": "number", "description": "Số tiền thực nhận; đơn chỉ chuyển sang `paid` khi >= grand_total", "example": 63930000 },
+                  "accumulated": { "type": "number", "nullable": true, "example": 105000000 },
+                  "referenceCode": { "type": "string", "nullable": true, "example": "FT24012345678" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã tiếp nhận",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "success": { "type": "boolean", "example": true } }
+                }
+              }
+            }
+          },
+          "401": { "description": "Xác thực webhook không hợp lệ" },
+          "422": { "description": "Payload không hợp lệ" },
+          "500": { "description": "Lỗi xử lý; SePay nên gửi lại" },
+          "503": { "description": "Cổng SePay chưa kích hoạt hoặc chưa cấu hình đủ" }
         }
       }
     }

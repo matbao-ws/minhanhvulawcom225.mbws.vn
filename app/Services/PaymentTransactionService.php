@@ -54,6 +54,40 @@ class PaymentTransactionService
         );
     }
 
+    /**
+     * Record one SePay bank transfer against an order.
+     *
+     * `id` is SePay's own transaction id and is unique per transfer, so it is the
+     * idempotency key: a retried webhook — SePay retries whenever our endpoint errors
+     * or times out — finds the existing row and the caller skips the state change.
+     *
+     * The amount stored is what actually arrived, not the order total, so an
+     * underpayment or an overpayment stays visible for reconciliation.
+     */
+    public function recordSepayWebhook(Order $order, array $payload, string $status, string $outcome): PaymentTransaction
+    {
+        $gatewayTransactionId = trim((string) ($payload['id'] ?? ''));
+        $idempotencyKey = 'sepay:webhook:'.($gatewayTransactionId !== ''
+            ? $gatewayTransactionId
+            : hash('sha256', json_encode(SePayService::redactPayload($payload))));
+
+        return PaymentTransaction::query()->firstOrCreate(
+            ['idempotency_key' => $idempotencyKey],
+            [
+                'order_id' => $order->id,
+                'payment_method' => SePayService::METHOD_CODE,
+                'gateway' => SePayService::METHOD_CODE,
+                'transaction_reference' => $order->order_number,
+                'gateway_transaction_id' => $gatewayTransactionId !== '' ? $gatewayTransactionId : null,
+                'amount' => (float) ($payload['transferAmount'] ?? 0),
+                'status' => $status,
+                'response_code' => $outcome,
+                'payload' => SePayService::redactPayload($payload),
+                'processed_at' => now(),
+            ],
+        );
+    }
+
     public function syncInitialTransaction(Order $order): void
     {
         $transaction = PaymentTransaction::query()

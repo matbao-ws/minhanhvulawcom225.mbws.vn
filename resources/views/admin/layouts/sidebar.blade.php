@@ -361,16 +361,6 @@
                           </li>
                           @endcan
 
-                          {{-- <!-- Hóa đơn của tôi -->
-                          @can('settings.view')
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.invoices.index') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:receipt-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.my_invoices') }}</span>
-                              </a>
-                          </li>
-                          @endcan --}}
-
                           <!-- Media Library -->
                           @can('media.view')
                           <li class="sidebar-item">

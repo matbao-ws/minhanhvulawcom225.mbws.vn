@@ -23,7 +23,7 @@ class AdminAuthTest extends TestCase
 
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
+            'permissions' => ['settings.view', 'settings.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
         ]);
 
         $this->admin = User::factory()->create([
