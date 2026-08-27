@@ -32,9 +32,9 @@ class InlineBlockToolbarTest extends TestCase
 
         // A CMS page is the storefront route that renders the client layout.
         Page::query()->create([
-            'title' => ['vi' => 'Giới thiệu'],
+            'title' => ['vi' => 'Giá»›i thiá»‡u'],
             'slug' => 'gioi-thieu',
-            'published_html' => ['vi' => '<p>Nội dung</p>'],
+            'published_html' => ['vi' => '<p>Ná»™i dung</p>'],
             'is_active' => true,
             'published_at' => now()->subDay(),
         ]);
@@ -64,8 +64,8 @@ class InlineBlockToolbarTest extends TestCase
     {
         $html = $this->storefrontHtml();
 
-        foreach (['client-block-toolbar', 'client-block-append', 'client-media-picker', 'clientBlocks'] as $marker) {
-            $this->assertStringNotContainsString($marker, $html, "guest thấy {$marker}");
+        foreach (['client-block-toolbar', 'client-media-picker', 'clientBlocks'] as $marker) {
+            $this->assertStringNotContainsString($marker, $html, "guest tháº¥y {$marker}");
         }
     }
 
@@ -96,9 +96,17 @@ class InlineBlockToolbarTest extends TestCase
                   'insertOrderedList', 'createLink', 'unlink', 'removeFormat', 'undo', 'redo'] as $command) {
             $this->assertStringContainsString('data-client-block-command="'.$command.'"', $html);
         }
-        foreach (['clear', 'restore', 'delete'] as $action) {
+        foreach (['clear', 'restore'] as $action) {
             $this->assertStringContainsString('data-client-block-action="'.$action.'"', $html);
         }
+        $this->assertStringNotContainsString('id="client-block-append"', $html);
+        $this->assertStringNotContainsString('data-client-block-action="delete"', $html);
+        $this->assertStringNotContainsString('data-client-list-add', $html);
+
+        $editable = file_get_contents(resource_path('views/client/components/editable.blade.php'));
+        $editableImage = file_get_contents(resource_path('views/client/components/editable-image.blade.php'));
+        $this->assertStringContainsString("'appendable' => false", $editable);
+        $this->assertStringContainsString("'appendable' => false", $editableImage);
         foreach (['default', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as $format) {
             $this->assertStringContainsString('data-client-block-format="'.$format.'"', $html);
         }
@@ -123,6 +131,11 @@ class InlineBlockToolbarTest extends TestCase
         $this->assertStringContainsString('window.clientBlocks', $partial);
         $this->assertStringNotContainsString('clientBlocksToggle', $partial);
         $this->assertStringNotContainsString("classList.add('client-edit-active')", $partial);
+
+        $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
+        $this->assertStringContainsString('body.client-edit-active [data-block-key] {', $bar);
+        $this->assertStringContainsString('body.client-edit-active [data-block-key]:hover {', $bar);
+        $this->assertDoesNotMatchRegularExpression('/^\s*\[data-block-key\](?::hover)?\s*\{/m', $bar);
     }
 
     public function test_the_bar_sends_the_current_type_and_format_not_the_opening_snapshot(): void
@@ -132,7 +145,7 @@ class InlineBlockToolbarTest extends TestCase
          * `text`; the toolbar turns it into `html` when you bold something. The
          * save used to send the type captured when the region was first touched,
          * so the server stripped every tag back out and the formatting vanished
-         * the moment you pressed Lưu.
+         * the moment you pressed LÆ°u.
          */
         $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
 
@@ -159,24 +172,62 @@ class InlineBlockToolbarTest extends TestCase
                 'type' => SiteBlock::TYPE_HTML,
                 'format' => null,
                 'content_locale' => 'vi',
-                'value' => 'Xin <strong>chào</strong>',
+                'value' => 'Xin <strong>chÃ o</strong>',
             ])
             ->assertOk();
 
         $stored = app(SiteContentService::class)->value('dev.sandbox.title');
-        $this->assertStringContainsString('<strong>chào</strong>', $stored);
+        $this->assertStringContainsString('<strong>chÃ o</strong>', $stored);
     }
 
     public function test_swapping_a_heading_hands_the_pending_edit_to_the_new_element(): void
     {
         // Changing the heading level replaces the wrapper, so the pending map has
-        // to follow the new node or Lưu writes one detached from the page.
+        // to follow the new node or LÆ°u writes one detached from the page.
         $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
         $toolbar = file_get_contents(resource_path('views/client/partials/inline-blocks.blade.php'));
 
         $this->assertStringContainsString('replaceRegion: function (previous, next)', $bar);
         $this->assertStringContainsString('dirtyRegions.set(next, snapshot);', $bar);
         $this->assertStringContainsString('api.replaceRegion(active, replacement)', $toolbar);
+    }
+
+    public function test_heading_changes_and_history_use_editor_owned_snapshots(): void
+    {
+        $toolbar = file_get_contents(resource_path('views/client/partials/inline-blocks.blade.php'));
+
+        foreach (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as $format) {
+            $this->assertStringContainsString('data-client-block-format="'.$format.'"', $toolbar);
+        }
+
+        $this->assertStringContainsString('const histories = new Map();', $toolbar);
+        $this->assertStringContainsString("if (command === 'undo' || command === 'redo')", $toolbar);
+        $this->assertStringContainsString('travelHistory(command);', $toolbar);
+        $this->assertStringContainsString("document.addEventListener('beforeinput'", $toolbar);
+        $this->assertStringContainsString('rememberState(active);', $toolbar);
+        $this->assertStringContainsString('restoreState(source.pop());', $toolbar);
+        $this->assertStringContainsString("button.disabled = isImage || history[command].length === 0;", $toolbar);
+        $this->assertStringContainsString("const direction = key === 'y' || (key === 'z' && event.shiftKey)", $toolbar);
+        $this->assertStringContainsString('commitCommand(replacement, before);', $toolbar);
+        $this->assertStringContainsString("applyList(command === 'insertOrderedList' ? 'ol' : 'ul');", $toolbar);
+        $this->assertStringContainsString("replacement.innerHTML = '<li>' + (content || '<br>') + '</li>';", $toolbar);
+
+        // Prompting steals focus and collapses the browser selection. Restore it
+        // after the prompt, immediately before createLink executes.
+        $prompt = strpos($toolbar, "window.prompt('Nhập liên kết");
+        $restoreSelection = strpos($toolbar, 'if (!restoreSelection())', $prompt);
+        $createLink = strpos($toolbar, "document.execCommand('createLink'", $prompt);
+        $this->assertNotFalse($prompt);
+        $this->assertGreaterThan($prompt, $restoreSelection);
+        $this->assertGreaterThan($restoreSelection, $createLink);
+
+        $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
+        $css = file_get_contents(public_path('client-assets/css/storefront.css'));
+        $this->assertStringContainsString('element.dataset.blockEntryTag = element.tagName.toLowerCase();', $bar);
+        $this->assertStringContainsString('document.createElement(snapshot.tag)', $bar);
+        $this->assertStringContainsString('.client-content-heading-h1', $css);
+        $this->assertStringContainsString('.client-content-heading-h6', $css);
+        $this->assertStringContainsString('.client-content-format-p', $css);
     }
 
     public function test_the_admin_bar_uses_the_same_icon_set_as_the_toolbar(): void
@@ -187,7 +238,7 @@ class InlineBlockToolbarTest extends TestCase
         // logout. Emoji glyphs render differently on every platform and did not
         // match the design being copied.
         $this->assertGreaterThanOrEqual(6, substr_count($html, 'class="client-ico"'));
-        foreach (['⚙', '📝', '✎', '✓', '↺', '↪', '⬆'] as $emoji) {
+        foreach (['âš™', 'ðŸ“', 'âœŽ', 'âœ“', 'â†º', 'â†ª', 'â¬†'] as $emoji) {
             $this->assertStringNotContainsString($emoji, $html);
         }
     }
@@ -196,7 +247,7 @@ class InlineBlockToolbarTest extends TestCase
     {
         /*
          * The rule that reveals the menu is
-         * `.client-block-toolbar__heading.is-open .…__heading-menu`, so `is-open`
+         * `.client-block-toolbar__heading.is-open .â€¦__heading-menu`, so `is-open`
          * has to land on the wrapper. It was being toggled on the menu itself,
          * which matched no rule at all and left the dropdown dead.
          */
@@ -258,7 +309,7 @@ class InlineBlockToolbarTest extends TestCase
             $this->assertMatchesRegularExpression(
                 '/'.preg_quote($selector, '/').'\s*\{\s*background:\s*'.preg_quote($colour, '/').'/i',
                 $html,
-                "{$selector} không còn màu {$colour}",
+                "{$selector} khÃ´ng cÃ²n mÃ u {$colour}",
             );
         }
     }
@@ -280,16 +331,38 @@ class InlineBlockToolbarTest extends TestCase
         $this->assertStringNotContainsString('client-outline', $this->storefrontHtml());
     }
 
-    public function test_the_outline_panel_reads_as_a_light_surface(): void
+    public function test_the_outline_panel_reads_as_editor_chrome(): void
     {
-        // Locked as values: the panel was dark on a first pass, and "make it white"
-        // is only half done if the text stays light against it.
+        // The navigator must be visually separate from the storefront content.
         $html = $this->storefrontHtml($this->editor());
 
-        $this->assertMatchesRegularExpression('/#client-outline\s*\{[^}]*background:\s*#ffffff/i', $html);
-        $this->assertMatchesRegularExpression('/#client-outline\s*\{[^}]*color:\s*#172033/i', $html);
-        // No leftover light-on-dark rules.
-        $this->assertStringNotContainsString('color: #e5e7eb !important', $html);
+        $this->assertMatchesRegularExpression('/#client-outline\s*\{[^}]*background:\s*#23262b/i', $html);
+        $this->assertMatchesRegularExpression('/#client-outline\s*\{[^}]*color:\s*#e7eaf0/i', $html);
+    }
+
+    public function test_the_outline_is_a_collapsible_tree_with_readable_labels(): void
+    {
+        $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
+        $sectionList = file_get_contents(resource_path('views/client/components/section-list.blade.php'));
+
+        $this->assertStringContainsString("const expanded = new Set();", $partial);
+        $this->assertStringContainsString("caret.className = 'client-outline__caret';", $partial);
+        $this->assertStringContainsString('nest.hidden = !open;', $partial);
+        $this->assertStringContainsString("kind.textContent = kindOf(element, isSection);", $partial);
+        $this->assertStringContainsString("element.getAttribute('data-section-label')", $partial);
+        $this->assertStringContainsString('data-section-label="{{ $registry->label($name) }}"', $sectionList);
+    }
+
+    public function test_using_the_outline_does_not_hide_it_until_it_is_minimized(): void
+    {
+        $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
+
+        $this->assertStringContainsString('id="client-outline-minimize"', $partial);
+        $this->assertStringContainsString('aria-label="Thu nhỏ sidebar"', $partial);
+        $this->assertStringContainsString("document.getElementById('client-outline-minimize').addEventListener('click', close);", $partial);
+        $this->assertDoesNotMatchRegularExpression('/function jump\(element\)\s*\{\s*close\(\);/', $partial);
+        $this->assertStringNotContainsString("close();\n                    window.clientHistoryPanel.open(element);", $partial);
+        $this->assertStringNotContainsString("close();\n                    window.clientSectionPanel.open(element);", $partial);
     }
 
     public function test_sections_render_in_declaration_order_before_anyone_edits(): void
@@ -374,40 +447,118 @@ class InlineBlockToolbarTest extends TestCase
         $this->assertFalse($lists->isValidId('-leading'));
     }
 
-    public function test_only_boxes_inside_a_list_get_reorder_controls(): void
+    public function test_only_boxes_inside_a_list_get_a_drag_grip(): void
     {
         /*
          * A region authored in Blade sits where the template puts it. Recording
-         * that position in the database would be recording the layout — the page
+         * that position in the database would be recording the layout â€” the page
          * builder this core deliberately does not have. Only list items move.
          */
         $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
 
         // Movable only when the node belongs to a list; everything else is placed
-        // by the template and gets neither a grip nor arrows.
+        // by the template and gets no grip.
         $this->assertStringContainsString('const movable = Boolean(listKey && itemId);', $partial);
-        $this->assertStringContainsString('if (movable) addMoveControls(row, listKey, itemId);', $partial);
+        $this->assertStringContainsString("grip.className = 'client-outline__grip';", $partial);
     }
 
     public function test_a_drag_is_refused_across_two_different_lists(): void
     {
         /*
-         * The scoping rule as the drag layer enforces it: a row only accepts a drop
-         * from a row carrying the same list key, and withholding preventDefault on a
-         * foreign list is what makes the cursor refuse it. Without this a child
-         * section could be dropped among another parent's children — placement, not
+         * The scoping rule, as the three layers that enforce it. Without it a child
+         * section could be dropped among another parent's children â€” placement, not
          * ordering.
          */
         $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
 
-        $this->assertSame(
-            2,
-            substr_count($partial, "row.dataset.listKey !== dragging.listKey) return;"),
-            'cả dragover lẫn drop đều phải chặn danh sách khác',
-        );
+        // 1. Each container only recognises entries of its own depth, so a parent
+        //    instance cannot pick up an entry that belongs to a nested list.
+        $this->assertStringContainsString("draggable: '.' + entryClass + '[data-list-key]',", $partial);
+        $this->assertStringContainsString("const entryClass = 'client-outline__entry--d' + depth;", $partial);
+
+        // 2. A drag refuses to step over an entry carrying a different list key.
+        $this->assertStringContainsString('event.related.dataset.listKey === event.dragged.dataset.listKey', $partial);
+
+        // 3. Nothing leaves a list and nothing joins it; the only legal change is
+        //    the order of what is already there.
+        $this->assertStringContainsString("group: { name: 'client-outline', pull: false, put: false },", $partial);
+
         // And the server refuses it a second time, so a crafted request cannot do
         // what the interface prevents.
         $this->assertStringContainsString('Thứ tự gửi lên không khớp danh sách hiện tại.', file_get_contents(app_path('Services/SiteListService.php')));
+    }
+
+    public function test_theme_cards_reorder_only_inside_their_declared_row(): void
+    {
+        $editor = $this->editor();
+        $defaults = ['service-1', 'service-2', 'service-3', 'service-4'];
+
+        $this->actingAs($editor)->patchJson('/vi/admin/site-lists/items/order', [
+            'key' => 'theme-sandbox.services.cards',
+            'order' => ['service-2', 'service-1', 'service-3', 'service-4'],
+            'defaults' => $defaults,
+        ])->assertOk();
+
+        app()->forgetInstance(SiteListService::class);
+        $this->assertSame(
+            ['service-2', 'service-1', 'service-3', 'service-4'],
+            app(SiteListService::class)->items('theme-sandbox.services.cards', $defaults),
+        );
+
+        $this->actingAs($editor)->patchJson('/vi/admin/site-lists/items/order', [
+            'key' => 'theme-sandbox.services.cards',
+            'order' => ['service-1', 'service-1', 'service-3', 'service-4'],
+            'defaults' => $defaults,
+        ])->assertStatus(422);
+    }
+
+    public function test_a_dragged_section_carries_its_nested_rows_with_it(): void
+    {
+        /*
+         * The nest used to be a sibling of its row. Sortable moves one element, so a
+         * section dragged past its neighbour would have left its children standing
+         * under whichever row landed above them.
+         */
+        $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
+
+        $this->assertStringContainsString('const row = buildRow(node, isSection, listKey, itemId);', $partial);
+        $this->assertStringContainsString('entry.appendChild(row);', $partial);
+        $this->assertStringContainsString('if (nest.childElementCount > 0) {', $partial);
+        $this->assertStringContainsString('entry.appendChild(nest);', $partial);
+    }
+
+    public function test_the_drag_library_is_vendored_and_reaches_editors_only(): void
+    {
+        // No npm or Vite pipeline on the client side, and a visitor must not pay for
+        // a library only an editor can use. It rides with the admin bar because that
+        // is the one partial a replacement theme layout has to include.
+        $this->assertFileExists(public_path('client-assets/vendor/sortable.min.js'));
+
+        $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
+        $this->assertStringContainsString("asset('client-assets/vendor/sortable.min.js')", $bar);
+
+        $this->assertStringNotContainsString('sortable.min.js', $this->storefrontHtml());
+        $this->assertStringContainsString('sortable.min.js', $this->storefrontHtml($this->editor()));
+    }
+
+    public function test_the_outline_still_opens_when_the_drag_library_is_missing(): void
+    {
+        // A failed script load must not take the panel or its non-drag tools with it.
+        $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
+
+        $this->assertStringContainsString('if (!window.Sortable) return;', $partial);
+    }
+
+    public function test_a_rejected_reorder_puts_the_panel_back(): void
+    {
+        // Sortable has already moved the row by the time a rejection arrives, so the
+        // panel would otherwise keep showing an order the server refused.
+        $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
+
+        $this->assertMatchesRegularExpression(
+            '/api\.status\(error\.message, true\);\s*(?:\/\/[^\n]*\n\s*)*render\(\);/',
+            $partial,
+        );
     }
 
     public function test_reordering_rearranges_the_page_without_a_reload(): void
@@ -436,15 +587,24 @@ class InlineBlockToolbarTest extends TestCase
         $this->assertStringNotContainsString('client-outline__key', $html);
     }
 
-    public function test_arrow_buttons_survive_alongside_dragging(): void
+    public function test_the_outline_has_no_arrow_move_buttons(): void
     {
-        // A drag is unreachable from the keyboard; the arrows are the whole
-        // accessible path to reordering and must not be dropped for looking tidier.
         $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
 
-        $this->assertStringContainsString("client-outline__move", $partial);
-        $this->assertStringContainsString("'Lên trên'", $partial);
-        $this->assertStringContainsString("'Xuống dưới'", $partial);
+        $this->assertStringNotContainsString('client-outline__move', $partial);
+        $this->assertStringNotContainsString('addMoveControls', $partial);
+        $this->assertStringNotContainsString("'LÃªn trÃªn'", $partial);
+        $this->assertStringNotContainsString("'Xuá»‘ng dÆ°á»›i'", $partial);
+    }
+
+    public function test_the_outline_uses_a_stable_dark_scrollbar(): void
+    {
+        $partial = file_get_contents(resource_path('views/client/partials/inline-outline.blade.php'));
+
+        $this->assertStringContainsString('scrollbar-gutter: stable !important;', $partial);
+        $this->assertStringContainsString('scrollbar-width: thin !important;', $partial);
+        $this->assertStringContainsString('.client-outline__body::-webkit-scrollbar-thumb', $partial);
+        $this->assertStringContainsString('background: #87919e !important;', $partial);
     }
 
     public function test_editor_can_reorder_the_boxes_of_a_region(): void
@@ -520,7 +680,7 @@ class InlineBlockToolbarTest extends TestCase
 
     public function test_the_collapsed_puck_still_warns_about_unsaved_work(): void
     {
-        // Collapsed, Lưu is out of sight. Without this the only signal that edits
+        // Collapsed, LÆ°u is out of sight. Without this the only signal that edits
         // are pending disappears with the bar, and closing the tab drops them.
         $html = $this->storefrontHtml($this->editor());
         $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
@@ -533,7 +693,7 @@ class InlineBlockToolbarTest extends TestCase
     {
         /*
          * The editor bails out early when a page has no editable region, but the
-         * bar still renders Quản trị and Đăng xuất there. The collapse wiring has
+         * bar still renders Quáº£n trá»‹ and ÄÄƒng xuáº¥t there. The collapse wiring has
          * to sit before that bail-out or the button is dead on those pages.
          */
         $bar = file_get_contents(resource_path('views/client/partials/admin-bar.blade.php'));
@@ -543,7 +703,7 @@ class InlineBlockToolbarTest extends TestCase
 
         $this->assertNotFalse($wiring);
         $this->assertNotFalse($bailout);
-        $this->assertLessThan($bailout, $wiring, 'nút thu gọn được nối sau khi script đã thoát');
+        $this->assertLessThan($bailout, $wiring, 'nÃºt thu gá»n Ä‘Æ°á»£c ná»‘i sau khi script Ä‘Ã£ thoÃ¡t');
     }
 
     public function test_the_bar_offers_a_way_back_to_a_hidden_region(): void
@@ -554,7 +714,7 @@ class InlineBlockToolbarTest extends TestCase
 
         $this->assertStringContainsString('id="client-inline-hidden-button"', $html);
         $this->assertStringContainsString('client-admin-bar__hidden', $html);
-        $this->assertStringContainsString('body.client-reveal-hidden .client-block-empty', $html);
+        $this->assertStringContainsString('body.client-edit-active.client-reveal-hidden .client-block-empty', $html);
     }
 
     public function test_a_hidden_region_still_renders_a_handle_for_an_editor(): void
@@ -565,13 +725,13 @@ class InlineBlockToolbarTest extends TestCase
          * on, and be reachable by the toolbar's restore action.
          */
         $editor = $this->editor();
-        app(SiteContentService::class)->updateLocale('dev.sandbox.hideable', SiteBlock::TYPE_TEXT, 'vi', '', $editor->id);
+        app(SiteContentService::class)->updateLocale('theme-sandbox.services.paragraph-1', SiteBlock::TYPE_TEXT, 'vi', '', $editor->id);
         app()->forgetInstance(SiteContentService::class);
 
         $html = $this->sandboxHtml($editor);
 
         $this->assertMatchesRegularExpression(
-            '/data-block-key="dev\.sandbox\.hideable"[^>]*data-block-cleared="true"/',
+            '/data-block-key="theme-sandbox\.services\.paragraph-1"[^>]*data-block-cleared="true"/',
             $html,
         );
         $this->assertStringContainsString('class="client-block-cleared"', $html);
@@ -580,19 +740,19 @@ class InlineBlockToolbarTest extends TestCase
     public function test_a_hidden_region_is_gone_entirely_for_a_visitor(): void
     {
         $editor = $this->editor();
-        app(SiteContentService::class)->updateLocale('dev.sandbox.hideable', SiteBlock::TYPE_TEXT, 'vi', '', $editor->id);
+        app(SiteContentService::class)->updateLocale('theme-sandbox.services.paragraph-1', SiteBlock::TYPE_TEXT, 'vi', '', $editor->id);
         app()->forgetInstance(SiteContentService::class);
 
         $html = $this->get('/vi/sandbox/inline-editor')->assertOk()->getContent();
 
-        $this->assertStringNotContainsString('dev.sandbox.hideable', $html);
+        $this->assertStringNotContainsString('theme-sandbox.services.paragraph-1', $html);
         $this->assertStringNotContainsString('client-block-cleared', $html);
     }
 
     public function test_restoring_and_appending_re_render_the_page(): void
     {
         /*
-         * Both put back markup that only the Blade file holds — the theme's own
+         * Both put back markup that only the Blade file holds â€” the theme's own
          * text, or a new box's shape. Neither the script nor the response carries
          * it, so patching the DOM cannot work and the action silently appeared to
          * do nothing.
@@ -612,12 +772,31 @@ class InlineBlockToolbarTest extends TestCase
                 'type' => SiteBlock::TYPE_HTML,
                 'format' => 'h2',
                 'content_locale' => 'vi',
-                'value' => '<strong>Xin chào</strong>',
+                'value' => '<strong>Xin chÃ o</strong>',
             ])
             ->assertOk()
             ->assertJsonPath('data.format', 'h2');
 
         $this->assertSame('h2', app(SiteContentService::class)->format('home.hero.title'));
+    }
+
+    public function test_editor_can_save_a_semantic_list_and_it_survives_rendering(): void
+    {
+        $editor = $this->editor();
+
+        $this->actingAs($editor)
+            ->patchJson('/vi/admin/site-blocks', [
+                'key' => 'home.hero.points',
+                'type' => SiteBlock::TYPE_HTML,
+                'format' => 'ul',
+                'content_locale' => 'vi',
+                'value' => '<li>Một</li><li>Hai</li>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.format', 'ul');
+
+        $this->assertSame('ul', app(SiteContentService::class)->format('home.hero.points'));
+        $this->assertSame('<li>Một</li><li>Hai</li>', app(SiteContentService::class)->value('home.hero.points'));
     }
 
     public function test_a_heading_format_is_refused_on_a_plain_text_region(): void
@@ -630,7 +809,7 @@ class InlineBlockToolbarTest extends TestCase
                 'type' => SiteBlock::TYPE_TEXT,
                 'format' => 'h2',
                 'content_locale' => 'vi',
-                'value' => 'Xin chào',
+                'value' => 'Xin chÃ o',
             ])
             ->assertStatus(422);
     }
@@ -665,7 +844,7 @@ class InlineBlockToolbarTest extends TestCase
             app(SiteListService::class)->itemKey('home.values.extra', $added, 'text'),
             SiteBlock::TYPE_TEXT,
             'vi',
-            'Nội dung ô thêm',
+            'Ná»™i dung Ã´ thÃªm',
             $editor->id,
         );
         $this->assertDatabaseCount('site_blocks', 1);
@@ -705,12 +884,37 @@ class InlineBlockToolbarTest extends TestCase
     {
         $html = $this->actingAs($this->editor())->get('/vi/sandbox/inline-editor')->assertOk()->getContent();
 
-        // Text, HTML, image and a region that accepts extra boxes — one of each,
+        // Text, HTML, image and a region that accepts extra boxes â€” one of each,
         // so the toolbar can be exercised end to end.
-        $this->assertStringContainsString('data-block-key="dev.sandbox.title"', $html);
-        $this->assertStringContainsString('data-block-key="dev.sandbox.rich"', $html);
+        $this->assertStringContainsString('HAMDANSUTRUNGDUNG', $html);
+        $this->assertStringContainsString('/client-assets/theme-sandbox/assets/images/banners/banner-1.jpg', $html);
+        $this->assertStringContainsString('data-block-key="theme-sandbox.hero.heading-1"', $html);
+        $this->assertStringContainsString('data-block-key="theme-sandbox.hero.paragraph-1"', $html);
+        foreach (['Trang đầu', 'Tổng quan năng lực', 'Lĩnh vực giải pháp', 'Vì sao chọn chúng tôi', 'Giải pháp không gian ngầm', 'Thư viện kiến thức', 'Liên hệ'] as $sectionLabel) {
+            $this->assertStringContainsString('data-outline-label="'.$sectionLabel.'"', $html);
+        }
+        foreach (['overview.heading-1', 'overview.paragraph-1', 'services.heading-1', 'services.paragraph-1', 'services.image-1', 'why-us.heading-1', 'why-us.paragraph-1', 'solutions.heading-1', 'solutions.paragraph-1', 'knowledge.heading-1', 'knowledge.paragraph-1', 'contact.paragraph-1'] as $childKey) {
+            $this->assertStringContainsString('data-block-key="theme-sandbox.'.$childKey.'"', $html);
+        }
         $this->assertStringContainsString('data-block-type="image"', $html);
-        $this->assertStringContainsString('data-append-list="dev.sandbox.card.extra"', $html);
+        $this->assertStringContainsString('data-outline-group="services-row"', $html);
+        $this->assertStringContainsString('data-outline-group="services-card-1"', $html);
+        $this->assertStringContainsString('data-outline-group="services-card-1-content"', $html);
+        $this->assertStringContainsString('data-outline-group="overview-row"', $html);
+        $this->assertStringContainsString('data-outline-group="why-us-row"', $html);
+        $this->assertStringContainsString('data-outline-group="solutions-row"', $html);
+        $this->assertStringContainsString('data-outline-group="knowledge-row"', $html);
+        $this->assertStringContainsString('data-list-key="theme-sandbox.services.cards"', $html);
+        $this->assertStringContainsString('data-list-item="service-1"', $html);
+        $this->assertStringContainsString('data-list-root="theme-sandbox.services.cards"', $html);
+        $this->assertStringContainsString(
+            'data-list-defaults="'.base64_encode(json_encode(['service-1', 'service-2', 'service-3', 'service-4'])).'"',
+            $html,
+        );
+        $this->assertSame(5, substr_count($html, 'data-list-defaults='));
+        $this->assertSame(77, substr_count($html, 'data-block-key="theme-sandbox.'));
+        $this->assertStringNotContainsString('data-block-key="dev.sandbox.', $html);
+        $this->assertStringNotContainsString('editor-test-fixtures', $html);
         $this->assertStringContainsString('id="client-block-toolbar"', $html);
     }
 

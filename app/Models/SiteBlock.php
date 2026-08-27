@@ -25,7 +25,7 @@ class SiteBlock extends Model
      */
     public const FORMAT_PARAGRAPH = 'p';
 
-    public const FORMATS = [self::FORMAT_PARAGRAPH, 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+    public const FORMATS = [self::FORMAT_PARAGRAPH, 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol'];
 
     public array $translatable = ['content'];
 

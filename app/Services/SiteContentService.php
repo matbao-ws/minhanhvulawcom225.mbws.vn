@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\SiteBlock;
+use App\Models\SiteBlockRevision;
 use App\Support\HtmlSanitizer;
 use App\Support\MediaUrl;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -16,6 +18,8 @@ use Illuminate\Validation\ValidationException;
  */
 class SiteContentService
 {
+    public const MAX_REVISIONS_PER_BLOCK = 50;
+
     /** @var array<string, SiteBlock>|null */
     private ?array $blocks = null;
 
@@ -116,7 +120,7 @@ class SiteContentService
         }
 
         $format = $type === SiteBlock::TYPE_HTML ? $format : null;
-        $clean = $this->clean($type, $value);
+        $clean = $this->clean($type, $value, $format);
 
         return DB::transaction(function () use ($key, $type, $locale, $clean, $userId, $format): SiteBlock {
             $block = SiteBlock::query()->lockForUpdate()->firstOrNew(['key' => $key]);
@@ -194,6 +198,88 @@ class SiteContentService
         });
     }
 
+    /**
+     * The saved history of one region, newest first.
+     *
+     * A preview of what each snapshot held *for this locale* — history is read in
+     * the language the editor is looking at, and a snapshot taken while editing
+     * another locale has nothing to show here.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function revisions(string $key, ?string $locale = null, int $limit = 20): array
+    {
+        $locale ??= app()->getLocale();
+        $block = SiteBlock::query()->firstWhere('key', $key);
+
+        if (! $block) {
+            return [];
+        }
+
+        return $block->revisions()
+            ->with('author')
+            ->limit($limit)
+            ->get()
+            ->map(function (SiteBlockRevision $revision) use ($locale): array {
+                $content = is_array($revision->content) ? $revision->content : [];
+                $value = $content[$locale] ?? null;
+
+                return [
+                    'id' => $revision->id,
+                    'created_at' => $revision->created_at?->toIso8601String(),
+                    'author' => $revision->author?->name,
+                    'has_locale' => array_key_exists($locale, $content),
+                    // Plain text and short: this is a label in a list, not a diff.
+                    'preview' => is_string($value) ? Str::limit(trim(strip_tags($value)), 90) : null,
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Put one snapshot back, for the locale the editor is looking at.
+     *
+     * The key comes from the revision, never from the caller: accepting both would
+     * let a crafted request write revision A's content onto region B.
+     *
+     * @throws ValidationException
+     */
+    public function restoreRevision(SiteBlockRevision $revision, string $locale, ?int $userId): ?SiteBlock
+    {
+        $this->assertSupported(SiteBlock::TYPE_TEXT, $locale);
+
+        $content = is_array($revision->content) ? $revision->content : [];
+
+        if (! array_key_exists($locale, $content) || ! is_string($content[$locale])) {
+            throw ValidationException::withMessages([
+                'revision' => 'Phiên bản này không có nội dung cho ngôn ngữ đang xem.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($revision, $locale, $content, $userId): ?SiteBlock {
+            $block = SiteBlock::query()->lockForUpdate()->find($revision->site_block_id);
+
+            if (! $block) {
+                throw ValidationException::withMessages(['revision' => 'Vùng nội dung không còn tồn tại.']);
+            }
+
+            // Forced, so the value being replaced is itself recoverable.
+            $this->snapshot($block, $userId, true);
+
+            $translations = $block->rawTranslations();
+            $translations[$locale] = $content[$locale];
+
+            $block->setRawAttributes(array_merge($block->getAttributes(), [
+                'content' => json_encode($translations, JSON_UNESCAPED_UNICODE),
+            ]));
+            $block->save();
+
+            $this->forget();
+
+            return $block;
+        });
+    }
+
     /** Drop the request-level cache so later renders in this request see the write. */
     public function forget(): void
     {
@@ -206,8 +292,20 @@ class SiteContentService
         return $this->blocks ??= SiteBlock::query()->get()->keyBy('key')->all();
     }
 
-    private function clean(string $type, string $value): string
+    private function clean(string $type, string $value, ?string $format = null): string
     {
+        if ($type === SiteBlock::TYPE_HTML && in_array($format, ['ul', 'ol'], true)) {
+            // A list region stores the wrapper as `format` and only its inner HTML
+            // as content. Purifying bare <li> nodes drops them because they have no
+            // list parent, so sanitize in the same semantic context used to render.
+            $wrapped = $this->htmlSanitizer->clean('<'.$format.'>'.trim($value).'</'.$format.'>');
+            if (preg_match('~<'.$format.'(?:\s[^>]*)?>(.*)</'.$format.'>~is', $wrapped, $matches) === 1) {
+                return trim($matches[1]);
+            }
+
+            return '';
+        }
+
         return match ($type) {
             // A single-line label has no business holding markup.
             SiteBlock::TYPE_TEXT => trim(strip_tags($value)),
@@ -222,14 +320,17 @@ class SiteContentService
      * Coalesce revisions: inline editing saves constantly and one revision per
      * keystroke is noise, not history.
      */
-    private function snapshot(SiteBlock $block, ?int $userId): void
+    private function snapshot(SiteBlock $block, ?int $userId, bool $force = false): void
     {
         if (! $block->exists) {
             // A brand-new block has nothing to snapshot.
             return;
         }
 
-        if ($block->revisions()->where('created_at', '>=', now()->subMinutes(10))->exists()) {
+        // A rollback forces one. Coalescing is right for typing — one revision per
+        // keystroke is noise — but a rollback that skipped its checkpoint would be
+        // the one operation in the editor that cannot be undone.
+        if (! $force && $block->revisions()->where('created_at', '>=', now()->subMinutes(10))->exists()) {
             return;
         }
 
@@ -238,6 +339,16 @@ class SiteContentService
             'content' => $block->rawTranslations(),
             'created_at' => now(),
         ]);
+
+        $staleIds = SiteBlockRevision::query()
+            ->where('site_block_id', $block->id)
+            ->orderByDesc('id')
+            ->skip(self::MAX_REVISIONS_PER_BLOCK)
+            ->take(1000000)
+            ->pluck('id');
+        if ($staleIds->isNotEmpty()) {
+            SiteBlockRevision::query()->whereKey($staleIds)->delete();
+        }
     }
 
     private function assertSupported(string $type, string $locale): void

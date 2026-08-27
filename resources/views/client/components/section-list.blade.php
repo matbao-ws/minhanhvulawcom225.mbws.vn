@@ -9,9 +9,10 @@
      * An ordered run of sections the template authored.
      *
      * The template declares which sections exist and what each one looks like;
-     * the database only ever stores a permutation of that declaration. An editor
-     * can put "values" above "hero", not invent a section or drop one into a place
-     * the design never had — which is the line between this and a page builder.
+     * the database only ever stores a permutation of that declaration, plus which
+     * of the shapes a section already knows how to render it should use. An editor
+     * can put "values" above "hero", or make "hero" dark and centred — not invent
+     * a section, drop one into a place the design never had, or write CSS.
      *
      * Nesting works by giving each level its own key. A section partial may render
      * another section-list under a key derived from its own name, and because a
@@ -20,7 +21,9 @@
      * "move up" at the wrong level would relocate a block across the page.
      */
     $lists = app(\App\Services\SiteListService::class);
-    $canEdit = (bool) auth()->user()?->canEditClientContent();
+    $sectionState = app(\App\Services\SiteSectionService::class);
+    $registry = app(\App\Support\SectionRegistry::class);
+    $canEdit = \App\Support\ClientEditorChrome::editorActive();
 
     $declared = array_values(array_filter(
         array_map('strval', $sections),
@@ -37,16 +40,59 @@
 @endphp
 
 @foreach($ordered as $name)
-    {{-- The wrapper exists for visitors too. Emitting it only for an editor would
-         give the same page a different DOM after login, which is how a flex or
-         grid parent silently changes shape. --}}
-    <div
-        @class(['client-section', 'client-section--editable' => $canEdit])
-        @if($canEdit)
-            data-section-list="{{ $key }}"
-            data-section-name="{{ $name }}"
-        @endif
-    >
-        @includeIf($view.$name)
-    </div>
+    @php
+        $hidden = $sectionState->isHidden($key, $name);
+        $variant = $sectionState->variant($key, $name);
+        $settings = $sectionState->settings($key, $name);
+        $presentation = $sectionState->presentation($key, $name);
+
+        /*
+         * Appearance classes render for visitors too — a variant or a background is
+         * content, not editor chrome. Only the edit hooks below are conditional.
+         */
+        $classes = array_merge(
+            ['client-section'],
+            $presentation['classes'],
+            array_filter([$registry->variantClass($name, $variant)]),
+            $canEdit ? ['client-section--editable'] : [],
+            $canEdit && $hidden ? ['client-section--hidden'] : [],
+        );
+
+        $style = collect($presentation['styles'])
+            ->map(fn (string $value, string $property): string => $property.':'.$value)
+            ->implode(';');
+    @endphp
+
+    {{-- A section an editor hid is gone for visitors, the same way an emptied
+         region is. It stays in the page for an editor, dimmed, because the only
+         other handle on it would be the outline panel and a section nobody can see
+         is a section nobody can bring back. --}}
+    @if(! $hidden || $canEdit)
+        {{-- The wrapper exists for visitors too. Emitting it only for an editor would
+             give the same page a different DOM after login, which is how a flex or
+             grid parent silently changes shape. --}}
+        <div
+            @class($classes)
+            @if($style !== '') style="{{ $style }}" @endif
+            @if($canEdit)
+                data-section-list="{{ $key }}"
+                data-section-name="{{ $name }}"
+                {{-- The human name for the outline panel. Falls back to the partial
+                     name, so a section the registry does not declare still reads as
+                     something rather than as a slug. --}}
+                data-section-label="{{ $registry->label($name) }}"
+                {{-- Present only when the registry gives this section something to
+                     change, so the editor never offers a settings panel that would
+                     open empty. --}}
+                @if($registry->has($name))
+                    data-section-configurable="1"
+                    data-section-variant="{{ $variant }}"
+                    data-section-hidden="{{ $hidden ? 'true' : 'false' }}"
+                    data-section-settings="{{ json_encode($settings, JSON_UNESCAPED_UNICODE) }}"
+                @endif
+            @endif
+        >
+            @includeIf($view.$name, ['sectionVariant' => $variant, 'sectionSettings' => $settings])
+        </div>
+    @endif
 @endforeach

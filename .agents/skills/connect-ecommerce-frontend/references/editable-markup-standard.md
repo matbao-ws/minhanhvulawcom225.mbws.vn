@@ -19,15 +19,34 @@ whole block and hope.
 | Static heading, paragraph, label, button text | `<x-client::editable key="…" tag="h2">` | Text the shop owns and no admin screen edits |
 | Static rich text: a paragraph that may need bold or a link | `<x-client::editable key="…" tag="p" html>` | Stored as HTML and sanitised, not escaped |
 | Static `<img>` that is part of the design | `<x-client::editable-image key="…" src="…" alt="…">` | Replaced from the Media library |
-| A run of identical cards, members, logos, features | `<x-client::list-item>` inside the repeated markup | An editor may add or remove one |
-| An ordered run of whole sections | `<x-client::section-list key="…" :sections="[…]">` | An editor may reorder them |
+| A run of identical cards, members, logos, features | Keep the authored run fixed by default | Storefront text editing must not silently become content creation |
+| An ordered run of whole sections | `<x-client::section-list key="…" :sections="[…]">` | An editor may reorder them, and change how each one looks |
+| A section that should offer a variant, a background, an alignment or a spacing | declare it in `App\Support\SectionRegistry` | Semantic tokens only; the registry owns the token to class map |
 | Product name, price, post title, category name, menu label, shop name, phone | **plain Blade output** | Comes from the database and has its own admin screen |
 | Anything server-rendered from a model on a CMS page | plain Blade **plus** `contenteditable="false"` on the wrapper | Keeps it out of the page's editable root |
 | Decorative markup: spacers, icons, overlays, `aria-hidden` | leave untouched | Nothing to edit |
 
-The line that matters most is row 6. **Two places to edit one field is a defect**, not a
+The line that matters most is the one about database-driven values. **Two places to edit one field is a defect**, not a
 convenience: whichever screen is saved last wins, and neither admin knows the other exists. If a
 value already has an admin screen, it is not an editable region.
+
+## Inventory before converting markup
+
+Build a page inventory from the supplied theme before replacing tags. Count and classify:
+
+- static headings, paragraphs, labels and meaningful button text;
+- `<img>`, `<picture>` and responsive sources;
+- CSS `background-image`, inline background styles and slider/carousel media;
+- repeated cards or logos;
+- structural sections and the editable regions inside each section;
+- decorative icons, overlays and `aria-hidden` media that must remain untouched.
+
+Compare the converted Blade against this inventory and resolve every missing item. Do not call a
+theme cut complete merely because all remaining `<h*>`, `<p>` and `<img>` tags were converted:
+backgrounds and script-declared slides can still be absent. Preserve the approved content and real
+asset paths; do not fill gaps with editor fixtures or placeholder copy. Meaningful backgrounds and
+slider images need the repository's editable image/background contract without changing their
+visual box; decorative backgrounds remain untouched.
 
 ## 2. Key naming
 
@@ -92,9 +111,14 @@ Classes pass through, so the region is styled by the theme exactly as before. An
 override the heading level from the toolbar; that is stored separately and falls back to this `tag`
 when cleared.
 
-## 5. Repeatable runs
+## 5. Repeated runs
 
-Wrap the repeated unit, keep the theme's wrapper classes on it:
+Keep the approved number of repeated cards, members, logos or features fixed unless the project
+explicitly requires a domain-specific repeatable-content workflow. Ordinary editable components
+must default to `appendable=false`, and the text toolbar must not create siblings.
+
+When such a workflow is explicitly approved, wrap each existing unit and keep the theme's wrapper
+classes on it:
 
 ```blade
 @foreach($lists->items('about.leadership.people', ['a1', 'a2', 'a3']) as $id)
@@ -104,17 +128,16 @@ Wrap the repeated unit, keep the theme's wrapper classes on it:
     </x-client::list-item>
 @endforeach
 
-<x-client::list-add list="about.leadership.people" :defaults="['a1', 'a2', 'a3']" label="Thêm thành viên" />
 ```
 
 Rules:
 
 - The wrapper renders for **visitors too**. Emitting it only for an editor gives the same page a
   different DOM after login, and a flex or grid parent changes shape the moment an admin signs in.
-- `:defaults` carries the ids the theme ships with, so a list nobody has edited grows from its
-  designed length rather than restarting at one.
 - Item keys are `<list>.item_<id>.<slot>`. Use the `itemKey()` helper rather than building the
   string by hand.
+- Do not reuse the generic text toolbar for creation or permanent deletion. Provide a dedicated,
+  explicitly approved list UI and validate its exact set/order server-side.
 
 ## 6. Sections and nesting
 
@@ -136,6 +159,53 @@ reordering and never becomes free placement.
 - A section removed from `:sections` stops rendering even if a stored row still names it. The
   template is the source of what exists; the database only stores order.
 - A section added to `:sections` later appears at the end rather than vanishing.
+
+### Outline structure for fixed theme sections
+
+Some imported themes have fixed sections that must not be reorderable. Give those wrappers a
+semantic, editor-only outline marker instead of inventing a stored section list. The outline must
+derive hierarchy from DOM containment:
+
+- a structural section wrapper is the parent row;
+- editable text and images contained by that wrapper are child rows;
+- nested structural wrappers form deeper levels;
+- keys label storage identity but do not define ancestry.
+
+Do not flatten all regions into top-level rows and do not render section parents without their
+editable descendants. Keep editor-only outline attributes behind the same authorization gate as
+the editable components, and never use them to alter visitor layout.
+
+### Mark layout structure explicitly
+
+The outline must also identify meaningful layout wrappers between a section and its fields. During
+the Blade cut, annotate editor-only structure with stable semantic metadata:
+
+```blade
+<div @if($canEdit) data-outline-group="services-row" data-outline-kind="row"
+     data-outline-group-label="Danh sách dịch vụ" @endif>
+    <article @if($canEdit) data-outline-group="service-card-consulting" data-outline-kind="card"
+             data-outline-group-label="Tư vấn" @endif>
+        <div @if($canEdit) data-outline-group="service-card-consulting-content"
+             data-outline-kind="content" data-outline-group-label="Nội dung card" @endif>
+            {{-- editable fields --}}
+        </div>
+    </article>
+</div>
+```
+
+Supported structural kinds are `row`, `card`, `content` and generic `group`. Derive the outline tree
+from DOM containment so it reads `Section → Row → Card → Content → Text/Image`. These wrappers are
+navigational only: they get no storage key, save endpoint, drag grip, add/delete action or visual
+layout class.
+
+For a sortable authored run, the Row owns the list key/default manifest and its Card elements are
+direct siblings with stable item ids. For a database-backed run, the Row identifies the domain
+collection and Cards carry database ids; persistence goes through that domain's reorder endpoint and
+`position`/`sort_order`, not through the authored-theme list store.
+
+Do not infer structure from utility class fragments such as `grid`, `flex`, `col-*` or `card` at
+runtime. Those names vary by framework and often describe decorative wrappers. Identify semantic
+structure while cutting the known theme and keep the marker behind the editor authorization gate.
 
 ## 7. Layout constraints the editor depends on
 
@@ -174,6 +244,11 @@ Run through this per page after cutting, before calling the cut done.
       markup and no third-party font request for editor chrome.
 - [ ] Log in as an admin with `pages.update`. Every region intended as editable outlines on hover,
       and nothing database-driven does.
+- [ ] Before pressing **Edit**, the authorized admin sees no region outline, hover border, edit
+      cursor or hidden-region placeholder. After pressing it, those affordances appear; after
+      leaving edit mode, they disappear again.
+- [ ] Reconcile the rendered editable count with the source inventory, including `<picture>`, CSS
+      backgrounds and every slider image. Verify every referenced local asset exists.
 - [ ] Scroll to the bottom, then open a region. The toolbar appears against that region, not off
       screen.
 - [ ] Bold something, save, reload. The markup survived.
@@ -181,6 +256,22 @@ Run through this per page after cutting, before calling the cut done.
       applies.
 - [ ] Hide a region, save. The layout does not collapse. Reveal it again from **Vùng đã ẩn** and
       restore it.
-- [ ] Add a box to each repeatable run. The grid or flex parent keeps its shape.
-- [ ] Open **Mục lục**. Every intended region is listed, and drag refuses to cross between levels.
+- [ ] Ordinary regions expose no add-content control. If—and only if—the project approved a
+      repeatable-list feature, add one item through that dedicated UI and verify the grid/flex parent
+      keeps its shape and the item persists for visitors.
+- [ ] In the outline, every section is a parent with its intended text/image children. Fixed
+      sections have no false reorder affordance, and drag refuses to cross between stored lists.
+- [ ] Rebuild or refresh the outline once. Eligible Card lists still have working drag handles;
+      single-item and non-persisted groups do not.
+- [ ] Repeated visual areas expose meaningful `Row → Card → Content` levels; selecting each level
+      scrolls to its real wrapper, while structural rows have no save/history/delete controls.
+- [ ] Jumping to a child or opening its tools keeps the sidebar open until its explicit minimize or
+      close button is pressed. Do not add redundant up/down arrow controls.
+- [ ] The text toolbar contains no add-content plus or permanent-delete trash control unless a
+      project explicitly approved repeatable content; ordinary editable components default to
+      non-appendable.
+- [ ] Type text, apply formatting, and switch among `p` and `h1`–`h6`; Undo and Redo traverse each
+      change, then Save/reload preserves both content and the semantic wrapper.
+- [ ] Production and theme-acceptance routes contain no editor fixture, demo-only block or
+      superseded sandbox markup.
 - [ ] `php artisan test --compact` passes.

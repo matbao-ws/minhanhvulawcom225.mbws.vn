@@ -1,6 +1,6 @@
 @php
     // Same gate as the editable root in the page view; see User::canEditClientContent().
-    $showClientAdminBar = (bool) auth()->user()?->canEditClientContent();
+    $showClientAdminBar = \App\Support\ClientEditorChrome::editorActive();
 @endphp
 
 {{--
@@ -23,6 +23,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    {{-- Vendored as a static file: this project ships no Vite or npm pipeline for
+         the client side. Loaded from inside the bar's own authorization gate, so a
+         visitor never requests it.
+
+         Lives with the bar rather than in the layout on purpose. The bar is the one
+         partial a replacement theme layout must include, so the editor can never
+         come up with its drag library missing.
+
+         `defer` runs it after parsing but before DOMContentLoaded, which is when
+         every editor partial wires itself up — so `Sortable` is defined by the time
+         the outline panel looks for it. --}}
+    <script src="{{ asset('client-assets/vendor/sortable.min.js') }}" defer></script>
+    {{-- Alpine drives the section settings panel only; the rest of the editor is
+         vanilla. Note the bootstrap order this creates: Alpine's CDN build starts
+         itself in a microtask as soon as this file runs, which `defer` places before
+         DOMContentLoaded — so `alpine:init` fires before the bar below publishes
+         `window.clientBlocks`. The panel is written to expect that. --}}
+    <script src="{{ asset('client-assets/vendor/alpine.min.js') }}" defer></script>
 
     <style>
         #client-admin-bar {
@@ -218,6 +237,14 @@
             <span class="client-admin-bar__label">Mục lục</span>
         </button>
 
+        {{-- Wired by client.partials.inline-viewport; stays hidden if that partial
+             is not on the page, so the bar never shows a dead control. --}}
+        <button type="button" id="client-viewport-button" class="client-admin-bar__outline" hidden
+                title="Xem trước theo khổ máy" aria-label="Xem trước theo khổ máy" aria-expanded="false">
+            <svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="14" height="10" rx="1.5"/><rect x="17" y="9" width="5" height="11" rx="1.5"/></svg>
+            <span class="client-admin-bar__label">Khổ máy</span>
+        </button>
+
         <button type="button" id="client-admin-bar-collapse" class="client-admin-bar__collapse"
                 title="Thu gọn thanh công cụ" aria-label="Thu gọn thanh công cụ">
             <svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -245,28 +272,28 @@
              * Region affordances. Namespaced, high specificity and !important
              * throughout: imported theme CSS will otherwise win and hide them.
              */
-            [data-block-key] {
+            body.client-edit-active [data-block-key] {
                 outline: 1px dashed rgba(93, 135, 255, .55) !important;
                 outline-offset: 2px !important;
                 cursor: text !important;
                 position: relative !important;
             }
-            [data-block-key]:hover {
+            body.client-edit-active [data-block-key]:hover {
                 outline: 2px dashed #5d87ff !important;
             }
-            [data-block-key][data-block-type="image"] {
+            body.client-edit-active [data-block-key][data-block-type="image"] {
                 cursor: pointer !important;
             }
             /* An emptied region renders nothing, so revealing it needs a box of
                its own to aim at. */
-            body.client-reveal-hidden .client-block-empty,
-            body.client-reveal-hidden .client-block-cleared {
+            body.client-edit-active.client-reveal-hidden .client-block-empty,
+            body.client-edit-active.client-reveal-hidden .client-block-cleared {
                 display: inline-block !important;
                 min-height: 22px !important;
                 min-width: 64px !important;
                 outline: 1px dashed rgba(217, 72, 15, .5) !important;
             }
-            [data-block-key][contenteditable="true"] {
+            body.client-edit-active [data-block-key][contenteditable="true"] {
                 outline: 2px solid #087f5b !important;
                 background: rgba(8, 127, 91, .06) !important;
             }
@@ -513,6 +540,17 @@
             const blockRestoreUrl = @json(route('admin.site-blocks.restore', ['locale' => app()->getLocale()]));
             const listItemsUrl = @json(route('admin.site-lists.items.store', ['locale' => app()->getLocale()]));
             const listReorderUrl = @json(route('admin.site-lists.items.reorder', ['locale' => app()->getLocale()]));
+            // One URL for both verbs: PATCH queues through Lưu, DELETE is the
+            // immediate "back to the template" the settings panel offers.
+            const sectionsUrl = @json(route('admin.site-sections.update', ['locale' => app()->getLocale()]));
+            // History. The restore paths are generated with a placeholder id so the
+            // route name stays the single source of the path shape — building
+            // '/admin/site-blocks/revisions/' + id by hand in JavaScript is how a URL
+            // silently survives a route rename.
+            const blockRevisionsUrl = @json(route('admin.site-blocks.revisions.index', ['locale' => app()->getLocale()]));
+            const blockRevisionRestoreUrl = @json(route('admin.site-blocks.revisions.restore', ['locale' => app()->getLocale(), 'revision' => '__ID__']));
+            const sectionRevisionsUrl = @json(route('admin.site-sections.revisions.index', ['locale' => app()->getLocale()]));
+            const sectionRevisionRestoreUrl = @json(route('admin.site-sections.revisions.restore', ['locale' => app()->getLocale(), 'revision' => '__ID__']));
             const csrfToken = @json(csrf_token());
             const contentLocale = @json(app()->getLocale());
 
@@ -600,6 +638,9 @@
                 if (!dirtyRegions.has(element)) {
                     dirtyRegions.set(element, {
                         html: element.dataset.blockEntryHtml ?? element.innerHTML,
+                        tag: element.dataset.blockEntryTag || element.getAttribute('data-block-base-tag') || element.tagName.toLowerCase(),
+                        className: element.dataset.blockEntryClass ?? element.className,
+                        format: element.dataset.blockEntryFormat || null,
                         src: element.getAttribute('src'),
                         key: element.getAttribute('data-block-key'),
                         type: element.getAttribute('data-block-type') || 'text',
@@ -614,8 +655,36 @@
                 syncControls();
             }
 
+            /*
+             * Editor surfaces outside this file — the section settings panel — queue
+             * their work here instead of writing it themselves.
+             *
+             * Edit mode has exactly one owner, and a second Save button would let two
+             * of them disagree about what is pending. Note what a contributor may not
+             * do: call `markDirty()` to make Save appear. That flag also drives
+             * `savePageBody()`, so on a CMS page it would rewrite the entire
+             * `published_html` because somebody changed one section's background.
+             *
+             * A contributor answers three questions: is anything queued, write it, put
+             * it back. `save()` runs last — after structure and after content — because
+             * nothing it writes depends on an id the server has yet to issue.
+             */
+            const savers = [];
+
+            function pendingSavers() {
+                return savers.filter(function (saver) {
+                    try {
+                        return saver.pending();
+                    } catch (error) {
+                        if (window.console) console.error(error);
+
+                        return false;
+                    }
+                });
+            }
+
             function hasPending() {
-                return dirty || dirtyRegions.size > 0;
+                return dirty || dirtyRegions.size > 0 || pendingSavers().length > 0;
             }
 
             /**
@@ -742,7 +811,10 @@
                     element.innerHTML = payload.data.value ?? '';
                     element.classList.toggle('client-block-empty', Boolean(payload.data.cleared));
                 }
-                delete element.dataset.blockEntryHtml;
+                element.dataset.blockEntryHtml = element.innerHTML;
+                element.dataset.blockEntryTag = element.tagName.toLowerCase();
+                element.dataset.blockEntryClass = element.className;
+                element.dataset.blockEntryFormat = element.getAttribute('data-block-format') || '';
             }
 
             function errorText(payload, fallback) {
@@ -762,6 +834,9 @@
                     for (const [element, snapshot] of Array.from(dirtyRegions.entries())) {
                         await saveRegion(element, snapshot);
                         dirtyRegions.delete(element);
+                    }
+                    for (const saver of pendingSavers()) {
+                        await saver.save();
                     }
                     syncControls();
                     setStatus('Đã lưu');
@@ -787,10 +862,34 @@
                     if (snapshot.type === 'image') {
                         if (snapshot.src !== null) element.setAttribute('src', snapshot.src);
                     } else {
-                        element.innerHTML = snapshot.html;
+                        let restored = element;
+                        if (element.tagName.toLowerCase() !== snapshot.tag) {
+                            const wasActive = activeRegion === element;
+                            restored = document.createElement(snapshot.tag);
+                            Array.from(element.attributes).forEach(function (attribute) {
+                                restored.setAttribute(attribute.name, attribute.value);
+                            });
+                            element.replaceWith(restored);
+                            if (wasActive) activeRegion = restored;
+                        }
+                        restored.innerHTML = snapshot.html;
+                        restored.className = snapshot.className;
+                        restored.setAttribute('data-block-type', snapshot.type);
+                        if (snapshot.format) restored.setAttribute('data-block-format', snapshot.format);
+                        else restored.removeAttribute('data-block-format');
+                        element = restored;
                     }
                     closeRegion(element);
                     delete element.dataset.blockEntryHtml;
+                });
+
+                pendingSavers().forEach(function (saver) {
+                    try {
+                        saver.revert();
+                    } catch (error) {
+                        // One broken contributor must not strand the rest mid-revert.
+                        if (window.console) console.error(error);
+                    }
                 });
 
                 clearDirty();
@@ -831,6 +930,9 @@
             function openRegion(element) {
                 if (element.getAttribute('contenteditable') === 'true') return;
                 element.dataset.blockEntryHtml = element.innerHTML;
+                element.dataset.blockEntryTag = element.tagName.toLowerCase();
+                element.dataset.blockEntryClass = element.className;
+                element.dataset.blockEntryFormat = element.getAttribute('data-block-format') || '';
                 element.setAttribute('contenteditable', 'true');
                 element.focus();
                 activeRegion = element;
@@ -928,9 +1030,36 @@
                 on: function (name, callback) {
                     if (blockListeners[name]) blockListeners[name].push(callback);
                 },
+                /**
+                 * Queue work through this bar's Save and Huỷ.
+                 *
+                 * `saver` is `{ pending(): boolean, save(): Promise, revert(): void }`.
+                 * Call `refreshPending()` whenever `pending()` would start or stop
+                 * answering true, so the buttons appear and disappear with it.
+                 */
+                registerSaver: function (saver) {
+                    if (saver && typeof saver.pending === 'function'
+                        && typeof saver.save === 'function'
+                        && typeof saver.revert === 'function') {
+                        savers.push(saver);
+                    }
+                },
+                refreshPending: function () {
+                    syncControls();
+                },
                 locale: contentLocale,
                 csrf: csrfToken,
-                urls: { block: blockUrl, restore: blockRestoreUrl, listItems: listItemsUrl, reorder: listReorderUrl },
+                urls: {
+                    block: blockUrl,
+                    restore: blockRestoreUrl,
+                    listItems: listItemsUrl,
+                    reorder: listReorderUrl,
+                    sections: sectionsUrl,
+                    blockRevisions: blockRevisionsUrl,
+                    blockRevisionRestore: blockRevisionRestoreUrl,
+                    sectionRevisions: sectionRevisionsUrl,
+                    sectionRevisionRestore: sectionRevisionRestoreUrl,
+                },
             };
 
             toggleButton.addEventListener('click', function () {

@@ -14,7 +14,7 @@
          this attribute; it does not have to reproduce the id convention. It is
          emitted only for an admin who may edit — a guest gets no hook at all. --}}
     <main id="client-page-{{ $page->id }}"
-          @if(auth()->user()?->canEditClientContent()) data-client-editable-root @endif
+          @if(\App\Support\ClientEditorChrome::editorActive()) data-client-editable-root @endif
           translate="no" class="notranslate">
         {!! $html !!}
     </main>

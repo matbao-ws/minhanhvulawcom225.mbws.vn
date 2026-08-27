@@ -22,8 +22,13 @@ Không suy diễn nội dung hợp đồng từ file này. Đây chỉ là con t
 ## Vài điều dễ sai nhất
 
 - Không multi-tenant. Không thêm React/Vue/Inertia/Livewire/Vite khi chưa được yêu cầu rõ.
-- **Không có page builder.** GrapesJS và `PageBuilderService` đã bị gỡ; inline editing dùng
-  `contenteditable` thuần. Đừng dựng lại.
+- **Không có page builder.** GrapesJS và `PageBuilderService` đã bị gỡ; sửa chữ dùng
+  `contenteditable` thuần, không thư viện. Đừng dựng lại.
+- SortableJS và Alpine **được phép**, chỉ cho panel của editor, vendor tĩnh trong
+  `public/client-assets/vendor/`, nạp trong cổng quyền. `admin-bar` vẫn là chủ sở hữu duy nhất của
+  edit mode; panel đăng ký vào luồng Lưu qua `clientBlocks.registerSaver`.
+- Hiển thị section (variant, màu nền, căn lề, spacing) lưu **token** trong `site_sections`, không bao
+  giờ lưu tên class. `App\Support\SectionRegistry` là nguồn sự thật duy nhất và map token → class.
 - Media của site lưu **path tương đối** qua `App\Support\MediaUrl`; không ghi URL tuyệt đối vào DB.
 - Truy vấn đọc phục vụ cả API và Blade phải nằm trong service dùng chung
   (`Catalog\ProductQueryService`), không viết inline trong controller.

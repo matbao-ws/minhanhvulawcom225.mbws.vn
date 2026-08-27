@@ -167,13 +167,24 @@ class EditableMarkupStandardTest extends TestCase
         $layout = file_get_contents(resource_path('views/client/layouts/app.blade.php'));
 
         $tail = substr($layout, strpos($layout, '@yield(\'content\')'));
-        foreach (['admin-bar', 'inline-blocks', 'inline-outline'] as $partial) {
+        foreach (['admin-bar', 'inline-blocks', 'inline-outline', 'inline-section-panel'] as $partial) {
             $this->assertStringContainsString("@include('client.partials.{$partial}')", $tail);
         }
-        // Nothing may wrap them.
-        $this->assertMatchesRegularExpression(
-            '/@include\(\'client\.partials\.inline-outline\'\)\s*<\/body>/',
-            $layout,
+
+        /*
+         * Nothing may wrap them: from the first editor include to </body> there is
+         * no element at all, only includes and comments. Asserted this way rather
+         * than by pinning one partial as the last one — the set grows, and an
+         * assertion that breaks when it does teaches nothing about the rule it
+         * guards.
+         */
+        $chrome = substr($tail, strpos($tail, "@include('client.partials.admin-bar')"));
+        $chrome = substr($chrome, 0, strpos($chrome, '</body>'));
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/<[a-zA-Z\/]/',
+            $chrome,
+            'editor chrome bị bọc trong một thẻ nào đó',
         );
     }
 

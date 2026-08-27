@@ -26,7 +26,7 @@ Route::get('chuyen-muc/{slug}', [PostCategoryController::class, 'show'])
  * has been signed off, or keep it as the place to reproduce editor bugs.
  */
 if (app()->environment(['local', 'testing'])) {
-    Route::view('sandbox/inline-editor', 'client.dev.toolbar-sandbox')
+    Route::view('sandbox/inline-editor', 'client.dev.theme-sandbox')
         ->name('dev.toolbar-sandbox');
     Route::view('sandbox/inline-editor-stress', 'client.dev.toolbar-stress')
         ->name('dev.toolbar-stress');

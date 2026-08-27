@@ -2,14 +2,14 @@
     'key',
     'src',
     'alt' => '',
-    'appendable' => true,
+    'appendable' => false,
 ])
 
 @php
     $site = app(\App\Services\SiteContentService::class);
     $lists = app(\App\Services\SiteListService::class);
     // Replacing an image needs the media permission on top of content editing.
-    $canEdit = auth()->user()?->canEditClientContent() && auth()->user()->can('media.view');
+    $canEdit = \App\Support\ClientEditorChrome::editorActive() && auth()->user()->can('media.view');
 
     // Images an editor added after this one. Same shape, same classes — the
     // template still owns what an image in this slot looks like.

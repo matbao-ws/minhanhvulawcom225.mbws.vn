@@ -24,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
         // Same reason: a repeatable region asks for its item ids once per render,
         // and a page can hold many of them.
         $this->app->scoped(\App\Services\SiteListService::class);
+        // Same again: every section on the page asks how it should render.
+        $this->app->scoped(\App\Services\SiteSectionService::class);
 
         $this->app->bind(
             \App\Contracts\TranslationProvider::class,
