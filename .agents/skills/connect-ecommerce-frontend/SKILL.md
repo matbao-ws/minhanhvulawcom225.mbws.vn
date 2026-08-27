@@ -14,10 +14,13 @@ description: Build or import a storefront HTML theme, cut a root `theme/` design
    directory is supplied or the storefront belongs in this Laravel repository.
 4. Read [inline-admin-editing.md](references/inline-admin-editing.md) whenever creating or replacing
    a client layout, rendering CMS Pages, or changing the storefront admin bar/editor.
-5. Read [api-contracts.md](references/api-contracts.md) before connecting live data.
-6. Inspect `routes/api.php`, the relevant API controller, Resource, and feature tests.
-7. Inspect `public/docs/openapi.json`, but resolve any mismatch in favor of executable code/tests.
-8. Identify whether the storefront is same-origin or cross-origin before choosing auth/storage/CORS
+5. Read [editable-markup-standard.md](references/editable-markup-standard.md) **before** marking any
+   region editable while cutting a theme. Read it during the cut, not after: an editable key is the
+   primary key of content an admin has already saved, and renaming one abandons their work.
+6. Read [api-contracts.md](references/api-contracts.md) before connecting live data.
+7. Inspect `routes/api.php`, the relevant API controller, Resource, and feature tests.
+8. Inspect `public/docs/openapi.json`, but resolve any mismatch in favor of executable code/tests.
+9. Identify whether the storefront is same-origin or cross-origin before choosing auth/storage/CORS
    behavior.
 
 Do not invent endpoints or fields from UI labels.

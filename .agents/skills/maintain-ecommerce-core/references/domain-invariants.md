@@ -16,7 +16,9 @@
 - One installation and database serve one customer project.
 - Do not add tenant IDs or tenant-aware global scopes.
 - Feature availability comes from `feature_settings` through `FeatureGate`.
-- Do not gate runtime behavior by legacy package/subscription codes.
+- Do not gate runtime behavior by package or subscription codes. That cluster — packages,
+  package_features, project_subscription, addons, invoices — has been removed: it billed the
+  vendor's own plans, not the shop's business. FeatureGate reads feature_settings directly.
 - Preserve the existing superadmin feature bypass unless the user explicitly changes policy.
 
 ## Identity and ownership
@@ -104,6 +106,25 @@ Legacy variant movements may have different restoration semantics; preserve the 
 - Browser return never mutates the payment state.
 - IPN owns payment mutation and transaction idempotency.
 - Remove secure hashes/secrets before persistence or logging.
+
+### SePay
+
+- SePay watches a bank account instead of redirecting: checkout hands the customer a VietQR
+  image plus a payment code, and the webhook that follows is the only thing that may settle
+  the order. Nothing the storefront reports back changes payment state.
+- The QR host is fixed in `SePayService`; operators configure a bank code and account number,
+  never a URL.
+- The payment code is `order_number` without its separator, optionally prefixed. `Order::NUMBER_PREFIX`
+  and `Order::NUMBER_RANDOM_LENGTH` define that shape for both the generator and the matcher —
+  changing the order-number format without them breaks webhook matching silently.
+- Authenticate every webhook: HMAC-SHA256 over `{timestamp}.{raw_body}` when SePay signs the call
+  (with a timestamp window against replay), API key otherwise. An unconfigured secret is never
+  "no authentication needed".
+- Ignore `transferType=out` and transfers landing on an account other than the configured one.
+- `id` is the idempotency key. Settle on `transferAmount >= grand_total`; record an underpayment
+  as a transaction without touching order state.
+- Answer `{"success": true}` for every outcome already reasoned about so SePay stops retrying;
+  reserve a 5xx for failures that genuinely need redelivery.
 
 ### GHTK
 

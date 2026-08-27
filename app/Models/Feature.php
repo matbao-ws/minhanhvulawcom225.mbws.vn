@@ -12,11 +12,4 @@ class Feature extends Model
         'description',
         'value_type',
     ];
-
-    public function packages()
-    {
-        return $this->belongsToMany(Package::class, 'package_features')
-            ->withPivot(['is_enabled', 'limit_value', 'config'])
-            ->withTimestamps();
-    }
 }

@@ -1,0 +1,402 @@
+/*
+ * Storefront shell. Static asset, no build step — this project ships no Vite
+ * or npm pipeline for the client side.
+ */
+
+:root {
+    --client-ink: #172033;
+    --client-muted: #526078;
+    --client-line: #e6eaf0;
+    --client-accent: #2563eb;
+    --client-shell: 1120px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    color: var(--client-ink);
+    font: 16px/1.65 Arial, Helvetica, sans-serif;
+    background: #fff;
+}
+
+img { max-width: 100%; height: auto; }
+
+a { color: var(--client-accent); }
+
+.client-shell {
+    max-width: var(--client-shell);
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Header ------------------------------------------------------------------ */
+
+.client-header {
+    border-bottom: 1px solid var(--client-line);
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.client-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 68px;
+}
+
+.client-brand {
+    font-weight: 800;
+    font-size: 19px;
+    text-decoration: none;
+    color: var(--client-ink);
+    white-space: nowrap;
+}
+
+/* Navigation -------------------------------------------------------------- */
+
+.client-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.client-nav-item { position: relative; }
+
+.client-nav-item > a,
+.client-nav-item > span {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--client-ink);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.client-nav-item > a:hover { background: #eef2ff; color: var(--client-accent); }
+
+/* An item with no resolvable target is text, not a link. */
+.client-nav-item > span { color: var(--client-muted); cursor: default; }
+
+/* Submenus: hover on desktop, always stacked on narrow screens. */
+.client-nav-list .client-nav-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    flex-direction: column;
+    gap: 0;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--client-line);
+    border-radius: 10px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, .12);
+    z-index: 50;
+}
+
+.client-nav-item:hover > .client-nav-list,
+.client-nav-item:focus-within > .client-nav-list { display: flex; }
+
+@media (max-width: 860px) {
+    .client-header__inner { flex-direction: column; align-items: stretch; padding: 12px 0; }
+    .client-nav-list { flex-direction: column; }
+    .client-nav-list .client-nav-list {
+        display: flex;
+        position: static;
+        border: 0;
+        box-shadow: none;
+        padding: 0 0 0 16px;
+    }
+}
+
+/* Listing pages ----------------------------------------------------------- */
+
+.client-page-head { padding: 48px 0 8px; }
+.client-page-head h1 { font-size: 38px; line-height: 1.15; margin: 0 0 10px; }
+.client-page-head p { color: var(--client-muted); margin: 0; max-width: 720px; }
+
+.client-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+    padding: 32px 0 56px;
+}
+
+.client-card {
+    border: 1px solid var(--client-line);
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.client-card:hover { box-shadow: 0 14px 34px rgba(15, 23, 42, .1); transform: translateY(-2px); }
+
+.client-card__media {
+    aspect-ratio: 4 / 3;
+    background: #f4f6f9;
+    display: block;
+    object-fit: cover;
+    width: 100%;
+}
+
+.client-card__body { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.client-card__title { font-size: 16px; font-weight: 700; margin: 0; }
+.client-card__meta { color: var(--client-muted); font-size: 14px; margin: 0; }
+.client-card__price { font-weight: 800; color: var(--client-accent); }
+
+.client-empty {
+    padding: 64px 0;
+    text-align: center;
+    color: var(--client-muted);
+}
+
+.client-pagination { padding: 0 0 56px; }
+.client-pagination nav { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Footer ------------------------------------------------------------------ */
+
+.client-footer {
+    border-top: 1px solid var(--client-line);
+    background: #f8fafc;
+    padding: 40px 0 32px;
+    margin-top: 24px;
+}
+
+.client-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.client-footer .client-nav-list { flex-direction: column; gap: 0; }
+.client-footer .client-nav-list .client-nav-list { position: static; display: flex; border: 0; box-shadow: none; padding-left: 14px; }
+.client-footer__note { color: var(--client-muted); font-size: 14px; margin: 0; max-width: 420px; }
+
+/* Editable regions -------------------------------------------------------- */
+
+/* Rendered only for an admin: a region emptied on purpose still needs a
+   handle, or it can never be restored. */
+.client-block-empty {
+    min-height: 20px;
+    min-width: 60px;
+    display: inline-block;
+}
+
+/* ---------------------------------------------------------------------------
+   Inline editor sandbox (local only). Plain layout on purpose: the point is to
+   exercise the toolbar against ordinary block, grid and image contexts, not to
+   demonstrate a design.
+   -------------------------------------------------------------------------- */
+.client-sandbox {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 96px;
+}
+
+.client-sandbox h2 {
+    border-top: 1px solid var(--client-line);
+    font-size: 18px;
+    margin: 28px 0 0;
+    padding-top: 20px;
+}
+
+.client-sandbox__note {
+    color: var(--client-muted);
+    font-size: 14px;
+    margin: 0;
+}
+
+.client-sandbox__image {
+    border: 1px solid var(--client-line);
+    border-radius: 8px;
+    display: block;
+    max-width: 240px;
+}
+
+.client-sandbox__grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.client-sandbox__card {
+    background: #fff;
+    border: 1px solid var(--client-line);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.client-sandbox__section {
+    background: #fff;
+    border: 1px solid var(--client-line);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 14px 16px;
+}
+
+.client-sandbox__section h3 {
+    font-size: 15px;
+    margin: 0 0 6px;
+}
+
+.client-sandbox__child {
+    background: var(--client-soft, #f6f8fc);
+    border: 1px dashed var(--client-line);
+    border-radius: 6px;
+    margin-top: 8px;
+    padding: 10px 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Inline editor stress page (local only).
+   Each block reproduces a layout that has broken this class of tool: an absolute
+   overlay, an auto-fill grid, a tight flex row, a transformed ancestor, a
+   clipping parent, and a table. Deliberately unpretty — it exists to fail here
+   rather than on a customer site.
+   -------------------------------------------------------------------------- */
+.stress-hero {
+    position: relative;
+    min-height: 380px;
+    overflow: hidden;
+    margin-bottom: 32px;
+}
+
+.stress-hero__media {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(115deg, rgba(16, 32, 60, .86), rgba(32, 77, 164, .72)),
+        repeating-linear-gradient(45deg, #24324a 0 22px, #1d293d 22px 44px);
+}
+
+/* Absolute overlay: the toolbar must anchor to the region, not slide under this. */
+.stress-hero__overlay {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 32px 24px;
+    max-width: var(--client-shell);
+    margin: 0 auto;
+    color: #fff;
+}
+
+.stress-hero__eyebrow {
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 12px;
+    margin: 0 0 8px;
+    opacity: .82;
+}
+
+.stress-hero__title { font-size: clamp(22px, 4vw, 34px); margin: 0 0 10px; }
+.stress-hero__lead  { margin: 0; max-width: 44rem; opacity: .92; }
+
+.stress-block { padding-bottom: 8px; }
+.stress-block h2 {
+    border-top: 1px solid var(--client-line);
+    font-size: 18px;
+    margin: 30px 0 6px;
+    padding-top: 20px;
+}
+
+.stress-note { color: var(--client-muted); font-size: 14px; margin: 0 0 12px; }
+.stress-note code {
+    background: #eef1f6;
+    border-radius: 4px;
+    font-size: 13px;
+    padding: 1px 5px;
+}
+
+/* A scroll distance long enough that a fixed control positioned with the page
+   offset lands off screen. */
+.stress-tall { min-height: 70vh; display: flex; align-items: flex-end; }
+.stress-tall--end { min-height: 60vh; }
+
+.stress-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.stress-card {
+    background: #fff;
+    border: 1px solid var(--client-line);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+/* Tight row: a region emptied here must not collapse the line. */
+.stress-flex { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stress-pill {
+    background: #eef1f6;
+    border-radius: 999px;
+    display: inline-block;
+    padding: 7px 15px;
+}
+
+/* transform creates a containing block; position: fixed inside anchors to it. */
+.stress-transformed {
+    transform: translateZ(0) scale(1);
+    background: #fff;
+    border: 1px dashed #c3ccda;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.stress-clipped {
+    overflow: hidden;
+    max-height: 96px;
+    background: #fff;
+    border: 1px dashed #c3ccda;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.stress-section {
+    background: #fff;
+    border: 1px solid var(--client-line);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 14px 16px;
+}
+.stress-section h3 { font-size: 15px; margin: 0 0 6px; }
+
+.stress-subsection {
+    background: #f6f8fc;
+    border: 1px dashed var(--client-line);
+    border-radius: 6px;
+    margin-top: 8px;
+    padding: 10px 12px;
+}
+.stress-subsection h4 { font-size: 14px; margin: 0 0 4px; }
+
+.stress-leaf {
+    background: #fff;
+    border-left: 3px solid #c3ccda;
+    margin-top: 6px;
+    padding: 8px 10px;
+}
+
+.stress-table { border-collapse: collapse; width: 100%; }
+.stress-table th,
+.stress-table td {
+    border-bottom: 1px solid var(--client-line);
+    padding: 10px 12px;
+    text-align: left;
+}

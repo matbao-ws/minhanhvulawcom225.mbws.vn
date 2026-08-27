@@ -67,16 +67,78 @@
                     </div>
                 @elseif($method->method_code === 'sepay')
                     @php
+                        $bankCode = data_get($method->settings, 'bank_code', '');
+                        $accountNumber = data_get($method->settings, 'account_number', '');
+                        $accountHolder = data_get($method->settings, 'account_holder', '');
                         $apiKey = data_get($method->settings, 'api_key', '');
+                        $webhookToken = data_get($method->settings, 'webhook_token', '');
+                        $webhookSecret = data_get($method->settings, 'webhook_secret', '');
+                        $paymentPrefix = data_get($method->settings, 'payment_prefix', '');
+                        $qrTemplate = data_get($method->settings, 'qr_template', 'compact');
+                        $instructions = data_get($method->settings, 'instructions', '');
                     @endphp
                     <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="api_key">API Key <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control text-dark" id="api_key" name="api_key" 
-                                value="{{ old('api_key', $apiKey) }}" placeholder="Nhập Sepay API Key" required>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="bank_code">{{ __('admin.payment_methods.sepay_bank_code') }} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-dark" id="bank_code" name="bank_code"
+                                value="{{ old('bank_code', $bankCode) }}" placeholder="Vietcombank, MBBank, ACB..." required>
+                            <div class="form-text text-muted">{{ __('admin.payment_methods.sepay_bank_code_hint') }}</div>
                         </div>
-                        <div class="col-12">
-                            <div class="alert alert-warning mb-0">{{ __('admin.payment_methods.integration_unavailable') }}</div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="account_number">{{ __('admin.payment_methods.sepay_account_number') }} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-dark" id="account_number" name="account_number"
+                                value="{{ old('account_number', $accountNumber) }}" placeholder="0123456789" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="account_holder">{{ __('admin.payment_methods.sepay_account_holder') }}</label>
+                            <input type="text" class="form-control text-dark" id="account_holder" name="account_holder"
+                                value="{{ old('account_holder', $accountHolder) }}" placeholder="NGUYEN VAN A">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="payment_prefix">{{ __('admin.payment_methods.sepay_payment_prefix') }}</label>
+                            <input type="text" class="form-control text-dark" id="payment_prefix" name="payment_prefix"
+                                value="{{ old('payment_prefix', $paymentPrefix) }}" placeholder="SEVQR">
+                            <div class="form-text text-muted">{{ __('admin.payment_methods.sepay_payment_prefix_hint') }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="qr_template">{{ __('admin.payment_methods.sepay_qr_template') }}</label>
+                            <select class="form-select text-dark" id="qr_template" name="qr_template">
+                                @foreach(\App\Services\SePayService::QR_TEMPLATES as $template)
+                                    <option value="{{ $template }}" @selected(old('qr_template', $qrTemplate) === $template)>{{ $template }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="api_key">{{ __('admin.payment_methods.sepay_api_key') }}</label>
+                            <input type="password" class="form-control text-dark" id="api_key" name="api_key"
+                                value="{{ old('api_key', $apiKey) }}" placeholder="Nhập SePay API Token" autocomplete="off">
+                            <div class="form-text text-muted">{{ __('admin.payment_methods.sepay_api_key_hint') }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="webhook_token">{{ __('admin.payment_methods.sepay_webhook_token') }}</label>
+                            <input type="text" class="form-control text-dark font-monospace small" id="webhook_token" name="webhook_token"
+                                value="{{ old('webhook_token', $webhookToken) }}" autocomplete="off">
+                            <div class="form-text text-muted">{{ __('admin.payment_methods.sepay_webhook_token_hint') }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="webhook_secret">{{ __('admin.payment_methods.sepay_webhook_secret') }}</label>
+                            <input type="password" class="form-control text-dark" id="webhook_secret" name="webhook_secret"
+                                value="{{ old('webhook_secret', $webhookSecret) }}" autocomplete="off">
+                            <div class="form-text text-muted">{{ __('admin.payment_methods.sepay_webhook_secret_hint') }}</div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="instructions">{{ __('admin.payment_methods.sepay_instructions') }}</label>
+                            <textarea class="form-control text-dark" id="instructions" name="instructions" rows="3"
+                                placeholder="{{ __('admin.payment_methods.sepay_instructions_placeholder') }}">{{ old('instructions', $instructions) }}</textarea>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-semibold text-dark">{{ __('admin.payment_methods.webhook_url_label') }}</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light text-dark font-monospace small" id="sepay_webhook_url"
+                                    value="{{ route('api.webhooks.sepay') }}" readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="copySepayWebhookUrl()">{{ __('admin.payment_methods.copy') }}</button>
+                            </div>
+                            <div class="form-text text-muted">{{ __('admin.payment_methods.webhook_url_hint') }}</div>
                         </div>
                     </div>
                 @elseif($method->method_code === 'bank_transfer')
@@ -132,4 +194,15 @@
             </form>
         </div>
     </div>
+
+    @if($method->method_code === 'sepay')
+        <script>
+            function copySepayWebhookUrl() {
+                const field = document.getElementById('sepay_webhook_url');
+                navigator.clipboard.writeText(field.value).then(function () {
+                    alert(@json(__('admin.payment_methods.copied_notification')));
+                });
+            }
+        </script>
+    @endif
 @endsection

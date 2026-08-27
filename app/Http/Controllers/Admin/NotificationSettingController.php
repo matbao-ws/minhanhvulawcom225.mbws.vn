@@ -163,6 +163,10 @@ class NotificationSettingController extends Controller
             ['setting_value' => $settingsData]
         );
 
+        // The resolved SMTP config is cached; without this the shop keeps sending
+        // through the old credentials for up to five minutes after saving.
+        \App\Services\MailSettings::flush();
+
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,

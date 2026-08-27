@@ -8,16 +8,14 @@
     @section('meta_description', $metaDescription)
 @endif
 
-@push('styles')
-<style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; color: #20242a; font-family: Arial, sans-serif; }
-    img { max-width: 100%; }
-</style>
-@endpush
-
 @section('content')
-    <main id="client-page-{{ $page->id }}" translate="no" class="notranslate">
+    {{-- data-client-editable-root is what the inline editor looks for. A theme
+         layout that renders page content in its own wrapper only has to carry
+         this attribute; it does not have to reproduce the id convention. It is
+         emitted only for an admin who may edit — a guest gets no hook at all. --}}
+    <main id="client-page-{{ $page->id }}"
+          @if(auth()->user()?->canEditClientContent()) data-client-editable-root @endif
+          translate="no" class="notranslate">
         {!! $html !!}
     </main>
 @endsection

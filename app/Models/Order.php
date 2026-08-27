@@ -9,6 +9,19 @@ class Order extends Model
 {
     use HasFactory;
 
+    /**
+     * Shape of `order_number`: NUMBER_PREFIX followed by NUMBER_RANDOM_LENGTH
+     * uppercase alphanumerics.
+     *
+     * Bank transfer content strips punctuation, so SePay's payment code is the
+     * order number without its separator. Both directions of that mapping read
+     * these constants — see App\Services\SePayService — so the format stays
+     * defined in exactly one place.
+     */
+    public const NUMBER_PREFIX = 'ORD-';
+
+    public const NUMBER_RANDOM_LENGTH = 10;
+
     public const SHIPPING_STATUSES = [
         'not_shipped',
         'shipping_pending',

@@ -152,6 +152,21 @@ class User extends Authenticatable
         return array_values(array_unique(array_filter($codes, PermissionRegistry::has(...))));
     }
 
+    /**
+     * Whether this account may edit page content in place on the storefront.
+     *
+     * The gate lives here so the page view and the editor partial cannot drift:
+     * a guest must receive no admin bar, no editor script and no `data-*` hook.
+     * `can()` alone is not enough — the permission gate does not know about
+     * deactivated accounts.
+     */
+    public function canEditClientContent(): bool
+    {
+        return $this->is_active
+            && $this->role_id !== null
+            && $this->can('pages.update');
+    }
+
     public function forgetPermissionOverrideCache(): void
     {
         $this->permissionOverrideMap = null;

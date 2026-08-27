@@ -111,8 +111,13 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
+        // This screen manages staff accounts only. Customers are users with no role
+        // and belong on the customers screen; without this a superadmin saw every
+        // shopper listed here, because the visibility filter below — which excludes
+        // them as a side effect of joining `roles` — only applies to everyone else.
         $query = User::query()
-            ->with('role');
+            ->with('role')
+            ->whereNotNull('role_id');
 
         if (! auth()->user()->isSuperAdmin()) {
             $query->whereHas('role', function ($q) {

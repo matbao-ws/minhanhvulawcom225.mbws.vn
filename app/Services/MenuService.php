@@ -39,7 +39,7 @@ class MenuService
 
         $grouped = $menu->items()
             ->where('is_active', true)
-            ->with(['page.localizedSlugs', 'category', 'postCategory'])
+            ->with(['page.localizedSlugs', 'category.localizedSlugs', 'postCategory.localizedSlugs'])
             ->get()
             ->groupBy('parent_id');
 
@@ -76,9 +76,9 @@ class MenuService
     /**
      * Storefront URL for an item, or null when nothing can be linked yet.
      *
-     * Catalog and blog category targets resolve to null on purpose: this core
-     * ships no storefront route for them, and inventing one would produce a
-     * link straight to a 404. They start working the moment such a route lands.
+     * Null is still a real answer: an item whose target record was deleted has
+     * nowhere to point, and the renderer shows it as plain text rather than a
+     * link into a 404.
      */
     public function resolveUrl(MenuItem $item, ?string $locale = null): ?string
     {
@@ -96,6 +96,14 @@ class MenuService
             MenuItem::TYPE_PAGE => route('client.pages.show', [
                 'locale' => $locale,
                 'slug' => $item->page->canonicalSlug($locale),
+            ]),
+            MenuItem::TYPE_CATEGORY => route('client.categories.show', [
+                'locale' => $locale,
+                'slug' => $item->category->canonicalSlug($locale),
+            ]),
+            MenuItem::TYPE_POST_CATEGORY => route('client.post-categories.show', [
+                'locale' => $locale,
+                'slug' => $item->postCategory->canonicalSlug($locale),
             ]),
             default => null,
         };

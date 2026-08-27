@@ -37,6 +37,7 @@ use App\Services\Orders\OrderDraft;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\PromotionService;
+use App\Services\SePayService;
 use App\Services\ShippingService;
 use App\Services\VNPAYService;
 use App\Support\ApiResponse;
@@ -386,8 +387,13 @@ class PublicController extends Controller
         if ($request->filled('voucher_code') && ! $this->features->enabled('voucher')) {
             return ApiResponse::error($this->features->unavailableMessage(), 403);
         }
-        if ($paymentMethod->type === 'connected' && $paymentMethod->method_code !== 'vnpay') {
+        if ($paymentMethod->type === 'connected' && ! in_array($paymentMethod->method_code, ['vnpay', SePayService::METHOD_CODE], true)) {
             return ApiResponse::error('Cổng thanh toán này chưa được tích hợp cho checkout.', 422);
+        }
+        // Checked before the order exists: an unpayable SePay order would otherwise
+        // have to be created, stock-deducted and then rolled back.
+        if ($paymentMethod->method_code === SePayService::METHOD_CODE && ! app(SePayService::class)->isConfigured($paymentMethod)) {
+            return ApiResponse::error('Cổng thanh toán SePay chưa được cấu hình đầy đủ.', 422);
         }
 
         $shipping = app(ShippingService::class)->getSettings();
@@ -521,6 +527,18 @@ class PublicController extends Controller
         $responseData = (new PublicOrderResource($order))->resolve();
         if ($paymentUrl) {
             $responseData['payment_url'] = $paymentUrl;
+        }
+        if ($order->payment_method === SePayService::METHOD_CODE) {
+            // The order is already placed and stock is committed; the settings were
+            // validated above, so a null here means they changed mid-request. Report
+            // the order rather than failing it — admin can resend the payment details.
+            $instructions = app(SePayService::class)->checkoutInstructions($order);
+            if ($instructions === null) {
+                Log::error('SePay checkout instructions unavailable after order creation.', [
+                    'order_number' => $order->order_number,
+                ]);
+            }
+            $responseData['payment'] = $instructions;
         }
 
         return ApiResponse::success($responseData, 'Đặt hàng thành công.');

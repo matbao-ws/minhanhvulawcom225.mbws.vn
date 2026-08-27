@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Addon;
 use App\Models\Role;
 use App\Models\ShippingPartner;
 use App\Models\User;
-use Database\Seeders\AddonSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,7 +22,7 @@ class ShippingPartnerTest extends TestCase
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
+            'permissions' => ['settings.view', 'settings.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
         ]);
 
         $guestRole = Role::query()->create([
@@ -40,8 +38,6 @@ class ShippingPartnerTest extends TestCase
             'role_id' => $guestRole->id,
         ]);
 
-        (new AddonSeeder)->run();
-        Addon::query()->update(['is_purchased' => true]);
     }
 
     public function test_guests_cannot_access_shipping_partners(): void

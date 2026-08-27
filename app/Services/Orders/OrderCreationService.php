@@ -152,7 +152,7 @@ class OrderCreationService
     private function generateOrderNumber(): string
     {
         do {
-            $orderNumber = 'ORD-'.strtoupper(Str::random(10));
+            $orderNumber = Order::NUMBER_PREFIX.strtoupper(Str::random(Order::NUMBER_RANDOM_LENGTH));
         } while (Order::query()->where('order_number', $orderNumber)->exists());
 
         return $orderNumber;

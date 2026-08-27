@@ -58,8 +58,6 @@ class ShippingIntegrationTest extends TestCase
             'total' => 500000.00,
         ]);
 
-        (new \Database\Seeders\AddonSeeder())->run();
-        \App\Models\Addon::query()->update(['is_purchased' => true]);
     }
 
     public function test_guests_cannot_push_shipping(): void

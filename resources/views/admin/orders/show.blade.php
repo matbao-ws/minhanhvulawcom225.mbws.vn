@@ -70,7 +70,7 @@
         </a>
         <div class="d-flex gap-2">
             <button onclick="window.print();" class="btn btn-primary d-flex align-items-center gap-2">
-                <i class="ti ti-printer fs-4"></i>{{ __('admin.invoices.print') }}
+                <i class="ti ti-printer fs-4"></i>{{ __('admin.orders.print') }}
             </button>
         </div>
     </div>
@@ -203,7 +203,7 @@
                         @if($order->payment_method === 'cod')
                             {{ __('admin.orders.cod') }}
                         @elseif($order->payment_method === 'bank_transfer')
-                            {{ __('admin.invoices.bank_transfer') }}
+                            {{ __('admin.orders.bank_transfer') }}
                         @else
                             {{ __('admin.orders.online_payment') }}
                         @endif

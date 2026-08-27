@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Jobs\SendStoreOrderNotification;
 use App\Models\Order;
 use App\Models\ProjectSetting;
+use App\Services\MailSettings;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -59,20 +60,15 @@ class NotificationHelper
             }
 
             // 2. SMTP Owner Email Notification
+            //
+            // The transport itself is no longer configured here: MailSettings applies
+            // the admin configuration — or the .env fallback — when the mail manager
+            // is resolved. The toggle below stays a notification switch, not a
+            // transport switch, so turning it off silences this mail without
+            // affecting how the rest of the application sends.
             if (data_get($settings, 'smtp.enabled')) {
-                $ownerEmail = data_get($settings, 'smtp.owner_email');
+                $ownerEmail = app(MailSettings::class)->ownerEmail();
                 if ($ownerEmail) {
-                    // Set SMTP mail configurations dynamically
-                    config([
-                        'mail.mailers.smtp.host' => data_get($settings, 'smtp.host', 'smtp.gmail.com'),
-                        'mail.mailers.smtp.port' => (int) data_get($settings, 'smtp.port', 465),
-                        'mail.mailers.smtp.encryption' => data_get($settings, 'smtp.encryption', 'ssl'),
-                        'mail.mailers.smtp.username' => data_get($settings, 'smtp.username'),
-                        'mail.mailers.smtp.password' => data_get($settings, 'smtp.password'),
-                        'mail.from.address' => data_get($settings, 'smtp.from_email'),
-                        'mail.from.name' => data_get($settings, 'smtp.from_name', 'Cửa hàng'),
-                    ]);
-
                     // Send email to the owner from the queue worker.
                     Mail::to($ownerEmail)->locale($order->locale ?: 'vi')->send(new \App\Mail\OrderStatusMail($order));
                 }
