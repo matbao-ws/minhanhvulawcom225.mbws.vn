@@ -3,6 +3,7 @@
 *.sqlite
 *.sqlite3
 .DS_Store
+.deploy-backups
 .env
 .env.backup
 .env.production

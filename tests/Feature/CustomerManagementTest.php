@@ -102,6 +102,82 @@ class CustomerManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_export_the_customer_list_as_csv(): void
+    {
+        $this->createOrder([
+            'order_number' => 'EXP-001',
+            'customer_name' => 'Nguyen Van A',
+            'customer_email' => 'export@example.com',
+            'customer_phone' => '0900000009',
+            'status' => 'completed',
+            'grand_total' => 250000,
+        ]);
+
+        $response = $this->actingAs($this->admin)->get('/vi/admin/customers/export');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString(
+            'customers_export_',
+            $response->headers->get('content-disposition'),
+        );
+
+        $body = $response->streamedContent();
+        // Excel reads the file as the system locale without this, which mangles
+        // Vietnamese names.
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $body);
+        $this->assertStringContainsString('Nguyen Van A', $body);
+        $this->assertStringContainsString('export@example.com', $body);
+        $this->assertStringContainsString('250000', $body);
+    }
+
+    public function test_export_honours_the_active_search_filter(): void
+    {
+        $this->createOrder([
+            'order_number' => 'EXP-002',
+            'customer_name' => 'Findable Buyer',
+            'customer_email' => 'findable@example.com',
+        ]);
+        $this->createOrder([
+            'order_number' => 'EXP-003',
+            'customer_name' => 'Other Buyer',
+            'customer_email' => 'other@example.com',
+        ]);
+
+        $body = $this->actingAs($this->admin)
+            ->get('/vi/admin/customers/export?q=Findable')
+            ->streamedContent();
+
+        $this->assertStringContainsString('findable@example.com', $body);
+        $this->assertStringNotContainsString('other@example.com', $body);
+    }
+
+    public function test_export_neutralises_spreadsheet_formulas_in_customer_data(): void
+    {
+        // A name is attacker-controlled at checkout; a leading '=' would run as a
+        // formula the moment the admin opens the file.
+        $this->createOrder([
+            'order_number' => 'EXP-004',
+            'customer_name' => '=cmd|calc',
+            'customer_email' => 'formula@example.com',
+        ]);
+
+        $body = $this->actingAs($this->admin)
+            ->get('/vi/admin/customers/export')
+            ->streamedContent();
+
+        $this->assertStringContainsString("'=cmd|calc", $body);
+        $this->assertStringNotContainsString(',=cmd|calc', $body);
+    }
+
+    public function test_admin_without_customer_permission_cannot_export(): void
+    {
+        $role = Role::query()->create(['name' => 'No customers', 'permissions' => ['orders.view']]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+
+        $this->actingAs($admin)->get('/vi/admin/customers/export')->assertForbidden();
+    }
+
     /** @param array<string, mixed> $overrides */
     private function createOrder(array $overrides): Order
     {

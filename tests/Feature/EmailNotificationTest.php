@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Mail\InvoiceMail;
 use App\Mail\OrderStatusMail;
 use App\Jobs\SendOrderStatusEmail;
 use App\Models\FeatureSetting;
-use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProjectSetting;
@@ -22,7 +20,6 @@ class EmailNotificationTest extends TestCase
     use RefreshDatabase;
 
     private Role $adminRole;
-    private Invoice $invoice;
     private Order $order;
 
     protected function setUp(): void
@@ -38,17 +35,6 @@ class EmailNotificationTest extends TestCase
         $this->adminRole = Role::query()->create([
             'name' => 'Admin',
             'permissions' => ['*'],
-        ]);
-
-        // Create a test invoice
-        $this->invoice = Invoice::query()->create([
-            'invoice_number' => 'INV-TEST-EMAIL',
-            'package_name' => 'Test Email Package',
-            'amount' => 50000.00,
-            'status' => 'pending',
-            'billing_date' => '2026-06-25',
-            'due_date' => '2026-07-25',
-            'payment_method' => null,
         ]);
 
         // Create a test order
@@ -76,26 +62,7 @@ class EmailNotificationTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_manually_send_invoice_email(): void
-    {
-        Mail::fake();
-
-        $admin = User::factory()->create([
-            'role_id' => $this->adminRole->id,
-        ]);
-
-        $this->actingAs($admin);
-
-        $response = $this->post("/vi/admin/invoices/{$this->invoice->id}/send-email");
-        $response->assertRedirect("/vi/admin/invoices/{$this->invoice->id}");
-        $response->assertSessionHas('success');
-
-        Mail::assertSent(InvoiceMail::class, function ($mail) use ($admin) {
-            return $mail->hasTo($admin->email) && $mail->invoice->id === $this->invoice->id;
-        });
-    }
-
-    public function test_invoice_email_uses_the_configured_website_name_and_logo(): void
+    public function test_order_email_uses_the_configured_website_name_and_logo(): void
     {
         ProjectSetting::query()->create([
             'setting_key' => 'shop_name',
@@ -106,7 +73,9 @@ class EmailNotificationTest extends TestCase
             'setting_value' => 'https://cdn.example.test/settings/email-logo.png',
         ]);
 
-        $mail = new InvoiceMail($this->invoice);
+        // emails.layout is shared by every mailable, so asserting it here covers the
+        // branding for all of them.
+        $mail = new OrderStatusMail($this->order);
         $rendered = $mail->render();
 
         $this->assertStringContainsString('Cửa hàng email', $rendered);

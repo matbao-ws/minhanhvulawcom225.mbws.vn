@@ -18,7 +18,6 @@ class FoundationSeeder extends Seeder
         $this->call([
             FeatureSeeder::class,
             PermissionSeeder::class,
-            AddonSeeder::class,
         ]);
 
         \App\Models\Category::query()->updateOrCreate(
@@ -75,21 +74,32 @@ class FoundationSeeder extends Seeder
             ['name' => 'Menu chính', 'is_active' => true],
         );
 
-        $adminPassword = env('ADMIN_PASSWORD');
-        if (blank($adminPassword) && ! app()->environment('testing')) {
-            throw new RuntimeException('ADMIN_PASSWORD must be set before running the foundation seed.');
-        }
-        $adminPassword = $adminPassword ?: Str::random(40);
+        // Create-only, deliberately.
+        //
+        // This seeder is re-run on existing shops (a repair, a deploy that ticks the
+        // seed option), and the account it targets is a live login by then. Upserting
+        // it reset the operator's password back to whatever ADMIN_PASSWORD happened to
+        // hold — usually a stale value from a developer's .env — and locked them out
+        // of their own admin. Its job is to guarantee a superadmin exists on a fresh
+        // install, not to own that account's credentials or profile forever after.
+        $adminEmail = env('ADMIN_EMAIL', 'admin@example.com');
 
-        User::query()->updateOrCreate(
-            ['email' => env('ADMIN_EMAIL', 'admin@example.com')],
-            [
+        if (User::query()->where('email', $adminEmail)->exists()) {
+            $this->command?->info("Superadmin {$adminEmail} đã tồn tại; giữ nguyên mật khẩu và hồ sơ.");
+        } else {
+            $adminPassword = env('ADMIN_PASSWORD');
+            if (blank($adminPassword) && ! app()->environment('testing')) {
+                throw new RuntimeException('ADMIN_PASSWORD must be set before running the foundation seed.');
+            }
+
+            User::query()->create([
+                'email' => $adminEmail,
                 'role_id' => $superadminRole->id,
                 'name' => env('ADMIN_NAME', 'Admin'),
-                'password' => $adminPassword,
+                'password' => $adminPassword ?: Str::random(40),
                 'is_active' => true,
-            ]
-        );
+            ]);
+        }
 
         if (\Illuminate\Support\Facades\Schema::hasTable('languages')) {
             \App\Models\Language::query()->updateOrCreate(

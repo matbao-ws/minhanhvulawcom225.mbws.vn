@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Addon;
 use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
-use Database\Seeders\AddonSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -25,7 +23,7 @@ class NotificationSettingTest extends TestCase
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
+            'permissions' => ['settings.view', 'settings.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete'],
         ]);
 
         $guestRole = Role::query()->create([
@@ -39,23 +37,6 @@ class NotificationSettingTest extends TestCase
 
         $this->guestUser = User::factory()->create([
             'role_id' => $guestRole->id,
-        ]);
-
-        (new AddonSeeder)->run();
-        Addon::query()->update(['is_purchased' => true]);
-
-        $package = \App\Models\Package::query()->create([
-            'code' => 'basic_2m',
-            'name' => 'Basic 2M',
-            'price' => 2000000.00,
-            'is_active' => true
-        ]);
-
-        \App\Models\ProjectSubscription::query()->create([
-            'package_id' => $package->id,
-            'status' => 'active',
-            'started_at' => now(),
-            'expired_at' => null,
         ]);
 
         \App\Models\FeatureSetting::query()->create([
@@ -310,10 +291,8 @@ class NotificationSettingTest extends TestCase
         $this->assertFalse($setting->setting_value['zalo_personal']['enabled']);
     }
 
-    public function test_admin_can_enable_zalo_without_subscription_when_feature_is_enabled(): void
+    public function test_admin_can_enable_zalo_when_the_feature_is_enabled(): void
     {
-        \App\Models\ProjectSubscription::query()->delete();
-
         $response = $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
             'zalo_oa' => [
                 'enabled' => '1',

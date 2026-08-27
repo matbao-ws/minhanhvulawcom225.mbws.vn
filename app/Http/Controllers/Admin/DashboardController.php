@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Models\FeatureSetting;
-use App\Models\ProjectSubscription;
 use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -175,7 +174,6 @@ class DashboardController extends Controller
 
         return view('admin.dashboard.index', [
             'canViewOrders' => true,
-            'subscription' => ProjectSubscription::query()->with('package')->first(),
             'enabledFeatureCount' => FeatureSetting::query()->where('is_enabled', true)->count(),
             'metrics' => [
                 'total_orders' => $totalOrders,

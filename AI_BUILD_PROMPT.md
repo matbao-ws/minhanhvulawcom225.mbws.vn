@@ -1,7 +1,4 @@
-# AI Operating Contract — Laravel Ecommerce Core
 
-Tài liệu này là hợp đồng làm việc dành cho mọi AI coding agent thao tác trong repository này.
-Đọc tài liệu trước khi phân tích, sửa code, migration, test, API, admin UI hoặc deployment.
 
 ## Đọc skill trong `.agents/skills` trước khi làm
 
@@ -21,15 +18,16 @@ và checklist kiểm chứng mà tài liệu này chỉ nêu ở mức nguyên t
     references/static-first-workflow.md   xác định đang ở stage nào
     references/laravel-blade-cutting.md   khi có thư mục theme/
     references/inline-admin-editing.md    layout client, CMS Page, inline editor
+    references/editable-markup-standard.md  quy chuẩn đánh dấu vùng sửa khi cắt theme
     references/api-contracts.md           trước khi nối dữ liệu thật
 ```
 
 Định tuyến theo loại việc:
 
-| Việc đang làm | Skill | Reference bắt buộc đọc thêm |
-|---|---|---|
-| Admin Blade, API public/admin, auth, role/permission, feature, đa ngôn ngữ, catalog/variant, checkout, promotion, voucher, đơn hàng, tồn kho, review, payment/VNPAY, shipping, webhook, notification, migration, seeder, command, test | `maintain-ecommerce-core` | `architecture.md`; thêm `domain-invariants.md` khi chạm auth/tiền/kho/đơn/payment/webhook/review/secret; thêm `verification.md` khi chọn test hoặc kiểm tra deploy |
-| Prototype giao diện, cắt `theme/` vào Blade, thay layout client, render CMS Page, inline editing, asset storefront, route/controller storefront, nối `/api/public` | `connect-ecommerce-frontend` | `static-first-workflow.md`; thêm `laravel-blade-cutting.md` khi có `theme/`; thêm `inline-admin-editing.md` khi tạo/thay layout client hoặc render Page; thêm `api-contracts.md` trước khi nối dữ liệu thật |
+| Việc đang làm                                                                                                                                                                                                                              | Skill                          | Reference bắt buộc đọc thêm                                                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin Blade, API public/admin, auth, role/permission, feature, đa ngôn ngữ, catalog/variant, checkout, promotion, voucher, đơn hàng, tồn kho, review, payment/VNPAY, shipping, webhook, notification, migration, seeder, command, test | `maintain-ecommerce-core`    | `architecture.md`; thêm `domain-invariants.md` khi chạm auth/tiền/kho/đơn/payment/webhook/review/secret; thêm `verification.md` khi chọn test hoặc kiểm tra deploy                                                 |
+| Prototype giao diện, cắt`theme/` vào Blade, thay layout client, render CMS Page, inline editing, asset storefront, route/controller storefront, nối `/api/public`                                                                     | `connect-ecommerce-frontend` | `static-first-workflow.md`; thêm `laravel-blade-cutting.md` khi có `theme/`; thêm `inline-admin-editing.md` khi tạo/thay layout client hoặc render Page; **bắt buộc** `editable-markup-standard.md` khi cắt `theme/` hoặc đánh dấu vùng sửa; thêm `api-contracts.md` trước khi nối dữ liệu thật |
 
 Lưu ý:
 
@@ -61,7 +59,9 @@ Core cung cấp:
 - Shipping configuration, GHTK push/webhook.
 - CMS post, CMS page (HTML thuần, không có builder kéo-thả), banner, menu điều hướng storefront, đa
   ngôn ngữ, media và notification.
-- Feature flags do support cấu hình; package/subscription cũ chỉ giữ tương thích dữ liệu lịch sử.
+- Feature flags do support cấu hình qua `features`/`feature_settings`. Cụm SaaS billing cũ
+  (`packages`, `package_features`, `project_subscription`, `addons`, `invoices`) **đã bị gỡ hoàn
+  toàn** — đó là hoá đơn của bên bán core, không phải nghiệp vụ cửa hàng. Không dựng lại.
 
 Core không có storefront mặc định. Khi repository có thư mục `theme/` ở root, coi đây là giao diện
 HTML nguồn do người dùng cung cấp và cắt giao diện đó thành Laravel Blade ngay trong core:
@@ -146,11 +146,12 @@ Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc
 ### Tenant và feature
 
 - Không thêm multi-tenancy.
-- Dùng `FeatureGate`/middleware `feature:<code>`, không hard-code package code.
+- Dùng `FeatureGate`/middleware `feature:<code>`. Không có khái niệm gói dịch vụ trong core;
+  `FeatureGate` đọc thẳng `feature_settings` và không tra cứu package nào.
 - Superadmin có cơ chế bypass feature hiện hành; không thay đổi ngầm.
 - Feature bị tắt phải trả đúng hành vi web/API hiện có.
 
-Sai:
+Sai — gói dịch vụ không còn tồn tại trong core:
 
 ```php
 if ($packageCode === 'basic_2m') {
@@ -170,6 +171,10 @@ app(\App\Support\FeatureGate::class)->require('voucher');
 - API admin dùng Sanctum ability `admin` và kiểm tra tài khoản admin đang active.
 - Customer token không được truy cập admin; admin token không được checkout thay khách.
 - Thao tác superadmin, role, impersonation và feature settings phải giữ audit/guard hiện có.
+- `FoundationSeeder` tạo superadmin theo `ADMIN_EMAIL` **chỉ khi tài khoản chưa tồn tại**. Seeder
+  chạy lại trên shop đang sống (sửa chữa, deploy có tick seed) nên không được ghi đè mật khẩu, tên
+  hay `is_active` của tài khoản đó — làm vậy là trả login về giá trị `ADMIN_PASSWORD` cũ và khoá
+  chủ shop khỏi chính admin của họ.
 - Khi vô hiệu hóa user hoặc thay đổi quyền nhạy cảm, xem xét thu hồi token/session qua
   `UserAccessService`.
 
@@ -246,6 +251,11 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 
 - `PaymentTransactionService` là nguồn ghi nhận transaction/idempotency.
 - VNPAY IPN là nguồn thay đổi payment state; browser return chỉ xác minh và hiển thị kết quả.
+- SePay không redirect mà theo dõi tài khoản ngân hàng: checkout trả mã thanh toán + ảnh VietQR,
+  webhook `POST /api/webhooks/sepay` là nơi duy nhất chuyển đơn sang `paid`. Xác thực bằng
+  `Authorization: Apikey` hoặc HMAC-SHA256 trên `{timestamp}.{raw_body}`; idempotent theo trường
+  `id` của SePay. Mã thanh toán là `order_number` bỏ dấu phân cách — đổi định dạng `order_number`
+  phải sửa `Order::NUMBER_PREFIX`/`NUMBER_RANDOM_LENGTH`, nếu không webhook lặng lẽ hết khớp đơn.
 - Luôn kiểm tra chữ ký, TMN code, order, payment method, amount và transaction state.
 - Không log hash secret, access token hoặc credential.
 - Payment mock chỉ được hoạt động trong `local`/`testing` và khi flag cho phép.
@@ -268,6 +278,11 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Dữ liệu nhạy cảm và nội dung
 
 - Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
+- Cấu hình SMTP resolve ở `App\Services\MailSettings`: admin (`notification_settings.smtp`) thắng
+  khi đã bật và điền đủ, `.env` là dự phòng. Service này được áp khi container resolve
+  `mail.manager`, nên **mọi** email đều dùng chung một nguồn — không cấu hình mailer inline tại chỗ
+  gửi. Laravel 11+ dựng transport từ `scheme`, không đọc `encryption`; đổi cấu hình xong phải
+  `MailSettings::flush()` và `queue:restart` để worker nhận credential mới.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.
@@ -299,6 +314,17 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 
 - Dùng HTTP status đúng nghĩa: `401`, `403`, `404`, `409`, `422`, `429`, `500`.
 - Với thay đổi database, tạo migration tiến; không sửa migration đã deploy để thay schema.
+- **Migration không được seed dữ liệu demo.** `create_invoices_table` từng chèn ba hoá đơn mẫu
+  trong `up()`, nên dự án mới vừa cài đã thấy hoá đơn giả trong admin của khách (bảng đó nay đã bị
+  gỡ cùng cụm SaaS billing). Dữ liệu khởi tạo
+  bắt buộc đi qua seeder; migration chỉ chèn dòng cấu hình mà thiếu nó thì hệ thống không chạy
+  (phương thức thanh toán, đối tác vận chuyển, ngôn ngữ mặc định).
+- Quan hệ cha–con phải có khoá ngoại thật, không chỉ dựa vào tầng ứng dụng. Rule chọn theo ngữ
+  nghĩa: `cascade` khi con vô nghĩa nếu thiếu cha, `set null` khi con đã chụp dữ liệu riêng và
+  sống độc lập được, `restrict` khi xoá cha là thao tác nhầm. Khi thêm ràng buộc vào bảng đã có
+  dữ liệu, dọn dòng mồ côi ngay trong cùng migration; chọn xoá hay set null theo **nullability của
+  cột**, không theo delete-rule. `down()` phải `dropForeign(['cột'])` dạng mảng — SQLite trong test
+  không gỡ được khoá ngoại theo tên constraint.
 - Migration phải an toàn với dữ liệu hiện hữu và có `down()` hợp lý.
 - Không thêm dependency nếu framework/core hiện có giải quyết được.
 - Không đổi kiến trúc hoặc public contract ngoài phạm vi mà không báo rõ.
@@ -412,16 +438,47 @@ Core **không có** page builder kéo-thả. Tính năng đó đã bị loại b
 `PageBuilderService` và các cột `builder_data`, `published_css`, `schema_version`. Không dựng lại nó
 và không thêm thư viện editor mới nếu người dùng không yêu cầu rõ ràng.
 
+Thêm ô nội dung vào một vùng lặp (`site_lists`) **không phải** page builder và không mâu thuẫn với đoạn
+trên: template vẫn quyết định ô trông thế nào và vùng nằm ở đâu, database chỉ lưu danh sách id. Ô thêm
+vào render thành sibling mang đúng tag và class của ô gốc, nên không thể sinh ra layout mà thiết kế
+chưa từng có — biên tập viên thêm được thành viên thứ năm, không thêm được một section mới.
+
 Cơ chế hiện hành là inline editing bằng `contenteditable` thuần của browser, không thư viện ngoài.
 Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 
-- Layout chung phải include `client.partials.admin-bar` đúng một lần, gần cuối `<body>`. Không xóa,
-  sao chép hoặc nhúng lại toàn bộ mã editor vào từng page.
+- Layout chung phải include `client.partials.admin-bar` đúng một lần, gần cuối `<body>`, rồi
+  `client.partials.inline-blocks` ngay sau. Không xóa, sao chép hoặc nhúng lại toàn bộ mã editor vào
+  từng page.
+- **Edit mode có đúng một chủ sở hữu: `admin-bar`.** Nó quyết định vùng nào đang mở, giữ các thay đổi
+  đang chờ, và công bố `window.clientBlocks` (`isEditing`, `activeRegion`, `markDirty`, `status`,
+  `on('open'|'close'|'mode')`, `urls`, `csrf`, `locale`). `inline-blocks` chỉ là thanh công cụ nhìn
+  vào trạng thái đó. Hai chủ sở hữu trên cùng `[data-block-key]` sẽ cùng tưởng mình biết vùng nào
+  đang mở, và bên đoán sai ghi đè DOM của bên kia.
+- Lệnh định dạng và "ẩn vùng" đi theo luồng chờ **Lưu** như một lần gõ phím. Chỉ ba thao tác cấu
+  trúc gọi server ngay — khôi phục nội dung gốc, thêm ô, xoá ô — vì không cái nào diễn đạt được
+  bằng "HTML mà vùng này sẽ có sau khi Lưu".
+- Icon trong admin bar và toolbar phải là **SVG inline**, không dùng icon font. Storefront của một
+  dự án bất kỳ có thể không nạp font nào, và glyph thiếu biến mọi nút thành ô trống.
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
   `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
   Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
-- Chỉ admin đang active, có `role_id` và quyền `pages.update` mới thấy admin bar và **Sửa trực
-  tiếp**. Guest, customer và admin thiếu quyền không được thấy markup, asset hoặc endpoint editor.
+- Vùng sửa được tìm bằng id `client-page-{id}`, dự phòng bằng thuộc tính
+  `data-client-editable-root` để layout theme tự đánh dấu wrapper của mình. Không tìm thấy vùng nào
+  thì editor thoát im lặng và nút **Sửa trực tiếp** không hiện — không được để script ném lỗi vì sẽ
+  kéo sập cả media picker.
+- Cổng quyền nằm ở `User::canEditClientContent()`; cả page view lẫn `admin-bar` dùng chung hàm đó.
+  Guest, customer và admin thiếu quyền không được thấy markup, asset, `data-*` hook hoặc endpoint
+  editor.
+- Editor **không tự lưu**. Thay đổi chờ nút **Lưu**; **Huỷ** khôi phục ảnh chụp lúc bật edit mode;
+  tắt edit mode không lưu cũng không xoá, chỉ báo còn thay đổi chưa lưu. Không thêm auto-save theo
+  `focusout`/`pagehide` — nó biến thao tác nhầm thành ghi vĩnh viễn không hoàn tác được.
+- Trạng thái "đã sửa" phải bắt từ sự kiện soạn thảo thật (`input`/`paste`/`cut`/`drop`), tuyệt đối
+  không so `innerHTML` với ảnh chụp lúc tải trang: script của theme (slider nhân bản slide,
+  lazy-load đổi `src`) sẽ bị hiểu là chỉnh sửa rồi ghi markup sinh ra vào database, và lần tải sau
+  lại nhân bản tiếp.
+- Click phải chặn ở **pha capture** trên `document` kèm `stopImmediatePropagation`. Theme hay gắn
+  `onclick` lightbox/tab/modal vào chính phần tử đang sửa; nghe ở pha bubble sẽ để modal của theme
+  bật đè lên media picker.
 - Lưu trực tiếp phải gọi `admin.pages.inline-update` bằng session + CSRF, đi qua
   `InlinePageUpdateRequest`, `PageContentService::updateLocale()`, `PageHtmlSanitizer`, revision và
   activity log; giữ throttle `admin-page-inline`. Không ghi database từ JavaScript và không tạo
@@ -434,10 +491,37 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
   thêm `media.view` mới thấy công cụ ảnh; upload dùng route admin hiện có, giữ popup mở sau upload
   và giữ phân trang thư viện.
 - Theme CSS không được che admin bar/editor; giữ namespace selector và z-index hiện có. Client asset
-  vẫn tách khỏi admin asset.
+  vẫn tách khỏi admin asset. Nút ẩn theo điều kiện phải có `#client-admin-bar [hidden] { display: none !important }` — quy tắc `display` kèm `!important` của tác giả thắng `[hidden]` mặc định của
+  trình duyệt, thiếu dòng này thì nút Lưu/Huỷ hiện thường trực.
 - Với product/category/post hoặc tài nguyên không do `Page` quản lý, không lưu qua endpoint của
   Page. Dùng đúng editor/domain route của tài nguyên; chỉ thêm inline save khi backend đã có
   validation, authorization, revision/audit tương ứng.
+
+#### Vùng nội dung tĩnh của template (`site_blocks`)
+
+Ngoài CMS Page, template storefront có thể đánh dấu từng vùng tĩnh cho sửa tại chỗ:
+
+```blade
+<x-client::editable key="catalog.category.empty" tag="p">Danh mục này chưa có sản phẩm nào.</x-client::editable>
+<x-client::editable-image key="home.hero.image" src="{{ asset('client-assets/img/hero.jpg') }}" alt="…" />
+```
+
+- **Slot trong Blade là giá trị mặc định.** Chỉ có dòng trong `site_blocks` sau khi admin sửa vùng
+  đó, nên cài mới render đúng thiết kế mà không cần seed gì.
+- Key dạng `<trang>.<khu vực>.<ô>`, chữ thường, phân cách bằng dấu chấm. **Đổi key là mất nội dung
+  đã lưu** — vùng lặng lẽ quay về mặc định.
+- **Khối lấy từ database không được đánh dấu**: thẻ sản phẩm, bài viết, tên danh mục, menu, settings.
+  Chúng có màn admin riêng; hai chỗ sửa cùng một trường chính là lỗi mà cơ chế này sinh ra để tránh.
+- Chuỗi rỗng là giá trị thật (ẩn vùng), khác hẳn "chưa từng sửa". `SiteContentService::value()` trả
+  `null` cho cả hai nên phải hỏi `isCleared()`. Đọc/ghi locale phải qua cột thô
+  (`SiteBlock::rawTranslations()`), vì `getTranslations()` của spatie lọc mất chuỗi rỗng còn
+  `setTranslations()` không xoá được locale.
+- `ConvertEmptyStringsToNull` biến `""` thành `null` trước validation; FormRequest phải hoàn nguyên.
+- Lưu qua `admin.site-blocks.update`, khôi phục qua `admin.site-blocks.restore` — cùng quyền
+  `pages.update` và throttle `admin-page-inline` với inline page. Ảnh cần thêm `media.view`.
+- Revision gộp trong 10 phút; lần lưu đầu của block mới không có gì để snapshot.
+- **Không viết literal `<x-client::…>` trong comment Blade.** Blade biên dịch cả trong comment JS/CSS
+  và để hở `if` không đóng — trang vẫn render nhưng rò output buffer.
 
 Khi thay đổi public API:
 
@@ -475,3 +559,7 @@ Trả lời ngắn gọn theo thứ tự:
 4. Rủi ro, migration hoặc việc còn lại.
 
 Không tuyên bố “đã hoàn tất” khi test bắt buộc chưa chạy hoặc đang lỗi liên quan.
+
+Tài liệu này là hợp đồng làm việc dành cho mọi AI coding agent thao tác trong repository này.
+
+Đọc tài liệu trước khi phân tích, sửa code, migration, test, API, admin UI hoặc deployment.

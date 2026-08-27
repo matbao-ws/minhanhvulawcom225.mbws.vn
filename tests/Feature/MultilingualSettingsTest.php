@@ -33,7 +33,7 @@ class MultilingualSettingsTest extends TestCase
         ]);
         $adminRole = Role::query()->create([
             'name' => 'Admin',
-            'permissions' => ['settings.view', 'settings.update', 'invoices.view', 'invoices.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete', 'translations.use'],
+            'permissions' => ['settings.view', 'settings.update', 'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete', 'payments.view', 'payments.create', 'payments.update', 'payments.delete', 'translations.use'],
             'is_system' => false,
         ]);
 

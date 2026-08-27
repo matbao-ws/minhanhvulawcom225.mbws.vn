@@ -37,7 +37,6 @@ class PermissionRegistry
         'users' => ['group' => 'users', 'label' => 'Tài khoản quản trị', 'actions' => ['view', 'create', 'update', 'delete']],
         'roles' => ['group' => 'users', 'label' => 'Vai trò và phân quyền', 'actions' => ['view', 'create', 'update', 'delete']],
         'settings' => ['group' => 'settings', 'label' => 'Cấu hình website', 'actions' => ['view', 'update']],
-        'invoices' => ['group' => 'settings', 'label' => 'Hóa đơn', 'actions' => ['view', 'update']],
         'shipping' => ['group' => 'settings', 'label' => 'Đối tác vận chuyển', 'actions' => ['view', 'create', 'update', 'delete']],
         'payments' => ['group' => 'settings', 'label' => 'Phương thức thanh toán', 'actions' => ['view', 'create', 'update', 'delete']],
         'languages' => ['group' => 'settings', 'label' => 'Ngôn ngữ', 'actions' => ['view', 'create', 'update']],
@@ -85,7 +84,6 @@ class PermissionRegistry
         // purpose.
         'manage_settings' => [
             'settings.view', 'settings.update',
-            'invoices.view', 'invoices.update',
             'shipping.view', 'shipping.create', 'shipping.update', 'shipping.delete',
             'payments.view', 'payments.create', 'payments.update', 'payments.delete',
         ],

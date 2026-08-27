@@ -262,7 +262,7 @@ class MenuManagementTest extends TestCase
         $this->assertTrue($item->hasMissingTarget());
     }
 
-    public function test_category_items_are_saved_even_though_no_storefront_route_exists_yet(): void
+    public function test_category_items_resolve_to_the_storefront_category_page(): void
     {
         $this->actingWith(['menus.view', 'menus.update']);
         $category = Category::query()->create([
@@ -280,7 +280,23 @@ class MenuManagementTest extends TestCase
 
         $item = MenuItem::query()->firstOrFail();
         $this->assertSame($category->id, $item->category_id);
-        $this->assertNull(app(\App\Services\MenuService::class)->resolveUrl($item));
+        $this->assertSame(
+            route('client.categories.show', ['locale' => 'vi', 'slug' => 'dien-thoai']),
+            app(\App\Services\MenuService::class)->resolveUrl($item, 'vi'),
+        );
+    }
+
+    /**
+     * A target that was deleted leaves the item with nothing to point at; it
+     * must render as text rather than as a link into a 404.
+     */
+    public function test_an_item_whose_target_was_deleted_resolves_to_nothing(): void
+    {
+        $this->actingWith(['menus.view', 'menus.update']);
+        $item = $this->item(['type' => MenuItem::TYPE_CATEGORY, 'category_id' => null, 'url' => null]);
+
+        $this->assertTrue($item->hasMissingTarget());
+        $this->assertNull(app(\App\Services\MenuService::class)->resolveUrl($item, 'vi'));
     }
 
     public function test_sample_seeder_builds_a_nested_menu_and_is_idempotent(): void
