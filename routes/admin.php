@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\ShippingPartnerController;
 use App\Http\Controllers\Admin\SiteBlockController;
+use App\Http\Controllers\Admin\SiteSectionController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VoucherController;
@@ -66,6 +67,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     });
     Route::post('media/upload', [MediaController::class, 'upload'])->middleware('can:media.create')->name('media.upload');
     Route::delete('media/delete', [MediaController::class, 'destroy'])->middleware('can:media.delete')->name('media.delete');
+    Route::delete('media/bulk-delete', [MediaController::class, 'bulkDestroy'])->middleware('can:media.delete')->name('media.bulk-delete');
+    Route::post('media/cloudinary/connect', [MediaController::class, 'connectCloudinary'])
+        ->middleware(['can:media.view', 'can:settings.update', 'throttle:admin-integration'])
+        ->name('media.cloudinary.connect');
+    Route::delete('media/cloudinary/disconnect', [MediaController::class, 'disconnectCloudinary'])
+        ->middleware(['can:media.view', 'can:settings.update', 'throttle:admin-integration'])
+        ->name('media.cloudinary.disconnect');
 
     // Feature flags and impersonation stay superadmin-only: they can hand out
     // access rather than merely use it.
@@ -128,6 +136,22 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('site-lists/items', [SiteBlockController::class, 'addListItem'])->name('site-lists.items.store');
         Route::delete('site-lists/items', [SiteBlockController::class, 'removeListItem'])->name('site-lists.items.destroy');
         Route::patch('site-lists/items/order', [SiteBlockController::class, 'reorderListItems'])->name('site-lists.items.reorder');
+        // How a section renders: which of the shapes it already knows, and whether
+        // it shows at all. Same gate again — choosing a section's variant is the
+        // same power over the same site as rewriting its heading.
+        Route::patch('site-sections', [SiteSectionController::class, 'update'])->name('site-sections.update');
+        Route::delete('site-sections', [SiteSectionController::class, 'restore'])->name('site-sections.restore');
+
+        /*
+         * History. Read behind the same gate as the write: it names the admins who
+         * edited the site, which no customer or guest is owed. The revision is a
+         * route binding and the target is derived from it — never from the request —
+         * so a crafted call cannot write one region's snapshot onto another.
+         */
+        Route::get('site-blocks/revisions', [SiteBlockController::class, 'revisions'])->name('site-blocks.revisions.index');
+        Route::post('site-blocks/revisions/{revision}/restore', [SiteBlockController::class, 'restoreRevision'])->name('site-blocks.revisions.restore');
+        Route::get('site-sections/revisions', [SiteSectionController::class, 'revisions'])->name('site-sections.revisions.index');
+        Route::post('site-sections/revisions/{revision}/restore', [SiteSectionController::class, 'restoreRevision'])->name('site-sections.revisions.restore');
     });
 
     Route::middleware('feature:cms_page')->group(function () {

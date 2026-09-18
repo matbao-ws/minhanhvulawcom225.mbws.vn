@@ -314,6 +314,7 @@ return [
             'no_permissions' => 'No permissions',
             'default_system' => 'Default system',
             'select_permissions' => 'Select Permissions',
+            'select_all_in_group' => 'Select all',
             'module' => 'Module',
             'name_placeholder' => 'e.g. Sales Staff, Editor...',
         ],

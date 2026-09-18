@@ -33,15 +33,12 @@ php artisan core:install --no-interaction \
 
 The command only runs `migrate` and the idempotent `FoundationSeeder`; it never uses `migrate:fresh` and never inserts demo catalog/order data.
 
-## Demo data
+## Seed data
 
-Demo data is deliberately separate because some old demo seeders truncate their target tables. Use it only in a disposable local database:
-
-```bash
-php artisan db:seed --class=Database\\Seeders\\DemoSeeder
-```
-
-Do not run that command against a customer database.
+`php artisan db:seed` only seeds the foundation required for a new installation:
+features, permissions, system roles, the initial superadmin, languages, default settings,
+the uncategorized product category, and the empty `primary` menu. Catalog, customer,
+order, voucher, review, CMS, and storefront-menu content must be created for each shop.
 
 ## Production deployment
 

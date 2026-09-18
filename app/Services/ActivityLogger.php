@@ -16,6 +16,7 @@ class ActivityLogger
         'webhook_secret',
         'access_token',
         'refresh_token',
+        'cloudinary_url',
     ];
 
     public static function log(string $action, ?Model $subject, string $description, array $changes = []): void

@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\SiteBlockUpdateRequest;
 use App\Http\Requests\Admin\SiteListItemRequest;
 use App\Http\Requests\Admin\SiteListReorderRequest;
 use App\Models\SiteBlock;
+use App\Models\SiteBlockRevision;
 use App\Services\ActivityLogger;
 use App\Services\SiteContentService;
 use App\Services\SiteListService;
@@ -139,6 +140,52 @@ class SiteBlockController extends Controller
     /**
      * Drop the override so the template's own content returns.
      */
+    /**
+     * The saved history of one region.
+     *
+     * Read behind the same gate as the write. History names the admins who edited
+     * the site, which is not something a customer or a guest is owed.
+     */
+    public function revisions(Request $request, string $locale): JsonResponse
+    {
+        $data = $request->validate([
+            'key' => ['required', 'string', 'max:191'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => null,
+            'data' => ['revisions' => $this->site->revisions($data['key'], $locale)],
+        ]);
+    }
+
+    /**
+     * Put one snapshot back.
+     *
+     * The region is taken from the revision rather than from the request. Accepting
+     * both would let a crafted call write revision A's content onto region B, and
+     * there would be no way to tell from the audit trail.
+     */
+    public function restoreRevision(Request $request, string $locale, SiteBlockRevision $revision): JsonResponse
+    {
+        $block = $this->site->restoreRevision($revision, $locale, $request->user()?->id);
+
+        ActivityLogger::log('restored', $block, "Khôi phục phiên bản vùng nội dung {$block?->key}", [
+            'new' => ['key' => $block?->key, 'locale' => $locale, 'revision_id' => $revision->id],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã khôi phục phiên bản.',
+            'data' => [
+                'key' => $block?->key,
+                'value' => $block ? $this->site->value($block->key, $locale) : null,
+                'cleared' => $block ? $this->site->isCleared($block->key, $locale) : false,
+                'format' => $block ? $this->site->format($block->key) : null,
+            ],
+        ]);
+    }
+
     public function restore(Request $request, string $locale): JsonResponse
     {
         $data = $request->validate([

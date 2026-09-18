@@ -299,36 +299,6 @@ class MenuManagementTest extends TestCase
         $this->assertNull(app(\App\Services\MenuService::class)->resolveUrl($item, 'vi'));
     }
 
-    public function test_sample_seeder_builds_a_nested_menu_and_is_idempotent(): void
-    {
-        // The seeder links items to the sample pages, so those come first.
-        (new \Database\Seeders\PageContentSeeder())->run();
-        (new \Database\Seeders\MenuSeeder())->run();
-
-        $tree = app(\App\Services\MenuService::class)->tree('primary', 'vi');
-
-        $this->assertSame('Trang chủ', $tree[0]['label']);
-        $this->assertSame('/', $tree[0]['url']);
-        $this->assertSame('Giới thiệu', $tree[1]['label']);
-        $this->assertSame('Chính sách giao hàng', $tree[1]['children'][0]['label']);
-        $this->assertNotEmpty(app(\App\Services\MenuService::class)->tree('footer', 'vi'));
-
-        $countAfterFirstRun = MenuItem::query()->count();
-        (new \Database\Seeders\MenuSeeder())->run();
-        $this->assertSame($countAfterFirstRun, MenuItem::query()->count());
-    }
-
-    public function test_sample_seeder_skips_targets_this_installation_does_not_have(): void
-    {
-        (new \Database\Seeders\PageContentSeeder())->run();
-        (new \Database\Seeders\MenuSeeder())->run();
-
-        // No catalog category exists here, so the seeder must not leave an item
-        // pointing at nothing.
-        $this->assertSame(0, MenuItem::query()->where('type', MenuItem::TYPE_CATEGORY)->count());
-        $this->assertSame(0, MenuItem::query()->where('type', MenuItem::TYPE_POST_CATEGORY)->count());
-    }
-
     public function test_item_tree_screen_lists_nested_items(): void
     {
         $this->actingWith(['menus.view', 'menus.update']);

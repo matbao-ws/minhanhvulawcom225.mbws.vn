@@ -2,7 +2,7 @@
 
 ## Schema
 
-Three tables. Keep them boring.
+Three tables here, plus `site_sections` further down. Keep them all boring.
 
 ```text
 site_blocks
@@ -157,253 +157,67 @@ not a missing revision.
   see it next to the markup.
 - No cache beyond the request. Content changes must be visible on the next load;
   a shared cache adds an invalidation bug for no measurable win.
-- No cascade of blocks per page. Keys are global and fla
+- No cascade of blocks per page. Keys are global and flat.
 
-# Content Blocks: Schema, Model, Service
+## site_sections: which shape, not what shape
 
-## Schema
-
-Two tables. Keep them boring.
+A fourth table, and the one place a section's *appearance* is stored:
 
 ```text
-# Content Blocks: Schema, Model, Service
-
-## Schema
-
-Three tables. Keep them boring.
-
-```text
-site_blocks
+site_sections
   id
-  key            unique, slug-ish: "about.story.title"
-  type           text | html | image
-  format         nullable p|h1..h6 — a heading level chosen from the toolbar
-  content        json, translatable
+  key         unique: "<list key>.<section name>" — "home.sections.hero"
+  variant     nullable — one of the shapes the section itself knows how to render
+  settings    json — semantic tokens, never CSS classes
+  is_visible  boolean — the section-level twin of the empty string in site_blocks
   timestamps
 
-site_block_revisions
+site_section_revisions
   id
-  site_block_id  cascade on delete
-  created_by     nullable, null on user delete
-  content        json snapshot of the previous value
-  created_at     only — a revision is never updated
-
-site_lists
-  id
-  key            unique: "about.leadership", "about.hero.title.extra"
-  items          json, ordered list of stable item ids
-  timestamps
+  site_section_id  cascade on delete
+  created_by       nullable, null on user delete
+  variant, settings, is_visible   snapshot
+  created_at       only
 ```
 
-No `page_id`, no nesting, no per-item table. The key carries the location; the
-template carries the layout. Adding structure here invites a second page builder.
+Same rules as the other three, for the same reasons: no `page_id`, no parent, no
+ordering (that is `site_lists`'s job), and no row until an editor departs from the
+design — so a fresh install renders the approved design with nothing seeded.
 
-`content` is translatable because the storefront already renders one locale at a
-time. Saving one locale must leave the others untouched.
+Two properties do the work, and both are worth stating plainly:
 
-## site_lists: how many, not what
+- **The database holds tokens, never classes.** `background: "primary"`, not
+  `class: "client-section--bg-primary"`. `App\Support\SectionRegistry` owns the
+  token to class map, so repainting a token is a stylesheet change rather than an
+  UPDATE across every row that ever chose it. This is also why a colour picker
+  cannot be a token: its value was not known in advance, so it travels as an
+  inline CSS custom property with a validated six-hex-digit value, and the class
+  only says "start reading that property".
+- **There are no defaults.** A setting has no value until an editor picks one, and
+  until then the wrapper carries no extra class at all. A registry default would
+  have repainted every existing install the day the feature shipped. It follows
+  that there is no variant meaning "the way the template already does it" — null
+  already means that, and declaring one would force a stylesheet rule with nothing
+  in it.
 
-`site_lists` holds **only** the ids of the items a repeatable section shows, in
-order. Each item's content lives in `site_blocks` under
+`SectionRegistry` decides what a section may offer, and a section absent from it
+simply offers nothing — a legal state, the same as a region with no `format`.
+Values are checked against the registry on the way **in and out**: a token retired
+from the registry has to stop applying immediately, including when it surfaces
+from an old revision.
 
-```text
-<list key>.item_<item id>.<slot>       about.leadership.item_m1.name
-```
+## Reading history
 
-Two rules keep this a list feature rather than a builder:
+Revisions were written from the first day and read by nothing for a while. Two
+rules apply to the reader:
 
-- The template declares the ids it ships with and passes them in as defaults. A
-  section nobody has touched has **no row at all**, so a fresh install renders
-  the approved design with nothing seeded.
-- Ids are opaque and stable, never positional. Removing the second of four items
-  must not slide the third one's text into the second's slot.
+- **A rollback forces its own checkpoint**, bypassing the ten-minute coalescing.
+  Coalescing is right for typing; a rollback that skipped its checkpoint would be
+  the one operation in the editor that cannot be undone.
+- **The target comes from the revision, never from the request.** Accepting a key
+  alongside the revision id would let a crafted call write one region's snapshot
+  onto another, and nothing in the audit trail would show it.
 
-Deleting an item deletes its `site_blocks` rows in the same transaction, or a
-reissued id would resurrect somebody's old text.
-
-An **empty stored list is a real answer** — the editor removed every item — and
-must not fall back to the template's defaults.
-
-## Model
-
-Use the project's existing translatable trait so `getTranslation()` /
-`setTranslations()` behave like every other localized model. Declare the type
-constants on the model, not as loose strings:
-
-```php
-public const TYPE_TEXT = 'text';
-public const TYPE_HTML = 'html';
-public const TYPE_IMAGE = 'image';
-public const TYPES = [self::TYPE_TEXT, self::TYPE_HTML, self::TYPE_IMAGE];
-```
-
-## Service
-
-One service owns both sides. Register it **scoped** — a page renders dozens of
-regions and must not issue a query per region.
-
-### Reading
-
-```php
-public function value(string $key): ?string      // null → render the Blade default
-public function isCleared(string $key): bool     // emptied on purpose → render nothing
-```
-
-- Loads every block once per request and keys it by `key`.
-- `value()` returns `null` both when the region was never edited and when it was
-  saved empty. Those mean opposite things, so `isCleared()` exists to tell them
-  apart: **the presence of the locale key**, not its contents, is the signal.
-- For an image, resolve the stored path to a URL through the project's media URL
-  helper.
-
-### The translatable-trait trap
-
-An empty string is the value that carries meaning here, and the usual
-translatable helpers destroy it. Check yours before trusting it; in this project
-(spatie/laravel-translatable):
-
-| Call | What it does to `{"vi": ""}` |
-|---|---|
-| `getTranslations('content')` | **drops the key** — it filters empty strings out |
-| `getTranslation('content', 'vi', false)` | returns `''`, same as a missing locale |
-| `setTranslations('content', [...])` | **merges** — it cannot remove a locale |
-
-So read the raw column (`$block->getAttributes()['content']`, json-decoded) when
-you need to know whether a locale is present, and write the column directly when
-you need to remove one. Both mistakes are silent: the feature just does nothing,
-and tests that assert through the trait still pass.
-
-### Writing
-
-```php
-public function updateLocale(string $key, string $type, string $locale, string $value, ?int $userId)
-```
-
-In order:
-
-1. Reject an unsupported locale and an unknown type with a validation exception.
-2. Clean by type:
-   - `text` → trim + strip tags. A single-line label has no business holding markup.
-   - `html` → the project's existing rich-text sanitizer.
-   - `image` → the project's "make this media reference portable" helper, so the
-     value survives an `APP_URL` change.
-3. If the cleaned value equals what is stored for that locale, return early —
-   no write, no revision. Inline editors fire on every blur.
-4. Otherwise, inside a transaction: snapshot, merge the locale into the existing
-   translations, save.
-5. Drop the request-level read cache so anything rendering later in the same
-   request sees the new value.
-
-### Restoring the template's own text
-
-```php
-public function restoreLocale(string $key, string $locale, ?int $userId): ?SiteBlock
-```
-
-Clearing a region and restoring it are different operations. Clearing stores an
-empty string; restoring removes the locale from the override entirely, and
-removes the row once no locale is left — the row *is* the override. Snapshot
-first, as with any other write.
-
-### Revisions
-
-Coalesce them. Inline editing saves constantly; one revision per keystroke is
-noise, not history:
-
-```php
-if ($block->revisions()->where('created_at', '>=', now()->subMinutes(10))->exists()) {
-    return; // this editing session already has a "before" checkpoint
-}
-```
-
-The first save of a brand-new block has nothing to snapshot — that is correct,
-not a missing revision.
-
-## What does not belong here
-
-- No `default` column. The default lives in the template, where a designer can
-  see it next to the markup.
-- No cache beyond the request. Content changes must be visible on the next load;
-  a shared cache adds an invalidation bug for no measurable win.
-- No cascade of blocks per page. Keys are global and flat.
-```
-
-No `page_id`, no ordering, no nesting. The key carries the location; the template
-carries the layout. Adding structure here invites a second page builder.
-
-`content` is translatable because the storefront already renders one locale at a
-time. Saving one locale must leave the others untouched.
-
-## Model
-
-Use the project's existing translatable trait so `getTranslation()` /
-`setTranslations()` behave like every other localized model. Declare the type
-constants on the model, not as loose strings:
-
-```php
-public const TYPE_TEXT = 'text';
-public const TYPE_HTML = 'html';
-public const TYPE_IMAGE = 'image';
-public const TYPES = [self::TYPE_TEXT, self::TYPE_HTML, self::TYPE_IMAGE];
-```
-
-## Service
-
-One service owns both sides. Register it **scoped** — a page renders dozens of
-regions and must not issue a query per region.
-
-### Reading
-
-```php
-public function value(string $key): ?string
-```
-
-- Loads every block once per request and keys it by `key`.
-- Returns `null` when the region was never edited, so the Blade default wins.
-  An empty saved string is also `null`: a blank override must not silently erase
-  a heading.
-- For an image, resolve the stored path to a URL through the project's media URL
-  helper.
-
-### Writing
-
-```php
-public function updateLocale(string $key, string $type, string $locale, string $value, ?int $userId)
-```
-
-In order:
-
-1. Reject an unsupported locale and an unknown type with a validation exception.
-2. Clean by type:
-   - `text` → trim + strip tags. A single-line label has no business holding markup.
-   - `html` → the project's existing rich-text sanitizer.
-   - `image` → the project's "make this media reference portable" helper, so the
-     value survives an `APP_URL` change.
-3. If the cleaned value equals what is stored for that locale, return early —
-   no write, no revision. Inline editors fire on every blur.
-4. Otherwise, inside a transaction: snapshot, merge the locale into the existing
-   translations, save.
-5. Drop the request-level read cache so anything rendering later in the same
-   request sees the new value.
-
-### Revisions
-
-Coalesce them. Inline editing saves constantly; one revision per keystroke is
-noise, not history:
-
-```php
-if ($block->revisions()->where('created_at', '>=', now()->subMinutes(10))->exists()) {
-    return; // this editing session already has a "before" checkpoint
-}
-```
-
-The first save of a brand-new block has nothing to snapshot — that is correct,
-not a missing revision.
-
-## What does not belong here
-
-- No `default` column. The default lives in the template, where a designer can
-  see it next to the markup.
-- No cache beyond the request. Content changes must be visible on the next load;
-  a shared cache adds an invalidation bug for no measurable win.
-- No cascade of blocks per page. Keys are global and flat.
+A region rolled back writes only the locale being viewed. A revision holding no
+value for that locale is refused rather than restored as an empty string — an
+empty string means "hidden on purpose", which is a different instruction.

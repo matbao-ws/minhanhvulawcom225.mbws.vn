@@ -317,6 +317,7 @@ return [
             'no_permissions' => 'Không có quyền nào',
             'default_system' => 'Hệ thống mặc định',
             'select_permissions' => 'Chọn quyền hạn',
+            'select_all_in_group' => 'Chọn tất cả',
             'module' => 'Nhóm chức năng',
             'name_placeholder' => 'Ví dụ: Nhân viên bán hàng, Biên tập viên...',
         ],

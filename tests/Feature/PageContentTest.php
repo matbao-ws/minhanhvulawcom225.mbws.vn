@@ -6,7 +6,6 @@ use App\Models\FeatureSetting;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\User;
-use Database\Seeders\PageContentSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,6 +46,8 @@ class PageContentTest extends TestCase
             ->assertSee('Thêm trang')
             ->assertSee('Tiêu đề')
             ->assertSee('SEO title')
+            ->assertSee('aria-label="breadcrumb"', false)
+            ->assertSee(route('admin.pages.index'), false)
             ->assertDontSee('grapesjs', false)
             ->assertDontSee('page-builder-canvas', false)
             ->assertDontSee('builder_data', false);
@@ -99,49 +100,24 @@ class PageContentTest extends TestCase
         $this->getJson('/api/public/pages/ban-nhap')->assertNotFound();
     }
 
-    public function test_page_content_seeder_is_safe_and_idempotent(): void
-    {
-        $this->seed(PageContentSeeder::class);
-        $this->seed(PageContentSeeder::class);
-
-        $this->assertDatabaseCount('pages', 3);
-        $this->assertSame(3, Page::query()->where('is_active', true)->count());
-        $this->assertStringContainsString(
-            'Đồng hành cùng trải nghiệm mua sắm tốt hơn',
-            Page::query()->where('slug', 'gioi-thieu')->firstOrFail()->getTranslation('published_html', 'vi'),
-        );
-
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
-        $this->actingAs($this->admin)
-            ->get("/vi/admin/pages/{$page->id}/edit")
-            ->assertOk();
-
-        $this->get('/vi/admin/pages')
-            ->assertOk()
-            ->assertSee('/vi/pages/gioi-thieu', false)
-            ->assertSee('Xem trang');
-    }
-
     public function test_authorized_admin_can_preview_a_saved_page_in_requested_locale(): void
     {
-        $this->seed(PageContentSeeder::class);
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
+        $page = $this->publishedPage();
 
         $this->actingAs($this->admin)
             ->get("/vi/admin/pages/{$page->id}/preview?content_locale=en")
             ->assertOk()
-            ->assertSee('Building a better shopping experience');
+            ->assertSee('About us');
     }
 
     public function test_published_client_page_only_shows_edit_bar_to_authorized_admin(): void
     {
-        $this->seed(PageContentSeeder::class);
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
+        $page = $this->publishedPage();
         $clientUrl = '/vi/pages/'.$page->canonicalSlug('vi');
 
         $this->get($clientUrl)
             ->assertOk()
-            ->assertSee('Đồng hành cùng trải nghiệm mua sắm tốt hơn')
+            ->assertSee('Trang giới thiệu')
             ->assertDontSee('client-admin-bar', false);
 
         $customer = User::factory()->create(['role_id' => null]);
@@ -187,8 +163,7 @@ class PageContentTest extends TestCase
 
     public function test_authorized_admin_can_save_a_page_from_client_inline_editor(): void
     {
-        $this->seed(PageContentSeeder::class);
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
+        $page = $this->publishedPage();
         $oldEnglishHtml = $page->getTranslation('published_html', 'en', false);
 
         $this->actingAs($this->admin)
@@ -208,8 +183,7 @@ class PageContentTest extends TestCase
 
     public function test_inline_update_is_a_no_op_when_html_is_unchanged(): void
     {
-        $this->seed(PageContentSeeder::class);
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
+        $page = $this->publishedPage();
 
         $this->actingAs($this->admin)
             ->patchJson("/vi/admin/pages/{$page->id}/inline", [
@@ -236,8 +210,7 @@ class PageContentTest extends TestCase
 
     public function test_inline_update_coalesces_revisions_within_ten_minutes(): void
     {
-        $this->seed(PageContentSeeder::class);
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
+        $page = $this->publishedPage();
 
         $this->actingAs($this->admin)
             ->patchJson("/vi/admin/pages/{$page->id}/inline", [
@@ -269,8 +242,7 @@ class PageContentTest extends TestCase
 
     public function test_customer_cannot_use_client_inline_update_endpoint(): void
     {
-        $this->seed(PageContentSeeder::class);
-        $page = Page::query()->where('slug', 'gioi-thieu')->firstOrFail();
+        $page = $this->publishedPage();
         $payload = [
             'content_locale' => 'vi',
             'published_html' => '<p>Không được phép</p>',
@@ -312,6 +284,20 @@ class PageContentTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/vi/pages/'.$published->slug)
             ->assertNotFound();
+    }
+
+    private function publishedPage(): Page
+    {
+        return Page::query()->create([
+            'title' => ['vi' => 'Giới thiệu', 'en' => 'About us'],
+            'slug' => 'gioi-thieu',
+            'published_html' => [
+                'vi' => '<main><h1>Trang giới thiệu</h1></main>',
+                'en' => '<main><h1>About us</h1></main>',
+            ],
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
     }
 
     private function payload(): array

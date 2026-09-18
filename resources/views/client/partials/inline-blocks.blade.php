@@ -1,5 +1,5 @@
 @php
-    $inlineBlocksAllowed = (bool) auth()->user()?->canEditClientContent();
+    $inlineBlocksAllowed = \App\Support\ClientEditorChrome::editorActive();
 @endphp
 
 @if($inlineBlocksAllowed)
@@ -28,12 +28,9 @@
     <style>
 
 
-        /* Repeatable sections: the remove control rides on the item, the add
-           control sits under the list. Both only exist for an authorized admin
-           and only show once edit mode is on, so a visitor's page is unchanged
-           and an admin browsing their own site cannot delete by mis-click. */
-        .client-list-remove,
-        .client-list-add {
+        /* Repeatable sections may still remove a previously added item, but the
+           editor no longer creates new content boxes. */
+        .client-list-remove {
             display: none;
         }
 
@@ -64,29 +61,6 @@
 
         body.client-edit-active .client-list-remove:hover {
             background: #b23c0c !important;
-        }
-
-        body.client-edit-active .client-list-add {
-            align-items: center !important;
-            background: #087f5b !important;
-            border: 0 !important;
-            border-radius: 999px !important;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, .25) !important;
-            color: #fff !important;
-            cursor: pointer !important;
-            display: inline-flex !important;
-            font: 700 13px/1 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif !important;
-            gap: 8px !important;
-            padding: 11px 20px !important;
-        }
-
-        body.client-edit-active .client-list-add:hover {
-            background: #099268 !important;
-        }
-
-        body.client-edit-active .client-list-add:disabled {
-            cursor: not-allowed !important;
-            opacity: .6 !important;
         }
 
         /* Marked for deletion, not yet written. Cancel brings it back. */
@@ -245,36 +219,12 @@
             display: flex !important;
         }
 
-        #client-block-append {
-            align-items: center !important;
-            background: #087f5b !important;
-            border: 2px solid #fff !important;
-            border-radius: 999px !important;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, .35) !important;
-            color: #fff !important;
-            cursor: pointer !important;
-            display: none;
-            font: 700 14px/1 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif !important;
-            height: 22px !important;
-            justify-content: center !important;
-            padding: 0 !important;
-            position: absolute !important;
-            width: 22px !important;
-            z-index: 2147483645 !important;
-        }
-
-        #client-block-append.is-visible,
         #client-block-remove.is-visible {
             display: inline-flex !important;
         }
 
-        #client-block-append:hover,
         #client-block-remove:hover {
             transform: scale(1.15) !important;
-        }
-
-        #client-block-append:hover {
-            background: #099268 !important;
         }
 
         #client-block-remove {
@@ -326,7 +276,6 @@
     {{-- One floating control for the whole page rather than a button per region:
          several hundred extra children would reflow flex and grid containers
          the moment edit mode came on. --}}
-    <button type="button" id="client-block-append" title="Thêm ô nội dung ngay dưới" aria-label="Thêm ô nội dung ngay dưới">+</button>
     {{-- Only appears over a box an editor added. An authored region belongs to
          the template and can be hidden, never deleted. --}}
     <button type="button" id="client-block-remove" title="Xóa ô đã thêm" aria-label="Xóa ô đã thêm">×</button>
@@ -368,9 +317,6 @@
              used to be indistinguishable from one that was never touched. --}}
         <button type="button" data-client-block-action="clear" title="Ẩn vùng này khỏi trang" aria-label="Ẩn vùng này khỏi trang"><svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a18.5 18.5 0 0 1-3.2 4.2M6.6 6.6A18.4 18.4 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.3-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m2 2 20 20"/></svg></button>
         <button type="button" data-client-block-action="restore" title="Khôi phục nội dung gốc của giao diện" aria-label="Khôi phục nội dung gốc của giao diện"><svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v6h6"/><path d="M3.5 13a9 9 0 1 0 2.6-6.4L3 9"/><path d="M12 8v4l3 2"/></svg></button>
-        {{-- Only for a box an editor added: an authored region belongs to the
-             template and can be hidden, never deleted. --}}
-        <button type="button" data-client-block-action="delete" title="Xóa hẳn ô đã thêm" aria-label="Xóa hẳn ô đã thêm"><svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>
     </div>
 
     <script>
@@ -378,7 +324,6 @@
             const api = window.clientBlocks;
             const toolbar = document.getElementById('client-block-toolbar');
             const toast = document.getElementById('client-block-toast');
-            const appendButton = document.getElementById('client-block-append');
             const removeButton = document.getElementById('client-block-remove');
             const headingControl = document.getElementById('client-block-heading-control');
             const headingTrigger = document.getElementById('client-block-heading-trigger');
@@ -393,6 +338,84 @@
             let hovered = null;
             let toastTimer = null;
             let savedSelection = null;
+            const histories = new Map();
+
+            function snapshotOf(element) {
+                return {
+                    tag: element.tagName.toLowerCase(),
+                    html: element.innerHTML,
+                    attributes: Array.from(element.attributes).reduce(function (all, attribute) {
+                        if (attribute.name !== 'contenteditable') all[attribute.name] = attribute.value;
+                        return all;
+                    }, {}),
+                };
+            }
+
+            function historyOf(element) {
+                const key = element.getAttribute('data-block-key');
+                if (!histories.has(key)) histories.set(key, { undo: [], redo: [] });
+                return histories.get(key);
+            }
+
+            function snapshotsMatch(left, right) {
+                return JSON.stringify(left) === JSON.stringify(right);
+            }
+
+            function pushSnapshot(stack, snapshot) {
+                const previous = stack[stack.length - 1];
+                if (!previous || !snapshotsMatch(previous, snapshot)) {
+                    stack.push(snapshot);
+                    if (stack.length > 100) stack.shift();
+                }
+            }
+
+            function rememberState(element) {
+                if (!element) return;
+                const history = historyOf(element);
+                pushSnapshot(history.undo, snapshotOf(element));
+                history.redo = [];
+                syncToolbar();
+            }
+
+            function commitCommand(element, before) {
+                if (!element || snapshotsMatch(before, snapshotOf(element))) return false;
+                const history = historyOf(element);
+                pushSnapshot(history.undo, before);
+                history.redo = [];
+                api.markDirty(element);
+                syncToolbar();
+
+                return true;
+            }
+
+            function restoreState(snapshot) {
+                if (!active || !snapshot) return;
+                const previous = active;
+                const replacement = document.createElement(snapshot.tag);
+                Object.keys(snapshot.attributes).forEach(function (name) {
+                    replacement.setAttribute(name, snapshot.attributes[name]);
+                });
+                replacement.innerHTML = snapshot.html;
+                replacement.setAttribute('contenteditable', 'true');
+                previous.replaceWith(replacement);
+                if (api.replaceRegion) api.replaceRegion(previous, replacement);
+                active = replacement;
+                savedSelection = null;
+                replacement.focus();
+                api.markDirty(replacement);
+                syncToolbar();
+                positionToolbar();
+            }
+
+            function travelHistory(direction) {
+                if (!active) return;
+                const history = historyOf(active);
+                const source = direction === 'undo' ? history.undo : history.redo;
+                const target = direction === 'undo' ? history.redo : history.undo;
+                if (source.length === 0) return;
+                pushSnapshot(target, snapshotOf(active));
+                restoreState(source.pop());
+            }
 
             // --- feedback -----------------------------------------------------
             function showToast(message, isError) {
@@ -484,13 +507,24 @@
                 const isImage = active.getAttribute('data-block-type') === 'image';
                 toolbar.querySelectorAll('[data-client-block-command]').forEach(function (button) {
                     // Formatting means nothing on an image region.
-                    button.disabled = isImage;
                     const command = button.dataset.clientBlockCommand;
+                    if (command === 'undo' || command === 'redo') {
+                        const history = isImage ? null : historyOf(active);
+                        button.disabled = isImage || history[command].length === 0;
+                        button.classList.remove('is-active');
+                        return;
+                    }
+                    button.disabled = isImage;
                     let on = false;
-                    try {
-                        on = !isImage && document.queryCommandState(command);
-                    } catch (error) {
-                        on = false;
+                    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+                        const wantedTag = command === 'insertOrderedList' ? 'ol' : 'ul';
+                        on = !isImage && active.tagName.toLowerCase() === wantedTag;
+                    } else {
+                        try {
+                            on = !isImage && document.queryCommandState(command);
+                        } catch (error) {
+                            on = false;
+                        }
                     }
                     button.classList.toggle('is-active', on);
                 });
@@ -502,11 +536,6 @@
                     headingLabel.textContent = format === 'default' ? 'P' : format.toUpperCase();
                 }
 
-                // Deleting a box only applies to one an editor added; an authored
-                // region belongs to the template and can be hidden, never removed.
-                const deletable = Boolean(active.getAttribute('data-list-item'));
-                const deleteButton = toolbar.querySelector('[data-client-block-action="delete"]');
-                if (deleteButton) deleteButton.hidden = !deletable;
             }
 
             function closeHeadingMenu() {
@@ -518,7 +547,18 @@
             // --- commands -----------------------------------------------------
             function runCommand(command) {
                 if (!active) return;
-                restoreSelection();
+
+                if (command === 'undo' || command === 'redo') {
+                    travelHistory(command);
+                    return;
+                }
+
+                if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+                    applyList(command === 'insertOrderedList' ? 'ol' : 'ul');
+                    return;
+                }
+
+                const before = snapshotOf(active);
 
                 if (command === 'createLink') {
                     const url = window.prompt('Nhập liên kết (http/https hoặc đường dẫn bắt đầu bằng /):', 'https://');
@@ -529,8 +569,13 @@
                         showToast('Liên kết phải bắt đầu bằng http://, https:// hoặc /.', true);
                         return;
                     }
+                    if (!restoreSelection()) {
+                        showToast('Hãy bôi đen phần nội dung cần gắn liên kết.', true);
+                        return;
+                    }
                     document.execCommand('createLink', false, url.trim());
                 } else {
+                    restoreSelection();
                     try {
                         document.execCommand(command, false, null);
                     } catch (error) {
@@ -541,10 +586,63 @@
 
                 // Formatting turns a plain region into markup, so it has to be
                 // saved as HTML rather than escaped text.
+                if (!commitCommand(active, before)) {
+                    syncToolbar();
+                    return;
+                }
                 active.setAttribute('data-block-type', 'html');
-                api.markDirty(active);
                 rememberSelection();
                 syncToolbar();
+            }
+
+            function applyList(listTag) {
+                if (!active) return;
+
+                const before = snapshotOf(active);
+                const currentTag = active.tagName.toLowerCase();
+                const baseTag = active.getAttribute('data-block-base-tag') || 'div';
+                const removing = currentTag === listTag;
+                const nextTag = removing ? baseTag : listTag;
+                const replacement = document.createElement(nextTag);
+
+                Array.from(active.attributes).forEach(function (attribute) {
+                    replacement.setAttribute(attribute.name, attribute.value);
+                });
+
+                if (removing) {
+                    const items = Array.from(active.children).filter(function (child) {
+                        return child.tagName.toLowerCase() === 'li';
+                    });
+                    replacement.innerHTML = items.length
+                        ? items.map(function (item) { return item.innerHTML; }).join('<br>')
+                        : active.innerHTML;
+                    replacement.removeAttribute('data-block-format');
+                } else {
+                    if (currentTag === 'ul' || currentTag === 'ol') {
+                        replacement.innerHTML = active.innerHTML;
+                    } else {
+                        const content = active.innerHTML.trim();
+                        replacement.innerHTML = '<li>' + (content || '<br>') + '</li>';
+                    }
+                    replacement.setAttribute('data-block-format', listTag);
+                }
+                replacement.setAttribute('data-block-type', 'html');
+
+                ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(function (level) {
+                    replacement.classList.remove('client-content-heading-' + level);
+                });
+                replacement.classList.remove('client-content-format-p', 'client-content-list-ul', 'client-content-list-ol');
+                if (!removing) replacement.classList.add('client-content-list-' + listTag);
+
+                active.replaceWith(replacement);
+                replacement.setAttribute('contenteditable', 'true');
+                if (api.replaceRegion) api.replaceRegion(active, replacement);
+                active = replacement;
+                commitCommand(replacement, before);
+                replacement.focus();
+                savedSelection = null;
+                syncToolbar();
+                positionToolbar();
             }
 
             /**
@@ -558,6 +656,12 @@
 
                 const baseTag = active.getAttribute('data-block-base-tag') || 'div';
                 const nextTag = format === 'default' ? baseTag : format;
+                const current = currentFormat();
+                if (current === format && active.tagName.toLowerCase() === nextTag) {
+                    closeHeadingMenu();
+                    return;
+                }
+                const before = snapshotOf(active);
                 const replacement = document.createElement(nextTag);
 
                 Array.from(active.attributes).forEach(function (attribute) {
@@ -575,8 +679,11 @@
                 ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(function (level) {
                     replacement.classList.remove('client-content-heading-' + level);
                 });
+                replacement.classList.remove('client-content-format-p', 'client-content-list-ul', 'client-content-list-ol');
                 if (format !== 'default' && format !== 'p') {
                     replacement.classList.add('client-content-heading-' + format);
+                } else if (format === 'p') {
+                    replacement.classList.add('client-content-format-p');
                 }
 
                 active.replaceWith(replacement);
@@ -587,7 +694,7 @@
                 // dirty, or the bar keeps the detached original queued for save.
                 if (api.replaceRegion) api.replaceRegion(active, replacement);
                 active = replacement;
-                api.markDirty(replacement);
+                commitCommand(replacement, before);
                 closeHeadingMenu();
                 syncToolbar();
                 positionToolbar();
@@ -622,6 +729,7 @@
                 if (action === 'clear') {
                     // Emptying is an ordinary content change: an empty value is what
                     // "hidden" means, so it rides the normal Lưu flow.
+                    rememberState(active);
                     active.innerHTML = '';
                     api.markDirty(active);
                     showToast('Vùng sẽ bị ẩn sau khi bấm Lưu.');
@@ -665,36 +773,17 @@
                 }
             }
 
-            async function appendBox(element) {
-                const listKey = element.getAttribute('data-append-list');
-                if (!listKey) return;
-
-                try {
-                    await request(api.urls.listItems, 'POST', { key: listKey });
-                    // Same reason: the new box's markup comes from the Blade that
-                    // owns the region, so only a re-render can produce it.
-                    showToast('Đã thêm ô.');
-                    window.location.reload();
-                } catch (error) {
-                    showToast(error.message, true);
-                }
-            }
-
             // --- hover controls -----------------------------------------------
             function showHoverControls(element) {
                 hovered = element;
-                const appendable = Boolean(element.getAttribute('data-append-list'));
                 const removable = Boolean(element.getAttribute('data-list-item'));
 
-                appendButton.classList.toggle('is-visible', appendable);
                 removeButton.classList.toggle('is-visible', removable);
-                if (appendable) place(element, appendButton, -8);
                 if (removable) place(element, removeButton, 26);
             }
 
             function hideHoverControls() {
                 hovered = null;
-                appendButton.classList.remove('is-visible');
                 removeButton.classList.remove('is-visible');
             }
 
@@ -761,16 +850,37 @@
                 syncToolbar();
             });
 
+            // Keep keyboard and toolbar history on the same snapshot stack. If the
+            // browser also performs its native contenteditable undo, the DOM moves
+            // twice and Redo no longer describes the state the admin can see.
+            document.addEventListener('keydown', function (event) {
+                if (!active || !(event.ctrlKey || event.metaKey) || event.altKey) return;
+                const key = event.key.toLowerCase();
+                const direction = key === 'y' || (key === 'z' && event.shiftKey)
+                    ? 'redo'
+                    : (key === 'z' ? 'undo' : null);
+                if (!direction) return;
+                event.preventDefault();
+                travelHistory(direction);
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key !== 'Escape' || !headingControl || !headingControl.classList.contains('is-open')) return;
+                event.preventDefault();
+                closeHeadingMenu();
+                if (headingTrigger) headingTrigger.focus();
+            });
+
+            document.addEventListener('beforeinput', function (event) {
+                if (!api.isEditing()) return;
+                const region = event.target.closest ? event.target.closest('[data-block-key]') : null;
+                if (region) rememberState(region);
+            });
+
             document.addEventListener('mouseover', function (event) {
                 if (!api.isEditing()) return;
                 const region = event.target.closest ? event.target.closest('[data-block-key]') : null;
                 region ? showHoverControls(region) : hideHoverControls();
-            });
-
-            appendButton.addEventListener('click', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                if (hovered) appendBox(hovered);
             });
 
             removeButton.addEventListener('click', function (event) {

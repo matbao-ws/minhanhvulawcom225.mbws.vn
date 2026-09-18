@@ -20,6 +20,8 @@ Use this order:
 Requirements/page map
   -> static HTML prototype
   -> visual approval
+  -> source-theme preflight and normalization
+  -> approved theme-data extraction and development seed
   -> cut into reusable pages/components
   -> structural approval
   -> connect the public API
@@ -130,6 +132,14 @@ If approval is absent, continue only with non-destructive prototype refinements.
 
 “Cut the interface” means turn approved static pages into maintainable frontend units without
 changing their appearance.
+
+Before extraction, run [theme-preflight.md](theme-preflight.md). Stage 2 does not begin from a theme
+with unresolved critical structural defects. Normalize the source once, verify it, then cut that
+normalized result so the same repair is not repeated differently across Blade components.
+
+If the normalized theme already contains the site's approved logo, identity, navigation, CMS pages
+or editable copy/media, run [theme-data-seeding.md](theme-data-seeding.md) next. Seed first, then bind
+Blade to those records; do not finish the cut with a database row and a competing hard-coded literal.
 
 ### Extract the shared shell
 

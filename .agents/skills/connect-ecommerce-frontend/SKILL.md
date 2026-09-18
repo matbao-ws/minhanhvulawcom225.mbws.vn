@@ -10,17 +10,22 @@ description: Build or import a storefront HTML theme, cut a root `theme/` design
 1. Read `AI_BUILD_PROMPT.md`.
 2. Read [static-first-workflow.md](references/static-first-workflow.md) when creating a mockup,
    cutting an approved HTML design, or deciding the current frontend stage.
-3. Read [laravel-blade-cutting.md](references/laravel-blade-cutting.md) whenever a `theme/`
+3. Read [theme-preflight.md](references/theme-preflight.md) whenever a `theme/` directory is
+   supplied. Audit and normalize the source theme before creating or replacing Blade files.
+4. Read [theme-data-seeding.md](references/theme-data-seeding.md) when the supplied theme contains
+   approved real website identity, menus, pages or editable content. Build and run its idempotent
+   development seed before replacing that data with database rendering.
+5. Read [laravel-blade-cutting.md](references/laravel-blade-cutting.md) whenever a `theme/`
    directory is supplied or the storefront belongs in this Laravel repository.
-4. Read [inline-admin-editing.md](references/inline-admin-editing.md) whenever creating or replacing
+6. Read [inline-admin-editing.md](references/inline-admin-editing.md) whenever creating or replacing
    a client layout, rendering CMS Pages, or changing the storefront admin bar/editor.
-5. Read [editable-markup-standard.md](references/editable-markup-standard.md) **before** marking any
+7. Read [editable-markup-standard.md](references/editable-markup-standard.md) **before** marking any
    region editable while cutting a theme. Read it during the cut, not after: an editable key is the
    primary key of content an admin has already saved, and renaming one abandons their work.
-6. Read [api-contracts.md](references/api-contracts.md) before connecting live data.
-7. Inspect `routes/api.php`, the relevant API controller, Resource, and feature tests.
-8. Inspect `public/docs/openapi.json`, but resolve any mismatch in favor of executable code/tests.
-9. Identify whether the storefront is same-origin or cross-origin before choosing auth/storage/CORS
+8. Read [api-contracts.md](references/api-contracts.md) before connecting live data.
+9. Inspect `routes/api.php`, the relevant API controller, Resource, and feature tests.
+10. Inspect `public/docs/openapi.json`, but resolve any mismatch in favor of executable code/tests.
+11. Identify whether the storefront is same-origin or cross-origin before choosing auth/storage/CORS
    behavior.
 
 Do not invent endpoints or fields from UI labels.
@@ -44,6 +49,12 @@ Do only the requested stage and its prerequisites.
 - During Stage 1, prioritize appearance, responsive states, and complete page coverage. Do not add
   backend calls unless explicitly requested.
 - Before Stage 2, preserve the approved visual result. Refactor structure without redesigning it.
+- A supplied `theme/` does not go straight into Blade. Complete its preflight, repair blocking HTML,
+  asset, responsive and editor-structure defects in the source theme, and verify visual equivalence
+  first. The normalized theme becomes the cut source.
+- When that normalized theme contains approved real site data, do not leave it as duplicated Blade
+  literals. Extract it into an idempotent theme seeder, run it in the development database, and make
+  the corresponding database model the source of truth before completing Stage 2.
 - Before Stage 3, require stable pages/components and a page-to-endpoint mapping.
 - During Stage 4, remove production dependence on mock fixtures and verify all error states.
 
@@ -100,6 +111,8 @@ Preserve layout, spacing, typography, responsive behavior, and interactions from
 Do not mix mock fixtures with the future API client. Do not convert approved HTML markup into
 JavaScript template strings or a client-rendered application unless the user explicitly requests
 that architecture. Do not overwrite the shared client layout in a way that removes admin editing.
+Before declaring a cut complete, inventory and reconcile all visible copy and media, including CSS
+backgrounds, `<picture>` sources and slider images; keep acceptance routes free of editor fixtures.
 
 ## Build one API client
 
@@ -156,6 +169,10 @@ Replace one mock-backed feature at a time and verify it before removing that fix
 Check:
 
 - The cut interface remains visually equivalent to the approved static HTML.
+- The source `theme/` passed preflight before Blade extraction; critical findings were fixed there,
+  not patched independently after the same defect had already spread into multiple Blade files.
+- Approved theme identity, menus, CMS pages and content were seeded with stable keys/slugs/locales;
+  a second seed creates no duplicates and does not overwrite a value already edited by an admin.
 - No live API call exists in a Stage 1-only deliverable.
 - Production pages no longer depend on mock fixtures after Stage 3.
 - Every request method, path, field name, and auth requirement against backend code.
@@ -166,6 +183,20 @@ Check:
 - No sensitive data is stored in logs, HTML, analytics, or long-lived browser state.
 - Authorized admins can open and save the CMS Page inline editor; guests, customers, and admins
   without `pages.update` neither see nor load it.
+- An authorized admin sees no editable outlines or hover affordances until edit mode is explicitly
+  enabled, and the outline presents fixed sections plus semantic Row/Card/Content wrappers as
+  parents of their real text/image children.
+- Responsive preview tests real iframe widths: Desktop fills the available canvas, fixed
+  Tablet/Mobile stages are centered, and no zoom/transform fakes media-query behavior.
+- Ordinary text/image regions cannot add siblings, and the text-formatting toolbar has no
+  permanent-delete action. Treat repeatable content as a separate, explicitly approved feature.
+- Undo/redo covers typing, formatting and semantic `p`/`h1`-`h6` replacement; Save, Cancel and
+  subsequent edits still target the current node after its wrapper is replaced.
+- Sort handles appear only for persisted lists with at least two eligible siblings. Reordering is
+  re-bound after an outline refresh, stays within one Row/list key, survives reload and never accepts
+  headings or Content nodes as drop targets.
+- Content and section revisions are no-op aware, coalesced and bounded; history growth is tested
+  under repeated saves rather than assumed from the UI.
 
 When backend behavior is wrong, fix the backend contract and its tests first; do not hide backend
 errors with frontend workarounds.

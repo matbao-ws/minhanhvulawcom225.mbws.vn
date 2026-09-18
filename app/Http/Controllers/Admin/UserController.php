@@ -38,9 +38,16 @@ class UserController extends Controller
 
     private function assertCanManage(User $user): void
     {
+        $this->assertStaffAccount($user);
+
         if ($user->hasPrivilegedRole() && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'Unauthorized.');
         }
+    }
+
+    private function assertStaffAccount(User $user): void
+    {
+        abort_if($user->role_id === null, 404);
     }
 
     private function assertCanAssignRole(?Role $role): void
@@ -313,6 +320,8 @@ class UserController extends Controller
 
     public function impersonate(Request $request, string $locale, User $user)
     {
+        $this->assertStaffAccount($user);
+
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('admin.users.index')
@@ -328,12 +337,6 @@ class UserController extends Controller
         $request->session()->regenerate();
         $request->session()->put('impersonated_by', $originalAdminId);
         ActivityLogger::log('impersonated', $user, "Đăng nhập nhanh vào tài khoản {$user->email}");
-
-        // Redirect to homepage if target has no admin privileges, else to dashboard
-        if ($user->role_id === null) {
-            return redirect('/')
-                ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò ' . $user->name);
-        }
 
         return redirect()
             ->route('admin.dashboard')

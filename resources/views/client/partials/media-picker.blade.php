@@ -1,5 +1,5 @@
 @php
-    $canReplaceImages = (bool) (auth()->user()?->canEditClientContent() && auth()->user()?->can('media.view'));
+    $canReplaceImages = (bool) (\App\Support\ClientEditorChrome::editorActive() && auth()->user()?->can('media.view'));
 @endphp
 
 @if ($canReplaceImages)

@@ -10,7 +10,7 @@
      * Wraps the markup the template defines for an item and, for an authorized
      * admin, attaches the control that removes it.
      */
-    $canEdit = (bool) auth()->user()?->canEditClientContent();
+    $canEdit = \App\Support\ClientEditorChrome::editorActive();
 @endphp
 
 {{-- The wrapper carries the theme's own utility classes (card, flex child, grid

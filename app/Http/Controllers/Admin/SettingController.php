@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Language;
 use App\Models\ProjectSetting;
 use App\Services\ActivityLogger;
+use App\Services\CloudinaryCredentials;
 use App\Services\CloudinaryService;
 use App\Support\MediaUrl;
 use App\Services\LanguageRegistry;
@@ -26,7 +27,12 @@ class SettingController extends Controller
      */
     public function index()
     {
-        $settings = ProjectSetting::query()->get()->pluck('setting_value', 'setting_key');
+        // Integration credentials have their own guarded screen and must never
+        // be handed to a general-purpose settings view.
+        $settings = ProjectSetting::query()
+            ->where('setting_key', '!=', CloudinaryCredentials::SETTING_KEY)
+            ->get()
+            ->pluck('setting_value', 'setting_key');
 
         return view('admin.settings.index', [
             'settings' => $settings,
