@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}">
+<html lang="{{ app()->getLocale() }}" data-boxed-layout="full">
 
 <head>
     <meta charset="UTF-8">
@@ -17,6 +17,11 @@
         h1, h2, h3, h4, h5, h6 {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
             font-weight: 600 !important;
+        }
+        
+        /* Ensure admin main container spans full width on wide viewports */
+        .body-wrapper .container-fluid {
+            max-width: 100% !important;
         }
         
         /* Global typography & readability improvements for Admin */

@@ -381,7 +381,7 @@
                 width: '100%',
                 type: 'line',
                 toolbar: { show: false },
-                fontFamily: 'Quicksand, sans-serif',
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                 zoom: { enabled: false }
             },
             dataLabels: { enabled: false },
@@ -448,7 +448,7 @@
                 intersect: false,
                 style: {
                     fontSize: '13px',
-                    fontFamily: 'Quicksand, sans-serif'
+                    fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif'
                 },
                 y: {
                     formatter: function (value, { seriesIndex }) {
@@ -475,7 +475,7 @@
                 horizontalAlign: 'center',
                 offsetY: 10,
                 fontSize: '13px',
-                fontFamily: 'Quicksand, sans-serif',
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                 fontWeight: 600,
                 markers: {
                     radius: 12
@@ -492,7 +492,7 @@
                 type: 'donut',
                 height: 320,
                 width: '100%',
-                fontFamily: 'Quicksand, sans-serif'
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif'
             },
             series: {!! json_encode($statusChart['series']) !!},
             labels: {!! json_encode($statusChart['labels']) !!},
@@ -507,7 +507,7 @@
                                 show: true,
                                 label: '{{ __('admin.dashboard_page.total_orders') }}',
                                 fontSize: '15px',
-                                fontFamily: 'Quicksand, sans-serif',
+                                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                                 fontWeight: 600,
                                 formatter: function (w) {
                                     return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
@@ -516,7 +516,7 @@
                             value: {
                                 show: true,
                                 fontSize: '20px',
-                                fontFamily: 'Quicksand, sans-serif',
+                                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                                 fontWeight: 700
                             }
                         }
@@ -529,13 +529,13 @@
                 horizontalAlign: 'center',
                 offsetY: 0,
                 fontSize: '13px',
-                fontFamily: 'Quicksand, sans-serif',
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                 fontWeight: 600
             },
             tooltip: {
                 style: {
                     fontSize: '13px',
-                    fontFamily: 'Quicksand, sans-serif'
+                    fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif'
                 },
                 y: {
                     formatter: function (value) {
@@ -555,7 +555,7 @@
                 width: '100%',
                 type: 'area',
                 toolbar: { show: false },
-                fontFamily: 'Quicksand, sans-serif',
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                 zoom: { enabled: false }
             },
             colors: ['#13deb9'],
@@ -616,7 +616,7 @@
             tooltip: {
                 theme: 'light',
                 x: { show: true },
-                style: { fontSize: '13px', fontFamily: 'Quicksand, sans-serif' },
+                style: { fontSize: '13px', fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif' },
                 y: {
                     formatter: function (value) {
                         return new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
@@ -632,7 +632,7 @@
                 position: 'top',
                 horizontalAlign: 'center',
                 fontSize: '13px',
-                fontFamily: 'Quicksand, sans-serif',
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                 fontWeight: 600
             }
         };
@@ -647,7 +647,7 @@
                 width: '100%',
                 type: 'area',
                 toolbar: { show: false },
-                fontFamily: 'Quicksand, sans-serif',
+                fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif',
                 zoom: { enabled: false }
             },
             colors: ['#539bff'],
@@ -694,7 +694,7 @@
             },
             tooltip: {
                 theme: 'light',
-                style: { fontSize: '13px', fontFamily: 'Quicksand, sans-serif' },
+                style: { fontSize: '13px', fontFamily: 'Ubuntu Admin, Ubuntu, Segoe UI, Arial, sans-serif' },
                 y: {
                     formatter: function (value) {
                         return value + ' {{ __('admin.dashboard_page.units.activities') }}';

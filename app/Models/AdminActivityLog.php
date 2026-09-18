@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -29,6 +30,26 @@ class AdminActivityLog extends Model
     public function subject()
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Keep superadmin activity private from ordinary administrators.
+     *
+     * The restriction is expressed on the log query so it covers the rows,
+     * filter options, and any future use of this listing query consistently.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeVisibleTo(Builder $query, User $viewer): Builder
+    {
+        if ($viewer->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->whereDoesntHave('user.role', function (Builder $roleQuery): void {
+            $roleQuery->where('is_superadmin', true);
+        });
     }
 
     public static function actionLabelFor(?string $action): string

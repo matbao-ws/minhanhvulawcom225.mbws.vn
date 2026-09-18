@@ -11,7 +11,11 @@ class ActivityLogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AdminActivityLog::query()->with('user')->latest('created_at');
+        $viewer = $request->user();
+        $query = AdminActivityLog::query()
+            ->visibleTo($viewer)
+            ->with('user')
+            ->latest('created_at');
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->integer('user_id'));
@@ -31,9 +35,13 @@ class ActivityLogController extends Controller
 
         return view('admin.activity_logs.index', [
             'logs' => $query->paginate(20)->withQueryString(),
-            'users' => User::query()->whereNotNull('role_id')->orderBy('name')->get(['id', 'name', 'email']),
-            'actions' => AdminActivityLog::query()->distinct()->orderBy('action')->pluck('action'),
-            'subjectTypes' => AdminActivityLog::query()->whereNotNull('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type'),
+            'users' => User::query()
+                ->whereNotNull('role_id')
+                ->when(! $viewer->isSuperAdmin(), fn ($users) => $users->whereDoesntHave('role', fn ($roles) => $roles->where('is_superadmin', true)))
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']),
+            'actions' => AdminActivityLog::query()->visibleTo($viewer)->distinct()->orderBy('action')->pluck('action'),
+            'subjectTypes' => AdminActivityLog::query()->visibleTo($viewer)->whereNotNull('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type'),
         ]);
     }
 }

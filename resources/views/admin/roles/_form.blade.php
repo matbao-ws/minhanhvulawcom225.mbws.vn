@@ -22,7 +22,15 @@
 
                 @foreach($grouped as $group => $groupModules)
                     <div class="border rounded p-3 mb-3">
-                        <h6 class="fw-bold text-dark mb-3">{{ __('admin.roles.groups.'.$group) }}</h6>
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                            <h6 class="fw-bold text-dark mb-0">{{ __('admin.roles.groups.'.$group) }}</h6>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       id="permission_group_{{ $group }}"
+                                       data-permission-group-toggle="{{ $group }}">
+                                <label class="form-check-label text-dark" for="permission_group_{{ $group }}">{{ __('admin.roles.fields.select_all_in_group') }}</label>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle mb-0">
                                 <thead>
@@ -44,6 +52,7 @@
                                                         <div class="form-check form-switch d-inline-block m-0">
                                                             <input class="form-check-input" type="checkbox" name="permissions[]"
                                                                    value="{{ $code }}" id="perm_{{ $module }}_{{ $action }}"
+                                                                   data-permission-group-checkbox="{{ $group }}"
                                                                    aria-label="{{ __('admin.roles.actions.'.$action) }} — {{ $definition['label'] }}"
                                                                    @checked($isWildcard || in_array($code, $selected, true))>
                                                         </div>
@@ -65,3 +74,39 @@
 </div>
 
 @include('admin.shared.form-actions', ['cancelUrl' => route('admin.roles.index')])
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-permission-group-toggle]').forEach(function (toggle) {
+                const group = toggle.dataset.permissionGroupToggle;
+                const permissions = Array.from(document.querySelectorAll('[data-permission-group-checkbox]'))
+                    .filter(function (permission) {
+                        return permission.dataset.permissionGroupCheckbox === group;
+                    });
+
+                const syncToggle = function () {
+                    const checkedCount = permissions.filter(function (permission) {
+                        return permission.checked;
+                    }).length;
+
+                    toggle.checked = permissions.length > 0 && checkedCount === permissions.length;
+                    toggle.indeterminate = checkedCount > 0 && checkedCount < permissions.length;
+                };
+
+                toggle.addEventListener('change', function () {
+                    permissions.forEach(function (permission) {
+                        permission.checked = toggle.checked;
+                    });
+                    toggle.indeterminate = false;
+                });
+
+                permissions.forEach(function (permission) {
+                    permission.addEventListener('change', syncToggle);
+                });
+
+                syncToggle();
+            });
+        });
+    </script>
+@endpush

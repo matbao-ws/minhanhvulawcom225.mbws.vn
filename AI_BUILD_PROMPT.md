@@ -337,7 +337,6 @@ Không chạy các lệnh sau trên database không xác định:
 migrate:fresh
 migrate:reset
 db:wipe
-DemoSeeder
 seeder cũ có truncate/delete hàng loạt
 ```
 

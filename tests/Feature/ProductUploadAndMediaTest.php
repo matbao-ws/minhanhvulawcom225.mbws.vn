@@ -44,6 +44,11 @@ class ProductUploadAndMediaTest extends TestCase
         // The folder list follows the scroll instead of sitting in a tall empty column.
         $response->assertSee('media-folder-sidebar', false);
         $response->assertSee('position: sticky', false);
+        $response->assertSee('mediaUploadDropzone', false);
+        $response->assertSee('images-empty.png', false);
+        $response->assertSee('aria-label="breadcrumb"', false);
+        $response->assertSee('color: #fff !important', false);
+        $response->assertSee('Dung lượng đã sử dụng');
     }
 
     public function test_media_library_paginates_the_file_grid(): void
@@ -79,6 +84,20 @@ class ProductUploadAndMediaTest extends TestCase
         $this->assertCount(15, $response->viewData('resources')->items());
     }
 
+    public function test_media_library_sorts_files_and_reports_local_storage_usage(): void
+    {
+        $this->actingAs(User::factory()->create());
+        Storage::disk('public')->put('general/zebra.jpg', str_repeat('z', 1024));
+        Storage::disk('public')->put('general/apple.jpg', str_repeat('a', 2048));
+
+        $response = $this->get('/vi/admin/media?folder=general&sort=name_asc');
+
+        $response->assertOk()->assertSee('name="sort"', false);
+        $this->assertSame('general/apple.jpg', $response->viewData('resources')->items()[0]['public_id']);
+        $this->assertSame(3072, $response->viewData('storageUsage')['used']);
+        $this->assertSame(10 * 1024 * 1024 * 1024, $response->viewData('storageUsage')['limit']);
+    }
+
     public function test_admin_can_upload_media_file(): void
     {
         $this->actingAs(User::factory()->create());
@@ -96,6 +115,66 @@ class ProductUploadAndMediaTest extends TestCase
         $files = Storage::disk('public')->files('general');
         $this->assertCount(1, $files);
         $this->assertStringEndsWith('.jpg', $files[0]);
+    }
+
+    public function test_admin_can_upload_multiple_media_files_in_one_request(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post('/vi/admin/media/upload', [
+            'file' => [
+                UploadedFile::fake()->image('first.jpg'),
+                UploadedFile::fake()->image('second.png'),
+            ],
+            'folder' => 'general',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $files = Storage::disk('public')->files('general');
+        $this->assertCount(2, $files);
+        $extensions = array_map(fn (string $file): string => pathinfo($file, PATHINFO_EXTENSION), $files);
+        $this->assertContains('jpg', $extensions);
+        $this->assertContains('png', $extensions);
+    }
+
+    public function test_admin_can_upload_and_manage_an_mp4_video(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $video = UploadedFile::fake()->create('product-demo.mp4', 1024, 'video/mp4');
+
+        $this->post('/vi/admin/media/upload', [
+            'file' => $video,
+            'folder' => 'general',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $file = Storage::disk('public')->files('general')[0];
+        $this->assertStringEndsWith('.mp4', $file);
+
+        $this->get('/vi/admin/media?folder=general')
+            ->assertOk()
+            ->assertSee('<video', false)
+            ->assertSee('resource_type" value="video"', false);
+
+        $this->delete('/vi/admin/media/delete', [
+            'public_id' => $file,
+            'resource_type' => 'video',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        Storage::disk('public')->assertMissing($file);
+    }
+
+    public function test_media_library_rejects_unsupported_or_oversized_videos(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post('/vi/admin/media/upload', [
+            'file' => UploadedFile::fake()->create('product-demo.webm', 1024, 'video/webm'),
+            'folder' => 'general',
+        ])->assertSessionHasErrors('file');
+
+        $this->post('/vi/admin/media/upload', [
+            'file' => UploadedFile::fake()->create('too-large.mp4', 51201, 'video/mp4'),
+            'folder' => 'general',
+        ])->assertSessionHasErrors('file');
     }
 
     public function test_image_picker_rejects_svg_with_a_clear_security_message(): void

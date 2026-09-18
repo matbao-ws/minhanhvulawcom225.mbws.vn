@@ -746,9 +746,8 @@ def generate_extractor_php(run_migrate=False, seed_type='none', keep_zip=False):
         '@unlink($zipFile);\n        echo "Da xoa deploy.zip.\\n";'
     )
     
-    # Only DatabaseSeeder -> FoundationSeeder is offered here. Every other seeder
-    # in this project truncates its tables (OasisProductSeeder wipes products,
-    # categories and brands), so none of them belongs in a deploy path.
+    # DatabaseSeeder only runs the idempotent FoundationSeeder, so it is the
+    # only seed path exposed during deployment.
     seed_block = ""
     if seed_type == 'full':
         seed_block = """
@@ -902,9 +901,8 @@ echo "Deployment complete!\\n";
 def generate_artisan_trigger_php(run_migrate=False, seed_type='none'):
     migrate_val = "true" if run_migrate else "false"
     
-    # Only DatabaseSeeder -> FoundationSeeder is offered here. Every other seeder
-    # in this project truncates its tables (OasisProductSeeder wipes products,
-    # categories and brands), so none of them belongs in a deploy path.
+    # DatabaseSeeder only runs the idempotent FoundationSeeder, so it is the
+    # only seed path exposed during deployment.
     seed_block = ""
     if seed_type == 'full':
         seed_block = """

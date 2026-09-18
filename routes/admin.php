@@ -67,6 +67,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     });
     Route::post('media/upload', [MediaController::class, 'upload'])->middleware('can:media.create')->name('media.upload');
     Route::delete('media/delete', [MediaController::class, 'destroy'])->middleware('can:media.delete')->name('media.delete');
+    Route::delete('media/bulk-delete', [MediaController::class, 'bulkDestroy'])->middleware('can:media.delete')->name('media.bulk-delete');
+    Route::post('media/cloudinary/connect', [MediaController::class, 'connectCloudinary'])
+        ->middleware(['can:media.view', 'can:settings.update', 'throttle:admin-integration'])
+        ->name('media.cloudinary.connect');
+    Route::delete('media/cloudinary/disconnect', [MediaController::class, 'disconnectCloudinary'])
+        ->middleware(['can:media.view', 'can:settings.update', 'throttle:admin-integration'])
+        ->name('media.cloudinary.disconnect');
 
     // Feature flags and impersonation stay superadmin-only: they can hand out
     // access rather than merely use it.

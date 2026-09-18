@@ -78,6 +78,9 @@ class RoleCrudTest extends TestCase
         $this->get('/vi/admin/roles/create')
             ->assertOk()
             ->assertSee('perm_products_view', false)
+            ->assertSee('data-permission-group-toggle="catalog"', false)
+            ->assertSee('data-permission-group-checkbox="catalog"', false)
+            ->assertSee('Chọn tất cả')
             ->assertSee('value="orders.update"', false);
 
         $this->get("/vi/admin/roles/{$role->id}/edit")
