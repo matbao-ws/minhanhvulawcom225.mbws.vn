@@ -106,9 +106,13 @@ class SiteListService
     public function reorder(string $key, array $order, array $defaults = []): void
     {
         $items = $this->items($key, $defaults);
-        $order = array_values(array_filter($order, fn ($id) => in_array($id, $items, true)));
+        $order = array_values($order);
+        $expected = $items;
+        $candidate = $order;
+        sort($expected);
+        sort($candidate);
 
-        if (count($order) !== count($items)) {
+        if ($candidate !== $expected) {
             throw ValidationException::withMessages(['order' => 'Thứ tự gửi lên không khớp danh sách hiện tại.']);
         }
 

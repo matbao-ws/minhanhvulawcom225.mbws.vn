@@ -72,14 +72,50 @@ return new class extends Migration
                 continue;
             }
 
-            Schema::table($table, function (Blueprint $blueprint) use ($definitions) {
-                foreach ($definitions as [$column, $references, $onDelete]) {
-                    $blueprint->foreign($column)
-                        ->references('id')
-                        ->on($references)
-                        ->onDelete($onDelete);
+            $existingKeys = [];
+            foreach (Schema::getForeignKeys($table) as $fk) {
+                if (count($fk['columns']) === 1) {
+                    $existingKeys[$fk['columns'][0]] = $fk;
                 }
-            });
+            }
+
+            $toDrop = [];
+            $toAdd = [];
+
+            foreach ($definitions as [$column, $references, $onDelete]) {
+                if (isset($existingKeys[$column])) {
+                    $existing = $existingKeys[$column];
+                    if (
+                        $existing['foreign_table'] === $references &&
+                        strtolower((string) $existing['on_delete']) === strtolower($onDelete)
+                    ) {
+                        continue;
+                    }
+
+                    $toDrop[] = $column;
+                }
+
+                $toAdd[] = [$column, $references, $onDelete];
+            }
+
+            if (! empty($toDrop)) {
+                Schema::table($table, function (Blueprint $blueprint) use ($toDrop) {
+                    foreach ($toDrop as $column) {
+                        $blueprint->dropForeign([$column]);
+                    }
+                });
+            }
+
+            if (! empty($toAdd)) {
+                Schema::table($table, function (Blueprint $blueprint) use ($toAdd) {
+                    foreach ($toAdd as [$column, $references, $onDelete]) {
+                        $blueprint->foreign($column)
+                            ->references('id')
+                            ->on($references)
+                            ->onDelete($onDelete);
+                    }
+                });
+            }
         }
     }
 
@@ -90,11 +126,19 @@ return new class extends Migration
                 continue;
             }
 
-            Schema::table($table, function (Blueprint $blueprint) use ($definitions) {
+            $existingColumns = array_column(
+                array_filter(Schema::getForeignKeys($table), fn ($fk) => count($fk['columns']) === 1),
+                'columns'
+            );
+            $existingColumnNames = array_map(fn ($cols) => $cols[0], $existingColumns);
+
+            Schema::table($table, function (Blueprint $blueprint) use ($definitions, $existingColumnNames) {
                 foreach ($definitions as [$column]) {
-                    // By column, not by name: SQLite refuses to drop a foreign key by
-                    // constraint name, and the array form works on both drivers.
-                    $blueprint->dropForeign([$column]);
+                    if (in_array($column, $existingColumnNames, true)) {
+                        // By column, not by name: SQLite refuses to drop a foreign key by
+                        // constraint name, and the array form works on both drivers.
+                        $blueprint->dropForeign([$column]);
+                    }
                 }
             });
         }
@@ -127,15 +171,20 @@ return new class extends Migration
                     continue;
                 }
 
-                $orphans = DB::table($table)
+                $orphanIds = DB::table($table)
                     ->whereNotNull($column)
-                    ->whereNotIn($column, fn ($query) => $query->select('id')->from($references));
+                    ->whereNotIn($column, fn ($query) => $query->select('id')->from($references))
+                    ->pluck('id');
+
+                if ($orphanIds->isEmpty()) {
+                    continue;
+                }
 
                 $nullable = $nullableColumns[$column] ?? false;
 
                 $affected = $nullable
-                    ? (clone $orphans)->update([$column => null])
-                    : (clone $orphans)->delete();
+                    ? DB::table($table)->whereIn('id', $orphanIds)->update([$column => null])
+                    : DB::table($table)->whereIn('id', $orphanIds)->delete();
 
                 if ($affected > 0) {
                     $action = $nullable ? 'blanked' : 'deleted';

@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Crypt;
 
 class ProjectSetting extends Model
 {
+    private const ENCRYPTED_SETTING_KEYS = [
+        'notification_settings',
+        'cloudinary_credentials',
+    ];
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -28,7 +33,7 @@ class ProjectSetting extends Model
                 }
 
                 $decoded = is_string($value) ? json_decode($value, true) : $value;
-                if (($attributes['setting_key'] ?? null) !== 'notification_settings') {
+                if (! in_array($attributes['setting_key'] ?? null, self::ENCRYPTED_SETTING_KEYS, true)) {
                     return $decoded;
                 }
 
@@ -47,7 +52,7 @@ class ProjectSetting extends Model
             set: function (mixed $value, array $attributes): mixed {
                 $encoded = json_encode($value, JSON_THROW_ON_ERROR);
 
-                if (($attributes['setting_key'] ?? null) === 'notification_settings') {
+                if (in_array($attributes['setting_key'] ?? null, self::ENCRYPTED_SETTING_KEYS, true)) {
                     return json_encode(Crypt::encryptString($encoded), JSON_THROW_ON_ERROR);
                 }
 

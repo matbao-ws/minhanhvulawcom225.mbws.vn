@@ -2,13 +2,13 @@
     'key',
     'tag' => 'div',
     'html' => false,
-    'appendable' => true,
+    'appendable' => false,
 ])
 
 @php
     $site = app(\App\Services\SiteContentService::class);
     $lists = app(\App\Services\SiteListService::class);
-    $canEdit = (bool) auth()->user()?->canEditClientContent();
+    $canEdit = \App\Support\ClientEditorChrome::editorActive();
 
     /**
      * Boxes an editor appended after this one.
@@ -46,8 +46,9 @@
         $bag = $attributes->class([
             // A saved heading keeps a public class so its visual hierarchy
             // survives a theme reset that flattens heading sizes.
-            'client-content-heading-'.$block['format'] => $block['format'] !== null
-                && $block['format'] !== \App\Models\SiteBlock::FORMAT_PARAGRAPH,
+            'client-content-heading-'.$block['format'] => in_array($block['format'], ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true),
+            'client-content-format-p' => $block['format'] === \App\Models\SiteBlock::FORMAT_PARAGRAPH,
+            'client-content-list-'.$block['format'] => in_array($block['format'], ['ul', 'ol'], true),
         ]);
 
         if (! $canEdit) {

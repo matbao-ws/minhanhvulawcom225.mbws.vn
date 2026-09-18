@@ -24,6 +24,11 @@ class AppServiceProvider extends ServiceProvider
         // Same reason: a repeatable region asks for its item ids once per render,
         // and a page can hold many of them.
         $this->app->scoped(\App\Services\SiteListService::class);
+        // Same again: every section on the page asks how it should render.
+        $this->app->scoped(\App\Services\SiteSectionService::class);
+        // Media pages and upload services consult the same encrypted
+        // Cloudinary setting several times in one request.
+        $this->app->scoped(\App\Services\CloudinaryCredentials::class);
 
         $this->app->bind(
             \App\Contracts\TranslationProvider::class,
@@ -81,6 +86,10 @@ class AppServiceProvider extends ServiceProvider
         ]);
         RateLimiter::for('admin-page-inline', fn (Request $request) => [
             Limit::perMinute(30)->by((string) ($request->user()?->id ?: $request->ip())),
+        ]);
+        RateLimiter::for('admin-integration', fn (Request $request) => [
+            Limit::perMinute(5)->by((string) ($request->user()?->id ?: $request->ip())),
+            Limit::perMinute(10)->by($request->ip()),
         ]);
 
         Paginator::useBootstrapFive();

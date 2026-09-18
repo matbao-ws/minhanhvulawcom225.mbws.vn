@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Services\Catalog\ProductOptionService;
 use App\Services\Catalog\ProductService;
 use App\Services\OrderStockService;
-use Database\Seeders\VariantV2DemoSeeder;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -235,18 +234,6 @@ class VariantV2Test extends TestCase
 
         $this->assertSame(2, $product->fresh()->stock_quantity);
         $this->assertSame(2, $variant->fresh()->stock_quantity);
-    }
-
-    public function test_demo_variant_seeder_creates_a_complex_product_without_duplicates_when_re_run(): void
-    {
-        $this->seed(VariantV2DemoSeeder::class);
-        $this->seed(VariantV2DemoSeeder::class);
-
-        $product = Product::query()->where('slug', 'ao-khoac-outdoor-variant-v2-demo')->firstOrFail();
-        $this->assertSame(3, $product->optionGroups()->count());
-        $this->assertSame(10, $product->optionGroups()->withCount('values')->get()->sum('values_count'));
-        $this->assertSame(32, $product->variants()->count());
-        $this->assertSame(32, $product->variants()->distinct('option_signature')->count('option_signature'));
     }
 
     private function product(array $overrides = []): Product

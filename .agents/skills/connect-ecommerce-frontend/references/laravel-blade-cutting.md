@@ -9,7 +9,7 @@ Laravel Blade, not in a newly generated JavaScript application.
 ## Source and destination
 
 ```text
-theme/                              read-only design source
+theme/                              audited and normalized design source
 resources/views/client/
 ├── layouts/
 ├── partials/
@@ -32,6 +32,14 @@ Do not:
 - Mix storefront files into `resources/views/admin` or `public/admin-assets`.
 
 ## Inspect before cutting
+
+Run [theme-preflight.md](theme-preflight.md) first. This inspection assumes the source theme has
+already passed its blocking checks; do not use Blade extraction as the first place to repair invalid
+nesting, duplicate ids, broken assets or ambiguous Row/Card boundaries.
+
+When the approved source carries real website data, also complete
+[theme-data-seeding.md](theme-data-seeding.md). The cut should read seeded settings, menus and pages
+from their existing models instead of preserving a second hard-coded copy in Blade.
 
 Inventory every source HTML page and record:
 

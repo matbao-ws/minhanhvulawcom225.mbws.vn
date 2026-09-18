@@ -217,6 +217,34 @@ class UserControllerTest extends TestCase
         $this->assertTrue(Hash::check('oldpassword', $userToEdit->password)); // Password unchanged
     }
 
+    public function test_users_routes_cannot_manage_or_convert_customer_accounts(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+        $customer = User::factory()->create([
+            'name' => 'Customer Account',
+            'email' => 'customer@example.com',
+            'role_id' => null,
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->get("/vi/admin/users/{$customer->id}/edit")->assertNotFound();
+        $this->put("/vi/admin/users/{$customer->id}", [
+            'name' => 'Converted Customer',
+            'email' => 'customer@example.com',
+            'role_id' => $this->editorRole->id,
+            'is_active' => true,
+        ])->assertNotFound();
+        $this->patch("/vi/admin/users/{$customer->id}/toggle-status")->assertNotFound();
+        $this->delete("/vi/admin/users/{$customer->id}")->assertNotFound();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $customer->id,
+            'name' => 'Customer Account',
+            'role_id' => null,
+        ]);
+    }
+
     public function test_admin_can_delete_user(): void
     {
         $admin = User::factory()->create([

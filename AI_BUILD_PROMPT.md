@@ -337,7 +337,6 @@ Không chạy các lệnh sau trên database không xác định:
 migrate:fresh
 migrate:reset
 db:wipe
-DemoSeeder
 seeder cũ có truncate/delete hàng loạt
 ```
 
@@ -522,6 +521,88 @@ Ngoài CMS Page, template storefront có thể đánh dấu từng vùng tĩnh c
 - Revision gộp trong 10 phút; lần lưu đầu của block mới không có gì để snapshot.
 - **Không viết literal `<x-client::…>` trong comment Blade.** Blade biên dịch cả trong comment JS/CSS
   và để hở `if` không đóng — trang vẫn render nhưng rò output buffer.
+
+#### Hai thư viện được phép cho editor
+
+Người dùng đã yêu cầu rõ ràng, nên hai thư viện sau **được phép** — đây là ngoại lệ có giới hạn của
+quy tắc "không thêm thư viện editor mới", không phải giấy phép mở:
+
+```text
+public/client-assets/vendor/sortable.min.js   kéo-thả trong panel Mục lục
+public/client-assets/vendor/alpine.min.js     panel cài đặt section và panel lịch sử
+```
+
+- File tĩnh, vendor sẵn. **Không npm, không Vite, không bước build** — như mọi asset client khác.
+- Nạp từ trong cổng quyền của `admin-bar`, nên khách và customer không tải thêm một byte nào. Thẻ
+  `<script>` nằm trong `admin-bar` chứ không trong layout: bar là partial duy nhất mà layout thay thế
+  buộc phải include, nên editor không thể lên mà thiếu thư viện.
+- Alpine **chỉ** cho panel editor. Phần còn lại của editor là vanilla và giữ nguyên như vậy; đừng
+  viết lại `admin-bar`, `inline-blocks` hay `inline-outline` bằng Alpine.
+- `admin-bar` vẫn là **chủ sở hữu duy nhất** của edit mode. Panel mới đăng ký vào luồng Lưu/Huỷ của
+  bar qua `clientBlocks.registerSaver({ pending, save, revert })` + `refreshPending()`, không tự gọi
+  server. Tuyệt đối không gọi `markDirty()` để làm nút Lưu hiện lên: cờ đó cũng kích hoạt
+  `savePageBody()`, nên trên trang CMS nó sẽ ghi lại toàn bộ `published_html` chỉ vì ai đó đổi màu
+  nền một section.
+- Bẫy thứ tự khởi động, gặp mọi lần: bản CDN của Alpine tự `start()` trong một microtask ngay khi
+  script chạy, mà `defer` đặt việc đó **trước** `DOMContentLoaded` — nơi bar publish
+  `window.clientBlocks`. Nên `alpine:init` và `init()` của mọi component chạy trước. Đăng ký component
+  ngay (`Alpine.data` phải gọi trước `start`), còn phần phụ thuộc bar thì chờ bar xuất hiện.
+- Panel không được dùng `x-show` để ẩn/hiện: `x-show` ghi `display: none` inline, và inline thua rule
+  `!important` của tác giả — mà `display` của editor buộc phải `!important`, nếu không CSS theme thắng
+  và panel ship ra không có style. Dùng class `.is-open` như panel Mục lục.
+- Panel phải là **con trực tiếp của `<body>`** và không đặt directive nào lên `[data-block-key]`.
+
+#### Hiển thị section (`site_sections`)
+
+Ngoài nội dung, template có thể cho editor đổi **cách một section render** — nhưng chỉ trong số các
+hình dạng section đã biết cách render sẵn:
+
+```text
+site_sections            key = "<list key>.<tên section>", variant, settings (token), is_visible
+site_section_revisions   snapshot, coalesce 10 phút như site_blocks
+```
+
+- `App\Support\SectionRegistry` là **nguồn sự thật duy nhất** cho variant/settings mà mỗi section cho
+  phép, và cho map token → class. Thêm quyền chọn = sửa registry, không sửa Blade hay DB.
+- **DB lưu token, không bao giờ lưu tên class.** `background: "primary"`, không phải
+  `"client-section--bg-primary"`. Đổi màu của một token sau này là sửa một dòng CSS, không phải UPDATE
+  mọi dòng đã chọn nó.
+- **Không có default.** Section chưa ai sửa render y hệt template và không mang class thêm nào —
+  đó là điều giữ cho cài mới hiển thị đúng thiết kế. Kéo theo: không có variant nghĩa là "như
+  template", vì `null` đã mang nghĩa đó.
+- Màu tự chọn không thể là token: nó đi bằng CSS custom property inline, giá trị validate
+  `/^#[0-9a-f]{6}$/i` ở **cả** FormRequest **và** service.
+- Registry được kiểm cả lượt **đọc** lẫn lượt **ghi**: token đã rút khỏi registry phải ngừng tác dụng
+  ngay, kể cả khi nó nổi lên từ một revision cũ.
+- Ghi qua `admin.site-sections.update` (PATCH) và `admin.site-sections.restore` (DELETE) — cùng quyền
+  `pages.update` và throttle `admin-page-inline` với inline page. `SectionRegistryDriftTest` fail nếu
+  registry khai báo section không có Blade, hoặc token có class mà `storefront.css` chưa định nghĩa.
+
+#### Lịch sử và rollback
+
+`site_block_revisions` và `site_section_revisions` đọc qua `admin.site-blocks.revisions.*` và
+`admin.site-sections.revisions.*`, cùng cổng quyền với đường ghi — lịch sử nêu tên admin đã sửa site,
+không phải thứ khách được xem.
+
+- **Rollback cưỡng bức snapshot của chính giá trị nó thay thế**, bỏ qua coalescing 10 phút. Coalescing
+  đúng cho việc gõ chữ; rollback mà bỏ qua checkpoint sẽ là thao tác duy nhất trong editor không hoàn
+  tác được. Đây cũng là lý do duy nhất khiến rollback được phép gọi server ngay.
+- **Đích lấy từ revision, không bao giờ từ request.** Nhận thêm key cạnh revision id là mở đường cho
+  request giả ghi snapshot của vùng A lên vùng B mà audit log không thấy gì.
+- Rollback một vùng chỉ ghi locale đang xem. Revision không có locale đó thì **từ chối**, không ghi
+  chuỗi rỗng — chuỗi rỗng nghĩa là "cố ý ẩn", một chỉ thị khác hẳn.
+
+#### Xem trước theo khổ máy
+
+Iframe cùng URL với cờ `?client_chrome=off`, không dùng `transform`/`zoom`: media query tính theo
+viewport, nên trang bị scale vẫn báo chiều rộng desktop và mọi breakpoint đứng nguyên chỗ cũ.
+
+- Cờ đó **chỉ được phép bỏ** editor, không bao giờ bật. `App\Support\ClientEditorChrome::editorActive()`
+  giữ quyền ở vế trái phép AND, nên không giá trị nào của cờ đưa editor tới người không có quyền.
+- Mọi component và partial storefront hỏi đúng hàm đó, không chỉ layout: một class chỉ emit cho editor
+  sẽ làm khung xem trước khác với thứ khách thấy — đúng điều duy nhất mà một bản xem trước không được
+  phép làm.
+- Khung xem trước là read-only. Sửa trong đó là đặt hai chủ sở hữu edit mode trên hai document.
 
 Khi thay đổi public API:
 
