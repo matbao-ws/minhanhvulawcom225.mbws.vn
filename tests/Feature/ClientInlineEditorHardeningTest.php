@@ -6,6 +6,7 @@ use App\Models\FeatureSetting;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,7 +25,7 @@ class ClientInlineEditorHardeningTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
         FeatureSetting::query()->updateOrCreate(['feature_code' => 'cms_page'], ['is_enabled' => true]);
 
         $this->page = Page::query()->create([
@@ -104,6 +105,34 @@ class ClientInlineEditorHardeningTest extends TestCase
         // persisted accidental keystrokes with no way back.
         $this->assertStringNotContainsString("addEventListener('pagehide'", $html);
         $this->assertStringContainsString("addEventListener('beforeunload'", $html);
+    }
+
+    public function test_the_open_region_is_tinted_without_repainting_the_theme(): void
+    {
+        $html = $this->editorHtml();
+
+        $this->assertMatchesRegularExpression(
+            '/\[data-block-key\]\[contenteditable="true"\]\s*\{[^}]*\}/',
+            $html,
+            'không tìm thấy rule tô vùng đang mở — test này không còn kiểm được gì',
+        );
+
+        preg_match('/\[data-block-key\]\[contenteditable="true"\]\s*\{([^}]*)\}/', $html, $rule);
+
+        /*
+         * `background` is a shorthand: it resets background-image to none and
+         * replaces background-color, and with !important the theme cannot win
+         * it back. A region with a picture or a dark fill therefore lost its
+         * background the moment an editor opened it, while keeping the light
+         * text that fill was there to carry. An inset shadow tints the same
+         * area without touching either property.
+         */
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?:^|[\s;])background\s*:/',
+            $rule[1],
+            'vùng đang sửa không được đặt background — dùng box-shadow: inset',
+        );
+        $this->assertStringContainsString('box-shadow: inset', $rule[1]);
     }
 
     public function test_conditional_bar_buttons_ship_hidden_and_hidden_actually_hides(): void

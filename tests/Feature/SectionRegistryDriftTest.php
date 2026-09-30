@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\SiteListService;
 use App\Support\SectionRegistry;
 use Tests\TestCase;
 
@@ -28,12 +29,17 @@ class SectionRegistryDriftTest extends TestCase
 
     public function test_every_declared_section_has_a_blade_partial(): void
     {
-        foreach (array_keys($this->registry()->sections()) as $section) {
-            $this->assertFileExists(
-                resource_path('views/client/sections/'.$section.'.blade.php'),
-                "registry khai báo section {$section} nhưng không có Blade tương ứng",
-            );
-        }
+        /*
+         * Collected rather than asserted one by one, so an empty registry is a
+         * stated result instead of a test that quietly asserts nothing, and so
+         * a drift that hit several sections names all of them at once.
+         */
+        $missing = array_values(array_filter(
+            array_keys($this->registry()->sections()),
+            fn (string $section): bool => ! is_file(resource_path('views/client/sections/'.$section.'.blade.php')),
+        ));
+
+        $this->assertSame([], $missing, 'registry khai báo section không có Blade tương ứng');
     }
 
     public function test_every_class_the_registry_can_emit_exists_in_the_stylesheet(): void
@@ -52,16 +58,17 @@ class SectionRegistryDriftTest extends TestCase
     public function test_every_setting_a_section_opts_into_exists_in_the_catalogue(): void
     {
         $catalogue = $this->registry()->settingCatalogue();
+        $unknown = [];
 
         foreach ($this->registry()->sections() as $section => $definition) {
             foreach ($definition['settings'] as $setting) {
-                $this->assertArrayHasKey(
-                    $setting,
-                    $catalogue,
-                    "section {$section} xin tuỳ chọn {$setting} không có trong catalogue",
-                );
+                if (! array_key_exists($setting, $catalogue)) {
+                    $unknown[] = $section.'.'.$setting;
+                }
             }
         }
+
+        $this->assertSame([], $unknown, 'section xin tuỳ chọn không có trong catalogue');
     }
 
     public function test_every_token_setting_declares_a_class_for_each_of_its_values(): void
@@ -90,7 +97,7 @@ class SectionRegistryDriftTest extends TestCase
          * section names is what forbids it, and it is the same rule the section-list
          * component filters `:sections` through.
          */
-        $lists = app(\App\Services\SiteListService::class);
+        $lists = app(SiteListService::class);
 
         foreach (array_keys($this->registry()->sections()) as $section) {
             $this->assertTrue($lists->isValidId($section), "tên section {$section} không hợp lệ");

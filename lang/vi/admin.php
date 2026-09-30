@@ -780,6 +780,8 @@ return [
         'activity_logs' => 'Nhật ký hoạt động',
         'sales_channels' => 'Kênh bán hàng',
         'media_library' => 'Thư viện Media',
+        'collapse' => 'Thu nhỏ sidebar',
+        'expand' => 'Mở rộng sidebar',
     ],
     'shipping_partners' => [
         'created' => 'Đã thêm đối tác vận chuyển tự định nghĩa mới thành công.',
@@ -993,6 +995,9 @@ return [
             'from_name' => 'Tên hiển thị gửi đi (From Name)',
             'owner_email' => 'Email nhận thông báo chủ shop (Owner Email)',
             'help' => 'Tự động gửi email xác nhận đơn hàng cho khách hàng sau khi đặt hàng thành công, đồng thời gửi email thông báo đơn hàng mới cho chủ shop.',
+            'source_admin' => 'Đang gửi email bằng cấu hình SMTP riêng bên dưới.',
+            'source_remote' => 'Đang gửi email bằng SMTP hệ thống (từ :domain). Bật và điền cấu hình bên dưới nếu muốn dùng SMTP riêng.',
+            'source_env' => 'Đang gửi email bằng cấu hình mặc định của máy chủ. Bật và điền cấu hình bên dưới để dùng SMTP riêng.',
             'username_gmail' => 'Email gửi thông báo (Gmail)',
             'password_app' => 'Mật khẩu ứng dụng',
             'owner_email_system' => 'Email nhận thông báo hệ thống',

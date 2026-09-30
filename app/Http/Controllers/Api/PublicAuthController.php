@@ -28,7 +28,7 @@ class PublicAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Email không hợp lệ hoặc đã được sử dụng.', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('controller.api.email_unavailable'), 422, $validator->errors()->toArray());
         }
 
         $user = User::query()->create([
@@ -45,7 +45,7 @@ class PublicAuthController extends Controller
         return ApiResponse::success([
             'user' => new PublicUserResource($user),
             'token' => $token,
-        ], 'Đăng ký tài khoản thành công.');
+        ], __('controller.api.registered'));
     }
 
     /**
@@ -59,13 +59,13 @@ class PublicAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('controller.api.invalid_data'), 422, $validator->errors()->toArray());
         }
 
         $user = User::query()->where('email', $request->email)->first();
 
         if (! $user || ! $user->is_active || $user->role_id !== null || ! Hash::check($request->password, $user->password)) {
-            return ApiResponse::error('Email hoặc mật khẩu không chính xác.', 401);
+            return ApiResponse::error(__('controller.auth.invalid_credentials'), 401);
         }
 
         $user->update([
@@ -78,7 +78,7 @@ class PublicAuthController extends Controller
         return ApiResponse::success([
             'user' => new PublicUserResource($user),
             'token' => $token,
-        ], 'Đăng nhập thành công.');
+        ], __('controller.api.logged_in'));
     }
 
     /**
@@ -99,7 +99,7 @@ class PublicAuthController extends Controller
             $user->currentAccessToken()->delete();
         }
 
-        return ApiResponse::success(null, 'Đăng xuất thành công.');
+        return ApiResponse::success(null, __('controller.api.logged_out'));
     }
 
     /**
@@ -112,7 +112,7 @@ class PublicAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('controller.api.invalid_data'), 422, $validator->errors()->toArray());
         }
 
         $user = User::query()->where('email', $request->input('email'))->whereNull('role_id')->first();
@@ -120,7 +120,7 @@ class PublicAuthController extends Controller
             Password::sendResetLink(['email' => $user->email]);
         }
 
-        return ApiResponse::success(null, 'Nếu email tồn tại, liên kết khôi phục mật khẩu đã được gửi.');
+        return ApiResponse::success(null, __('controller.auth.reset_link_sent'));
     }
 
     /**
@@ -135,11 +135,11 @@ class PublicAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('controller.api.invalid_data'), 422, $validator->errors()->toArray());
         }
 
         if (! User::query()->where('email', $request->input('email'))->whereNull('role_id')->exists()) {
-            return ApiResponse::error('Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.', 400);
+            return ApiResponse::error(__('controller.auth.invalid_reset_token'), 400);
         }
 
         $status = Password::reset(
@@ -154,9 +154,9 @@ class PublicAuthController extends Controller
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return ApiResponse::success(null, 'Đổi mật khẩu mới thành công.');
+            return ApiResponse::success(null, __('controller.api.password_reset'));
         }
 
-        return ApiResponse::error('Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.', 400);
+        return ApiResponse::error(__('controller.auth.invalid_reset_token'), 400);
     }
 }

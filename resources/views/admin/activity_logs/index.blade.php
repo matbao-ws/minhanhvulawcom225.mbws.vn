@@ -35,9 +35,7 @@
 @endpush
 
 @section('content')
-    <div class="card shadow-none overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-        <div class="card-body px-4 py-3"><h4 class="fw-semibold mb-0 text-white">Nhật ký hoạt động</h4></div>
-    </div>
+    <x-admin.page-header title="Nhật ký hoạt động" />
 
     <div class="card mb-4"><div class="card-body">
         <form class="row g-3" method="GET">
@@ -46,7 +44,7 @@
             <div class="col-md-2"><select name="subject_type" class="form-select"><option value="">Tất cả đối tượng</option>@foreach($subjectTypes as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ \App\Models\AdminActivityLog::subjectLabelFor($type) }}</option>@endforeach</select></div>
             <div class="col-md-2"><input type="date" name="from" value="{{ request('from') }}" class="form-control"></div>
             <div class="col-md-2"><input type="date" name="to" value="{{ request('to') }}" class="form-control"></div>
-            <div class="col-md-1"><button class="btn btn-primary w-100">Lọc</button></div>
+            <div class="col-md-1"><x-admin.action-button type="submit" icon="filter" class="w-100">Lọc</x-admin.action-button></div>
         </form>
     </div></div>
 
@@ -65,6 +63,9 @@
                     <span class="text-muted small">Không có chi tiết thêm.</span>
                 @endforelse
             </td>
-        </tr>@empty<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có hoạt động nào.</td></tr>@endforelse</tbody>
+        </tr>@empty<tr><td colspan="6">@include('admin.shared.empty-state', [
+            'emptyImage' => asset('admin-assets/images/icons/empty-nhatkyhoatdong.png'),
+            'emptyMessage' => 'Chưa có hoạt động nào.',
+        ])</td></tr>@endforelse</tbody>
     </table></div>@if($logs->hasPages())<div class="card-body border-top">{{ $logs->links() }}</div>@endif</div>
 @endsection

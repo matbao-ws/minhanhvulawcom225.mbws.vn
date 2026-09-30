@@ -25,8 +25,8 @@ class ResetPasswordController extends Controller
     {
         if (! \App\Models\User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->exists()) {
             return $request->expectsJson()
-                ? ApiResponse::error('Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.', 422)
-                : back()->withErrors(['email' => 'Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.']);
+                ? ApiResponse::error(__('controller.auth.invalid_reset_token'), 422)
+                : back()->withErrors(['email' => __('controller.auth.invalid_reset_token')]);
         }
 
         $status = Password::reset(

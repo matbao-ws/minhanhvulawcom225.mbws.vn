@@ -127,7 +127,7 @@ return [
             'price' => 'Set the product price.',
             'slug' => 'Leave blank to generate from the product name.',
             'status' => 'Set the product status.',
-            'thumbnail' => 'The system currently stores image URLs. File upload will be integrated later.',
+            'thumbnail' => 'Drag and drop or choose an image from your device to upload; you can also enter an image URL.',
             'variants_after_save' => 'Save the product first, then add variants from the product detail page.',
         ],
         'sections' => [

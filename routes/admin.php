@@ -157,6 +157,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::middleware('feature:cms_page')->group(function () {
         Route::get('pages/{page}/preview', [PageController::class, 'preview'])->middleware('can:pages.view')->name('pages.preview');
         Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->middleware(['can:pages.update', 'throttle:admin-page-inline'])->name('pages.inline-update');
+        // Read path for the storefront history panel. Same gate and throttle as
+        // the inline write it sits next to — the list names the admins who edited
+        // the site, which is not something a visitor is entitled to read.
+        Route::get('pages/{page}/revisions', [PageController::class, 'revisions'])->middleware(['can:pages.update', 'throttle:admin-page-inline'])->name('pages.revisions.index');
         Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restore'])->middleware('can:pages.update')->name('pages.revisions.restore');
 
         Route::resource('pages', PageController::class)->only(['create', 'store'])->middleware('can:pages.create');

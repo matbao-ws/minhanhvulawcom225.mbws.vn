@@ -18,6 +18,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
             font-weight: 600 !important;
         }
+        .topbar h1, .topbar h2, .topbar h3, .topbar h4, .topbar h5, .topbar h6,
+        .dropdown-menu h1, .dropdown-menu h2, .dropdown-menu h3, .dropdown-menu h4, .dropdown-menu h5, .dropdown-menu h6 {
+            font-family: 'Quicksand', sans-serif !important;
+        }
         
         /* Ensure admin main container spans full width on wide viewports */
         .body-wrapper .container-fluid {
@@ -233,8 +237,8 @@
             font-weight: 700 !important;
             color: #2a3547 !important;
             text-transform: none !important;
-            background-color: #ecf2ff !important;
-            border-bottom: 2px solid #dbe7ff !important;
+            background-color: #fff0f1 !important;
+            border-bottom: 0 !important;
         }
         .table td {
             font-size: 14.5px !important;
@@ -247,6 +251,11 @@
         .table td .text-muted:not([class*="fs-"]) {
             font-size: 13.5px !important;
             color: #5a6a85 !important;
+        }
+
+        /* Filter panels sit directly above admin tables; they do not need a divider. */
+        .card > .card-body.border-bottom:has(form) {
+            border-bottom: 0 !important;
         }
         
         /* Even rows get a very light grey background for zebra striping effect */
@@ -346,23 +355,25 @@
             color: #007b83 !important;
         }
         
-        /* Round the bottom corners of tables and cards, preventing sharp footer edges */
+        /* Keep data tables square; form and dashboard cards retain their regular rounding. */
         .card {
             overflow: hidden !important;
         }
+        .card:has(.table-responsive) {
+            border-radius: 0 !important;
+        }
         .table-responsive {
-            border-bottom-left-radius: 7px !important;
-            border-bottom-right-radius: 7px !important;
+            border-radius: 0 !important;
             overflow-x: auto !important;
         }
         .table {
             margin-bottom: 0 !important;
         }
         .table tr:last-child td:first-child {
-            border-bottom-left-radius: 7px !important;
+            border-bottom-left-radius: 0 !important;
         }
         .table tr:last-child td:last-child {
-            border-bottom-right-radius: 7px !important;
+            border-bottom-right-radius: 0 !important;
         }
         
         /* Softer, premium colors for all status buttons to avoid glaring colors */
@@ -832,6 +843,59 @@
     </script>
     <script src="{{ asset('admin-assets/js/form-guidance.js') }}"></script>
     @stack('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selector = '.catalog-quill';
+
+            const setFullscreen = function (editorElement, button, enabled) {
+                editorElement.classList.toggle('quill-is-fullscreen', enabled);
+                button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+                button.setAttribute('title', enabled ? 'Thu nhỏ trình soạn thảo' : 'Phóng to trình soạn thảo');
+                button.setAttribute('aria-label', button.getAttribute('title'));
+                button.innerHTML = enabled
+                    ? '<i class="ti ti-minimize" aria-hidden="true"></i>'
+                    : '<i class="ti ti-maximize" aria-hidden="true"></i>';
+            };
+
+            document.querySelectorAll(selector).forEach(function (editorElement) {
+                if (editorElement.closest('#editor_wrapper')) {
+                    return;
+                }
+
+                const toolbar = editorElement.querySelector('.ql-toolbar');
+                if (!toolbar || toolbar.querySelector('.ql-fullscreen')) {
+                    return;
+                }
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'ql-fullscreen';
+                button.setAttribute('aria-pressed', 'false');
+                button.setAttribute('title', 'Phóng to trình soạn thảo');
+                button.setAttribute('aria-label', 'Phóng to trình soạn thảo');
+                button.innerHTML = '<i class="ti ti-maximize" aria-hidden="true"></i>';
+
+                button.addEventListener('click', function () {
+                    setFullscreen(editorElement, button, !editorElement.classList.contains('quill-is-fullscreen'));
+                });
+
+                toolbar.appendChild(button);
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key !== 'Escape') {
+                    return;
+                }
+
+                document.querySelectorAll(selector + '.quill-is-fullscreen').forEach(function (editorElement) {
+                    const button = editorElement.querySelector('.ql-fullscreen');
+                    if (button) {
+                        setFullscreen(editorElement, button, false);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

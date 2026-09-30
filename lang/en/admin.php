@@ -777,6 +777,8 @@ return [
         'activity_logs' => 'Activity Logs',
         'sales_channels' => 'Sales Channels',
         'media_library' => 'Media Library',
+        'collapse' => 'Collapse sidebar',
+        'expand' => 'Expand sidebar',
     ],
     'shipping_partners' => [
         'created' => 'Successfully added a new custom shipping partner.',
@@ -990,6 +992,9 @@ return [
             'from_name' => 'From Sender Name',
             'owner_email' => 'Shop Owner Email to Receive Alerts',
             'help' => 'Automatically send order confirmation emails to customers, and alert emails to the shop owner for each new order received.',
+            'source_admin' => 'Emails are sent with the custom SMTP settings below.',
+            'source_remote' => 'Emails are sent through the system SMTP (from :domain). Enable and fill in the settings below to use your own SMTP.',
+            'source_env' => 'Emails are sent with the server default configuration. Enable and fill in the settings below to use your own SMTP.',
             'username_gmail' => 'Notification Sender Email (Gmail)',
             'password_app' => 'App Password',
             'owner_email_system' => 'System Alert Email',

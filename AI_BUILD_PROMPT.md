@@ -278,8 +278,10 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Dữ liệu nhạy cảm và nội dung
 
 - Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
-- Cấu hình SMTP resolve ở `App\Services\MailSettings`: admin (`notification_settings.smtp`) thắng
-  khi đã bật và điền đủ, `.env` là dự phòng. Service này được áp khi container resolve
+- Cấu hình SMTP resolve ở `App\Services\MailSettings` theo thứ tự: admin (`notification_settings.smtp`)
+  khi đã bật và điền đủ → SMTP dùng chung từ `SMTP_EXPORT_URL` (cache mã hoá 1 giờ, giữ bản tốt gần
+  nhất khi tool lỗi; gửi từ `smtp_domain` và reply-to về email chủ shop) → `.env` là dự phòng cuối.
+  URL export chứa token: chỉ để trong `.env`, không log. Xoay key xong chạy `php artisan mail:refresh-smtp`. Service này được áp khi container resolve
   `mail.manager`, nên **mọi** email đều dùng chung một nguồn — không cấu hình mailer inline tại chỗ
   gửi. Laravel 11+ dựng transport từ `scheme`, không đọc `encryption`; đổi cấu hình xong phải
   `MailSettings::flush()` và `queue:restart` để worker nhận credential mới.

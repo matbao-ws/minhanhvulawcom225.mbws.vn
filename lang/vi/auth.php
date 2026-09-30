@@ -24,8 +24,8 @@ return [
 
         'slides' => [
             [
-                'title' => 'Vận hành website hiệu quả hơn',
-                'description' => 'Theo dõi dự án, quản lý dịch vụ và phối hợp công việc nhanh chóng, đồng bộ và bảo mật cùng MATBAO WS.',
+                'title' => 'Truy cập an toàn, quản trị dễ dàng',
+                'description' => 'Quản lý dịch vụ, phối hợp công việc đồng bộ và bảo mật tuyệt đối cùng nền tảng MATBAO WS.',
             ],
             [
                 'title' => 'Linh hoạt theo từng nhu cầu',

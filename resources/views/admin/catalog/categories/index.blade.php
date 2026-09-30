@@ -19,25 +19,15 @@
 @endpush
 
 @section('content')
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <h4 class="fw-semibold mb-1 text-white">{{ __('catalog.categories.title') }}</h4>
-                        <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                            <ol class="breadcrumb mb-0">
-                                <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                                <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.categories.title') }}</li>
-                            </ol>
-                        </nav>
-                    </div>
-                    <a href="{{ route('admin.categories.create') }}" class="btn btn-primary">{{ __('catalog.categories.create') }}</a>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('catalog.categories.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.categories.title') }}</li>
+        </x-slot:breadcrumbs>
+        <x-slot:actions>
+            <x-admin.action-button :href="route('admin.categories.create')" icon="plus">{{ __('catalog.categories.create') }}</x-admin.action-button>
+        </x-slot:actions>
+    </x-admin.page-header>
 
     @php $isFiltered = $isFiltered ?? false; @endphp
 
@@ -77,7 +67,7 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-2">
-                    <button class="btn btn-primary flex-grow-1" type="submit">{{ __('catalog.actions.search') }}</button>
+                    <x-admin.action-button type="submit" class="flex-grow-1" icon="search">{{ __('catalog.actions.search') }}</x-admin.action-button>
                     @if($isFiltered)
                         <a href="{{ route('admin.categories.index') }}" class="btn bg-secondary-subtle text-secondary" title="{{ __('catalog.actions.reset_filters') }}">
                             <i class="ti ti-x"></i>
@@ -228,7 +218,9 @@
             </table>
         </div>
         @if($categories->isEmpty())
-            @include('admin.shared.empty-state')
+            @include('admin.shared.empty-state', [
+                'emptyImage' => asset('admin-assets/images/icons/empty-danhmuc.png'),
+            ])
         @endif
         <div class="card-body">
             @include('admin.shared.pagination', ['paginator' => $categories])

@@ -138,7 +138,7 @@ return array (
       'price' => 'Thiết lập giá bán của sản phẩm.',
       'slug' => 'Để trống để hệ thống tự tạo từ tên sản phẩm.',
       'status' => 'Thiết lập trạng thái hiển thị sản phẩm.',
-      'thumbnail' => 'Hiện tại hệ thống lưu URL hình ảnh. Upload file sẽ được tích hợp sau.',
+      'thumbnail' => 'Kéo thả hoặc chọn ảnh từ thiết bị để tải lên',
       'variants_after_save' => 'Lưu sản phẩm trước, sau đó thêm biến thể ở trang chi tiết sản phẩm.',
     ),
     'sections' => 

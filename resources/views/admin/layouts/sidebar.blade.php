@@ -70,6 +70,17 @@
           color: inherit !important;
           opacity: 1 !important;
       }
+      /* Keep the active navigation state aligned with the soft red admin palette. */
+      .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link,
+      .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link.active,
+      .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active {
+          background-color: #fff0f1 !important;
+          color: #d11e28 !important;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link.has-arrow::after,
+      .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active.has-arrow::after {
+          border-color: #d11e28 !important;
+      }
       /* Sidebar dot styling & anti-distortion */
       .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .icon-small {
           background-color: #2a3547 !important;
@@ -87,7 +98,80 @@
           background-color: var(--bs-primary) !important;
           opacity: 1 !important;
       }
+
+      /* Desktop compact mode: leave the primary navigation icons visible. */
+      .sidebar-mini-logo {
+          display: none;
+      }
+      .sidebar-collapse-toggle {
+          display: none !important;
+          padding: 0 8px;
+          border: 0 !important;
+          background: transparent !important;
+          color: #2a3547;
+      }
+      .sidebar-collapse-toggle:hover,
+      .sidebar-collapse-toggle:focus-visible {
+          color: #d11e28;
+      }
+      .sidebar-collapse-toggle .sidebar-collapse-icon {
+          width: 20px;
+          height: 20px;
+          stroke: currentColor;
+      }
+
+      @media (min-width: 1300px) {
+          .sidebar-collapse-toggle {
+              display: inline-flex !important;
+          }
+          body.sidebar-icons-only .side-mini-panel,
+          body.sidebar-icons-only .side-mini-panel .nav-logo,
+          body.sidebar-icons-only .side-mini-panel .sidebarmenu .sidebar-nav {
+              width: 76px !important;
+          }
+          body.sidebar-icons-only .side-mini-panel .nav-logo {
+              padding: 0 12px !important;
+              justify-content: center;
+          }
+          html[data-layout="vertical"] body.sidebar-icons-only .topbar {
+              width: calc(100% - 76px) !important;
+          }
+          html[data-layout="vertical"] body.sidebar-icons-only .page-wrapper {
+              margin-left: 76px !important;
+          }
+          body.sidebar-icons-only .side-mini-panel .logo-img {
+              display: none !important;
+          }
+          body.sidebar-icons-only .side-mini-panel .sidebar-mini-logo {
+              display: block;
+              width: 34px;
+              height: 34px;
+              object-fit: contain;
+          }
+          body.sidebar-icons-only .side-mini-panel .sidebar-menu > .sidebar-item > .sidebar-link {
+              justify-content: center;
+              gap: 0 !important;
+              padding-left: 0 !important;
+              padding-right: 0 !important;
+          }
+          body.sidebar-icons-only .side-mini-panel .sidebar-menu > .sidebar-item > .sidebar-link .hide-menu,
+          body.sidebar-icons-only .side-mini-panel .sidebar-menu > .nav-small-cap,
+          body.sidebar-icons-only .side-mini-panel .sidebar-menu > .sidebar-item > .sidebar-link.has-arrow::after,
+          body.sidebar-icons-only .side-mini-panel .sidebar-menu > .sidebar-item > .first-level {
+              display: none !important;
+          }
+      }
   </style>
+
+  <script>
+      try {
+          if (window.localStorage.getItem('admin-sidebar-icons-only') === 'true') {
+              document.body.classList.add('sidebar-icons-only');
+          }
+      } catch (error) {
+          // Storage can be unavailable in private browsing; the toggle still works for this page.
+      }
+  </script>
 
   <aside class="side-mini-panel with-vertical">
       <!-- ---------------------------------- -->
@@ -100,6 +184,9 @@
                       <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img d-flex align-items-center">
                           <img src="{{ $siteBranding['admin_logo_url'] }}" width="150" alt="MatBaoWS" class="img-fluid">
                       </a>
+                          <a href="{{ route('admin.dashboard') }}" class="sidebar-mini-logo" aria-label="{{ $siteBranding['name'] }}">
+                              <img src="{{ $siteBranding['favicon_url'] }}" alt="" class="sidebar-mini-logo">
+                          </a>
                   </div>
 
                   <!-- ---------------------------------- -->
@@ -376,3 +463,62 @@
           </div>
       </div>
   </aside>
+
+  <script>
+      document.addEventListener('DOMContentLoaded', () => {
+          const compactClass = 'sidebar-icons-only';
+          const storageKey = 'admin-sidebar-icons-only';
+          const toggles = [...document.querySelectorAll('[data-sidebar-collapse-toggle]')];
+
+          if (!toggles.length) {
+              return;
+          }
+
+          const syncToggle = () => {
+              const compact = document.body.classList.contains(compactClass);
+              const label = compact ? @json(__('admin.sidebar.expand')) : @json(__('admin.sidebar.collapse'));
+              toggles.forEach((toggle) => {
+                  toggle.setAttribute('aria-pressed', String(compact));
+                  toggle.setAttribute('aria-label', label);
+                  toggle.setAttribute('title', label);
+              });
+          };
+
+          document.querySelectorAll('#sidebarnav .sidebar-menu > .sidebar-item > .sidebar-link').forEach((link) => {
+              const label = link.querySelector('.hide-menu')?.textContent?.trim();
+              if (label) {
+                  link.setAttribute('title', label);
+              }
+          });
+
+          toggles.forEach((toggle) => {
+              toggle.addEventListener('click', () => {
+                  const compact = document.body.classList.toggle(compactClass);
+                  try {
+                      window.localStorage.setItem(storageKey, String(compact));
+                  } catch (error) {
+                      // Keep the chosen state for the current page when storage is unavailable.
+                  }
+                  syncToggle();
+              });
+          });
+
+          document.querySelectorAll('#sidebarnav .sidebar-link.has-arrow').forEach((link) => {
+              link.addEventListener('click', () => {
+                  if (!document.body.classList.contains(compactClass)) {
+                      return;
+                  }
+
+                  document.body.classList.remove(compactClass);
+                  try {
+                      window.localStorage.setItem(storageKey, 'false');
+                  } catch (error) {
+                      // See storage fallback above.
+                  }
+                  syncToggle();
+              });
+          });
+
+          syncToggle();
+      });
+  </script>

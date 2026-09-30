@@ -3,34 +3,18 @@
 @section('title', __('admin.users.title'))
 
 @section('content')
-    <!-- Header Card -->
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.users.title') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.users.title') }}</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('admin.users.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none"
+                    href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">
+                {{ __('admin.users.title') }}</li>
+        </x-slot:breadcrumbs>
+        <x-slot:actions>
+            <x-admin.action-button :href="route('admin.users.create')" icon="plus">{{ __('admin.users.create') }}</x-admin.action-button>
+        </x-slot:actions>
+    </x-admin.page-header>
 
-    <!-- Actions Bar -->
-    <div class="d-flex gap-2 align-items-center justify-content-end mb-4">
-        <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1 fs-4"></i>{{ __('admin.users.create') }}
-        </a>
-    </div>
 
     <!-- Filters Card -->
     <div class="card">
@@ -45,7 +29,7 @@
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.users.fields.role') }}</label>
                     <select name="role_id" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
-                        @foreach($roles as $role)
+                        @foreach ($roles as $role)
                             <option value="{{ $role->id }}" @selected((string) request('role_id') === (string) $role->id)>
                                 {{ $role->name }}
                             </option>
@@ -57,13 +41,13 @@
                     <select name="status" class="form-select">
                         <option value="">{{ __('admin.all') }}</option>
                         <option value="1" @selected((string) request('status') === '1')>{{ __('admin.users.fields.active') }}</option>
-                        <option value="0" @selected((string) request('status') === '0')>{{ __('admin.users.fields.suspended') }}</option>
+                        <option value="0" @selected((string) request('status') === '0')>{{ __('admin.users.fields.suspended') }}
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <button class="btn btn-primary w-100" type="submit" title="{{ __('catalog.actions.search') }}">
-                        <i class="ti ti-search fs-5"></i>
-                    </button>
+                    <x-admin.action-button type="submit" icon="search" class="w-100" :title="__('catalog.actions.search')"
+                        aria-label="{{ __('catalog.actions.search') }}" />
                 </div>
             </form>
         </div>
@@ -85,11 +69,10 @@
                         <tr class="text-nowrap">
                             <td class="text-wrap">
                                 <div class="d-flex align-items-center gap-3">
-                                    <img src="{{ $userItem->avatar_url ?: asset('admin-assets/images/profile/user-1.jpg') }}" 
-                                         alt="{{ $userItem->name }}" 
-                                         class="rounded-circle border border-2 border-primary-subtle" 
-                                         width="45" height="45" 
-                                         style="object-fit: cover;">
+                                    <img src="{{ $userItem->avatar_url ?: asset('admin-assets/images/icons/avatar.png') }}"
+                                        alt="{{ $userItem->name }}"
+                                        class="rounded-circle border border-2 border-primary-subtle" width="45"
+                                        height="45" style="object-fit: cover;">
                                     <div>
                                         <h6 class="fw-semibold mb-0 fs-3">{{ $userItem->name }}</h6>
                                         <span class="text-muted fs-2">{{ $userItem->email }}</span>
@@ -97,17 +80,20 @@
                                 </div>
                             </td>
                             <td>
-                                @if($userItem->role?->name === 'Admin')
+                                @if ($userItem->role?->name === 'Admin')
                                     <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">Admin</span>
                                 @else
-                                    <span class="badge bg-secondary-subtle text-secondary fw-semibold fs-2">{{ $userItem->role?->name ?? 'User' }}</span>
+                                    <span
+                                        class="badge bg-secondary-subtle text-secondary fw-semibold fs-2">{{ $userItem->role?->name ?? 'User' }}</span>
                                 @endif
                             </td>
                             <td>
-                                @if($userItem->is_active)
-                                    <span class="badge bg-success-subtle text-success fw-semibold fs-2">{{ __('admin.users.fields.active') }}</span>
+                                @if ($userItem->is_active)
+                                    <span
+                                        class="badge bg-success-subtle text-success fw-semibold fs-2">{{ __('admin.users.fields.active') }}</span>
                                 @else
-                                    <span class="badge bg-danger-subtle text-danger fw-semibold fs-2">{{ __('admin.users.fields.suspended') }}</span>
+                                    <span
+                                        class="badge bg-danger-subtle text-danger fw-semibold fs-2">{{ __('admin.users.fields.suspended') }}</span>
                                 @endif
                             </td>
                             <td>
@@ -118,16 +104,21 @@
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
                                     <!-- Lock/Unlock Link (prevent self toggle or Superadmin toggle if not superadmin) -->
-                                    @if($userItem->id !== auth()->id() && !$userItem->isSuperAdmin())
-                                        <form method="POST" action="{{ route('admin.users.toggle-status', $userItem) }}" class="d-inline">
+                                    @if ($userItem->id !== auth()->id() && !$userItem->isSuperAdmin())
+                                        <form method="POST" action="{{ route('admin.users.toggle-status', $userItem) }}"
+                                            class="d-inline">
                                             @csrf
                                             @method('PATCH')
-                                            @if($userItem->is_active)
-                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Khóa tài khoản" onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?')">
+                                            @if ($userItem->is_active)
+                                                <button type="submit" class="btn btn-sm btn-outline-warning"
+                                                    title="Khóa tài khoản"
+                                                    onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?')">
                                                     <i class="ti ti-lock fs-4"></i>
                                                 </button>
                                             @else
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Mở khóa tài khoản" onclick="return confirm('Bạn có chắc chắn muốn mở khóa tài khoản này?')">
+                                                <button type="submit" class="btn btn-sm btn-outline-success"
+                                                    title="Mở khóa tài khoản"
+                                                    onclick="return confirm('Bạn có chắc chắn muốn mở khóa tài khoản này?')">
                                                     <i class="ti ti-lock-open fs-4"></i>
                                                 </button>
                                             @endif
@@ -135,33 +126,39 @@
                                     @endif
 
                                     <!-- Quick Login (Impersonate) Button (prevent self impersonation) -->
-                                    @if($userItem->id !== auth()->id())
-                                        <form method="POST" action="{{ route('admin.users.impersonate', $userItem) }}" class="d-inline">
+                                    @if ($userItem->id !== auth()->id())
+                                        <form method="POST" action="{{ route('admin.users.impersonate', $userItem) }}"
+                                            class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-info" title="Đăng nhập nhanh" onclick="return confirm('Bạn có muốn đăng nhập nhanh vào tài khoản này?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-info"
+                                                title="Đăng nhập nhanh"
+                                                onclick="return confirm('Bạn có muốn đăng nhập nhanh vào tài khoản này?')">
                                                 <i class="ti ti-login fs-4"></i>
                                             </button>
                                         </form>
                                     @endif
 
                                     <!-- Edit Link -->
-                                    <a href="{{ route('admin.users.edit', $userItem) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
+                                    <a href="{{ route('admin.users.edit', $userItem) }}"
+                                        class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
                                         <i class="ti ti-edit fs-4"></i>
                                     </a>
 
                                     <!-- Delete Link (prevent self deletion) -->
-                                    @if($userItem->id !== auth()->id())
-                                        <form method="POST" action="{{ route('admin.users.destroy', $userItem) }}" class="d-inline">
+                                    @if ($userItem->id !== auth()->id())
+                                        <form method="POST" action="{{ route('admin.users.destroy', $userItem) }}"
+                                            class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="return confirm('{{ __('admin.users.confirm_delete') }}')" 
-                                                    title="{{ __('catalog.actions.delete') }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('{{ __('admin.users.confirm_delete') }}')"
+                                                title="{{ __('catalog.actions.delete') }}">
                                                 <i class="ti ti-trash fs-4"></i>
                                             </button>
                                         </form>
                                     @else
-                                        <button class="btn btn-sm btn-outline-light text-muted cursor-not-allowed" disabled title="{{ __('admin.users.fields.current_user') }}">
+                                        <button class="btn btn-sm btn-outline-light text-muted cursor-not-allowed" disabled
+                                            title="{{ __('admin.users.fields.current_user') }}">
                                             <i class="ti ti-trash fs-4"></i>
                                         </button>
                                     @endif
@@ -171,7 +168,8 @@
                     @empty
                         <tr>
                             <td colspan="5" class="text-center py-5">
-                                <iconify-icon icon="solar:shield-user-broken" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
+                                <iconify-icon icon="solar:shield-user-broken"
+                                    class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
                                 <p class="text-muted mb-0 fs-3">{{ __('admin.users.not_found') }}</p>
                             </td>
                         </tr>
@@ -180,7 +178,7 @@
             </table>
         </div>
 
-        @if($users->hasPages())
+        @if ($users->hasPages())
             <div class="card-footer bg-transparent border-top">
                 {{ $users->links() }}
             </div>

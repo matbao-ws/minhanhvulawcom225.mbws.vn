@@ -65,6 +65,26 @@ class NotificationSettingTest extends TestCase
         $response->assertViewIs('admin.notification_settings.index');
     }
 
+    public function test_settings_page_tells_the_admin_that_mail_uses_the_shared_smtp(): void
+    {
+        config(['mail.smtp_export_url' => 'https://tool.test/smtp-export?token=t']);
+        \Illuminate\Support\Facades\Http::fake(['tool.test/*' => \Illuminate\Support\Facades\Http::response(['ok' => true, 'smtp' => [
+            'smtp_host' => 'smtp.relay.test',
+            'smtp_port' => '587',
+            'smtp_encryption' => 'tls',
+            'smtp_username' => 'relay-user',
+            'smtp_password' => 'relay-secret',
+            'smtp_domain' => 'mail.relay.test',
+        ]])]);
+
+        $response = $this->actingAs($this->adminUser)->get('/vi/admin/notification-settings');
+
+        $response->assertOk();
+        $response->assertViewHas('mailSource', \App\Services\MailSettings::SOURCE_REMOTE);
+        $response->assertSee('mail.relay.test');
+        $response->assertDontSee('relay-secret');
+    }
+
     public function test_admin_can_update_notification_settings(): void
     {
         $response = $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [

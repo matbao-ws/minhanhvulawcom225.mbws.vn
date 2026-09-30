@@ -11,35 +11,85 @@
     --client-shell: 1120px;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
     color: var(--client-ink);
-    font: 16px/1.65 Arial, Helvetica, sans-serif;
+    font:
+        16px/1.65 Arial,
+        Helvetica,
+        sans-serif;
     background: #fff;
 }
 
-img { max-width: 100%; height: auto; }
+img {
+    max-width: 100%;
+    height: auto;
+}
 
-a { color: var(--client-accent); }
+a {
+    color: var(--client-accent);
+}
 
 /* Persisted semantic heading overrides. These classes intentionally beat an
  * imported theme's utility size so changing H1/H2/etc. is visible as well as
  * correct in the DOM. "Default" removes them and returns to the theme. */
-.client-content-heading-h1 { font-size: 2.5rem !important; line-height: 1.15 !important; font-weight: 800 !important; }
-.client-content-heading-h2 { font-size: 2rem !important; line-height: 1.2 !important; font-weight: 750 !important; }
-.client-content-heading-h3 { font-size: 1.625rem !important; line-height: 1.25 !important; font-weight: 700 !important; }
-.client-content-heading-h4 { font-size: 1.375rem !important; line-height: 1.3 !important; font-weight: 700 !important; }
-.client-content-heading-h5 { font-size: 1.125rem !important; line-height: 1.4 !important; font-weight: 650 !important; }
-.client-content-heading-h6 { font-size: 1rem !important; line-height: 1.45 !important; font-weight: 650 !important; }
-.client-content-format-p { font-size: 1rem !important; line-height: 1.65 !important; font-weight: 400 !important; }
+.client-content-heading-h1 {
+    font-size: 2.5rem !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+}
+.client-content-heading-h2 {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+    font-weight: 750 !important;
+}
+.client-content-heading-h3 {
+    font-size: 1.625rem !important;
+    line-height: 1.25 !important;
+    font-weight: 700 !important;
+}
+.client-content-heading-h4 {
+    font-size: 1.375rem !important;
+    line-height: 1.3 !important;
+    font-weight: 700 !important;
+}
+.client-content-heading-h5 {
+    font-size: 1.125rem !important;
+    line-height: 1.4 !important;
+    font-weight: 650 !important;
+}
+.client-content-heading-h6 {
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+    font-weight: 650 !important;
+}
+.client-content-format-p {
+    font-size: 1rem !important;
+    line-height: 1.65 !important;
+    font-weight: 400 !important;
+}
 .client-content-list-ul,
-.client-content-list-ol { display: block !important; margin: .75rem 0 !important; padding-inline-start: 1.75rem !important; }
-.client-content-list-ul { list-style: disc outside !important; }
-.client-content-list-ol { list-style: decimal outside !important; }
+.client-content-list-ol {
+    display: block !important;
+    margin: 0.75rem 0 !important;
+    padding-inline-start: 1.75rem !important;
+}
+.client-content-list-ul {
+    list-style: disc outside !important;
+}
+.client-content-list-ol {
+    list-style: decimal outside !important;
+}
 .client-content-list-ul > li,
-.client-content-list-ol > li { display: list-item !important; }
+.client-content-list-ol > li {
+    display: list-item !important;
+}
 
 .client-shell {
     max-width: var(--client-shell);
@@ -84,7 +134,9 @@ a { color: var(--client-accent); }
     flex-wrap: wrap;
 }
 
-.client-nav-item { position: relative; }
+.client-nav-item {
+    position: relative;
+}
 
 .client-nav-item > a,
 .client-nav-item > span {
@@ -98,10 +150,16 @@ a { color: var(--client-accent); }
     white-space: nowrap;
 }
 
-.client-nav-item > a:hover { background: #eef2ff; color: var(--client-accent); }
+.client-nav-item > a:hover {
+    background: #eef2ff;
+    color: var(--client-accent);
+}
 
 /* An item with no resolvable target is text, not a link. */
-.client-nav-item > span { color: var(--client-muted); cursor: default; }
+.client-nav-item > span {
+    color: var(--client-muted);
+    cursor: default;
+}
 
 /* Submenus: hover on desktop, always stacked on narrow screens. */
 .client-nav-list .client-nav-list {
@@ -116,16 +174,24 @@ a { color: var(--client-accent); }
     background: #fff;
     border: 1px solid var(--client-line);
     border-radius: 10px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, .12);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
     z-index: 50;
 }
 
 .client-nav-item:hover > .client-nav-list,
-.client-nav-item:focus-within > .client-nav-list { display: flex; }
+.client-nav-item:focus-within > .client-nav-list {
+    display: flex;
+}
 
 @media (max-width: 860px) {
-    .client-header__inner { flex-direction: column; align-items: stretch; padding: 12px 0; }
-    .client-nav-list { flex-direction: column; }
+    .client-header__inner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 0;
+    }
+    .client-nav-list {
+        flex-direction: column;
+    }
     .client-nav-list .client-nav-list {
         display: flex;
         position: static;
@@ -137,9 +203,19 @@ a { color: var(--client-accent); }
 
 /* Listing pages ----------------------------------------------------------- */
 
-.client-page-head { padding: 48px 0 8px; }
-.client-page-head h1 { font-size: 38px; line-height: 1.15; margin: 0 0 10px; }
-.client-page-head p { color: var(--client-muted); margin: 0; max-width: 720px; }
+.client-page-head {
+    padding: 48px 0 8px;
+}
+.client-page-head h1 {
+    font-size: 38px;
+    line-height: 1.15;
+    margin: 0 0 10px;
+}
+.client-page-head p {
+    color: var(--client-muted);
+    margin: 0;
+    max-width: 720px;
+}
 
 .client-grid {
     display: grid;
@@ -157,10 +233,15 @@ a { color: var(--client-accent); }
     flex-direction: column;
     text-decoration: none;
     color: inherit;
-    transition: box-shadow .18s ease, transform .18s ease;
+    transition:
+        box-shadow 0.18s ease,
+        transform 0.18s ease;
 }
 
-.client-card:hover { box-shadow: 0 14px 34px rgba(15, 23, 42, .1); transform: translateY(-2px); }
+.client-card:hover {
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.1);
+    transform: translateY(-2px);
+}
 
 .client-card__media {
     aspect-ratio: 4 / 3;
@@ -170,10 +251,26 @@ a { color: var(--client-accent); }
     width: 100%;
 }
 
-.client-card__body { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
-.client-card__title { font-size: 16px; font-weight: 700; margin: 0; }
-.client-card__meta { color: var(--client-muted); font-size: 14px; margin: 0; }
-.client-card__price { font-weight: 800; color: var(--client-accent); }
+.client-card__body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.client-card__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+}
+.client-card__meta {
+    color: var(--client-muted);
+    font-size: 14px;
+    margin: 0;
+}
+.client-card__price {
+    font-weight: 800;
+    color: var(--client-accent);
+}
 
 .client-empty {
     padding: 64px 0;
@@ -181,8 +278,14 @@ a { color: var(--client-accent); }
     color: var(--client-muted);
 }
 
-.client-pagination { padding: 0 0 56px; }
-.client-pagination nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.client-pagination {
+    padding: 0 0 56px;
+}
+.client-pagination nav {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
 
 /* Footer ------------------------------------------------------------------ */
 
@@ -201,9 +304,23 @@ a { color: var(--client-accent); }
     align-items: flex-start;
 }
 
-.client-footer .client-nav-list { flex-direction: column; gap: 0; }
-.client-footer .client-nav-list .client-nav-list { position: static; display: flex; border: 0; box-shadow: none; padding-left: 14px; }
-.client-footer__note { color: var(--client-muted); font-size: 14px; margin: 0; max-width: 420px; }
+.client-footer .client-nav-list {
+    flex-direction: column;
+    gap: 0;
+}
+.client-footer .client-nav-list .client-nav-list {
+    position: static;
+    display: flex;
+    border: 0;
+    box-shadow: none;
+    padding-left: 14px;
+}
+.client-footer__note {
+    color: var(--client-muted);
+    font-size: 14px;
+    margin: 0;
+    max-width: 420px;
+}
 
 /* Editable regions -------------------------------------------------------- */
 
@@ -225,8 +342,12 @@ a { color: var(--client-accent); }
  * Every class the registry can emit must exist below. There is no build step on
  * the client side to notice a missing one, so SectionSettingsTest asserts it.
  */
-.client-section--bg-light { background: #fff; }
-.client-section--bg-muted { background: #f6f8fc; }
+.client-section--bg-light {
+    background: #fff;
+}
+.client-section--bg-muted {
+    background: #f6f8fc;
+}
 .client-section--bg-dark {
     background: var(--client-ink);
     color: #fff;
@@ -238,16 +359,32 @@ a { color: var(--client-accent); }
     color: #fff;
 }
 .client-section--bg-dark a,
-.client-section--bg-primary a { color: #fff; }
+.client-section--bg-primary a {
+    color: #fff;
+}
 
-.client-section--align-left { text-align: left; }
-.client-section--align-center { text-align: center; }
-.client-section--align-right { text-align: right; }
+.client-section--align-left {
+    text-align: left;
+}
+.client-section--align-center {
+    text-align: center;
+}
+.client-section--align-right {
+    text-align: right;
+}
 
-.client-section--pad-none { padding-block: 0; }
-.client-section--pad-sm { padding-block: 16px; }
-.client-section--pad-md { padding-block: 32px; }
-.client-section--pad-lg { padding-block: 64px; }
+.client-section--pad-none {
+    padding-block: 0;
+}
+.client-section--pad-sm {
+    padding-block: 16px;
+}
+.client-section--pad-md {
+    padding-block: 32px;
+}
+.client-section--pad-lg {
+    padding-block: 64px;
+}
 
 /*
  * A colour the editor picked, arriving as an inline custom property because no
@@ -255,38 +392,29 @@ a { color: var(--client-accent); }
  * theme's own variable inside the section is what makes links and the primary
  * background follow along without a rule per component.
  */
-.client-section--accent { --client-accent: var(--client-section-accent, #2563eb); }
+.client-section--accent {
+    --client-accent: var(--client-section-accent, #2563eb);
+}
 
 /*
  * A section an editor hid. Only ever rendered for an editor — a visitor gets no
  * element at all — so this is editor chrome and may say so loudly.
  */
 .client-section--hidden {
-    opacity: .42;
+    opacity: 0.42;
     outline: 1px dashed #97a4b8;
     outline-offset: 2px;
 }
 
 /*
- * Section variants: the shapes a section itself knows how to render. Scoped by
- * section name, so `boxed` in one section cannot restyle another's.
+ * Section variants: the shapes a section itself knows how to render, declared in
+ * SectionRegistry::SECTIONS and emitted as .client-section--<section>-<variant>.
  *
- * There is no `--intro-plain` or `--features-stack` here on purpose. "The way the
- * template already does it" is the absence of a variant, so a class for it would
- * be a rule with nothing to say.
+ * Nothing here yet: no theme in this repo declares a variant. When one does, its
+ * class belongs below, scoped by section name so `boxed` in one section cannot
+ * restyle another. SectionRegistryDriftTest fails on a variant whose class is
+ * missing — there is no build step on the client side to notice.
  *
- * These target `.client-section`, which every section-list emits, rather than any
- * one theme's own class names — a variant has to keep working when the markup
- * inside the section is replaced wholesale.
+ * There is deliberately no class for "the way the template already does it":
+ * that is the absence of a variant.
  */
-.client-section--intro-boxed {
-    border: 1px solid var(--client-line);
-    border-radius: 12px;
-    padding: 20px;
-}
-.client-section--features-grid { display: flow-root; }
-.client-section--features-grid .client-section {
-    display: inline-block;
-    vertical-align: top;
-    width: calc(50% - 6px);
-}
