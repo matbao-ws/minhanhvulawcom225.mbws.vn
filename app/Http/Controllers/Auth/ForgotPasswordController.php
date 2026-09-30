@@ -20,7 +20,7 @@ class ForgotPasswordController extends Controller
         if ($user) {
             Password::sendResetLink(['email' => $user->email]);
         }
-        $message = 'Nếu email tồn tại, liên kết đặt lại mật khẩu đã được gửi.';
+        $message = __('controller.auth.reset_link_sent');
 
         if ($request->expectsJson()) {
             return ApiResponse::success(null, $message);

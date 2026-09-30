@@ -5,6 +5,35 @@
     --core-control-primary-rgb: 227, 35, 38;
 }
 
+.catalog-quill.quill-is-fullscreen {
+    position: fixed;
+    z-index: 1060;
+    inset: 1rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
+}
+
+.catalog-quill.quill-is-fullscreen .ql-container {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.catalog-quill.quill-is-fullscreen .ql-editor {
+    min-height: 100%;
+    font-size: 1rem;
+    padding: 1.5rem;
+}
+
+.ql-toolbar .ql-fullscreen .ti {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
 [style*="#10203C"],
 .product-show-hero {
     position: relative;
@@ -48,6 +77,22 @@
 .product-show-hero > * {
     position: relative;
     z-index: 1;
+}
+
+/* Page-header actions render on the page background below md; light variants
+   are meant for the dark gradient card and would vanish on white. */
+.admin-page-header-actions-mobile .btn-light,
+.admin-page-header-actions-mobile .btn-outline-light {
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+}
+
+.admin-page-header-actions-mobile .btn-light:hover,
+.admin-page-header-actions-mobile .btn-outline-light:hover {
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
+    border-color: var(--bs-border-color);
 }
 
 .admin-responsive-filter-toggle .ti-chevron-down {

@@ -40,7 +40,7 @@ class LoginController extends Controller
 
         if (! $user || ! $user->is_active || $user->role_id === null || ! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Email hoặc mật khẩu không chính xác.'],
+                'email' => [__('controller.auth.invalid_credentials')],
             ]);
         }
 

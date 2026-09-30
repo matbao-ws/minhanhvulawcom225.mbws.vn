@@ -3,25 +3,16 @@
 @section('title', 'Trang nội dung')
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-            <div class="card-body px-4 py-3">
-                <h4 class="fw-semibold mb-1 text-white">Trang nội dung</h4>
-                <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                        <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Trang nội dung</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
-    </div>
-</div>
+<x-admin.page-header title="Trang nội dung">
+    <x-slot:breadcrumbs>
+        <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+        <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Trang nội dung</li>
+    </x-slot:breadcrumbs>
+    <x-slot:actions>
+        <x-admin.action-button :href="route('admin.pages.create')" icon="plus">Thêm trang</x-admin.action-button>
+    </x-slot:actions>
+</x-admin.page-header>
 
-<div class="d-flex justify-content-end mb-4">
-    <a href="{{ route('admin.pages.create') }}" class="btn btn-primary"><i class="ti ti-plus me-1"></i>Thêm trang</a>
-</div>
 
 <div class="card">
     <div class="card-body">
@@ -34,7 +25,7 @@
                     <option value="0" @selected(request('status') === '0')>Bản nháp</option>
                 </select>
             </div>
-            <div class="col-md-3"><button class="btn btn-outline-primary w-100">Lọc</button></div>
+            <div class="col-md-3"><x-admin.action-button type="submit" variant="outline-primary" icon="filter" class="w-100">Lọc</x-admin.action-button></div>
         </form>
 
         <div class="table-responsive">

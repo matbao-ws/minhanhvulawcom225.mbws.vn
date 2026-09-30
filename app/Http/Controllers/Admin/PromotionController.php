@@ -55,7 +55,7 @@ class PromotionController extends Controller
             return back()->withInput()->withErrors(['targets' => $exception->getMessage()]);
         }
 
-        return redirect()->route('admin.promotions.edit', $promotion)->with('success', 'Đã tạo chương trình khuyến mãi.');
+        return redirect()->route('admin.promotions.edit', $promotion)->with('success', __('controller.admin.promotion_created'));
     }
 
     public function edit(string $locale, Promotion $promotion)
@@ -78,18 +78,18 @@ class PromotionController extends Controller
             return back()->withInput()->withErrors(['targets' => $exception->getMessage()]);
         }
 
-        return redirect()->route('admin.promotions.edit', $promotion)->with('success', 'Đã cập nhật chương trình khuyến mãi.');
+        return redirect()->route('admin.promotions.edit', $promotion)->with('success', __('controller.admin.promotion_updated'));
     }
 
     public function destroy(string $locale, Promotion $promotion)
     {
         if ($promotion->used_count > 0) {
-            return back()->withErrors(['promotion' => 'Không thể xóa chương trình đã có lượt sử dụng. Hãy tắt chương trình thay vì xóa.']);
+            return back()->withErrors(['promotion' => __('controller.admin.promotion_used')]);
         }
 
         $promotion->delete();
 
-        return redirect()->route('admin.promotions.index')->with('success', 'Đã xóa chương trình khuyến mãi.');
+        return redirect()->route('admin.promotions.index')->with('success', __('controller.admin.promotion_deleted'));
     }
 
     private function payload(array $data, ?Promotion $promotion = null): array
@@ -125,7 +125,7 @@ class PromotionController extends Controller
             }
             $variants = ProductVariant::query()->whereIn('id', $data['target_variant_ids'] ?? [])->get(['id', 'product_id']);
             if ($variants->count() !== count($data['target_variant_ids'] ?? [])) {
-                throw new DomainException('Có SKU không tồn tại.');
+                throw new DomainException(__('controller.admin.promotion_variant_missing'));
             }
             foreach ($variants as $variant) {
                 $specs["{$variant->product_id}:{$variant->id}"] = ['product_id' => $variant->product_id, 'product_variant_id' => $variant->id];
@@ -140,7 +140,7 @@ class PromotionController extends Controller
 
         foreach ($existing as $target) {
             if ($target->used_count > 0) {
-                throw new DomainException('Không thể bỏ một SKU đã có lượt flash sale. Hãy tắt chương trình hoặc giữ SKU đó.');
+                throw new DomainException(__('controller.admin.promotion_target_used'));
             }
             $target->delete();
         }

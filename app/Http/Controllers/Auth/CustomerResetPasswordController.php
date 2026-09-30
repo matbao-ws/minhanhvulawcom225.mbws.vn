@@ -26,7 +26,7 @@ class CustomerResetPasswordController extends Controller
     public function store(ResetPasswordRequest $request)
     {
         if (! User::query()->where('email', $request->input('email'))->whereNull('role_id')->exists()) {
-            return back()->withErrors(['email' => 'Token khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.']);
+            return back()->withErrors(['email' => __('controller.auth.invalid_reset_token')]);
         }
 
         $status = Password::reset(

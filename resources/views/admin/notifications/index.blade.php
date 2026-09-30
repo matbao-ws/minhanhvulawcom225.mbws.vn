@@ -3,27 +3,12 @@
 @section('title', 'Thông báo hệ thống')
 
 @section('content')
-    <!-- Header Card -->
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">Thông báo hệ thống</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Thông báo</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header title="Thông báo hệ thống">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Thông báo</li>
+        </x-slot:breadcrumbs>
+    </x-admin.page-header>
 
     <!-- Notification List Card -->
     <div class="card rounded-4 border border-light-subtle shadow-sm overflow-hidden">
@@ -53,9 +38,7 @@
                         </select>
                     </div>
                     <div class="col-md-3 d-flex gap-2">
-                        <button class="btn btn-primary flex-grow-1" type="submit">
-                            Tìm kiếm
-                        </button>
+                        <x-admin.action-button type="submit" icon="search" class="flex-grow-1">Tìm kiếm</x-admin.action-button>
                         @if(request('q') || request('type'))
                             <a href="{{ route('admin.notifications.index') }}" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3" title="Xóa bộ lọc">
                                 <iconify-icon icon="solar:trash-bin-trash-line-duotone" class="fs-5"></iconify-icon>

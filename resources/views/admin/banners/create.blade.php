@@ -3,28 +3,13 @@
 @section('title', __('admin.banners.create'))
 
 @section('content')
-    <!-- Header Card -->
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.banners.create') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.banners.index') }}">{{ __('admin.banners.title') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.banners.create') }}</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('admin.banners.create')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.banners.index') }}">{{ __('admin.banners.title') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.banners.create') }}</li>
+        </x-slot:breadcrumbs>
+    </x-admin.page-header>
 
     <!-- Errors list -->
     @if ($errors->any())
@@ -104,10 +89,8 @@
 
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a href="{{ route('admin.banners.index') }}" class="btn btn-light rounded-pill px-4 fw-semibold">{{ __('catalog.actions.cancel') }}</a>
-                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
-                                <i class="ti ti-device-floppy me-1"></i>{{ __('admin.banners.create') }}
-                            </button>
+                            <x-admin.action-button :href="route('admin.banners.index')" variant="light" class="rounded-pill px-4 fw-semibold">{{ __('catalog.actions.cancel') }}</x-admin.action-button>
+                            <x-admin.action-button type="submit" icon="device-floppy" class="rounded-pill px-4 fw-semibold">{{ __('admin.banners.create') }}</x-admin.action-button>
                         </div>
                     </form>
                 </div>

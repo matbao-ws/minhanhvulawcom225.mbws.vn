@@ -13,8 +13,21 @@
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center">
-                          <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}" target="_blank" style="padding: 0 8px;">
-                              <span class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                          <button type="button" class="sidebar-collapse-toggle" data-sidebar-collapse-toggle
+                              aria-label="{{ __('admin.sidebar.collapse') }}" title="{{ __('admin.sidebar.collapse') }}"
+                              aria-pressed="false">
+                              <svg class="sidebar-collapse-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                  stroke-linecap="round" aria-hidden="true">
+                                  <path d="M4 6h16M8 12h12M4 18h16" />
+                              </svg>
+                          </button>
+                      </li>
+                      <li class="nav-item d-none d-xl-flex align-items-center">
+                          <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}" target="_blank"
+                              style="padding: 0 8px;">
+                              <span
+                                  class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center"
+                                  style="width: 40px; height: 40px;">
                                   <iconify-icon icon="solar:home-2-linear" class="fs-6"></iconify-icon>
                               </span>
                               <span class="site-name">{{ $siteBranding['name'] }}</span>
@@ -33,66 +46,99 @@
                                   <iconify-icon icon="solar:widget-3-linear" class="fs-6"></iconify-icon>
                               </a>
                               <div class="dropdown-menu dropdown-menu-nav dropdown-menu-animate-up py-0 overflow-hidden"
-                                  aria-labelledby="drop2" style="min-width: 650px !important;">
+                                  aria-labelledby="drop2"
+                                  style="min-width: 650px !important; font-family: 'Quicksand', sans-serif !important;">
                                   <div class="p-4">
                                       <div class="row g-4 mb-4">
                                           <!-- Hướng dẫn sử dụng -->
                                           <div class="col-md-6">
-                                              <a href="https://support.matbao.ws" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f3ebff;">
-                                                      <iconify-icon icon="lucide:life-buoy" class="fs-7" style="color: #8a2be2;"></iconify-icon>
+                                              <a href="https://support.matbao.ws" target="_blank"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #f3ebff;">
+                                                      <iconify-icon icon="lucide:life-buoy" class="fs-7"
+                                                          style="color: #8a2be2;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Hướng dẫn sử dụng</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Tài liệu hướng dẫn sử dụng</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          Hướng dẫn sử dụng</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Tài
+                                                          liệu hướng dẫn sử dụng</span>
                                                   </div>
                                               </a>
                                           </div>
-                                          
+
                                           <!-- support@matbao.ws -->
                                           <div class="col-md-6">
-                                              <a href="mailto:support@matbao.ws" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fff5e6;">
-                                                      <iconify-icon icon="solar:letter-bold-duotone" class="fs-7" style="color: #ff9900;"></iconify-icon>
+                                              <a href="mailto:support@matbao.ws"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #fff5e6;">
+                                                      <iconify-icon icon="solar:letter-bold-duotone" class="fs-7"
+                                                          style="color: #ff9900;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">support@matbao.ws</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Email hỗ trợ kỹ thuật</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          support@matbao.ws</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Email
+                                                          hỗ trợ kỹ thuật</span>
                                                   </div>
                                               </a>
                                           </div>
 
                                           <!-- Hotline -->
                                           <div class="col-md-6">
-                                              <a href="tel:02877777999" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #e6f2ff;">
-                                                      <iconify-icon icon="solar:phone-calling-rounded-bold-duotone" class="fs-7" style="color: #0066cc;"></iconify-icon>
+                                              <a href="tel:02877777999"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #e6f2ff;">
+                                                      <iconify-icon icon="solar:phone-calling-rounded-bold-duotone"
+                                                          class="fs-7" style="color: #0066cc;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">(028) 7777 7999</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Hotline hỗ trợ 24/7/365</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          (028) 7777 7999</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Hotline
+                                                          hỗ trợ 24/7/365</span>
                                                   </div>
                                               </a>
                                           </div>
 
                                           <!-- UltraViewer -->
                                           <div class="col-md-6">
-                                              <a href="https://ultraviewer.net/vi/download.html" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #eafaf1;">
-                                                      <iconify-icon icon="lucide:download" class="fs-7" style="color: #2ecc71;"></iconify-icon>
+                                              <a href="https://ultraviewer.net/vi/download.html" target="_blank"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #eafaf1;">
+                                                      <iconify-icon icon="lucide:download" class="fs-7"
+                                                          style="color: #2ecc71;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Tải xuống UltraViewer</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Phần mềm hỗ trợ từ xa</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          Tải xuống UltraViewer</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Phần
+                                                          mềm hỗ trợ từ xa</span>
                                                   </div>
                                               </a>
                                           </div>
                                       </div>
-                                      
+
                                       <!-- Footer Row -->
                                       <div class="pt-3 border-top d-flex align-items-center justify-content-between">
-                                          <span class="text-dark fw-bold fs-3">Cần gặp nhân viên hỗ trợ kỹ thuật?</span>
-                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank" class="btn btn-teal text-white fw-bold px-4 py-2" style="background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
+                                          <span class="text-dark fw-bold fs-3"
+                                              style="font-family: 'Quicksand', sans-serif !important;">Cần gặp nhân
+                                              viên hỗ trợ kỹ thuật?</span>
+                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank"
+                                              class="btn btn-teal text-white fw-bold px-4 py-2"
+                                              style="font-family: 'Quicksand', sans-serif !important; background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
                                               GỬI YÊU CẦU NGAY
                                           </a>
                                       </div>
@@ -140,7 +186,9 @@
                                       aria-labelledby="drop2">
                                       <div class="d-flex align-items-center justify-content-between py-3 px-7">
                                           <h5 class="mb-0 fs-5 fw-semibold">{{ __('admin.notifications') }}</h5>
-                                          <span class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ $headerNotifications->count() }} mới</span>
+                                          <span
+                                              class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ $headerNotifications->count() }}
+                                              mới</span>
                                       </div>
                                       <div class="message-body" data-simplebar="">
                                           @forelse($headerNotifications as $notification)
@@ -152,21 +200,27 @@
                                                   </span>
                                                   <div class="w-75">
                                                       <div class="d-flex align-items-center justify-content-between">
-                                                          <h6 class="mb-1 fw-semibold text-truncate" style="max-width: 150px;">{{ $notification['title'] }}</h6>
-                                                          <span class="d-block fs-2 text-muted">{{ $notification['time'] }}</span>
+                                                          <h6 class="mb-1 fw-semibold text-truncate"
+                                                              style="max-width: 150px;">{{ $notification['title'] }}
+                                                          </h6>
+                                                          <span
+                                                              class="d-block fs-2 text-muted">{{ $notification['time'] }}</span>
                                                       </div>
-                                                      <span class="d-block text-truncate fs-11 text-muted">{{ $notification['message'] }}</span>
+                                                      <span
+                                                          class="d-block text-truncate fs-11 text-muted">{{ $notification['message'] }}</span>
                                                   </div>
                                               </a>
                                           @empty
                                               <div class="py-5 text-center text-muted">
-                                                  <iconify-icon icon="solar:bell-bing-line-duotone" class="fs-7 mb-2 d-inline-block"></iconify-icon>
+                                                  <iconify-icon icon="solar:bell-bing-line-duotone"
+                                                      class="fs-7 mb-2 d-inline-block"></iconify-icon>
                                                   <p class="mb-0 fs-3">Không có thông báo mới</p>
                                               </div>
                                           @endforelse
                                       </div>
                                       <div class="py-6 px-7 mb-1">
-                                          <a href="{{ route('admin.notifications.index') }}" class="btn btn-primary w-100">{{ __('admin.see_all_notifications') }}</a>
+                                          <a href="{{ route('admin.notifications.index') }}"
+                                              class="btn btn-primary w-100">{{ __('admin.see_all_notifications') }}</a>
                                       </div>
 
                                   </div>
@@ -190,8 +244,9 @@
                                   <a class="nav-link" href="javascript:void(0)" id="drop1"
                                       aria-expanded="false">
                                       <div class="d-flex align-items-center gap-2 lh-base">
-                                          <img src="{{ asset('admin-assets/images/profile/user-1.jpg') }}" class="rounded-circle"
-                                              width="35" height="35" alt="matdash-img">
+                                          <img src="{{ asset('admin-assets/images/icons/avatar.png') }}"
+                                              class="rounded-circle" width="35" height="35"
+                                              alt="matdash-img">
                                           <iconify-icon icon="solar:alt-arrow-down-bold"
                                               class="fs-2"></iconify-icon>
                                       </div>
@@ -200,8 +255,9 @@
                                       aria-labelledby="drop1">
                                       <div class="position-relative px-4 pt-3 pb-2">
                                           <div class="d-flex align-items-center mb-3 pb-3 border-bottom gap-6">
-                                              <img src="{{ asset('admin-assets/images/profile/user-1.jpg') }}" class="rounded-circle"
-                                                  width="56" height="56" alt="matdash-img">
+                                              <img src="{{ asset('admin-assets/images/icons/avatar.png') }}"
+                                                  class="rounded-circle" width="56" height="56"
+                                                  alt="matdash-img">
                                               <div>
                                                   <h5 class="mb-0 fs-12">{{ auth()->user()->name ?? 'Admin' }} <span
                                                           class="text-success fs-11">Admin</span>
@@ -212,7 +268,8 @@
                                               </div>
                                           </div>
                                           <div class="message-body">
-                                              <a href="{{ route('admin.users.edit', auth()->id()) }}" class="p-2 dropdown-item h6 rounded-1">
+                                              <a href="{{ route('admin.users.edit', auth()->id()) }}"
+                                                  class="p-2 dropdown-item h6 rounded-1">
                                                   {{ __('admin.profile.my_profile') }}
                                               </a>
                                               <a href="{{ route('admin.settings.index') }}"
@@ -221,7 +278,8 @@
                                               </a>
                                               <form method="POST" action="{{ route('admin.logout') }}">
                                                   @csrf
-                                                  <button type="submit" class="p-2 dropdown-item h6 rounded-1 border-0 bg-transparent w-100 text-start">
+                                                  <button type="submit"
+                                                      class="p-2 dropdown-item h6 rounded-1 border-0 bg-transparent w-100 text-start">
                                                       {{ __('admin.profile.sign_out') }}
                                                   </button>
                                               </form>
@@ -249,7 +307,8 @@
                   <nav class="sidebar-nav scroll-sidebar">
                       <div class="offcanvas-header justify-content-between">
                           <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
-                               <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}" width="35" height="35">
+                              <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}"
+                                  width="35" height="35">
                           </a>
                           <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
                               aria-label="Close"></button>
@@ -267,57 +326,92 @@
                                   </a>
                                   <ul aria-expanded="false" class="collapse first-level my-3 ps-3">
                                       <li class="sidebar-item py-2">
-                                          <a href="https://support.matbao.ws" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #f3ebff;">
-                                                  <iconify-icon icon="lucide:life-buoy" class="fs-7" style="color: #8a2be2;"></iconify-icon>
+                                          <a href="https://support.matbao.ws" target="_blank"
+                                              class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center"
+                                                  style="background-color: #f3ebff;">
+                                                  <iconify-icon icon="lucide:life-buoy" class="fs-7"
+                                                      style="color: #8a2be2;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">Hướng dẫn sử dụng</h6>
-                                                  <span class="fs-11 d-block text-muted fw-semibold">Tài liệu hướng dẫn sử dụng</span>
+                                                  <h6 class="mb-0 text-dark fw-bold"
+                                                      style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
+                                                      Hướng dẫn sử dụng</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold"
+                                                      style="font-family: 'Quicksand', sans-serif !important;">Tài liệu
+                                                      hướng dẫn sử dụng</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="mailto:support@matbao.ws" class="d-flex align-items-center text-decoration-none">
-                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #fff5e6;">
-                                                  <iconify-icon icon="solar:letter-bold-duotone" class="fs-7" style="color: #ff9900;"></iconify-icon>
+                                          <a href="mailto:support@matbao.ws"
+                                              class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center"
+                                                  style="background-color: #fff5e6;">
+                                                  <iconify-icon icon="solar:letter-bold-duotone" class="fs-7"
+                                                      style="color: #ff9900;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">support@matbao.ws</h6>
-                                                  <span class="fs-11 d-block text-muted fw-semibold">Email hỗ trợ kỹ thuật</span>
+                                                  <h6 class="mb-0 text-dark fw-bold"
+                                                      style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
+                                                      support@matbao.ws</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold"
+                                                      style="font-family: 'Quicksand', sans-serif !important;">Email hỗ
+                                                      trợ kỹ thuật</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="tel:02877777999" class="d-flex align-items-center text-decoration-none">
-                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #e6f2ff;">
-                                                  <iconify-icon icon="solar:phone-calling-rounded-bold-duotone" class="fs-7" style="color: #0066cc;"></iconify-icon>
+                                          <a href="tel:02877777999"
+                                              class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center"
+                                                  style="background-color: #e6f2ff;">
+                                                  <iconify-icon icon="solar:phone-calling-rounded-bold-duotone"
+                                                      class="fs-7" style="color: #0066cc;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">(028) 7777 7999</h6>
-                                                  <span class="fs-11 d-block text-muted fw-semibold">Hotline hỗ trợ 24/7/365</span>
+                                                  <h6 class="mb-0 text-dark fw-bold"
+                                                      style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
+                                                      (028) 7777 7999</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold"
+                                                      style="font-family: 'Quicksand', sans-serif !important;">Hotline
+                                                      hỗ trợ 24/7/365</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="https://ultraviewer.net/vi/download.html" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #eafaf1;">
-                                                  <iconify-icon icon="lucide:download" class="fs-7" style="color: #2ecc71;"></iconify-icon>
+                                          <a href="https://ultraviewer.net/vi/download.html" target="_blank"
+                                              class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center"
+                                                  style="background-color: #eafaf1;">
+                                                  <iconify-icon icon="lucide:download" class="fs-7"
+                                                      style="color: #2ecc71;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">Tải xuống UltraViewer</h6>
-                                                  <span class="fs-11 d-block text-muted fw-semibold">Phần mềm hỗ trợ từ xa</span>
+                                                  <h6 class="mb-0 text-dark fw-bold"
+                                                      style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
+                                                      Tải xuống UltraViewer</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold"
+                                                      style="font-family: 'Quicksand', sans-serif !important;">Phần mềm
+                                                      hỗ trợ từ xa</span>
                                               </div>
                                           </a>
                                       </li>
                                       <li class="sidebar-item py-2">
-                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center" style="background-color: #e0f8f4;">
-                                                  <iconify-icon icon="solar:pen-new-square-bold-duotone" class="fs-7" style="color: #00b493;"></iconify-icon>
+                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank"
+                                              class="d-flex align-items-center text-decoration-none">
+                                              <div class="rounded round-48 me-3 d-flex align-items-center justify-content-center"
+                                                  style="background-color: #e0f8f4;">
+                                                  <iconify-icon icon="solar:pen-new-square-bold-duotone"
+                                                      class="fs-7" style="color: #00b493;"></iconify-icon>
                                               </div>
                                               <div>
-                                                  <h6 class="mb-0 text-dark fw-bolder" style="font-size: 15px; font-weight: 800 !important;">Gửi yêu cầu hỗ trợ</h6>
-                                                  <span class="fs-11 d-block text-muted fw-semibold">Cần gặp nhân viên hỗ trợ ngay</span>
+                                                  <h6 class="mb-0 text-dark fw-bold"
+                                                      style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
+                                                      Gửi yêu cầu hỗ trợ</h6>
+                                                  <span class="fs-11 d-block text-muted fw-semibold"
+                                                      style="font-family: 'Quicksand', sans-serif !important;">Cần gặp
+                                                      nhân viên hỗ trợ ngay</span>
                                               </div>
                                           </a>
                                       </li>
@@ -339,13 +433,26 @@
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center">
+                          <button type="button" class="sidebar-collapse-toggle" data-sidebar-collapse-toggle
+                              aria-label="{{ __('admin.sidebar.collapse') }}"
+                              title="{{ __('admin.sidebar.collapse') }}" aria-pressed="false">
+                              <svg class="sidebar-collapse-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"
+                                  stroke-linecap="round" aria-hidden="true">
+                                  <path d="M4 6h16M8 12h12M4 18h16" />
+                              </svg>
+                          </button>
+                      </li>
+                      <li class="nav-item d-none d-xl-flex align-items-center">
                           <a href="{{ route('admin.dashboard') }}" class="text-nowrap nav-link">
                               <img src="{{ asset('admin-assets/images/logos/logo.svg') }}" alt="matdash-img">
                           </a>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center">
-                          <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}" target="_blank" style="padding: 0 8px;">
-                              <span class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                          <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}"
+                              target="_blank" style="padding: 0 8px;">
+                              <span
+                                  class="nav-icon-hover-bg rounded-circle d-flex align-items-center justify-content-center"
+                                  style="width: 40px; height: 40px;">
                                   <iconify-icon icon="solar:home-2-linear" class="fs-6"></iconify-icon>
                               </span>
                               <span class="site-name">{{ $siteBranding['name'] }}</span>
@@ -365,66 +472,99 @@
                                   <iconify-icon icon="solar:widget-3-linear" class="fs-6"></iconify-icon>
                               </a>
                               <div class="dropdown-menu dropdown-menu-nav dropdown-menu-animate-up py-0 overflow-hidden"
-                                  aria-labelledby="drop2" style="min-width: 650px !important;">
+                                  aria-labelledby="drop2"
+                                  style="min-width: 650px !important; font-family: 'Quicksand', sans-serif !important;">
                                   <div class="p-4">
                                       <div class="row g-4 mb-4">
                                           <!-- Hướng dẫn sử dụng -->
                                           <div class="col-md-6">
-                                              <a href="https://support.matbao.ws" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f3ebff;">
-                                                      <iconify-icon icon="lucide:life-buoy" class="fs-7" style="color: #8a2be2;"></iconify-icon>
+                                              <a href="https://support.matbao.ws" target="_blank"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #f3ebff;">
+                                                      <iconify-icon icon="lucide:life-buoy" class="fs-7"
+                                                          style="color: #8a2be2;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Hướng dẫn sử dụng</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Tài liệu hướng dẫn sử dụng</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          Hướng dẫn sử dụng</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Tài
+                                                          liệu hướng dẫn sử dụng</span>
                                                   </div>
                                               </a>
                                           </div>
-                                          
+
                                           <!-- support@matbao.ws -->
                                           <div class="col-md-6">
-                                              <a href="mailto:support@matbao.ws" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fff5e6;">
-                                                      <iconify-icon icon="solar:letter-bold-duotone" class="fs-7" style="color: #ff9900;"></iconify-icon>
+                                              <a href="mailto:support@matbao.ws"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #fff5e6;">
+                                                      <iconify-icon icon="solar:letter-bold-duotone" class="fs-7"
+                                                          style="color: #ff9900;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">support@matbao.ws</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Email hỗ trợ kỹ thuật</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          support@matbao.ws</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Email
+                                                          hỗ trợ kỹ thuật</span>
                                                   </div>
                                               </a>
                                           </div>
 
                                           <!-- Hotline -->
                                           <div class="col-md-6">
-                                              <a href="tel:02877777999" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #e6f2ff;">
-                                                      <iconify-icon icon="solar:phone-calling-rounded-bold-duotone" class="fs-7" style="color: #0066cc;"></iconify-icon>
+                                              <a href="tel:02877777999"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #e6f2ff;">
+                                                      <iconify-icon icon="solar:phone-calling-rounded-bold-duotone"
+                                                          class="fs-7" style="color: #0066cc;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">(028) 7777 7999</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Hotline hỗ trợ 24/7/365</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          (028) 7777 7999</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Hotline
+                                                          hỗ trợ 24/7/365</span>
                                                   </div>
                                               </a>
                                           </div>
 
                                           <!-- UltraViewer -->
                                           <div class="col-md-6">
-                                              <a href="https://ultraviewer.net/vi/download.html" target="_blank" class="d-flex align-items-center text-decoration-none">
-                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #eafaf1;">
-                                                      <iconify-icon icon="lucide:download" class="fs-7" style="color: #2ecc71;"></iconify-icon>
+                                              <a href="https://ultraviewer.net/vi/download.html" target="_blank"
+                                                  class="d-flex align-items-center text-decoration-none">
+                                                  <div class="rounded me-3 d-flex align-items-center justify-content-center"
+                                                      style="width: 48px; height: 48px; background-color: #eafaf1;">
+                                                      <iconify-icon icon="lucide:download" class="fs-7"
+                                                          style="color: #2ecc71;"></iconify-icon>
                                                   </div>
                                                   <div>
-                                                      <h6 class="mb-1 text-dark fw-bolder" style="font-size: 16px; font-weight: 800 !important;">Tải xuống UltraViewer</h6>
-                                                      <span class="fs-2 text-muted fw-semibold">Phần mềm hỗ trợ từ xa</span>
+                                                      <h6 class="mb-1 text-dark fw-bold"
+                                                          style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
+                                                          Tải xuống UltraViewer</h6>
+                                                      <span class="fs-2 text-muted fw-semibold"
+                                                          style="font-family: 'Quicksand', sans-serif !important;">Phần
+                                                          mềm hỗ trợ từ xa</span>
                                                   </div>
                                               </a>
                                           </div>
                                       </div>
-                                      
+
                                       <!-- Footer Row -->
                                       <div class="pt-3 border-top d-flex align-items-center justify-content-between">
-                                          <span class="text-dark fw-bold fs-3">Cần gặp nhân viên hỗ trợ kỹ thuật?</span>
-                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank" class="btn btn-teal text-white fw-bold px-4 py-2" style="background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
+                                          <span class="text-dark fw-bold fs-3"
+                                              style="font-family: 'Quicksand', sans-serif !important;">Cần gặp nhân
+                                              viên hỗ trợ kỹ thuật?</span>
+                                          <a href="https://support.matbao.ws/submitticket.php" target="_blank"
+                                              class="btn btn-teal text-white fw-bold px-4 py-2"
+                                              style="font-family: 'Quicksand', sans-serif !important; background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
                                               GỬI YÊU CẦU NGAY
                                           </a>
                                       </div>
@@ -475,7 +615,9 @@
                                       aria-labelledby="drop2">
                                       <div class="d-flex align-items-center justify-content-between py-3 px-7">
                                           <h5 class="mb-0 fs-5 fw-semibold">{{ __('admin.notifications') }}</h5>
-                                          <span class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ $headerNotifications->count() }} mới</span>
+                                          <span
+                                              class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ $headerNotifications->count() }}
+                                              mới</span>
                                       </div>
                                       <div class="message-body" data-simplebar="">
                                           @forelse($headerNotifications as $notification)
@@ -487,21 +629,27 @@
                                                   </span>
                                                   <div class="w-75">
                                                       <div class="d-flex align-items-center justify-content-between">
-                                                          <h6 class="mb-1 fw-semibold text-truncate" style="max-width: 150px;">{{ $notification['title'] }}</h6>
-                                                          <span class="d-block fs-2 text-muted">{{ $notification['time'] }}</span>
+                                                          <h6 class="mb-1 fw-semibold text-truncate"
+                                                              style="max-width: 150px;">{{ $notification['title'] }}
+                                                          </h6>
+                                                          <span
+                                                              class="d-block fs-2 text-muted">{{ $notification['time'] }}</span>
                                                       </div>
-                                                      <span class="d-block text-truncate fs-11 text-muted">{{ $notification['message'] }}</span>
+                                                      <span
+                                                          class="d-block text-truncate fs-11 text-muted">{{ $notification['message'] }}</span>
                                                   </div>
                                               </a>
                                           @empty
                                               <div class="py-5 text-center text-muted">
-                                                  <iconify-icon icon="solar:bell-bing-line-duotone" class="fs-7 mb-2 d-inline-block"></iconify-icon>
+                                                  <iconify-icon icon="solar:bell-bing-line-duotone"
+                                                      class="fs-7 mb-2 d-inline-block"></iconify-icon>
                                                   <p class="mb-0 fs-3">Không có thông báo mới</p>
                                               </div>
                                           @endforelse
                                       </div>
                                       <div class="py-6 px-7 mb-1">
-                                          <a href="{{ route('admin.notifications.index') }}" class="btn btn-primary w-100">{{ __('admin.see_all_notifications') }}</a>
+                                          <a href="{{ route('admin.notifications.index') }}"
+                                              class="btn btn-primary w-100">{{ __('admin.see_all_notifications') }}</a>
                                       </div>
 
                                   </div>
@@ -525,8 +673,9 @@
                                   <a class="nav-link" href="javascript:void(0)" id="drop1"
                                       aria-expanded="false">
                                       <div class="d-flex align-items-center gap-2 lh-base">
-                                          <img src="{{ asset('admin-assets/images/profile/user-1.jpg') }}" class="rounded-circle"
-                                              width="35" height="35" alt="matdash-img">
+                                          <img src="{{ asset('admin-assets/images/icons/avatar.png') }}"
+                                              class="rounded-circle" width="35" height="35"
+                                              alt="matdash-img">
                                           <iconify-icon icon="solar:alt-arrow-down-bold"
                                               class="fs-2"></iconify-icon>
                                       </div>
@@ -535,8 +684,9 @@
                                       aria-labelledby="drop1">
                                       <div class="position-relative px-4 pt-3 pb-2">
                                           <div class="d-flex align-items-center mb-3 pb-3 border-bottom gap-6">
-                                              <img src="{{ asset('admin-assets/images/profile/user-1.jpg') }}" class="rounded-circle"
-                                                  width="56" height="56" alt="matdash-img">
+                                              <img src="{{ asset('admin-assets/images/icons/avatar.png') }}"
+                                                  class="rounded-circle" width="56" height="56"
+                                                  alt="matdash-img">
                                               <div>
                                                   <h5 class="mb-0 fs-12">{{ auth()->user()->name ?? 'Admin' }} <span
                                                           class="text-success fs-11">Admin</span>
@@ -547,7 +697,8 @@
                                               </div>
                                           </div>
                                           <div class="message-body">
-                                              <a href="{{ route('admin.users.edit', auth()->id()) }}" class="p-2 dropdown-item h6 rounded-1">
+                                              <a href="{{ route('admin.users.edit', auth()->id()) }}"
+                                                  class="p-2 dropdown-item h6 rounded-1">
                                                   {{ __('admin.profile.my_profile') }}
                                               </a>
                                               <a href="{{ route('admin.settings.index') }}"
@@ -556,7 +707,8 @@
                                               </a>
                                               <form method="POST" action="{{ route('admin.logout') }}">
                                                   @csrf
-                                                  <button type="submit" class="p-2 dropdown-item h6 rounded-1 border-0 bg-transparent w-100 text-start">
+                                                  <button type="submit"
+                                                      class="p-2 dropdown-item h6 rounded-1 border-0 bg-transparent w-100 text-start">
                                                       {{ __('admin.profile.sign_out') }}
                                                   </button>
                                               </form>

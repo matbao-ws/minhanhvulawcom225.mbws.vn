@@ -172,7 +172,7 @@ class PostCrudTest extends TestCase
         $this->actingAs($this->adminUser)
             ->get('/vi/admin/posts')
             ->assertOk()
-            ->assertSee('admin-assets/images/icons/empty-post.png', false)
+            ->assertSee('admin-assets/images/icons/empty-baiviet.png', false)
             ->assertDontSee('solar:document-bold-duotone', false);
     }
 

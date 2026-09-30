@@ -65,15 +65,84 @@ class PageContentService
         });
     }
 
-    public function restore(Page $page, PageRevision $revision, ?int $userId): Page
+    /**
+     * The saved checkpoints for one page, shaped for a history list.
+     *
+     * Same shape as {@see SiteContentService::revisions()} so the storefront
+     * history panel can render a page the way it renders a region: id, when,
+     * who, whether this locale is in the snapshot at all, and a short plain
+     * text label. A label, not a diff.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function revisions(Page $page, ?string $locale = null, int $limit = 20): array
+    {
+        $locale ??= app()->getLocale();
+
+        return $page->revisions()
+            ->with('creator')
+            ->limit($limit)
+            ->get()
+            ->map(function (PageRevision $revision) use ($locale): array {
+                $content = is_array($revision->published_html) ? $revision->published_html : [];
+                $value = $content[$locale] ?? null;
+
+                return [
+                    'id' => $revision->id,
+                    'created_at' => $revision->created_at?->toIso8601String(),
+                    'author' => $revision->creator?->name,
+                    'has_locale' => array_key_exists($locale, $content),
+                    'preview' => is_string($value) ? Str::limit(trim(strip_tags($value)), 90) : null,
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Put one snapshot back.
+     *
+     * `$locale` is what separates the two callers, and the difference matters.
+     * The admin metadata screen owns the whole record, so it restores every
+     * locale at once — that is what it has always done. The storefront editor
+     * is looking at exactly one language, and restoring the others from there
+     * would silently revert translations nobody on that screen can see. So it
+     * passes the locale it is showing, and only that key is written.
+     *
+     * A locale-scoped restore whose snapshot never held that locale is
+     * refused rather than satisfied with an empty string: an empty string is a
+     * real stored value meaning "hidden on purpose", a different instruction
+     * from "this version had nothing to say here".
+     *
+     * The page always comes from the revision, never from the request.
+     * Accepting both would let a crafted call write page A's snapshot onto
+     * page B with nothing in the audit trail to show for it.
+     *
+     * @throws ValidationException
+     */
+    public function restore(Page $page, PageRevision $revision, ?int $userId, ?string $locale = null): Page
     {
         abort_unless($revision->page_id === $page->id, 404);
 
-        return DB::transaction(function () use ($page, $revision, $userId): Page {
+        if ($locale === null) {
+            $value = $revision->published_html;
+        } else {
+            $snapshot = is_array($revision->published_html) ? $revision->published_html : [];
+
+            if (! array_key_exists($locale, $snapshot)) {
+                throw ValidationException::withMessages([
+                    'revision' => 'Phiên bản này không có nội dung cho ngôn ngữ đang xem.',
+                ]);
+            }
+
+            $value = array_merge($page->getTranslations('published_html'), [$locale => $snapshot[$locale]]);
+        }
+
+        return DB::transaction(function () use ($page, $value, $userId): Page {
+            // Forced, not coalesced. Ten-minute checkpoints are right for
+            // typing; skipping one here would make a rollback the only action
+            // in the editor that cannot itself be undone.
             $this->snapshot($page, $userId);
-            $page->update([
-                'published_html' => $revision->published_html,
-            ]);
+            $page->update(['published_html' => $value]);
 
             return $page->refresh();
         });

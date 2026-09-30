@@ -227,6 +227,16 @@
                 <span class="client-admin-bar__label" id="client-inline-hidden-label">Vùng đã ẩn</span>
             </button>
 
+            {{-- Page history is a whole-page action, so it lives on the bar
+                 rather than on an outline row. An outline row owns one region
+                 and opens that region's history; the page body has no row,
+                 because it is the thing the rows sit inside. --}}
+            <button type="button" id="client-page-history-button" class="client-admin-bar__hidden" hidden
+                    title="Lịch sử nội dung trang" aria-label="Lịch sử nội dung trang">
+                <svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v6h6"/><path d="M3.5 12a8.5 8.5 0 1 0 2.4-5.9L3 9"/><path d="M12 7v5l3.5 2"/></svg>
+                <span class="client-admin-bar__label">Lịch sử trang</span>
+            </button>
+
             <span id="client-inline-edit-status" class="client-admin-bar__status" role="status"></span>
 
         {{-- Wired by client.partials.inline-outline; stays hidden if that partial
@@ -269,6 +279,20 @@
                 cursor: text !important;
             }
             /*
+             * A CMS page root keeps a clickable body while editing.
+             *
+             * The root is the editable surface on a CMS page, and an empty one
+             * collapses to zero height — there is nothing to click and nowhere
+             * to put the caret. The template seeds a paragraph for a page that
+             * was never written, but an admin who selects everything and
+             * deletes it lands in the same hole a second later, and that one no
+             * server round trip can fix. Reserving the height while edit mode
+             * is on is what keeps the page recoverable from inside the editor.
+             */
+            body.client-edit-active [data-client-editable-root] {
+                min-height: 120px !important;
+            }
+            /*
              * Region affordances. Namespaced, high specificity and !important
              * throughout: imported theme CSS will otherwise win and hide them.
              */
@@ -293,9 +317,19 @@
                 min-width: 64px !important;
                 outline: 1px dashed rgba(217, 72, 15, .5) !important;
             }
+            /*
+             * The tint on the region being edited is an inset shadow, never
+             * `background`. The shorthand resets `background-image` to none and
+             * replaces `background-color`, and with `!important` the theme
+             * cannot win it back — so a region with a picture or a dark fill
+             * lost its background the moment it was opened, while keeping the
+             * light text that fill was there to carry. An inset shadow paints
+             * above the background and below the content, and honours
+             * border-radius.
+             */
             body.client-edit-active [data-block-key][contenteditable="true"] {
                 outline: 2px solid #087f5b !important;
-                background: rgba(8, 127, 91, .06) !important;
+                box-shadow: inset 0 0 0 100vmax rgba(8, 127, 91, .06) !important;
             }
             #client-region-hint {
                 background: #1f2937 !important;
@@ -505,6 +539,7 @@
             const saveButton = document.getElementById('client-inline-save-button');
             const cancelButton = document.getElementById('client-inline-cancel-button');
             const statusLabel = document.getElementById('client-inline-edit-status');
+            const pageHistoryButton = document.getElementById('client-page-history-button');
             const hiddenButton = document.getElementById('client-inline-hidden-button');
             const hiddenLabel = document.getElementById('client-inline-hidden-label');
             const collapseButton = document.getElementById('client-admin-bar-collapse');
@@ -528,9 +563,23 @@
             const pageContent = document.getElementById(@json('client-page-'.$page->id))
                 || document.querySelector('[data-client-editable-root]');
             const saveUrl = @json(route('admin.pages.inline-update', ['locale' => app()->getLocale(), 'page' => $page]));
+            {{-- Built in PHP first, not inline in @json. The directive splits its
+                 argument on commas to find the optional flags and depth, so a
+                 route() call carrying a three-entry array loses its tail and
+                 compiles to a syntax error. --}}
+            @php
+                $pageRevisionsRoute = route('admin.pages.revisions.index', ['locale' => app()->getLocale(), 'page' => $page]);
+                $pageRevisionRestoreRoute = route('admin.pages.revisions.restore', ['locale' => app()->getLocale(), 'page' => $page, 'revision' => '__ID__']);
+            @endphp
+            const pageRevisionsUrl = @json($pageRevisionsRoute);
+            const pageRevisionRestoreUrl = @json($pageRevisionRestoreRoute);
             @else
             const pageContent = null;
             const saveUrl = null;
+            // No page, no page history. The panel hides the tab on a null URL
+            // rather than offering a list that could only ever be empty.
+            const pageRevisionsUrl = null;
+            const pageRevisionRestoreUrl = null;
             @endisset
 
             const blockUrl = @json(route('admin.site-blocks.update', ['locale' => app()->getLocale()]));
@@ -715,8 +764,25 @@
                 const pending = editModeOn && hasPending();
                 saveButton.hidden = !pending;
                 cancelButton.hidden = !pending;
+                syncPageHistoryToggle();
                 syncHiddenToggle();
                 syncCollapsedState();
+            }
+
+            /*
+             * Only while editing, and only where there is a page to have a
+             * history of. The panel already closes itself when edit mode stands
+             * down — a restore button that still worked afterwards would be a
+             * trap — so leaving the button up would advertise a door that is
+             * shut. The URL is null on any page that is not a CMS page, and
+             * the history partial may not be on the page at all.
+             */
+            function syncPageHistoryToggle() {
+                if (!pageHistoryButton) return;
+
+                pageHistoryButton.hidden = !editModeOn
+                    || !pageRevisionsUrl
+                    || !window.clientHistoryPanel;
             }
 
             /**
@@ -1059,6 +1125,8 @@
                     blockRevisionRestore: blockRevisionRestoreUrl,
                     sectionRevisions: sectionRevisionsUrl,
                     sectionRevisionRestore: sectionRevisionRestoreUrl,
+                    pageRevisions: pageRevisionsUrl,
+                    pageRevisionRestore: pageRevisionRestoreUrl,
                 },
             };
 
@@ -1067,6 +1135,17 @@
             });
             saveButton.addEventListener('click', requestSave);
             cancelButton.addEventListener('click', cancelEdits);
+
+            if (pageHistoryButton) {
+                pageHistoryButton.addEventListener('click', function () {
+                    // The panel keys off the element it is handed, the same way
+                    // it does for an outline row. Here the element is the page
+                    // root itself, which carries data-client-editable-root.
+                    if (window.clientHistoryPanel && pageContent) {
+                        window.clientHistoryPanel.open(pageContent);
+                    }
+                });
+            }
 
             if (hiddenButton) {
                 hiddenButton.addEventListener('click', function () {

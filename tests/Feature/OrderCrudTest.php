@@ -168,7 +168,7 @@ class OrderCrudTest extends TestCase
             ->get('/vi/admin/orders')
             ->assertOk()
             ->assertSee('id="orders-empty-state"', false)
-            ->assertSee('admin-assets/images/icons/order-empty.png', false)
+            ->assertSee('admin-assets/images/icons/empty-donhang.png', false)
             ->assertDontSee('colspan="8"', false);
     }
 

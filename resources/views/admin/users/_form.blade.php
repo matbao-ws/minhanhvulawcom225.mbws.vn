@@ -10,9 +10,11 @@
 
                 <!-- Name Field -->
                 <div class="mb-4">
-                    <label class="form-label" for="name">{{ __('admin.users.fields.name') }} <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" 
-                           value="{{ old('name', $user->name) }}" placeholder="{{ __('admin.users.placeholders.name_placeholder') }}" required>
+                    <label class="form-label" for="name">{{ __('admin.users.fields.name') }} <span
+                            class="text-danger">*</span></label>
+                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name"
+                        name="name" value="{{ old('name', $user->name) }}"
+                        placeholder="{{ __('admin.users.placeholders.name_placeholder') }}" required>
                     @error('name')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -20,9 +22,11 @@
 
                 <!-- Email Field -->
                 <div class="mb-4">
-                    <label class="form-label" for="email">{{ __('admin.users.fields.email') }} <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" 
-                           value="{{ old('email', $user->email) }}" placeholder="email@example.com" required>
+                    <label class="form-label" for="email">{{ __('admin.users.fields.email') }} <span
+                            class="text-danger">*</span></label>
+                    <input type="email" class="form-control @error('email') is-invalid @enderror" id="email"
+                        name="email" value="{{ old('email', $user->email) }}" placeholder="email@example.com"
+                        required>
                     @error('email')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -30,10 +34,14 @@
 
                 <!-- Password Field -->
                 <div class="mb-4">
-                    <label class="form-label" for="password">{{ __('admin.users.fields.password') }} @if(!$user->exists)<span class="text-danger">*</span>@endif</label>
-                    <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" 
-                           placeholder="{{ __('admin.users.placeholders.password_placeholder') }}" {{ !$user->exists ? 'required' : '' }}>
-                    @if($user->exists)
+                    <label class="form-label" for="password">{{ __('admin.users.fields.password') }} @if (!$user->exists)
+                            <span class="text-danger">*</span>
+                        @endif
+                    </label>
+                    <input type="password" class="form-control @error('password') is-invalid @enderror" id="password"
+                        name="password" placeholder="{{ __('admin.users.placeholders.password_placeholder') }}"
+                        {{ !$user->exists ? 'required' : '' }}>
+                    @if ($user->exists)
                         <p class="fs-2 text-muted mb-0 mt-1">{{ __('admin.users.fields.password_help') }}</p>
                     @endif
                     @error('password')
@@ -52,25 +60,28 @@
         <div class="card">
             <div class="card-body text-center">
                 <h4 class="card-title mb-7 text-start">{{ __('admin.users.fields.avatar') }}</h4>
-                
+
                 <!-- Hidden file input -->
-                <input type="file" name="avatar_file" id="user_avatar_file" class="d-none" accept="image/*" data-media-folder="avatars">
-                
+                <input type="file" name="avatar_file" id="user_avatar_file" class="d-none" accept="image/*"
+                    data-media-folder="avatars">
+
                 <!-- Drag and drop preview container -->
-                <div id="user_avatar_preview_container" class="position-relative mx-auto rounded-circle border border-2 border-dashed d-flex align-items-center justify-content-center bg-light cursor-pointer mb-3 overflow-hidden" 
-                     style="width: 150px; height: 150px; cursor: pointer; border-style: dashed !important;" 
-                     onclick="document.getElementById('user_avatar_file').click()">
-                    
-                    <img id="user_avatar_preview" src="{{ old('avatar_url', $user->avatar_url) ?: asset('admin-assets/images/profile/user-1.jpg') }}" 
-                         class="img-fluid w-100 h-100" 
-                         style="object-fit: cover;">
-                    
-                    <div id="user_avatar_placeholder" class="position-absolute w-100 h-100 start-0 top-0 d-flex flex-column align-items-center justify-content-center bg-dark bg-opacity-50 text-white opacity-0 hover-opacity-100 transition-all">
+                <div id="user_avatar_preview_container"
+                    class="position-relative mx-auto rounded-circle border border-2 border-dashed d-flex align-items-center justify-content-center bg-light cursor-pointer mb-3 overflow-hidden"
+                    style="width: 150px; height: 150px; cursor: pointer; border-style: dashed !important;"
+                    onclick="document.getElementById('user_avatar_file').click()">
+
+                    <img id="user_avatar_preview"
+                        src="{{ old('avatar_url', $user->avatar_url) ?: asset('admin-assets/images/icons/avatar.png') }}"
+                        class="img-fluid w-100 h-100" style="object-fit: cover;">
+
+                    <div id="user_avatar_placeholder"
+                        class="position-absolute w-100 h-100 start-0 top-0 d-flex flex-column align-items-center justify-content-center bg-dark bg-opacity-50 text-white opacity-0 hover-opacity-100 transition-all">
                         <iconify-icon icon="solar:camera-add-bold-duotone" class="fs-8"></iconify-icon>
                         <span class="fs-2 mt-1">{{ __('admin.users.placeholders.change_avatar') }}</span>
                     </div>
                 </div>
-                
+
                 <p class="fs-2 text-muted mb-0">{{ __('admin.users.placeholders.avatar_help') }}</p>
                 @error('avatar_file')
                     <div class="text-danger small mt-1">{{ $message }}</div>
@@ -82,12 +93,14 @@
         <div class="card">
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('admin.users.sections.role_status') }}</h4>
-                
+
                 <!-- Role Select -->
                 <div class="mb-3">
-                    <label class="form-label" for="role_id">{{ __('admin.users.fields.role') }} <span class="text-danger">*</span></label>
-                    <select class="form-select @error('role_id') is-invalid @enderror" id="role_id" name="role_id" required>
-                        @foreach($roles as $role)
+                    <label class="form-label" for="role_id">{{ __('admin.users.fields.role') }} <span
+                            class="text-danger">*</span></label>
+                    <select class="form-select @error('role_id') is-invalid @enderror" id="role_id" name="role_id"
+                        required>
+                        @foreach ($roles as $role)
                             <option value="{{ $role->id }}" @selected((string) old('role_id', $user->role_id) === (string) $role->id)>
                                 {{ $role->name }}
                             </option>
@@ -102,7 +115,8 @@
                 <div class="mt-4">
                     <input type="hidden" name="is_active" value="0">
                     <div class="form-check">
-                        <input class="form-check-input primary" type="checkbox" name="is_active" value="1" id="is_active" @checked(old('is_active', $user->is_active))>
+                        <input class="form-check-input primary" type="checkbox" name="is_active" value="1"
+                            id="is_active" @checked(old('is_active', $user->is_active))>
                         <label class="form-check-label fw-semibold" for="is_active">
                             {{ __('admin.users.fields.status_active') }}
                         </label>
@@ -114,7 +128,7 @@
     </div>
 </div>
 
-@if(!empty($overrideModules ?? []))
+@if (!empty($overrideModules ?? []))
     {{-- Exceptions layered on top of the role. Only permissions the signed-in
          admin holds are listed, and the controller re-checks that on submit. --}}
     <div class="card mt-4">
@@ -124,26 +138,37 @@
         </div>
         <div class="card-body">
             {{-- preserveKeys: the module name is the key and it becomes the permission code. --}}
-            @foreach(collect($overrideModules)->groupBy('group', true) as $group => $groupModules)
+            @foreach (collect($overrideModules)->groupBy('group', true) as $group => $groupModules)
                 <div class="border rounded p-3 mb-3">
-                    <h6 class="fw-bold text-dark mb-3">{{ __('admin.roles.groups.'.$group) }}</h6>
+                    <h6 class="fw-bold text-dark mb-3">{{ __('admin.roles.groups.' . $group) }}</h6>
                     <div class="row g-3">
-                        @foreach($groupModules as $module => $definition)
-                            @foreach($definition['actions'] as $action)
+                        @foreach ($groupModules as $module => $definition)
+                            @foreach ($definition['actions'] as $action)
                                 @php
-                                    $code = $module.'.'.$action;
-                                    $state = old('permission_overrides.'.$code, array_key_exists($code, $currentOverrides ?? [])
-                                        ? ($currentOverrides[$code] ? 'grant' : 'revoke')
-                                        : 'inherit');
+                                    $code = $module . '.' . $action;
+                                    $state = old(
+                                        'permission_overrides.' . $code,
+                                        array_key_exists($code, $currentOverrides ?? [])
+                                            ? ($currentOverrides[$code]
+                                                ? 'grant'
+                                                : 'revoke')
+                                            : 'inherit',
+                                    );
                                 @endphp
                                 <div class="col-md-6 col-xl-4">
-                                    <label class="form-label fs-2 text-muted mb-1" for="override_{{ $module }}_{{ $action }}">
-                                        {{ __('admin.roles.actions.'.$action) }} — {{ $definition['label'] }}
+                                    <label class="form-label fs-2 text-muted mb-1"
+                                        for="override_{{ $module }}_{{ $action }}">
+                                        {{ __('admin.roles.actions.' . $action) }} — {{ $definition['label'] }}
                                     </label>
-                                    <select class="form-select form-select-sm" id="override_{{ $module }}_{{ $action }}" name="permission_overrides[{{ $code }}]">
-                                        <option value="inherit" @selected($state === 'inherit')>{{ __('admin.roles.override_inherit') }}</option>
-                                        <option value="grant" @selected($state === 'grant')>{{ __('admin.roles.override_grant') }}</option>
-                                        <option value="revoke" @selected($state === 'revoke')>{{ __('admin.roles.override_revoke') }}</option>
+                                    <select class="form-select form-select-sm"
+                                        id="override_{{ $module }}_{{ $action }}"
+                                        name="permission_overrides[{{ $code }}]">
+                                        <option value="inherit" @selected($state === 'inherit')>
+                                            {{ __('admin.roles.override_inherit') }}</option>
+                                        <option value="grant" @selected($state === 'grant')>
+                                            {{ __('admin.roles.override_grant') }}</option>
+                                        <option value="revoke" @selected($state === 'revoke')>
+                                            {{ __('admin.roles.override_revoke') }}</option>
                                     </select>
                                 </div>
                             @endforeach
@@ -156,7 +181,8 @@
 @endif
 
 <!-- Unsaved Changes Modal -->
-<div class="modal fade" id="unsavedChangesModal" tabindex="-1" aria-labelledby="unsavedChangesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade" id="unsavedChangesModal" tabindex="-1" aria-labelledby="unsavedChangesModalLabel"
+    aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-warning-subtle">
@@ -169,10 +195,13 @@
                 {{ __('admin.users.unsaved.body') }}
             </div>
             <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('catalog.actions.cancel') }}</button>
+                <button type="button" class="btn btn-outline-secondary"
+                    data-bs-dismiss="modal">{{ __('catalog.actions.cancel') }}</button>
                 <div class="d-flex gap-2">
-                    <button type="button" id="btn-discard-changes" class="btn btn-danger">{{ __('admin.users.unsaved.discard') }}</button>
-                    <button type="button" id="btn-save-draft" class="btn btn-warning text-dark">{{ __('admin.users.unsaved.save_draft') }}</button>
+                    <button type="button" id="btn-discard-changes"
+                        class="btn btn-danger">{{ __('admin.users.unsaved.discard') }}</button>
+                    <button type="button" id="btn-save-draft"
+                        class="btn btn-warning text-dark">{{ __('admin.users.unsaved.save_draft') }}</button>
                 </div>
             </div>
         </div>
@@ -183,6 +212,7 @@
     .hover-opacity-100:hover {
         opacity: 1 !important;
     }
+
     .transition-all {
         transition: all 0.2s ease-in-out;
     }

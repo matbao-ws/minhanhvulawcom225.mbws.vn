@@ -5,8 +5,10 @@ namespace App\Console\Commands;
 use App\Models\FeatureSetting;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Throwable;
 
 class CheckCore extends Command
@@ -79,6 +81,8 @@ class CheckCore extends Command
             $this->components->twoColumnDetail('Foundation configuration', 'available');
         }
 
+        $this->reportEditableCoverage();
+
         if ($hasErrors) {
             return self::FAILURE;
         }
@@ -86,5 +90,33 @@ class CheckCore extends Command
         $this->components->info('Admin core checks passed.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Whether any storefront copy is still invisible to the inline editor.
+     *
+     * Reported, never fatal. A shop runs perfectly well with unmarked copy —
+     * the consequence is that an admin cannot edit it, which is a decision
+     * someone may have made on purpose. `client:editable-audit` is where that
+     * gets resolved; this line only makes sure nobody has to remember to look.
+     */
+    private function reportEditableCoverage(): void
+    {
+        if (! is_dir(resource_path('views/client'))) {
+            return;
+        }
+
+        // Delegated rather than reimplemented: two walks over the same views
+        // would drift, and the one in the audit command is the one its own
+        // drift test exercises.
+        $status = Artisan::call('client:editable-audit', [], new BufferedOutput);
+
+        if ($status === self::SUCCESS) {
+            $this->components->twoColumnDetail('Storefront editable coverage', 'complete');
+
+            return;
+        }
+
+        $this->components->warn('Some storefront copy is not editable. Run "php artisan client:editable-audit".');
     }
 }

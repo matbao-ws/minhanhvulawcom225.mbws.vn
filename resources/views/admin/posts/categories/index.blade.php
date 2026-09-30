@@ -19,28 +19,15 @@
 @endpush
 
 @section('content')
-    <!-- Header Card -->
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <h4 class="fw-semibold mb-1 text-white">{{ __('admin.blog_categories.title') }}</h4>
-                        <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                            <ol class="breadcrumb mb-0">
-                                <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                                <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.blog_categories.title') }}</li>
-                            </ol>
-                        </nav>
-                    </div>
-                    <a href="{{ route('admin.post-categories.create') }}" class="btn btn-primary d-flex align-items-center gap-2">
-                        <i class="ti ti-plus fs-4"></i>{{ __('admin.blog_categories.create') }}
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('admin.blog_categories.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.blog_categories.title') }}</li>
+        </x-slot:breadcrumbs>
+        <x-slot:actions>
+            <x-admin.action-button :href="route('admin.post-categories.create')" icon="plus">{{ __('admin.blog_categories.create') }}</x-admin.action-button>
+        </x-slot:actions>
+    </x-admin.page-header>
 
     <!-- Success/Error Notifications -->
     @if(session('success'))
@@ -72,9 +59,7 @@
                         placeholder="{{ __('admin.blog_categories.search_placeholder') }}">
                 </div>
                 <div class="col-md-1">
-                    <button class="btn btn-primary w-100" type="submit" title="{{ __('catalog.actions.search') }}">
-                        <i class="ti ti-search fs-5"></i>
-                    </button>
+                    <x-admin.action-button type="submit" icon="search" class="w-100" :title="__('catalog.actions.search')" aria-label="{{ __('catalog.actions.search') }}" />
                 </div>
             </form>
         </div>
@@ -178,12 +163,10 @@
                         </tr>
                     @empty
                         <tbody id="category-empty-body">
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <iconify-icon icon="solar:widget-broken" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
-                                    <p class="text-muted mb-0 fs-3">{{ __('admin.blog_categories.not_found') }}</p>
-                                </td>
-                            </tr>
+                            <tr><td colspan="5">@include('admin.shared.empty-state', [
+                                'emptyImage' => asset('admin-assets/images/icons/empty-danhmuc.png'),
+                                'emptyMessage' => __('admin.blog_categories.not_found'),
+                            ])</td></tr>
                         </tbody>
                     @endforelse
                     @if(!$categories->isEmpty())

@@ -3,12 +3,7 @@
 @section('title', 'Ngôn ngữ nội dung')
 
 @section('content')
-    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-        <div class="card-body px-4 py-3">
-            <h4 class="fw-semibold mb-1 text-white">Ngôn ngữ nội dung</h4>
-            <p class="mb-0 text-white-50">Quản lý locale dùng cho URL, nội dung và dữ liệu trả về API.</p>
-        </div>
-    </div>
+    <x-admin.page-header title="Ngôn ngữ nội dung" subtitle="Quản lý locale dùng cho URL, nội dung và dữ liệu trả về API." />
 
     <div class="alert alert-info">
         Thêm ngôn ngữ tại đây không cần thêm cột database. Tên, mô tả và nội dung được lưu theo mã locale trong JSON; slug được lưu riêng theo locale.

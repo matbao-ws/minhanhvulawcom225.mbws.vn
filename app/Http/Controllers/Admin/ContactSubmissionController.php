@@ -52,11 +52,11 @@ class ContactSubmissionController extends Controller
         $contactSubmission->delete();
 
         if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Đã xóa liên hệ.']);
+            return response()->json(['success' => true, 'message' => __('controller.admin.contact_deleted')]);
         }
 
         return redirect()
             ->route('admin.contact-submissions.index')
-            ->with('success', 'Đã xóa liên hệ.');
+            ->with('success', __('controller.admin.contact_deleted'));
     }
 }

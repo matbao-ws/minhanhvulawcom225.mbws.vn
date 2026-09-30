@@ -12,6 +12,8 @@ use App\Models\SiteSectionRevision;
 use App\Models\User;
 use App\Services\SiteContentService;
 use App\Services\SiteSectionService;
+use App\Support\SectionRegistry;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -33,10 +35,27 @@ class SiteContentHistoryTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
         foreach (['catalog', 'cms_page', 'menu'] as $feature) {
             FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);
         }
+
+        /*
+         * A catalogue of this test's own.
+         *
+         * What is under test here is revisions, rollback and the filtering of
+         * a retired token — none of which has an opinion about which sections
+         * a theme ships. Borrowing whatever the shipped registry happens to
+         * declare made these tests fail the day a theme's sections changed,
+         * for reasons that had nothing to do with history.
+         */
+        $this->app->instance(SectionRegistry::class, new SectionRegistry([
+            'intro' => [
+                'label' => 'Giới thiệu',
+                'variants' => ['boxed' => 'Trong khung'],
+                'settings' => ['background', 'alignment'],
+            ],
+        ]));
     }
 
     private function editor(): User

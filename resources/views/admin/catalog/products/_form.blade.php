@@ -49,6 +49,11 @@
                             <div class="mb-4"><label class="form-label" for="short_description_{{ $code }}">{{ __('catalog.fields.short_description') }}</label><textarea class="form-control" id="short_description_{{ $code }}" name="short_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="short_description">{{ $shortDescription }}</textarea></div>
                             <div class="mb-4 position-relative" @if($code === $defaultContentLocale) id="editor_wrapper" @endif>
                                 <label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label>
+                                @if($code === $defaultContentLocale)
+                                    <button type="button" id="toggle_fullscreen" class="btn btn-sm btn-outline-primary position-absolute top-0 end-0">
+                                        <i id="fullscreen_icon" class="ti ti-maximize fs-4"></i><span id="fullscreen_text" class="ms-1">Phóng to</span>
+                                    </button>
+                                @endif
                                 <textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html">{{ $description }}</textarea>
                                 <div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}" style="height: 350px;">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div>
                             </div>

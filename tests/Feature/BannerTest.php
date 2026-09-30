@@ -67,6 +67,8 @@ class BannerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Sale Banner');
         $response->assertSee('home_main');
+        $response->assertSee('/vi/admin/banners/create', false);
+        $response->assertSee(__('admin.banners.create'));
     }
 
     public function test_admin_can_create_banner(): void

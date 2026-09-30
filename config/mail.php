@@ -117,4 +117,23 @@ return [
 
     'seller' => env('MAIL_SELLER', 'van.ai@abc-group.co.kr'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Shared SMTP Export
+    |--------------------------------------------------------------------------
+    |
+    | Every project deployed from this core can point at one SMTP export so the
+    | provider and its key are rotated in a single place. It is used whenever the
+    | shop has not configured SMTP in the admin screen; `.env` stays the last
+    | resort. The URL carries a token: keep it in `.env`, never in code.
+    |
+    | Mail is sent from the export's verified domain. MAIL_FROM_ADDRESS is kept
+    | when it is on that domain, otherwise "{local_part}@{smtp_domain}" is used.
+    |
+    */
+
+    'smtp_export_url' => env('SMTP_EXPORT_URL'),
+
+    'smtp_export_local_part' => env('SMTP_EXPORT_FROM_LOCAL_PART', 'noreply'),
+
 ];
