@@ -42,6 +42,19 @@ class PackageSyncTest extends TestCase
         }
     }
 
+    public function test_package_sync_migration_can_rerun_after_a_partial_run(): void
+    {
+        // Staging incident: two migrate runs raced and the second hit "Duplicate column".
+        $migration = require database_path('migrations/2026_09_30_100000_add_package_sync_to_feature_settings.php');
+
+        $migration->up();
+        $migration->up();
+
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumns('feature_settings', ['package_enabled', 'is_overridden']));
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('package_usage_counters'));
+        $this->assertSame(1, FeatureSetting::query()->where('feature_code', 'payment_vnpay')->count());
+    }
+
     public function test_sync_switches_features_to_the_package(): void
     {
         $this->fakeTool('BASIC');

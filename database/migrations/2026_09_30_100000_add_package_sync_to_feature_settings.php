@@ -26,9 +26,16 @@ return new class extends Migration
             return;
         }
 
+        // MySQL DDL is not transactional: a run that dies (or races another
+        // migrate) leaves columns behind without recording the migration, so
+        // every step checks before it changes the schema and a rerun finishes it.
         Schema::table('feature_settings', function (Blueprint $table) {
-            $table->boolean('package_enabled')->nullable()->after('is_enabled');
-            $table->boolean('is_overridden')->default(false)->after('package_enabled');
+            if (! Schema::hasColumn('feature_settings', 'package_enabled')) {
+                $table->boolean('package_enabled')->nullable()->after('is_enabled');
+            }
+            if (! Schema::hasColumn('feature_settings', 'is_overridden')) {
+                $table->boolean('is_overridden')->default(false)->after('package_enabled');
+            }
         });
 
         foreach (self::NEW_CODES as $code) {
@@ -43,6 +50,10 @@ return new class extends Migration
                 'config' => null,
                 'updated_at' => now(),
             ]);
+        }
+
+        if (Schema::hasTable('package_usage_counters')) {
+            return;
         }
 
         Schema::create('package_usage_counters', function (Blueprint $table) {
