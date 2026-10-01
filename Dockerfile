@@ -14,7 +14,10 @@ COPY --chown=www-data:www-data composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --no-progress
 
 COPY --chown=www-data:www-data . .
-RUN composer dump-autoload --optimize --no-dev \
-    && mkdir -p storage/app/private storage/app/public storage/logs \
+# storage/ is excluded by .dockerignore. Create it before dump-autoload: its
+# package:discover boots the app, and the core touches Blade while booting
+# ("Please provide a valid cache path" without storage/framework/views).
+RUN mkdir -p storage/app/private storage/app/public storage/logs \
         storage/framework/cache/data storage/framework/sessions storage/framework/views \
-        bootstrap/cache
+        bootstrap/cache \
+    && composer dump-autoload --optimize --no-dev
