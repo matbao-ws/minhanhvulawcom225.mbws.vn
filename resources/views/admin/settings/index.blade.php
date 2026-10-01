@@ -206,26 +206,12 @@
 @endpush
 
 @section('content')
-    <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.settings.title') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                                    <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.settings.title') }}</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('admin.settings.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.settings.title') }}</li>
+        </x-slot:breadcrumbs>
+    </x-admin.page-header>
 
     <!-- Nav tabs -->
     <ul class="nav nav-tabs mb-4" role="tablist">
@@ -253,6 +239,12 @@
             <a class="nav-link d-flex align-items-center gap-2" data-bs-toggle="tab" href="#embed-pane" role="tab">
                 <span><i class="ti ti-code fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.embed') }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link d-flex align-items-center gap-2" data-bs-toggle="tab" href="#analytics-pane" role="tab">
+                <span><i class="ti ti-chart-line fs-4"></i></span>
+                <span>{{ __('admin.analytics.tab') }}</span>
             </a>
         </li>
     </ul>
@@ -761,6 +753,55 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade" id="analytics-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title fw-semibold mb-1 text-dark">{{ __('admin.analytics.settings_title') }}</h5>
+                        <p class="text-muted small mb-4">{{ __('admin.analytics.settings_help') }}</p>
+
+                        <ol class="small text-dark ps-3 mb-4">
+                            <li class="mb-2">{{ __('admin.analytics.step_1') }}</li>
+                            <li class="mb-2">
+                                {{ __('admin.analytics.step_2') }}
+                                @if($analyticsServiceEmail)
+                                    <div class="input-group input-group-sm mt-2" style="max-width: 560px;">
+                                        <input type="text" class="form-control font-monospace" id="ga_service_email" value="{{ $analyticsServiceEmail }}" readonly>
+                                        <button type="button" class="btn btn-outline-primary" data-copy-target="ga_service_email" data-copied-text="{{ __('admin.analytics.copied') }}">
+                                            <i class="ti ti-copy me-1" aria-hidden="true"></i>{{ __('admin.analytics.copy') }}
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="alert alert-warning small py-2 mt-2 mb-0">{{ __('admin.analytics.service_account_missing') }}</div>
+                                @endif
+                            </li>
+                            <li>{{ __('admin.analytics.step_3') }}</li>
+                        </ol>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold text-dark" for="ga_measurement_id">{{ __('admin.analytics.measurement_id') }}</label>
+                                <input type="text" class="form-control text-dark font-monospace" id="ga_measurement_id" name="google_analytics[measurement_id]"
+                                       value="{{ old('google_analytics.measurement_id', $analyticsSettings['measurement_id']) }}" placeholder="G-XXXXXXXXXX" maxlength="30">
+                                <div class="form-text">{{ __('admin.analytics.measurement_id_help') }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold text-dark" for="ga_property_id">{{ __('admin.analytics.property_id') }}</label>
+                                <input type="text" inputmode="numeric" class="form-control text-dark font-monospace" id="ga_property_id" name="google_analytics[property_id]"
+                                       value="{{ old('google_analytics.property_id', $analyticsSettings['property_id']) }}" placeholder="987654321" maxlength="20">
+                                <div class="form-text">{{ __('admin.analytics.property_id_help') }}</div>
+                            </div>
+                        </div>
+
+                        @if($analyticsServiceEmail)
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <x-admin.action-button variant="outline-primary" icon="plug-connected" data-ga-check="{{ route('admin.settings.analytics.check') }}">{{ __('admin.analytics.check') }}</x-admin.action-button>
+                                <span class="small" data-ga-check-result role="status"></span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Sticky Save Button -->
@@ -771,6 +812,51 @@
         </div>
     </form>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-copy-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const input = document.getElementById(button.dataset.copyTarget);
+                    if (!input) return;
+                    navigator.clipboard?.writeText(input.value);
+                    input.select();
+                    const original = button.innerHTML;
+                    button.textContent = button.dataset.copiedText;
+                    setTimeout(function () { button.innerHTML = original; }, 1500);
+                });
+            });
+
+            // Tests the saved IDs: save the form first when they were just changed.
+            const checkButton = document.querySelector('[data-ga-check]');
+            const checkResult = document.querySelector('[data-ga-check-result]');
+            checkButton?.addEventListener('click', async function () {
+                checkButton.disabled = true;
+                checkResult.className = 'small text-muted';
+                checkResult.textContent = '…';
+                try {
+                    const response = await fetch(checkButton.dataset.gaCheck, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': @json(csrf_token()),
+                        },
+                    });
+                    const data = await response.json().catch(function () { return {}; });
+                    checkResult.className = 'small fw-semibold ' + (data.success ? 'text-success' : 'text-danger');
+                    checkResult.textContent = data.message || response.statusText;
+                } catch (error) {
+                    checkResult.className = 'small fw-semibold text-danger';
+                    checkResult.textContent = error.message;
+                } finally {
+                    checkButton.disabled = false;
+                }
+            });
+        });
+    </script>
+@endpush
 
 @push('scripts')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

@@ -37,6 +37,12 @@ return [
 
     'mailers' => [
 
+        // MatBao relay through the MatBaoAI-SEO gateway (App\Mail\Transport\MatbaoGatewayTransport).
+        // Selected by MailSettings when the shop has no SMTP of its own.
+        'matbao' => [
+            'transport' => 'matbao',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

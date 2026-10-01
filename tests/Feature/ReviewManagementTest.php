@@ -93,7 +93,7 @@ class ReviewManagementTest extends TestCase
 
         $this->get('/vi/admin/reviews')
             ->assertOk()
-            ->assertSee('admin-assets/images/icons/emptycomment.png', false)
+            ->assertSee('admin-assets/images/icons/empty-comment.png', false)
             ->assertSee('width="240"', false)
             ->assertSeeText(__('admin.reviews.not_found'));
     }

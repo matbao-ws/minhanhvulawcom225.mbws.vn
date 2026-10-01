@@ -60,7 +60,7 @@ class StorefrontMenuTest extends TestCase
             'url' => null,
         ]);
 
-        $response = $this->get('/vi/pages/gioi-thieu');
+        $response = $this->get('/vi/chinh-sach/gioi-thieu');
 
         $response->assertOk();
         $response->assertSee('client-nav', false);
@@ -73,7 +73,7 @@ class StorefrontMenuTest extends TestCase
         $parent = $this->item(['label' => ['vi' => 'Cha']]);
         $this->item(['label' => ['vi' => 'Con'], 'parent_id' => $parent->id, 'url' => '/con']);
 
-        $this->get('/vi/pages/gioi-thieu')
+        $this->get('/vi/chinh-sach/gioi-thieu')
             ->assertOk()
             ->assertSee('client-nav-level-0', false)
             ->assertSee('client-nav-level-1', false);
@@ -84,14 +84,14 @@ class StorefrontMenuTest extends TestCase
         $this->item(['label' => ['vi' => 'Ẩn mục'], 'is_active' => false]);
         $this->item(['label' => ['vi' => 'Hiện mục']]);
 
-        $this->get('/vi/pages/gioi-thieu')
+        $this->get('/vi/chinh-sach/gioi-thieu')
             ->assertOk()
             ->assertSee('Hiện mục')
             ->assertDontSee('Ẩn mục');
 
         $this->menu->update(['is_active' => false]);
 
-        $this->get('/vi/pages/gioi-thieu')
+        $this->get('/vi/chinh-sach/gioi-thieu')
             ->assertOk()
             ->assertDontSee('Hiện mục');
     }
@@ -105,7 +105,7 @@ class StorefrontMenuTest extends TestCase
             'url' => null,
         ]);
 
-        $response = $this->get('/vi/pages/gioi-thieu')->assertOk();
+        $response = $this->get('/vi/chinh-sach/gioi-thieu')->assertOk();
 
         $response->assertSee('Danh mục chưa có trang');
         $response->assertSee('<span>Danh mục chưa có trang</span>', false);
@@ -115,7 +115,7 @@ class StorefrontMenuTest extends TestCase
     {
         $this->item(['label' => ['vi' => 'Mục']]);
 
-        $this->get('/vi/pages/gioi-thieu')
+        $this->get('/vi/chinh-sach/gioi-thieu')
             ->assertOk()
             ->assertSee('<header class="client-header" contenteditable="false">', false);
     }
@@ -124,8 +124,8 @@ class StorefrontMenuTest extends TestCase
     {
         $this->item(['label' => ['vi' => 'Giới thiệu', 'en' => 'About us'], 'url' => '/about']);
 
-        $this->get('/vi/pages/gioi-thieu')->assertOk()->assertSee('Giới thiệu');
-        $this->get('/en/pages/gioi-thieu')->assertOk()->assertSee('About us');
+        $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->assertSee('Giới thiệu');
+        $this->get('/en/chinh-sach/gioi-thieu')->assertOk()->assertSee('About us');
     }
 
     public function test_public_api_returns_the_same_tree(): void

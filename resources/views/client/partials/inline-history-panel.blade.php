@@ -9,11 +9,15 @@
         The revisions were already being written — coalesced into ten-minute
         checkpoints — and until now nothing read them. This is that reader.
 
-        One panel serves both grains because the outline already lists both: a text
-        or image region (`site_blocks`) and a section's appearance
-        (`site_sections`). They differ only in which endpoint answers, so splitting
-        them into two panels would duplicate the list, the empty state and the
-        restore flow to no end.
+        One panel serves every grain because they differ only in which endpoint
+        answers: a text or image region (`site_blocks`), a section's appearance
+        (`site_sections`), and the body of a CMS page (`page_revisions`).
+        Splitting them would duplicate the list, the empty state and the restore
+        flow to no end.
+
+        The first two are opened from an outline row, which owns one region. The
+        page body has no row — it is the document those rows sit inside — so the
+        admin bar opens it instead, handing over the editable root.
 
         Rolling back calls the server immediately rather than queueing behind Lưu.
         Only the server knows what a snapshot held, and it forces a checkpoint of the
@@ -264,6 +268,13 @@
                         } else if (listKey && section) {
                             this.target = { kind: 'section', element: element, listKey: listKey, section: section };
                             this.label = listKey + ' › ' + section;
+                        } else if (element.hasAttribute('data-client-editable-root') && api.urls.pageRevisions) {
+                            // The CMS page body. It has no key of its own because it
+                            // is not a region — it is the document the regions would
+                            // sit inside, saved whole by the bar. The URL already
+                            // names the page, so nothing has to be passed here.
+                            this.target = { kind: 'page', element: element };
+                            this.label = 'Nội dung trang';
                         } else {
                             return;
                         }
@@ -290,6 +301,10 @@
                     indexUrl: function () {
                         const target = this.target;
 
+                        if (target.kind === 'page') {
+                            return api.urls.pageRevisions;
+                        }
+
                         if (target.kind === 'block') {
                             return api.urls.blockRevisions + '?key=' + encodeURIComponent(target.key);
                         }
@@ -300,9 +315,11 @@
                     },
 
                     restoreUrl: function (entry) {
-                        const template = this.target.kind === 'block'
-                            ? api.urls.blockRevisionRestore
-                            : api.urls.sectionRevisionRestore;
+                        const template = {
+                            page: api.urls.pageRevisionRestore,
+                            block: api.urls.blockRevisionRestore,
+                            section: api.urls.sectionRevisionRestore,
+                        }[this.target.kind];
 
                         // The template carries a placeholder id, so the route name stays
                         // the single source of the path shape.

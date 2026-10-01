@@ -85,9 +85,30 @@ class MultilingualSettings
         $this->forget();
     }
 
+    private ?bool $featureAllowed = null;
+
     public function enabled(): bool
     {
-        return $this->get()['enabled'];
+        return $this->get()['enabled'] && $this->featureAllowed();
+    }
+
+    /**
+     * The `multilingual` feature (set by the package) caps the stored switch: a
+     * package without it runs single-language whatever the settings say.
+     * Memoized because locale resolution asks many times per request.
+     */
+    private function featureAllowed(): bool
+    {
+        if ($this->featureAllowed === null) {
+            try {
+                $this->featureAllowed = ! Schema::hasTable('feature_settings')
+                    || app(\App\Support\FeatureGate::class)->enabled('multilingual');
+            } catch (\Throwable) {
+                $this->featureAllowed = true;
+            }
+        }
+
+        return $this->featureAllowed;
     }
 
     public function mode(): string

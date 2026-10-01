@@ -3,27 +3,20 @@
 @section('title', __('admin.banners.title'))
 
 @section('content')
-    <!-- Header Card -->
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.banners.title') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.banners.title') }}</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('admin.banners.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.banners.title') }}</li>
+        </x-slot:breadcrumbs>
+
+        @can('banners.create')
+            <x-slot:actions>
+                <x-admin.action-button :href="route('admin.banners.create')" icon="plus">
+                    {{ __('admin.banners.create') }}
+                </x-admin.action-button>
+            </x-slot:actions>
+        @endcan
+    </x-admin.page-header>
 
     <!-- Success Notification -->
     @if(session('success'))
@@ -58,9 +51,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-primary w-100" type="submit">
-                        <i class="ti ti-search fs-5 me-1"></i>{{ __('catalog.actions.search') }}
-                    </button>
+                    <x-admin.action-button type="submit" icon="search" class="w-100">
+                        {{ __('catalog.actions.search') }}
+                    </x-admin.action-button>
                 </div>
             </form>
         </div>
@@ -130,26 +123,20 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">
-                                        <a href="{{ route('admin.banners.edit', $banner) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
-                                            <i class="ti ti-edit fs-4"></i>
-                                        </a>
+                                        <x-admin.action-button :href="route('admin.banners.edit', $banner)" variant="outline-primary" size="sm" icon="edit" :title="__('catalog.actions.edit')" aria-label="{{ __('catalog.actions.edit') }}" />
                                         <form method="POST" action="{{ route('admin.banners.destroy', $banner) }}" class="d-inline js-delete-form" data-confirm-title="{{ __('admin.banners.confirm_delete') }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('catalog.actions.delete') }}">
-                                                <i class="ti ti-trash fs-4"></i>
-                                            </button>
+                                            <x-admin.action-button type="submit" variant="outline-danger" size="sm" icon="trash" :title="__('catalog.actions.delete')" aria-label="{{ __('catalog.actions.delete') }}" />
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
-                                    <i class="ti ti-photo-off fs-8 text-muted mb-2 d-inline-block"></i>
-                                    <p class="text-muted mb-0 fs-3">Không tìm thấy banner nào.</p>
-                                </td>
-                            </tr>
+                            <tr><td colspan="7">@include('admin.shared.empty-state', [
+                                'emptyImage' => asset('admin-assets/images/icons/emptydata.png'),
+                                'emptyMessage' => 'Không tìm thấy banner nào.',
+                            ])</td></tr>
                         @endforelse
                     </tbody>
                 </table>

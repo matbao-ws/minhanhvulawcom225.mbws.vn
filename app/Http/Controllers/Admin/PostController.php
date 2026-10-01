@@ -262,10 +262,17 @@ class PostController extends Controller
         $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi.";
 
         if ($results['failed'] > 0 || $results['images_failed'] > 0) {
-            return back()->with('warning', $message)->with('import_errors', [
+            $response = back()->with('warning', $message)->with('import_errors', [
                 ...$results['errors'],
                 ...array_map(fn (string $error): string => 'Ảnh: '.$error, $results['image_errors']),
             ]);
+
+            // Posts refused by the package limit get the blocking dialog, not just a line in the error list.
+            if ($limitHit = app(\App\Services\Packages\PackageLimits::class)->lastExceeded()) {
+                $response->with(\App\Exceptions\PackageLimitExceeded::FLASH_KEY, $limitHit->getMessage());
+            }
+
+            return $response;
         }
 
         return back()->with('success', $message);

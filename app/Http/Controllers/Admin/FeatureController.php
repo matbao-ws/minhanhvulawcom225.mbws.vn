@@ -4,12 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FeatureSetting;
+use App\Services\Packages\PackageInfo;
+use App\Services\Packages\PackageLimits;
+use App\Services\Packages\PackageSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class FeatureController extends Controller
 {
+    public function __construct(
+        private readonly PackageSync $packages,
+        private readonly PackageLimits $limits,
+    ) {}
+
     public function index()
     {
         $features = FeatureSetting::query()
@@ -25,6 +33,10 @@ class FeatureController extends Controller
 
         return view('admin.features.index', [
             'featureGroups' => $featureGroups,
+            'package' => $this->packages->snapshot(),
+            'packageConfigured' => app(PackageInfo::class)->configured(),
+            'packageDomain' => config('packages.domain'),
+            'limitSummary' => $this->limits->summary(),
         ]);
     }
 
@@ -33,20 +45,13 @@ class FeatureController extends Controller
         $features = $request->input('features', []);
         $limits = $request->input('limits', []);
 
-        $allSettings = FeatureSetting::all();
-
-        foreach ($allSettings as $setting) {
+        foreach (FeatureSetting::all() as $setting) {
             $code = $setting->feature_code;
-            
-            if (isset($features[$code])) {
-                $isEnabled = $features[$code] == '1';
-                $limitValue = $limits[$code] ?? null;
 
-                $setting->update([
-                    'is_enabled' => $isEnabled,
-                    'limit_value' => $limitValue !== '' ? $limitValue : null,
-                    'updated_at' => now(),
-                ]);
+            if (isset($features[$code])) {
+                $limitValue = $limits[$code] ?? null;
+                $setting->update(['limit_value' => $limitValue !== '' ? $limitValue : null]);
+                $this->packages->setByAdmin($setting, $features[$code] == '1');
             }
         }
 
@@ -64,14 +69,12 @@ class FeatureController extends Controller
 
         $setting = FeatureSetting::where('feature_code', $validated['feature_code'])->first();
         if ($setting) {
-            $setting->update([
-                'is_enabled' => $validated['is_enabled'],
-                'updated_at' => now(),
-            ]);
+            $this->packages->setByAdmin($setting, (bool) $validated['is_enabled']);
 
             return response()->json([
                 'success' => true,
                 'message' => __('admin.features.updated_success'),
+                'is_overridden' => $setting->is_overridden,
             ]);
         }
 
@@ -91,15 +94,44 @@ class FeatureController extends Controller
 
         $updated = DB::transaction(fn () => FeatureSetting::query()
             ->whereIn('feature_code', $groups[$validated['group']])
-            ->update([
-                'is_enabled' => $validated['is_enabled'],
-                'updated_at' => now(),
-            ]));
+            ->get()
+            ->each(fn (FeatureSetting $setting) => $this->packages->setByAdmin($setting, (bool) $validated['is_enabled']))
+            ->count());
 
         return response()->json([
             'success' => true,
             'message' => __('admin.features.group_updated_success'),
             'updated' => $updated,
         ]);
+    }
+
+    public function syncPackage()
+    {
+        $result = $this->packages->sync();
+
+        $message = match ($result['status']) {
+            PackageInfo::OK => $result['package']['plan_known']
+                ? __('admin.package.synced', ['package' => $result['package']['name']])
+                : __('admin.package.synced_unknown_plan', ['code' => $result['package']['code']]),
+            PackageInfo::NOT_FOUND => __('admin.package.not_found', ['domain' => config('packages.domain')]),
+            default => __('admin.package.unreachable'),
+        };
+
+        return redirect()
+            ->route('admin.features.index')
+            ->with($result['status'] === PackageInfo::OK ? 'success' : 'error', $message);
+    }
+
+    public function resetOverrides(Request $request)
+    {
+        $validated = $request->validate([
+            'feature_code' => ['nullable', 'string', Rule::in(config('features.codes', []))],
+        ]);
+
+        $this->packages->resetOverrides(filled($validated['feature_code'] ?? null) ? [$validated['feature_code']] : null);
+
+        return redirect()
+            ->route('admin.features.index')
+            ->with('success', __('admin.package.overrides_reset'));
     }
 }

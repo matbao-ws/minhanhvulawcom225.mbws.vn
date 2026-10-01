@@ -9,38 +9,17 @@
 @php $isFiltered = $isFiltered ?? false; @endphp
 
 @section('content')
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('catalog.products.title') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.products.title') }}</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end mb-4">
-        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importProductsModal">
-            <i class="ti ti-upload me-1 fs-4"></i>{{ __('catalog.products.import') }}
-        </button>
-        <a href="{{ route('admin.products.export', request()->query()) }}" class="btn btn-success">
-            <i class="ti ti-download me-1 fs-4"></i>{{ __('catalog.products.export') }}
-        </a>
-        <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1 fs-4"></i>{{ __('catalog.products.create') }}
-        </a>
-    </div>
+        <x-admin.page-header :title="__('catalog.products.title')">
+            <x-slot:breadcrumbs>
+                <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+                <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.products.title') }}</li>
+            </x-slot:breadcrumbs>
+            <x-slot:actions>
+                <x-admin.action-button variant="info" icon="upload" data-bs-toggle="modal" data-bs-target="#importProductsModal">{{ __('catalog.products.import') }}</x-admin.action-button>
+                <x-admin.action-button :href="route('admin.products.export', request()->query())" variant="success" icon="download">{{ __('catalog.products.export') }}</x-admin.action-button>
+                <x-admin.action-button :href="route('admin.products.create')" icon="plus">{{ __('catalog.products.create') }}</x-admin.action-button>
+            </x-slot:actions>
+        </x-admin.page-header>
 
     @if(session('import_errors'))
         <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
@@ -98,9 +77,7 @@
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <button class="btn btn-primary w-100" type="submit" title="{{ __('catalog.actions.search') }}">
-                        <i class="ti ti-search fs-5"></i>
-                    </button>
+                    <x-admin.action-button type="submit" icon="search" class="w-100" :title="__('catalog.actions.search')" aria-label="{{ __('catalog.actions.search') }}" />
                 </div>
             </form>
         </div>
@@ -136,8 +113,8 @@
                                                 <i class="ti ti-grip-vertical fs-5"></i>
                                             </span>
                                         @endunless
-                                        <img src="{{ $product->image_url ?: asset('images/icons/default-product.png') }}"
-                                             onerror="this.src='{{ asset('images/icons/default-product.png') }}'"
+                                        <img src="{{ $product->image_url ?: asset('admin-assets/images/icons/empty-sanpham.png') }}"
+                                             onerror="this.onerror=null;this.src='{{ asset('admin-assets/images/icons/empty-sanpham.png') }}'"
                                              alt="{{ $product->name }}"
                                              class="rounded-2 object-fit-cover"
                                              width="50" height="50"
@@ -216,7 +193,9 @@
                 </table>
             </div>
             @if($products->isEmpty())
-                @include('admin.shared.empty-state')
+                @include('admin.shared.empty-state', [
+                    'emptyImage' => asset('admin-assets/images/icons/empty-sanpham.png'),
+                ])
             @endif
         </div>
         <div class="card-body">

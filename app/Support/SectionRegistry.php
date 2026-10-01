@@ -94,74 +94,73 @@ class SectionRegistry
      * setting does. Declaring one would force a stylesheet rule that has nothing
      * to say, and give the editor two ways to express one choice.
      *
+     * Empty is a legal, and currently the correct, state. The six demo sections
+     * that used to live here were declarations for demo partials, and those
+     * partials were deleted as fixtures; a declaration whose Blade file is gone
+     * renders nothing and only breaks the drift test. A theme that ships real
+     * sections declares them here alongside its partials.
+     *
      * @var array<string, array<string, mixed>>
      */
-    private const SECTIONS = [
-        'intro' => [
-            'label' => 'Giới thiệu',
-            'variants' => ['boxed' => 'Trong khung'],
-            'settings' => ['background', 'alignment', 'spacing', 'accent'],
-        ],
-        'features' => [
-            'label' => 'Tính năng',
-            'variants' => ['grid' => 'Dạng lưới'],
-            'settings' => ['background', 'alignment', 'spacing'],
-        ],
-        'contact' => [
-            'label' => 'Liên hệ',
-            'variants' => [],
-            'settings' => ['background', 'spacing'],
-        ],
-        'speed' => [
-            'label' => 'Tốc độ',
-            'variants' => [],
-            'settings' => ['background', 'alignment'],
-        ],
-        'safety' => [
-            'label' => 'An toàn',
-            'variants' => [],
-            'settings' => ['background', 'alignment'],
-        ],
-        'support' => [
-            'label' => 'Hỗ trợ',
-            'variants' => [],
-            'settings' => ['background', 'alignment'],
-        ],
-    ];
+    private const SECTIONS = [];
+
+    /** @var array<string, array<string, mixed>> */
+    private array $sections;
+
+    /** @var array<string, array<string, mixed>> */
+    private array $settings;
+
+    /**
+     * The constants are the shipped catalogue; the arguments exist for tests.
+     *
+     * A test about revisions, rollback or token filtering is a test about the
+     * mechanism, not about whichever sections a theme happens to declare this
+     * month. Letting it supply its own catalogue is what stops a theme change
+     * from turning those tests red for reasons that have nothing to do with
+     * them — and it is the only reason this is not simply two constants.
+     *
+     * @param  array<string, array<string, mixed>>|null  $sections
+     * @param  array<string, array<string, mixed>>|null  $settings
+     */
+    public function __construct(?array $sections = null, ?array $settings = null)
+    {
+        $this->sections = $sections ?? self::SECTIONS;
+        $this->settings = $settings ?? self::SETTINGS;
+    }
 
     /** @return array<string, array<string, mixed>> */
     public function sections(): array
     {
-        return self::SECTIONS;
+        return $this->sections;
     }
 
     /** @return array<string, array<string, mixed>> */
     public function settingCatalogue(): array
     {
-        return self::SETTINGS;
+        return $this->settings;
     }
 
     /** True when this section offers anything at all to change. */
     public function has(string $section): bool
     {
-        return array_key_exists($section, self::SECTIONS);
+        return array_key_exists($section, $this->sections);
     }
 
     public function label(string $section): string
     {
-        return self::SECTIONS[$section]['label'] ?? $section;
+        return $this->sections[$section]['label'] ?? $section;
     }
 
     /** @return array<string, string> variant token => label */
     public function variants(string $section): array
     {
-        return self::SECTIONS[$section]['variants'] ?? [];
+        return $this->sections[$section]['variants'] ?? [];
     }
 
     /** @return array<int, string> the setting names this section opted into */
     public function settingNames(string $section): array
     {
-        return self::SECTIONS[$section]['settings'] ?? [];
+        return $this->sections[$section]['settings'] ?? [];
     }
 
     public function allowsVariant(string $section, ?string $variant): bool
@@ -177,7 +176,7 @@ class SectionRegistry
     /** @return array<string, mixed>|null */
     public function settingSpec(string $section, string $setting): ?array
     {
-        return $this->allowsSetting($section, $setting) ? (self::SETTINGS[$setting] ?? null) : null;
+        return $this->allowsSetting($section, $setting) ? ($this->settings[$setting] ?? null) : null;
     }
 
     /**
@@ -280,7 +279,7 @@ class SectionRegistry
     {
         $schema = [];
 
-        foreach (self::SECTIONS as $section => $definition) {
+        foreach ($this->sections as $section => $definition) {
             $variants = [];
 
             foreach ($definition['variants'] as $value => $label) {
@@ -294,7 +293,7 @@ class SectionRegistry
             $settings = [];
 
             foreach ($definition['settings'] as $name) {
-                $spec = self::SETTINGS[$name] ?? null;
+                $spec = $this->settings[$name] ?? null;
 
                 if ($spec === null) {
                     continue;
@@ -349,7 +348,7 @@ class SectionRegistry
     {
         $classes = [];
 
-        foreach (self::SETTINGS as $name => $setting) {
+        foreach ($this->settings as $name => $setting) {
             if ($setting['type'] === self::TYPE_COLOR) {
                 $classes[] = $this->colorClass($name);
             }
@@ -359,7 +358,7 @@ class SectionRegistry
             }
         }
 
-        foreach (self::SECTIONS as $section => $definition) {
+        foreach ($this->sections as $section => $definition) {
             foreach (array_keys($definition['variants'] ?? []) as $variant) {
                 $classes[] = $this->variantClass($section, $variant);
             }

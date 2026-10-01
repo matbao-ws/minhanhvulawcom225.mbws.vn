@@ -140,7 +140,7 @@
                                 <div class="col-xl-6 d-none d-xl-block">
                                     <div class="row justify-content-center align-items-start h-100">
                                         <div class="col-lg-9">
-                                            <div id="auth-login" class="carousel slide auth-carousel mt-5 pt-4"
+                                            <div id="auth-login" class="carousel slide auth-carousel mt-3 pt-4"
                                                 data-bs-ride="carousel">
                                                 <div class="carousel-indicators">
                                                     <button type="button" data-bs-target="#auth-login"
@@ -157,9 +157,13 @@
                                                             class="carousel-item @if ($index === 0) active @endif">
                                                             <div
                                                                 class="d-flex align-items-center justify-content-center w-100 h-100 flex-column gap-9 text-center">
-                                                                <img src="{{ asset('admin-assets/images/backgrounds/' . ($index === 2 ? 'auth-icon2.png' : 'auth-icon.png')) }}"
+                                                                <img src="{{ asset('admin-assets/images/backgrounds/' . match ($index) {
+                                                                    1 => 'auth-icon2.png',
+                                                                    2 => 'auth-icon3.png',
+                                                                    default => 'auth-icon.png',
+                                                                }) }}"
                                                                     alt="{{ $slide['title'] }}"
-                                                                    width="{{ $index === 2 ? 235 : 350 }}"
+                                                                    width="300"
                                                                     class="img-fluid">
                                                                 <h4 class="mb-0">{{ $slide['title'] }}</h4>
                                                                 <p class="fs-12 mb-0">{{ $slide['description'] }}</p>
@@ -180,6 +184,7 @@
     </div>
 
     <div class="dark-transparent sidebartoggler"></div>
+    <x-auth.language-switcher />
 
     <script src="{{ asset('admin-assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/simplebar/dist/simplebar.min.js') }}"></script>
@@ -223,7 +228,7 @@
                 submitButton.disabled = isLoading;
                 submitSpinner.classList.toggle('d-none', !isLoading);
                 submitText.textContent = isLoading ? @json(__('auth.login.processing')) :
-                @json(__('auth.login.submit'));
+                    @json(__('auth.login.submit'));
             };
 
             const firstErrorMessage = function(payload) {

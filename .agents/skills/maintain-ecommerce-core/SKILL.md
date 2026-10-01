@@ -51,7 +51,8 @@ Follow existing local patterns before introducing abstractions.
 4. Wrap competing money/stock/order operations in transactions and row locks.
 5. Make retryable external callbacks and stock/payment writes idempotent.
 6. Filter public output with Resources and redact credentials/log payloads.
-7. Keep feature checks based on feature codes, never package names.
+7. Keep feature checks based on feature codes, never package names. Package codes live only in
+   `config/packages.php` and `App\Services\Packages\PackageSync`.
 8. Preserve locale resolution and localized slug/content patterns.
 9. Update OpenAPI and API tests whenever a public contract changes.
 10. Avoid new dependencies unless the existing framework cannot meet the requirement.

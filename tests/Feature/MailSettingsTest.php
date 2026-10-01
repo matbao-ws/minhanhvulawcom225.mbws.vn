@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\ProjectSetting;
 use App\Services\MailSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MailSettingsTest extends TestCase
@@ -151,6 +153,123 @@ class MailSettingsTest extends TestCase
         $this->assertSame('shop@shop.vn', config('mail.from.address'));
     }
 
+    public function test_relay_is_used_while_the_admin_screen_is_untouched(): void
+    {
+        $this->useRelay();
+        $this->storeSmtp(['enabled' => false, 'owner_email' => 'owner@shop.vn']);
+
+        $settings = app(MailSettings::class);
+        $settings->apply();
+
+        $this->assertSame(MailSettings::SOURCE_REMOTE, $settings->source());
+        $this->assertSame(MailSettings::GATEWAY_MAILER, config('mail.default'));
+        // Replies to the relay's noreply sender must still reach the shop.
+        $this->assertSame('owner@shop.vn', config('mail.reply_to.address'));
+        // No shared credential is ever written into this site's mail config.
+        $this->assertSame('env-password', config('mail.mailers.smtp.password'));
+    }
+
+    public function test_admin_configuration_outranks_the_relay(): void
+    {
+        $this->useRelay();
+        $this->storeSmtp();
+
+        $settings = app(MailSettings::class);
+        $settings->apply();
+
+        $this->assertSame(MailSettings::SOURCE_ADMIN, $settings->source());
+        $this->assertSame('smtp', config('mail.default'));
+        $this->assertSame('smtp.shop.vn', config('mail.mailers.smtp.host'));
+        $this->assertNull(config('mail.reply_to'));
+    }
+
+    public function test_without_a_gateway_token_mail_stays_on_env(): void
+    {
+        config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => null]);
+
+        app(MailSettings::class)->apply();
+
+        $this->assertSame(MailSettings::SOURCE_ENV, app(MailSettings::class)->source());
+        $this->assertSame('smtp', config('mail.default'));
+        $this->assertSame('smtp.mailgun.org', config('mail.mailers.smtp.host'));
+    }
+
+    public function test_mail_through_the_relay_goes_to_the_gateway_with_the_project_token(): void
+    {
+        $this->useRelay();
+        $this->storeSmtp(['enabled' => false, 'owner_email' => 'owner@shop.vn']);
+        $this->resolveMailer();
+
+        \Illuminate\Support\Facades\Mail::html('<p>Cảm ơn bạn</p>', function ($message) {
+            $message->to('khach@example.com')->cc('ke-toan@shop.vn')->subject('Xác nhận đơn hàng')
+                ->attachData('%PDF-1.4 fake', 'hoa-don.pdf', ['mime' => 'application/pdf']);
+        });
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return $request->url() === 'https://gw.test/v1/mail/send'
+                && $request->hasHeader('Authorization', 'Bearer mbp_relay_token')
+                && $request['to'] === ['khach@example.com']
+                && $request['cc'] === ['ke-toan@shop.vn']
+                && $request['subject'] === 'Xác nhận đơn hàng'
+                && str_contains($request['html'], 'Cảm ơn bạn')
+                && $request['reply_to'] === 'owner@shop.vn'
+                && $request['from_name'] === 'Env Sender'
+                // The website never picks the From address; the relay does.
+                && ! isset($request['from'])
+                && $request['attachments'] === [['filename' => 'hoa-don.pdf', 'content' => base64_encode('%PDF-1.4 fake')]];
+        });
+    }
+
+    public function test_a_relay_refusal_is_a_transport_failure_so_the_queue_retries(): void
+    {
+        $this->useRelay(Http::response(['ok' => false, 'reason' => 'provider_unavailable'], 503));
+        $this->resolveMailer();
+
+        $this->expectException(\Symfony\Component\Mailer\Exception\TransportException::class);
+
+        \Illuminate\Support\Facades\Mail::raw('Xin chào', fn ($message) => $message->to('khach@example.com')->subject('Test'));
+    }
+
+    public function test_password_reset_mail_is_queued(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $user = \App\Models\User::factory()->create();
+
+        $user->sendPasswordResetNotification('token-123');
+
+        \Illuminate\Support\Facades\Notification::assertSentTo($user, \App\Notifications\QueuedResetPassword::class);
+        $this->assertInstanceOf(\Illuminate\Contracts\Queue\ShouldQueue::class, new \App\Notifications\QueuedResetPassword('t'));
+    }
+
+    public function test_refresh_command_shows_the_relay_without_printing_the_token(): void
+    {
+        $this->useRelay();
+
+        $this->artisan('mail:refresh-smtp')
+            ->expectsOutputToContain('https://gw.test')
+            ->expectsOutputToContain('noreply@mail.matbaows.com')
+            ->doesntExpectOutputToContain('mbp_relay_token')
+            ->assertSuccessful();
+    }
+
+    private function useRelay($sendResponse = null): void
+    {
+        config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_relay_token']);
+        \App\Services\AiGateway\GatewayClient::forgetProject();
+
+        Http::fake([
+            'gw.test/v1/mail/send' => $sendResponse ?? Http::response(['ok' => true, 'id' => 'msg_1', 'used' => 1, 'limit' => 200]),
+            'gw.test/v1/project' => Http::response(['ok' => true, 'project' => ['mail_from' => 'noreply@mail.matbaows.com']]),
+        ]);
+    }
+
+    /** The mailer is resolved fresh so MailSettings and the relay transport apply. */
+    private function resolveMailer(): void
+    {
+        $this->app->forgetInstance('mail.manager');
+        $this->app->forgetInstance('mailer');
+        \Illuminate\Support\Facades\Mail::clearResolvedInstances();
+    }
     private function storeSmtp(array $overrides = []): void
     {
         ProjectSetting::query()->updateOrCreate(

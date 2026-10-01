@@ -38,6 +38,19 @@
             border-bottom-left-radius: 8px !important;
             border-bottom-right-radius: 8px !important;
         }
+        #editor_wrapper.quill-fullscreen #toggle_fullscreen {
+            top: 20px !important;
+            right: 30px !important;
+        }
+        @media (max-width: 767.98px) {
+            #editor_wrapper.quill-fullscreen {
+                padding: 14px !important;
+            }
+            #editor_wrapper.quill-fullscreen #toggle_fullscreen {
+                top: 14px !important;
+                right: 14px !important;
+            }
+        }
 
         /* Custom fonts in editor */
         .ql-font-arial { font-family: Arial, sans-serif !important; }
@@ -200,6 +213,13 @@
             Font.whitelist = ['sans-serif', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'];
             Quill.register(Font, true);
 
+            const Block = Quill.import('blots/block');
+            class ImageCaptionBlot extends Block {}
+            ImageCaptionBlot.blotName = 'imageCaption';
+            ImageCaptionBlot.tagName = 'div';
+            ImageCaptionBlot.className = 'ql-image-caption';
+            Quill.register(ImageCaptionBlot, true);
+
             // Quill initialization
             let quill = null;
             const contentInput = document.getElementById('content_input');
@@ -211,6 +231,9 @@
                     theme: 'snow',
                     placeholder: editorElement.dataset.placeholder || '',
                     modules: {
+                        clipboard: {
+                            matchVisual: false
+                        },
                         toolbar: [
                             [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],
                             ['bold', 'italic', 'underline', 'strike'],

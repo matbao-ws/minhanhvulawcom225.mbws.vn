@@ -7,15 +7,11 @@
         $contentLanguages = app(\App\Services\LanguageRegistry::class)->active();
         $defaultContentLocale = app(\App\Services\LanguageRegistry::class)->defaultLocale();
     @endphp
-    <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-        <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between">
-            <div>
-                <h4 class="fw-semibold mb-1 text-white">Thuộc tính biến thể: {{ $product->name }}</h4>
-                <div class="text-white-50">Khai báo các giá trị trước, sau đó tạo các tổ hợp SKU.</div>
-            </div>
-            <a href="{{ route('admin.products.show', $product) }}" class="btn btn-light">Quay lại sản phẩm</a>
-        </div>
-    </div>
+    <x-admin.page-header :title="'Thuộc tính biến thể: ' . $product->name" subtitle="Khai báo các giá trị trước, sau đó tạo các tổ hợp SKU.">
+        <x-slot:actions>
+            <x-admin.action-button :href="route('admin.products.show', $product)" variant="light">Quay lại sản phẩm</x-admin.action-button>
+        </x-slot:actions>
+    </x-admin.page-header>
 
     <form method="POST" action="{{ route('admin.products.options.update', $product) }}" class="admin-form-with-sticky-actions">
         @csrf

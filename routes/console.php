@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('vouchers:expire')->dailyAt('00:10')->withoutOverlapping();
+
+// Also refreshed lazily from admin requests, for hosting without a cron.
+Schedule::command('package:sync')->hourly()->withoutOverlapping();

@@ -3,25 +3,12 @@
 @section('title', __('admin.customers.title'))
 
 @section('content')
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.customers.title') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                                    <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.customers.title') }}</li>
-                                </ol>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-admin.page-header :title="__('admin.customers.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.customers.title') }}</li>
+        </x-slot:breadcrumbs>
+    </x-admin.page-header>
 
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-2">
@@ -53,10 +40,7 @@
                                placeholder="{{ __('admin.customers.search_placeholder') }}">
                     </div>
                     <div class="col-12 col-md-2">
-                        <button class="btn btn-primary w-100" type="submit">
-                            <i class="ti ti-search fs-5 me-1 me-md-0"></i>
-                            <span class="d-md-none">{{ __('admin.customers.search') }}</span>
-                        </button>
+                        <x-admin.action-button type="submit" icon="search" class="w-100" aria-label="{{ __('admin.customers.search') }}"><span class="d-md-none">{{ __('admin.customers.search') }}</span></x-admin.action-button>
                     </div>
                     @if(request()->filled('q'))
                         <div class="col-12 col-md-2">
@@ -125,6 +109,7 @@
             @if($customers->isEmpty())
                 @include('admin.shared.empty-state', [
                     'emptyId' => 'customers-empty-state',
+                    'emptyImage' => asset('admin-assets/images/icons/empty-khachhang.png'),
                     'emptyMessage' => __('admin.customers.empty'),
                 ])
             @endif

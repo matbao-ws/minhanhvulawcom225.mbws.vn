@@ -37,7 +37,7 @@ class UserAddressController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('controller.api.invalid_data'), 422, $validator->errors()->toArray());
         }
 
         $user = $request->user();
@@ -56,7 +56,7 @@ class UserAddressController extends Controller
             'is_default' => $isDefault,
         ]);
 
-        return ApiResponse::success($address, 'Thêm địa chỉ mới thành công.');
+        return ApiResponse::success($address, __('controller.api.address_created'));
     }
 
     /**
@@ -68,7 +68,7 @@ class UserAddressController extends Controller
         $address = $user->addresses()->find($id);
 
         if (!$address) {
-            return ApiResponse::error('Không tìm thấy địa chỉ hoặc bạn không có quyền sửa địa chỉ này.', 403);
+            return ApiResponse::error(__('controller.api.address_not_editable'), 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -79,7 +79,7 @@ class UserAddressController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('controller.api.invalid_data'), 422, $validator->errors()->toArray());
         }
 
         $isDefault = (bool) $request->input('is_default');
@@ -96,7 +96,7 @@ class UserAddressController extends Controller
             'is_default' => $isDefault || $address->is_default, // if it was already default, keep it default
         ]);
 
-        return ApiResponse::success($address, 'Cập nhật địa chỉ thành công.');
+        return ApiResponse::success($address, __('controller.api.address_updated'));
     }
 
     /**
@@ -108,7 +108,7 @@ class UserAddressController extends Controller
         $address = $user->addresses()->find($id);
 
         if (!$address) {
-            return ApiResponse::error('Không tìm thấy địa chỉ hoặc bạn không có quyền xóa địa chỉ này.', 403);
+            return ApiResponse::error(__('controller.api.address_not_deletable'), 403);
         }
 
         $wasDefault = $address->is_default;
@@ -122,7 +122,7 @@ class UserAddressController extends Controller
             }
         }
 
-        return ApiResponse::success(null, 'Xóa địa chỉ thành công.');
+        return ApiResponse::success(null, __('controller.api.address_deleted'));
     }
 
     /**
@@ -134,12 +134,12 @@ class UserAddressController extends Controller
         $address = $user->addresses()->find($id);
 
         if (!$address) {
-            return ApiResponse::error('Không tìm thấy địa chỉ hoặc bạn không có quyền thao tác trên địa chỉ này.', 403);
+            return ApiResponse::error(__('controller.api.address_not_actionable'), 403);
         }
 
         $user->addresses()->update(['is_default' => false]);
         $address->update(['is_default' => true]);
 
-        return ApiResponse::success($address, 'Đặt làm địa chỉ mặc định thành công.');
+        return ApiResponse::success($address, __('controller.api.address_defaulted'));
     }
 }

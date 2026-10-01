@@ -3,26 +3,18 @@
 @section('title', __('admin.menus.title'))
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-            <div class="card-body px-4 py-3">
-                <h4 class="fw-semibold mb-1 text-white">{{ __('admin.menus.title') }}</h4>
-                <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                        <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.menus.title') }}</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="d-flex justify-content-end mb-4">
-    @can('menus.create')
-        <a href="{{ route('admin.menus.create') }}" class="btn btn-primary"><i class="ti ti-plus me-1"></i>{{ __('admin.menus.create') }}</a>
-    @endcan
-</div>
+<x-admin.page-header :title="__('admin.menus.title')">
+    <x-slot:breadcrumbs>
+        <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+        <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.menus.title') }}</li>
+    </x-slot:breadcrumbs>
+    <x-slot:actions>
+        @can('menus.create')
+            <x-admin.action-button :href="route('admin.menus.create')" icon="plus">{{ __('admin.menus.create') }}</x-admin.action-button>
+        @endcan
+    </x-slot:actions>
+</x-admin.page-header>
+
 
 <div class="card">
     <div class="card-body">

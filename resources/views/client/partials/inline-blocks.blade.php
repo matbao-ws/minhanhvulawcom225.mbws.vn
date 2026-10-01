@@ -82,13 +82,6 @@
             display: none !important;
         }
 
-        body.client-edit-active.client-blocks-show-hidden .client-block-cleared {
-            display: inline-block !important;
-            min-height: 22px !important;
-            min-width: 64px !important;
-            outline: 1px dashed rgba(217, 72, 15, .5) !important;
-        }
-
         #client-block-toolbar {
             align-items: center !important;
             background: #fff !important;

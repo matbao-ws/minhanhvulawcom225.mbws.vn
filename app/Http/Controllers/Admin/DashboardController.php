@@ -15,7 +15,7 @@ class DashboardController extends Controller
     {
         $canViewOrders = request()->user()->can('orders.view');
         if (! $canViewOrders) {
-            return view('admin.dashboard.index', compact('canViewOrders'));
+            return view('admin.dashboard.index', ['canViewOrders' => false, 'packageUsage' => $this->packageUsage(), 'analyticsEnabled' => $this->analyticsEnabled()]);
         }
 
         // 1. Key Metrics
@@ -174,6 +174,8 @@ class DashboardController extends Controller
 
         return view('admin.dashboard.index', [
             'canViewOrders' => true,
+            'packageUsage' => $this->packageUsage(),
+            'analyticsEnabled' => $this->analyticsEnabled(),
             'enabledFeatureCount' => FeatureSetting::query()->where('is_enabled', true)->count(),
             'metrics' => [
                 'total_orders' => $totalOrders,
@@ -321,5 +323,93 @@ class DashboardController extends Controller
         return view('admin.notifications.index', [
             'notifications' => $paginatedNotifications
         ]);
+    }
+
+    /**
+     * The package usage strip: what the shop has used against what its package
+     * allows. Shown with or without a linked package — without one every row
+     * simply reads "unlimited".
+     *
+     * @return array{package: string|null, rows: list<array{label: string, used: string, limit: string|null, percent: int|null}>}
+     */
+    private function packageUsage(): array
+    {
+        $rows = [];
+
+        foreach (app(\App\Services\Packages\PackageLimits::class)->summary() as $metric => $row) {
+            // The monthly mail quota only means something on the shared relay.
+            if ($metric === \App\Services\Packages\PackageLimits::EMAIL_MONTHLY
+                && $row['limit'] === null
+                && app(\App\Services\MailSettings::class)->source() !== \App\Services\MailSettings::SOURCE_REMOTE) {
+                continue;
+            }
+
+            $rows[] = [
+                'label' => __('admin.package.metric.'.$metric),
+                'used' => number_format($row['usage']),
+                'limit' => $row['limit'] === null ? null : number_format($row['limit']),
+                'percent' => $row['limit'] === null ? null : (int) min(100, round($row['usage'] / max(1, $row['limit']) * 100)),
+            ];
+        }
+
+        // Walking the local disk is expensive and Cloudinary is rate-limited; a
+        // ten-minute-old figure is fine for a dashboard.
+        $storage = \Illuminate\Support\Facades\Cache::remember('dashboard.storage_usage', 600, function (): array {
+            try {
+                return app(\App\Services\CloudinaryService::class)->storageUsage();
+            } catch (\Throwable) {
+                return ['used' => null, 'limit' => null];
+            }
+        });
+
+        if ($storage['used'] !== null) {
+            $rows[] = [
+                'label' => __('admin.package.metric.storage'),
+                'used' => $this->formatBytes((int) $storage['used']),
+                'limit' => $storage['limit'] ? $this->formatBytes((int) $storage['limit']) : null,
+                'percent' => $storage['limit'] ? (int) min(100, round($storage['used'] / $storage['limit'] * 100)) : null,
+            ];
+        }
+
+        return [
+            'package' => app(\App\Services\Packages\PackageSync::class)->snapshot()['name'] ?? null,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Re-read the package from the internal tool and drop the cached storage
+     * figure, so the usage strip shows current numbers straight after an upgrade.
+     */
+    public function refreshPackageUsage()
+    {
+        \Illuminate\Support\Facades\Cache::forget('dashboard.storage_usage');
+
+        if (! app(\App\Services\Packages\PackageInfo::class)->configured()) {
+            return redirect()->route('admin.dashboard')->with('success', __('admin.package.usage_refreshed'));
+        }
+
+        $result = app(\App\Services\Packages\PackageSync::class)->sync();
+
+        return match ($result['status']) {
+            \App\Services\Packages\PackageInfo::OK => redirect()->route('admin.dashboard')
+                ->with('success', __('admin.package.synced', ['package' => $result['package']['name']])),
+            \App\Services\Packages\PackageInfo::NOT_FOUND => redirect()->route('admin.dashboard')
+                ->with('error', __('admin.package.not_found', ['domain' => config('packages.domain')])),
+            default => redirect()->route('admin.dashboard')->with('error', __('admin.package.unreachable')),
+        };
+    }
+
+    private function analyticsEnabled(): bool
+    {
+        return (bool) request()->user()?->can('analytics.view')
+            && app(\App\Support\FeatureGate::class)->enabled('analytics');
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        return $bytes >= 1024 ** 3
+            ? number_format($bytes / 1024 ** 3, 1).' GB'
+            : number_format($bytes / 1024 ** 2, 0).' MB';
     }
 }

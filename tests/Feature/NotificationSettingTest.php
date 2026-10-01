@@ -65,6 +65,21 @@ class NotificationSettingTest extends TestCase
         $response->assertViewIs('admin.notification_settings.index');
     }
 
+    public function test_settings_page_tells_the_admin_that_mail_uses_the_shared_smtp(): void
+    {
+        config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_secret_token']);
+        \Illuminate\Support\Facades\Http::fake(['gw.test/v1/project' => \Illuminate\Support\Facades\Http::response(['ok' => true, 'project' => [
+            'mail_from' => 'noreply@mail.relay.test',
+        ]])]);
+
+        $response = $this->actingAs($this->adminUser)->get('/vi/admin/notification-settings');
+
+        $response->assertOk();
+        $response->assertViewHas('mailSource', \App\Services\MailSettings::SOURCE_REMOTE);
+        $response->assertSee('mail.relay.test');
+        $response->assertDontSee('mbp_secret_token');
+    }
+
     public function test_admin_can_update_notification_settings(): void
     {
         $response = $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [

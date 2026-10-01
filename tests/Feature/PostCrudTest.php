@@ -172,7 +172,7 @@ class PostCrudTest extends TestCase
         $this->actingAs($this->adminUser)
             ->get('/vi/admin/posts')
             ->assertOk()
-            ->assertSee('admin-assets/images/icons/empty-post.png', false)
+            ->assertSee('admin-assets/images/icons/empty-baiviet.png', false)
             ->assertDontSee('solar:document-bold-duotone', false);
     }
 
@@ -197,6 +197,8 @@ class PostCrudTest extends TestCase
             ->assertSee('placeholder="tieu-de-bai-viet-chuan-seo"', false)
             ->assertSee('placeholder="Nhập tóm tắt thu hút hiển thị ở danh sách bài viết..."', false)
             ->assertSee('data-placeholder="Nhập nội dung chi tiết..."', false)
+            ->assertSee(__('admin.posts.placeholders.content_paste_hint'))
+            ->assertSee('Mô tả ảnh (alt text)', false)
             ->assertSee('placeholder="Bỏ trống để tự động lấy theo tiêu đề bài viết..."', false)
             ->assertSee('placeholder="Mô tả ngắn gọn nội dung hiển thị trên kết quả tìm kiếm (120-160 ký tự)..."', false)
             ->assertSee('placeholder="Ví dụ: chuẩn seo, gio hang..."', false)
@@ -460,7 +462,7 @@ XML;
             'slug' => 'bai-viet-duoc-chinh-sua',
             'category_id' => $this->category->id,
             'summary' => 'Tóm tắt bài viết mới cập nhật',
-            'content' => '<p>Nội dung chi tiết được sửa lại</p>',
+            'content' => '<p>Nội dung chi tiết được sửa lại</p><div class="ql-image-caption">Chú thích ảnh</div>',
             'seo_title' => 'Tiêu đề SEO update',
             'seo_description' => 'Mô tả SEO update',
             'seo_keys' => 'bài viết chỉnh sửa',
@@ -472,6 +474,7 @@ XML;
         $this->post->refresh();
         $this->assertEquals('bai-viet-duoc-chinh-sua', $this->post->slug);
         $this->assertEquals('Bài viết được chỉnh sửa', $this->post->getTranslation('title', 'vi'));
+        $this->assertStringContainsString('<div class="ql-image-caption">Chú thích ảnh</div>', $this->post->getTranslation('content', 'vi'));
         $this->assertNotNull($this->post->seo_score);
     }
 

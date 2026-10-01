@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
@@ -12,10 +13,53 @@ class ActivityLogController extends Controller
     public function index(Request $request)
     {
         $viewer = $request->user();
-        $query = AdminActivityLog::query()
-            ->visibleTo($viewer)
-            ->with('user')
-            ->latest('created_at');
+
+        return view('admin.activity_logs.index', [
+            'logs' => $this->filtered($request)->with('user')->latest('created_at')->paginate(20)->withQueryString(),
+            'canDelete' => $viewer->isSuperAdmin(),
+            'users' => User::query()
+                ->whereNotNull('role_id')
+                ->when(! $viewer->isSuperAdmin(), fn ($users) => $users->whereDoesntHave('role', fn ($roles) => $roles->where('is_superadmin', true)))
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']),
+            'actions' => AdminActivityLog::query()->visibleTo($viewer)->distinct()->orderBy('action')->pluck('action'),
+            'subjectTypes' => AdminActivityLog::query()->visibleTo($viewer)->whereNotNull('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type'),
+        ]);
+    }
+
+    /**
+     * Delete the ticked entries. Superadmin only (route middleware).
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:1000'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $deleted = AdminActivityLog::query()->whereIn('id', $validated['ids'])->delete();
+
+        return $this->afterDelete($deleted);
+    }
+
+    /**
+     * Delete every entry matching the filters on screen — all of them when no
+     * filter is set. Superadmin only (route middleware).
+     */
+    public function destroyAll(Request $request)
+    {
+        $deleted = $this->filtered($request)->delete();
+
+        return $this->afterDelete($deleted);
+    }
+
+    /**
+     * The one query both the list and "delete all" run, so the button can
+     * never remove more than the screen showed.
+     */
+    private function filtered(Request $request): Builder
+    {
+        $query = AdminActivityLog::query()->visibleTo($request->user());
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->integer('user_id'));
@@ -33,15 +77,13 @@ class ActivityLogController extends Controller
             $query->where('created_at', '<=', $request->date('to')->endOfDay());
         }
 
-        return view('admin.activity_logs.index', [
-            'logs' => $query->paginate(20)->withQueryString(),
-            'users' => User::query()
-                ->whereNotNull('role_id')
-                ->when(! $viewer->isSuperAdmin(), fn ($users) => $users->whereDoesntHave('role', fn ($roles) => $roles->where('is_superadmin', true)))
-                ->orderBy('name')
-                ->get(['id', 'name', 'email']),
-            'actions' => AdminActivityLog::query()->visibleTo($viewer)->distinct()->orderBy('action')->pluck('action'),
-            'subjectTypes' => AdminActivityLog::query()->visibleTo($viewer)->whereNotNull('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type'),
-        ]);
+        return $query;
+    }
+
+    private function afterDelete(int $deleted)
+    {
+        return redirect()
+            ->route('admin.activity-logs.index', request()->only(['user_id', 'action', 'subject_type', 'from', 'to']))
+            ->with('success', $deleted > 0 ? 'Đã xóa '.$deleted.' bản ghi nhật ký.' : 'Không có bản ghi nào được xóa.');
     }
 }

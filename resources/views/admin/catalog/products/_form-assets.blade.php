@@ -38,6 +38,19 @@
             border-bottom-left-radius: 8px !important;
             border-bottom-right-radius: 8px !important;
         }
+        #editor_wrapper.quill-fullscreen #toggle_fullscreen {
+            top: 20px !important;
+            right: 30px !important;
+        }
+        @media (max-width: 767.98px) {
+            #editor_wrapper.quill-fullscreen {
+                padding: 14px !important;
+            }
+            #editor_wrapper.quill-fullscreen #toggle_fullscreen {
+                top: 14px !important;
+                right: 14px !important;
+            }
+        }
 
         /* Custom fonts in editor */
         .ql-font-arial { font-family: Arial, sans-serif !important; }

@@ -341,10 +341,13 @@ class CatalogCrudTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         // Brands and products start empty; categories only holds the auto-created default
-        foreach (['/vi/admin/brands', '/vi/admin/products'] as $url) {
+        foreach ([
+            '/vi/admin/brands' => 'admin-assets/images/icons/emptydata.png',
+            '/vi/admin/products' => 'admin-assets/images/icons/empty-sanpham.png',
+        ] as $url => $emptyIcon) {
             $this->get($url)
                 ->assertOk()
-                ->assertSee('admin-assets/images/icons/order-empty.png', false)
+                ->assertSee($emptyIcon, false)
                 ->assertSee('width="240"', false)
                 ->assertSeeText('Hiện tại chưa có dữ liệu')
                 ->assertDontSee('name="per_page"', false);
@@ -353,13 +356,13 @@ class CatalogCrudTest extends TestCase
         // A search with no hits shows the same empty state instead of a bare table
         $this->get('/vi/admin/categories?q=khong-ton-tai-dau')
             ->assertOk()
-            ->assertSee('admin-assets/images/icons/order-empty.png', false)
+            ->assertSee('admin-assets/images/icons/empty-danhmuc.png', false)
             ->assertSeeText('Hiện tại chưa có dữ liệu');
 
         // Non-empty lists keep the table and the pagination controls
         $this->get('/vi/admin/categories')
             ->assertOk()
-            ->assertDontSee('admin-assets/images/icons/order-empty.png', false)
+            ->assertDontSee('admin-assets/images/icons/empty-danhmuc.png', false)
             ->assertSee('name="per_page"', false);
     }
 

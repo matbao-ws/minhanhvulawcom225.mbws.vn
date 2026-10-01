@@ -52,13 +52,24 @@ Route::post('/impersonate/leave', [UserController::class, 'leaveImpersonate'])
     ->middleware('auth')
     ->name('users.impersonate.leave');
 
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    // Each click may call the internal tool; keep it to a handful per minute.
+    Route::post('dashboard/package-usage/refresh', [DashboardController::class, 'refreshPackageUsage'])
+        ->middleware('throttle:6,1')
+        ->name('dashboard.package-usage.refresh');
+    // Google Analytics: loaded after the dashboard renders; each call may reach Google.
+    Route::middleware(['can:analytics.view', 'feature:analytics'])->group(function () {
+        Route::get('dashboard/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'show'])
+            ->middleware('throttle:30,1')->name('dashboard.analytics');
+        Route::post('dashboard/analytics/refresh', [\App\Http\Controllers\Admin\AnalyticsController::class, 'refresh'])
+            ->middleware('throttle:6,1')->name('dashboard.analytics.refresh');
+    });
     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
     Route::get('search', [SearchController::class, 'search'])->name('search');
     Route::post('translations/preview', [TranslationController::class, 'preview'])
-        ->middleware(['can:translations.use', 'throttle:admin-translation'])
+        ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
     Route::middleware('can:media.view')->group(function () {
@@ -82,12 +93,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('features', [FeatureController::class, 'update'])->name('features.update');
         Route::post('features/toggle', [FeatureController::class, 'toggle'])->name('features.toggle');
         Route::post('features/group-toggle', [FeatureController::class, 'toggleGroup'])->name('features.group-toggle');
+        Route::post('features/sync-package', [FeatureController::class, 'syncPackage'])->name('features.sync-package');
+        Route::post('features/reset-overrides', [FeatureController::class, 'resetOverrides'])->name('features.reset-overrides');
     });
 
-    Route::get('languages', [LanguageController::class, 'index'])->middleware('can:languages.view')->name('languages.index');
-    Route::post('languages', [LanguageController::class, 'store'])->middleware('can:languages.create')->name('languages.store');
-    Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->middleware('can:languages.update')->name('languages.preferences');
-    Route::put('languages/{language}', [LanguageController::class, 'update'])->middleware('can:languages.update')->name('languages.update');
+    Route::get('languages', [LanguageController::class, 'index'])->middleware(['feature:multilingual', 'can:languages.view'])->name('languages.index');
+    Route::post('languages', [LanguageController::class, 'store'])->middleware(['feature:multilingual', 'can:languages.create'])->name('languages.store');
+    Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->middleware(['feature:multilingual', 'can:languages.update'])->name('languages.preferences');
+    Route::put('languages/{language}', [LanguageController::class, 'update'])->middleware(['feature:multilingual', 'can:languages.update'])->name('languages.update');
 
     Route::middleware('feature:multi_admin')->group(function () {
         // Literal segments are registered before `{user}` so /users/create is
@@ -120,7 +133,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('post-categories', PostCategoryController::class)->only(['edit', 'update'])->middleware('can:posts.update');
         Route::resource('post-categories', PostCategoryController::class)->only(['destroy'])->middleware('can:posts.delete');
 
-        Route::resource('posts', PostController::class)->only(['create', 'store'])->middleware('can:posts.create');
+        Route::resource('posts', PostController::class)->only(['create', 'store'])->middleware(['can:posts.create', 'package.limit:data_unit']);
         Route::resource('posts', PostController::class)->only(['index', 'show'])->middleware('can:posts.view');
         Route::resource('posts', PostController::class)->only(['edit', 'update'])->middleware('can:posts.update');
         Route::resource('posts', PostController::class)->only(['destroy'])->middleware('can:posts.delete');
@@ -157,6 +170,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::middleware('feature:cms_page')->group(function () {
         Route::get('pages/{page}/preview', [PageController::class, 'preview'])->middleware('can:pages.view')->name('pages.preview');
         Route::patch('pages/{page}/inline', [PageController::class, 'inlineUpdate'])->middleware(['can:pages.update', 'throttle:admin-page-inline'])->name('pages.inline-update');
+        // Read path for the storefront history panel. Same gate and throttle as
+        // the inline write it sits next to — the list names the admins who edited
+        // the site, which is not something a visitor is entitled to read.
+        Route::get('pages/{page}/revisions', [PageController::class, 'revisions'])->middleware(['can:pages.update', 'throttle:admin-page-inline'])->name('pages.revisions.index');
         Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restore'])->middleware('can:pages.update')->name('pages.revisions.restore');
 
         Route::resource('pages', PageController::class)->only(['create', 'store'])->middleware('can:pages.create');
@@ -193,6 +210,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::get('settings', [SettingController::class, 'index'])->middleware('can:settings.view')->name('settings.index');
     Route::post('settings', [SettingController::class, 'update'])->middleware('can:settings.update')->name('settings.update');
+    Route::post('settings/analytics/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'check'])
+        ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.analytics.check');
 
     Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');
     Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');
@@ -241,13 +260,18 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware('feature:banner')->group(function () {
         Route::patch('banners/bulk', [BannerController::class, 'bulk'])->middleware('can:banners.update')->name('banners.bulk');
-        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware('can:banners.create');
+        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware(['can:banners.create', 'package.limit:banner']);
         Route::resource('banners', BannerController::class)->only(['index'])->middleware('can:banners.view');
         Route::resource('banners', BannerController::class)->only(['edit', 'update'])->middleware('can:banners.update');
         Route::resource('banners', BannerController::class)->only(['destroy'])->middleware('can:banners.delete');
     });
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:activity_logs.view')->name('activity-logs.index');
+    // Wiping the audit trail is superadmin-only, like feature flags.
+    Route::middleware('superadmin')->group(function () {
+        Route::delete('activity-logs/bulk', [ActivityLogController::class, 'bulkDestroy'])->name('activity-logs.bulk-destroy');
+        Route::delete('activity-logs', [ActivityLogController::class, 'destroyAll'])->name('activity-logs.destroy-all');
+    });
 
     Route::middleware('can:customers.view')->group(function () {
         Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
@@ -290,16 +314,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('products/export', [ProductController::class, 'export'])->middleware('can:products.view')->name('products.export');
         Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
         Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.create')->name('products.import');
-        Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware('can:products.create');
+        Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware(['can:products.create', 'package.limit:data_unit']);
         Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('can:products.view');
         Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('can:products.update');
         Route::resource('products', ProductController::class)->only(['destroy'])->middleware('can:products.delete');
 
-        Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->middleware('can:products.update')->name('products.options.edit');
-        Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->middleware('can:products.update')->name('products.options.update');
-        Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->middleware('can:products.create')->name('products.variants.generate');
-        Route::resource('products.variants', ProductVariantController::class)->only(['create', 'store'])->middleware('can:products.create');
-        Route::resource('products.variants', ProductVariantController::class)->only(['edit', 'update'])->middleware('can:products.update');
-        Route::resource('products.variants', ProductVariantController::class)->only(['destroy'])->middleware('can:products.delete');
+        // Variants are a package feature of their own (Hero 3+).
+        Route::middleware('feature:product_variant')->group(function () {
+            Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->middleware('can:products.update')->name('products.options.edit');
+            Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->middleware('can:products.update')->name('products.options.update');
+            Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->middleware('can:products.create')->name('products.variants.generate');
+            Route::resource('products.variants', ProductVariantController::class)->only(['create', 'store'])->middleware('can:products.create');
+            Route::resource('products.variants', ProductVariantController::class)->only(['edit', 'update'])->middleware('can:products.update');
+            Route::resource('products.variants', ProductVariantController::class)->only(['destroy'])->middleware('can:products.delete');
+        });
     });
 });

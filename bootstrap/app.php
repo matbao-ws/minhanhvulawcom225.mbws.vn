@@ -52,6 +52,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
             'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
+            'package.sync' => \App\Http\Middleware\SyncPackageInfo::class,
+            'package.limit' => \App\Http\Middleware\EnsurePackageLimit::class,
             'setLocale' => \App\Http\Middleware\SetLocaleFromRoute::class,
             'apiLocale' => \App\Http\Middleware\ResolveApiLocale::class,
             'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,

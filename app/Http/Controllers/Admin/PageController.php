@@ -10,6 +10,7 @@ use App\Models\PageRevision;
 use App\Services\ActivityLogger;
 use App\Services\LanguageRegistry;
 use App\Services\PageContentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PageController extends Controller
@@ -109,10 +110,51 @@ class PageController extends Controller
         ]);
     }
 
+    /**
+     * The saved checkpoints for one page, for the storefront history panel.
+     *
+     * Read-only sibling of {@see inlineUpdate()}, behind the same gate: the
+     * list names the admins who edited the site.
+     */
+    public function revisions(Request $request, string $locale, Page $page): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => null,
+            'data' => ['revisions' => $this->pages->revisions($page, $locale)],
+        ]);
+    }
+
+    /**
+     * Two callers, two scopes, one action.
+     *
+     * The admin metadata screen owns the whole record and posts a form, so it
+     * restores every locale and gets a redirect. The storefront history panel
+     * is looking at one language and asks for JSON, so it restores only that
+     * language — reverting the other translations from a screen that cannot
+     * show them would be a silent edit. Splitting this into two routes would
+     * mean two places to keep the authorization and the audit line correct.
+     */
     public function restore(Request $request, string $locale, Page $page, PageRevision $revision)
     {
-        $page = $this->pages->restore($page, $revision, $request->user()?->id);
-        ActivityLogger::log('restored', $page, "Khôi phục phiên bản trang {$page->slug}", ['revision_id' => $revision->id]);
+        $wantsJson = $request->expectsJson();
+
+        $page = $this->pages->restore($page, $revision, $request->user()?->id, $wantsJson ? $locale : null);
+        ActivityLogger::log('restored', $page, "Khôi phục phiên bản trang {$page->slug}", [
+            'revision_id' => $revision->id,
+            'content_locale' => $wantsJson ? $locale : null,
+        ]);
+
+        if ($wantsJson) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã khôi phục phiên bản.',
+                'data' => [
+                    'html' => $page->getTranslation('published_html', $locale, false),
+                    'updated_at' => $page->updated_at?->toISOString(),
+                ],
+            ]);
+        }
 
         return redirect()->route('admin.pages.edit', $page)->with('success', 'Đã khôi phục phiên bản.');
     }

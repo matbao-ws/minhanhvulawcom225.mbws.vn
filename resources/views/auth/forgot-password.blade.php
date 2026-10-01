@@ -104,6 +104,7 @@
 </div>
 
 <div class="dark-transparent sidebartoggler"></div>
+<x-auth.language-switcher />
 
 <script src="{{ asset('admin-assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('admin-assets/libs/simplebar/dist/simplebar.min.js') }}"></script>

@@ -111,4 +111,84 @@ class ActivityLogTest extends TestCase
             ->assertDontSee('App\\Models\\Banner')
             ->assertDontSee('&quot;ids&quot;', false);
     }
+
+    public function test_superadmin_sees_selection_and_delete_controls(): void
+    {
+        $superadmin = $this->superadmin();
+        $this->actingAs($superadmin);
+        ActivityLogger::log('updated', null, 'Một hoạt động');
+
+        $this->get('/vi/admin/activity-logs')
+            ->assertOk()
+            ->assertSee('data-activity-select-all', false)
+            ->assertSee(route('admin.activity-logs.bulk-destroy'), false)
+            ->assertSee('Xóa tất cả (1)');
+    }
+
+    public function test_superadmin_can_delete_selected_entries(): void
+    {
+        $this->actingAs($this->superadmin());
+        ActivityLogger::log('updated', null, 'Giữ lại');
+        ActivityLogger::log('updated', null, 'Xóa 1');
+        ActivityLogger::log('updated', null, 'Xóa 2');
+        $ids = AdminActivityLog::query()->where('description', 'like', 'Xóa %')->pluck('id')->all();
+
+        $this->delete('/vi/admin/activity-logs/bulk', ['ids' => $ids])
+            ->assertRedirect('/vi/admin/activity-logs')
+            ->assertSessionHas('success', 'Đã xóa 2 bản ghi nhật ký.');
+
+        $this->assertDatabaseHas('admin_activity_logs', ['description' => 'Giữ lại']);
+        $this->assertDatabaseMissing('admin_activity_logs', ['description' => 'Xóa 1']);
+        // Deleting does not write a new entry about itself.
+        $this->assertSame(1, AdminActivityLog::query()->count());
+    }
+
+    public function test_delete_all_removes_everything_when_no_filter_is_set(): void
+    {
+        $this->actingAs($this->superadmin());
+        ActivityLogger::log('updated', null, 'A');
+        ActivityLogger::log('created', null, 'B');
+
+        $this->delete('/vi/admin/activity-logs')->assertRedirect('/vi/admin/activity-logs');
+
+        $this->assertSame(0, AdminActivityLog::query()->count());
+    }
+
+    public function test_delete_all_respects_the_filters_on_screen(): void
+    {
+        $this->actingAs($this->superadmin());
+        ActivityLogger::log('updated', null, 'Cập nhật');
+        ActivityLogger::log('created', null, 'Tạo mới');
+
+        $this->delete('/vi/admin/activity-logs', ['action' => 'updated'])
+            ->assertRedirect('/vi/admin/activity-logs?action=updated');
+
+        $this->assertDatabaseMissing('admin_activity_logs', ['description' => 'Cập nhật']);
+        $this->assertDatabaseHas('admin_activity_logs', ['description' => 'Tạo mới']);
+    }
+
+    public function test_only_superadmin_may_delete_activity_logs(): void
+    {
+        $role = Role::query()->create(['name' => 'Auditor', 'permissions' => ['activity_logs.view']]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+        $this->actingAs($admin);
+        ActivityLogger::log('updated', null, 'Không được xóa');
+        $id = AdminActivityLog::query()->value('id');
+
+        $this->get('/vi/admin/activity-logs')
+            ->assertOk()
+            ->assertDontSee('data-activity-select-all', false)
+            ->assertDontSee('Xóa tất cả');
+
+        $this->delete('/vi/admin/activity-logs/bulk', ['ids' => [$id]])->assertForbidden();
+        $this->delete('/vi/admin/activity-logs')->assertForbidden();
+        $this->assertDatabaseHas('admin_activity_logs', ['description' => 'Không được xóa']);
+    }
+
+    private function superadmin(): User
+    {
+        $role = Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_system' => true]);
+
+        return User::factory()->create(['role_id' => $role->id]);
+    }
 }

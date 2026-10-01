@@ -3,23 +3,66 @@
 @section('title', __('admin.features.title'))
 
 @section('content')
-    <!-- Header Card -->
-        <!-- Header Card -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-none position-relative overflow-hidden mb-4" style="background: linear-gradient(90deg, #10203C 0%, #193877 50%, #204DA4 100%) !important;">
-                <div class="card-body px-4 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <h4 class="fw-semibold mb-1 text-white">{{ __('admin.features.title') }}</h4>
-                            <nav class="py-0" style="--bs-breadcrumb-divider: '&gt;'; --bs-breadcrumb-divider-color: rgba(255, 255, 255, 0.6);" aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-                            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.features.title') }}</li>
-                                </ol>
-                            </nav>
+    <x-admin.page-header :title="__('admin.features.title')">
+        <x-slot:breadcrumbs>
+            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.features.title') }}</li>
+        </x-slot:breadcrumbs>
+        @if($packageConfigured)
+            <x-slot:actions>
+                <form method="POST" action="{{ route('admin.features.sync-package') }}">
+                    @csrf
+                    <x-admin.action-button type="submit" icon="refresh">{{ __('admin.package.sync') }}</x-admin.action-button>
+                </form>
+            </x-slot:actions>
+        @endif
+    </x-admin.page-header>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3"><i class="ti ti-package me-1" aria-hidden="true"></i>{{ __('admin.package.title') }}</h5>
+                    @if($package)
+                        <div class="fs-6 fw-semibold mb-1">{{ $package['name'] }} <span class="badge bg-primary-subtle text-primary ms-1">{{ $package['code'] }}</span></div>
+                        <div class="small text-muted mb-1">{{ __('admin.package.domain') }}: {{ $packageDomain }}</div>
+                        <div class="small text-muted">{{ __('admin.package.synced_at') }}: {{ \Illuminate\Support\Carbon::parse($package['synced_at'])->format('d/m/Y H:i') }}</div>
+                        @unless($package['plan_known'] ?? false)
+                            <div class="alert alert-warning small py-2 mt-3 mb-0">{{ __('admin.package.unknown_plan', ['code' => $package['code']]) }}</div>
+                        @endunless
+                        <form method="POST" action="{{ route('admin.features.reset-overrides') }}" class="mt-3">
+                            @csrf
+                            <x-admin.action-button type="submit" variant="outline-secondary" size="sm" icon="arrow-back-up">{{ __('admin.package.reset_all') }}</x-admin.action-button>
+                        </form>
+                    @else
+                        <p class="text-muted mb-1">{{ __('admin.package.manual') }}</p>
+                        @unless($packageConfigured)
+                            <p class="small text-muted mb-0">{{ __('admin.package.not_configured') }}</p>
+                        @endunless
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            {{-- Read-only: limits change only when sales upgrade the contract on the tool. --}}
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-1">{{ __('admin.package.limits_title') }}</h5>
+                    <p class="small text-muted mb-3">{{ __('admin.package.limits_help') }}</p>
+                    @foreach($limitSummary as $metric => $row)
+                        @php
+                            $percent = $row['limit'] === null ? null : (int) min(100, round($row['usage'] / max(1, $row['limit']) * 100));
+                        @endphp
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1 gap-2">
+                                <span class="fw-semibold">{{ __('admin.package.metric.'.$metric) }}</span>
+                                <span class="text-nowrap">{{ number_format($row['usage']) }} / {{ $row['limit'] === null ? __('admin.package.unlimited') : number_format($row['limit']) }}</span>
+                            </div>
+                            <div class="progress" style="height: 6px;" role="progressbar" aria-label="{{ __('admin.package.metric.'.$metric) }}" aria-valuenow="{{ $percent ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar {{ $percent === null ? '' : ($percent >= 100 ? 'bg-danger' : ($percent >= 80 ? 'bg-warning' : 'bg-primary')) }}" style="width: {{ $percent ?? 0 }}%"></div>
+                            </div>
                         </div>
-                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -114,6 +157,8 @@
             </div>
         </div>
     </div>
+
+    <form id="feature-reset-form" method="POST" action="{{ route('admin.features.reset-overrides') }}" class="d-none">@csrf</form>
 @endsection
 
 @push('styles')
@@ -179,6 +224,13 @@
         badge.style.borderBottomLeftRadius = '12px';
     }
 
+    function setFeatureSource(code, overridden) {
+        const source = document.querySelector('[data-feature-source="' + code + '"]');
+        if (!source || overridden === undefined) return;
+        source.querySelectorAll('[data-source-override]').forEach(el => el.classList.toggle('d-none', !overridden));
+        source.querySelectorAll('[data-source-package]').forEach(el => el.classList.toggle('d-none', overridden));
+    }
+
     function refreshGroupState(group) {
         const switches = Array.from(document.querySelectorAll('[data-feature-switch][data-feature-group="' + group + '"]'));
         const groupSwitch = document.querySelector('[data-feature-group-switch="' + group + '"]');
@@ -231,6 +283,7 @@
             feature_code: code,
             is_enabled: checked
         })
+        .then(data => setFeatureSource(code, data.is_overridden))
         .catch(err => {
             console.error(err);
             window.alert(err.message);
@@ -261,6 +314,7 @@
             group: group,
             is_enabled: checked
         })
+        .then(() => { if (document.querySelector('[data-feature-source]')) window.location.reload(); })
         .catch(err => {
             console.error(err);
             window.alert(err.message || featureMessages.groupError);

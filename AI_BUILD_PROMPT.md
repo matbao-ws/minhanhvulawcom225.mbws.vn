@@ -59,9 +59,10 @@ Core cung cấp:
 - Shipping configuration, GHTK push/webhook.
 - CMS post, CMS page (HTML thuần, không có builder kéo-thả), banner, menu điều hướng storefront, đa
   ngôn ngữ, media và notification.
-- Feature flags do support cấu hình qua `features`/`feature_settings`. Cụm SaaS billing cũ
-  (`packages`, `package_features`, `project_subscription`, `addons`, `invoices`) **đã bị gỡ hoàn
-  toàn** — đó là hoá đơn của bên bán core, không phải nghiệp vụ cửa hàng. Không dựng lại.
+- Feature flags nằm ở `features`/`feature_settings`, được áp theo gói dịch vụ đồng bộ từ tool nội bộ
+  (`package:sync`) và superadmin ghi đè được. Cụm SaaS billing cũ (`packages`, `package_features`,
+  `project_subscription`, `addons`, `invoices`) **đã bị gỡ hoàn toàn** — đó là hoá đơn của bên bán
+  core, không phải nghiệp vụ cửa hàng. Không dựng lại bảng gói trong database.
 
 Core không có storefront mặc định. Khi repository có thư mục `theme/` ở root, coi đây là giao diện
 HTML nguồn do người dùng cung cấp và cắt giao diện đó thành Laravel Blade ngay trong core:
@@ -146,12 +147,22 @@ Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc
 ### Tenant và feature
 
 - Không thêm multi-tenancy.
-- Dùng `FeatureGate`/middleware `feature:<code>`. Không có khái niệm gói dịch vụ trong core;
-  `FeatureGate` đọc thẳng `feature_settings` và không tra cứu package nào.
+- Dùng `FeatureGate`/middleware `feature:<code>`. `FeatureGate` đọc thẳng `feature_settings.is_enabled`
+  và không tra cứu package nào.
+- Gói dịch vụ (Hero 1–7, `COBAN`…) chỉ tồn tại ở **tầng đồng bộ**: `App\Services\Packages\PackageSync`
+  đọc gói từ tool nội bộ theo `PACKAGE_INFO_DOMAIN`, map mã gói → feature code bằng `config/packages.php`
+  rồi ghi `feature_settings.package_enabled` (và `is_enabled` cho row chưa bị ghi đè). Superadmin ghi đè
+  được từng tính năng (`is_overridden`), lần sync sau giữ nguyên. Tool lỗi/không tìm thấy domain không
+  bao giờ tắt tính năng; snapshot gần nhất nằm ở `project_settings.package_info`.
+- Hạn mức gói (`App\Services\Packages\PackageLimits`): `data_unit` = sản phẩm + bài viết, `banner`,
+  `email_monthly` (chỉ đếm khi gửi qua SMTP dùng chung). Chặn ở model event `creating` nên form admin,
+  import CSV và import WordPress đều bị áp; áp cả cho superadmin. Hạn mức **chỉ** lấy từ tool nội bộ, core không
+  có chỗ sửa: nâng hạn mức = Sales nâng gói/ký lại hợp đồng → cập nhật tool → `package:sync`.
+  Không có snapshot gói thì không giới hạn.
 - Superadmin có cơ chế bypass feature hiện hành; không thay đổi ngầm.
 - Feature bị tắt phải trả đúng hành vi web/API hiện có.
 
-Sai — gói dịch vụ không còn tồn tại trong core:
+Sai — controller/view không bao giờ đọc mã gói:
 
 ```php
 if ($packageCode === 'basic_2m') {
@@ -278,11 +289,23 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Dữ liệu nhạy cảm và nội dung
 
 - Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
-- Cấu hình SMTP resolve ở `App\Services\MailSettings`: admin (`notification_settings.smtp`) thắng
-  khi đã bật và điền đủ, `.env` là dự phòng. Service này được áp khi container resolve
-  `mail.manager`, nên **mọi** email đều dùng chung một nguồn — không cấu hình mailer inline tại chỗ
-  gửi. Laravel 11+ dựng transport từ `scheme`, không đọc `encryption`; đổi cấu hình xong phải
-  `MailSettings::flush()` và `queue:restart` để worker nhận credential mới.
+- Cấu hình mail resolve ở `App\Services\MailSettings` theo thứ tự: admin (`notification_settings.smtp`)
+  khi đã bật và điền đủ → **mail relay MatBao** trên gateway khi có `MATBAO_AI_URL` + `MATBAO_AI_TOKEN`
+  (mailer `matbao`, transport `App\Mail\Transport\MatbaoGatewayTransport` gửi `POST v1/mail/send`;
+  gateway ép địa chỉ From, chặn quota email theo gói, reply-to về email chủ shop) → `.env` là dự phòng
+  cuối. Website **không bao giờ** nhận mật khẩu SMTP dùng chung; không đọc lại SMTP export. Quota email
+  hiển thị trong `PackageLimits` lấy từ `v1/mail/usage` của gateway, không đếm ở core. Service được áp khi
+  container resolve `mail.manager`, nên **mọi** email đều dùng chung một nguồn — không cấu hình mailer
+  inline tại chỗ gửi. Laravel 11+ dựng transport từ `scheme`, không đọc `encryption`; đổi cấu hình xong
+  chạy `php artisan mail:refresh-smtp` (flush + `queue:restart`). Email quên mật khẩu đi qua queue
+  (`QueuedResetPassword`), nên production cần queue worker.
+- Google Analytics 4: số liệu đọc qua gateway (`App\Services\Analytics\AnalyticsReport` →
+  `App\Services\AiGateway\GatewayClient`); service account nằm **chỉ** trên gateway, website không giữ
+  private key. Measurement ID/Property ID của từng shop nằm ở `project_settings.google_analytics` (Cài
+  đặt → Google Analytics) và được đẩy lên gateway qua `v1/project/connections`. Lỗi trả lý do
+  `AnalyticsUnavailable`, không bao giờ đưa nguyên văn lỗi Google ra UI; token gateway không log, không
+  in ra (`analytics:check`). gtag không gắn cho nhân viên (`role_id`), khung preview
+  (`client_chrome=off`) hoặc khi feature `analytics` tắt.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.
@@ -339,6 +362,14 @@ migrate:reset
 db:wipe
 seeder cũ có truncate/delete hàng loạt
 ```
+
+CI/CD (`.github/workflows/ci.yml`): mọi PR và push `main`/`dev` chạy toàn bộ test trên PHP 8.3; push
+`dev` mà test đạt thì tự deploy lên **staging** `corewbws-staging.webwow.vn` (nơi test webhook VNPay,
+SePay, GHTK bằng key sandbox). `main` không tự deploy ra website khách — rollout qua tool. Staging chạy
+bằng Docker: `Dockerfile` (serversideup/php 8.3 fpm-nginx) được CI build, smoke test, đẩy lên GHCR rồi
+deploy qua `infra/compose.yml` + `infra/deploy.sh` của repo MatBaoAI-SEO (web container tự chạy
+`migrate --force` và cache khi khởi động; worker và scheduler là container riêng). `.env` mount lúc chạy,
+không bao giờ đóng vào image. Hướng dẫn dựng server và secrets GitHub: `docs/DEPLOY.md` của MatBaoAI-SEO.
 
 Quy trình cài core:
 
@@ -461,6 +492,13 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
   `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
   Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
+- URL storefront của Page là `/{locale}/chinh-sach/{slug}` (route `client.pages.show`), dùng chung
+  một view `client.pages.show`; `/{locale}/pages/{slug}` chỉ còn là redirect 301. Không đưa slug Page
+  ra gốc `/{locale}/{slug}` — route bắt mọi slug sẽ nuốt `/{locale}/admin`.
+- Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng Quill (đã có
+  sẵn trong admin). Ô nội dung của mỗi locale chỉ được submit khi editor của locale đó thực sự bị sửa;
+  `PageContentService` merge các locale gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm
+  editor không bao giờ đẩy HTML đã lưu qua Quill — Quill làm phẳng markup do inline editor lưu.
 - Vùng sửa được tìm bằng id `client-page-{id}`, dự phòng bằng thuộc tính
   `data-client-editable-root` để layout theme tự đánh dấu wrapper của mình. Không tìm thấy vùng nào
   thì editor thoát im lặng và nút **Sửa trực tiếp** không hiện — không được để script ném lỗi vì sẽ

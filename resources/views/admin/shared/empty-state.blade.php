@@ -1,5 +1,5 @@
 @php
-    $emptyImage = $emptyImage ?? asset('admin-assets/images/icons/order-empty.png');
+    $emptyImage = $emptyImage ?? asset('admin-assets/images/icons/emptydata.png');
     $emptyMessage = $emptyMessage ?? __('catalog.common.no_data');
     $emptyId = $emptyId ?? null;
 @endphp

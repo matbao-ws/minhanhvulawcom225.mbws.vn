@@ -29,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
         // Media pages and upload services consult the same encrypted
         // Cloudinary setting several times in one request.
         $this->app->scoped(\App\Services\CloudinaryCredentials::class);
+        // Scoped so an importer can ask, after the loop, whether any row hit the limit.
+        $this->app->scoped(\App\Services\Packages\PackageLimits::class);
 
         $this->app->bind(
             \App\Contracts\TranslationProvider::class,
@@ -49,9 +51,17 @@ class AppServiceProvider extends ServiceProvider
         // Hooked on resolution rather than run here directly: this fires only when
         // mail is actually used, which keeps the settings lookup off every web
         // request and out of `migrate` on a database that has no settings table yet.
-        $this->app->resolving('mail.manager', function () {
+        $this->app->resolving('mail.manager', function ($manager) {
             app(\App\Services\MailSettings::class)->apply();
+
+            // The MatBao relay transport; registered on resolution, like the settings
+            // above, so requests that send no mail never touch the mailer.
+            $manager->extend(\App\Services\MailSettings::GATEWAY_MAILER, fn () => new \App\Mail\Transport\MatbaoGatewayTransport(
+                app(\App\Services\AiGateway\GatewayClient::class),
+            ));
         });
+
+        $this->enforcePackageLimits();
 
         view()->composer([
             'admin.layouts.app',
@@ -65,6 +75,27 @@ class AppServiceProvider extends ServiceProvider
             'client.layouts.app',
         ], function ($view) {
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
+        });
+
+        view()->composer('client.partials.google-analytics', function ($view) {
+            $id = null;
+
+            try {
+                // role_id marks staff (customers have none); the preview frame is staff too.
+                if (auth()->user()?->role_id === null
+                    && ! \App\Support\ClientEditorChrome::suppressed()
+                    && app(\App\Support\FeatureGate::class)->enabled('analytics')) {
+                    $id = app(\App\Services\Analytics\AnalyticsReport::class)->settings()['measurement_id'];
+                }
+            } catch (\Throwable) {
+                // Tracking must never break a storefront page.
+            }
+
+            $view->with('gaMeasurementId', $id);
+        });
+
+        view()->composer('admin.layouts.app', function ($view) {
+            $view->with('packageLimitAlerts', app(\App\Services\Packages\PackageUsageAlerts::class)->forAdmin());
         });
 
         RateLimiter::for('public-auth', fn (Request $request) => [
@@ -218,5 +249,25 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('headerNotifications', $notifications);
         });
+    }
+
+    /**
+     * Quantity limits of the sold package, enforced where records are born.
+     *
+     * Model events rather than controllers: the admin form, the CSV importer and
+     * the WordPress importer all create products and posts, and a limit that
+     * only one of them honours is not a limit. Without a package snapshot every
+     * check is a no-op.
+     */
+    private function enforcePackageLimits(): void
+    {
+        $limits = fn () => app(\App\Services\Packages\PackageLimits::class);
+
+        \App\Models\Product::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::DATA_UNIT));
+        \App\Models\Post::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::DATA_UNIT));
+        \App\Models\Banner::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::BANNER));
+
+        // The monthly mail quota is enforced by the MatBao relay on the gateway,
+        // where this website's code cannot reach it; PackageLimits only reads it.
     }
 }

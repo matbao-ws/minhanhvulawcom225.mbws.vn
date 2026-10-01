@@ -61,7 +61,13 @@ class NotificationSettingController extends Controller
             ->where('is_enabled', true)
             ->exists();
 
-        return view('admin.notification_settings.index', compact('settings', 'zaloFeatureEnabled'));
+        $mailSettings = app(\App\Services\MailSettings::class);
+        $mailSource = $mailSettings->source();
+        $mailSourceDomain = $mailSource === \App\Services\MailSettings::SOURCE_REMOTE
+            ? (string) substr(strrchr((string) $mailSettings->sharedSender(), '@') ?: '@mail.matbaows.com', 1)
+            : null;
+
+        return view('admin.notification_settings.index', compact('settings', 'zaloFeatureEnabled', 'mailSource', 'mailSourceDomain'));
     }
 
     /**

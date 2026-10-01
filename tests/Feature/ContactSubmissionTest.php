@@ -66,7 +66,7 @@ class ContactSubmissionTest extends TestCase
         $this->actingAs($admin)
             ->get('/vi/admin/contact-submissions')
             ->assertOk()
-            ->assertSee('admin-assets/images/icons/emptycomment.png', false)
+            ->assertSee('admin-assets/images/icons/empty-lienhe.png', false)
             ->assertSee('width="240"', false)
             ->assertSeeText('Hiện tại chưa có liên hệ nào');
     }
