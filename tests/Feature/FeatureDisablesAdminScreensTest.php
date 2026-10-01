@@ -146,4 +146,40 @@ class FeatureDisablesAdminScreensTest extends TestCase
         $this->actingAs($superadmin)->get('/vi/admin/shipping-partners')->assertOk();
         $this->actingAs($superadmin)->get('/vi/admin/payment-methods')->assertOk();
     }
+
+    public function test_disabled_variant_feature_blocks_variant_screens(): void
+    {
+        $product = app(\App\Services\Catalog\ProductService::class)->create(['name' => ['vi' => 'Áo'], 'sku' => 'VAR-GATE', 'price' => 1000]);
+        $this->disable('product_variant');
+
+        $this->actingAs($this->admin)->get("/vi/admin/products/{$product->id}/options")
+            ->assertRedirect('/vi/admin');
+        // The product itself stays editable.
+        $this->actingAs($this->admin)->get("/vi/admin/products/{$product->id}/edit")->assertOk();
+    }
+
+    public function test_disabled_multilingual_feature_blocks_languages_and_runs_single_language(): void
+    {
+        $this->assertTrue(app(\App\Services\MultilingualSettings::class)->enabled());
+
+        $this->disable('multilingual');
+
+        $this->actingAs($this->admin)->get('/vi/admin/languages')->assertRedirect('/vi/admin');
+        $this->actingAs($this->admin)->postJson('/vi/admin/translations/preview', [])->assertForbidden();
+        $this->assertFalse(app(\App\Services\MultilingualSettings::class)->enabled());
+        $this->assertStringNotContainsString(route('admin.languages.index'), $this->sidebar());
+    }
+
+    public function test_disabled_vnpay_feature_hides_vnpay_from_payment_methods(): void
+    {
+        \App\Models\PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
+            'name' => 'VNPAY Gateway', 'type' => 'connected', 'status' => 'active', 'settings' => [],
+        ]);
+
+        $this->actingAs($this->admin)->get('/vi/admin/payment-methods')->assertSee('VNPAY Gateway');
+
+        $this->disable('payment_vnpay');
+
+        $this->actingAs($this->admin)->get('/vi/admin/payment-methods')->assertOk()->assertDontSee('VNPAY Gateway');
+    }
 }

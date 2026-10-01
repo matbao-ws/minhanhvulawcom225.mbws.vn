@@ -36,8 +36,10 @@ class FoundationSeeder extends Seeder
             ]
         );
 
+        // Create-only: this seeder is re-run on live shops, and switching every
+        // feature back on would undo both the package and support's choices.
         foreach (config('features.codes', []) as $featureCode) {
-            FeatureSetting::query()->updateOrCreate(
+            FeatureSetting::query()->firstOrCreate(
                 ['feature_code' => $featureCode],
                 [
                     'is_enabled' => true,
@@ -46,6 +48,12 @@ class FoundationSeeder extends Seeder
                     'updated_at' => now(),
                 ]
             );
+        }
+
+        // With PACKAGE_INFO_DOMAIN set, a fresh install starts on its package.
+        if (app(\App\Services\Packages\PackageInfo::class)->configured()) {
+            $result = app(\App\Services\Packages\PackageSync::class)->sync();
+            $this->command?->info('Package sync: '.$result['status'].($result['package'] ? ' ('.$result['package']['code'].')' : ''));
         }
 
         $superadminRole = Role::query()->updateOrCreate(

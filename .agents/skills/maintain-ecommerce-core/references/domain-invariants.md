@@ -19,6 +19,14 @@
 - Do not gate runtime behavior by package or subscription codes. That cluster — packages,
   package_features, project_subscription, addons, invoices — has been removed: it billed the
   vendor's own plans, not the shop's business. FeatureGate reads feature_settings directly.
+- The sold package (Hero tiers) is read from the internal tool by `PackageSync`, which maps the
+  package code to feature codes via `config/packages.php` and writes `feature_settings`
+  (`package_enabled`, plus `is_enabled` unless `is_overridden`). A failed lookup never disables
+  anything. Superadmin overrides survive later syncs.
+- Package quantity limits (`PackageLimits`: data_unit = products + posts, banner, email_monthly on
+  the shared SMTP only) are enforced on model `creating`, apply to superadmin too, and are no-ops
+  without a package snapshot. They come only from the tool — there is no in-core override; raising
+  one means Sales upgrading the contract and updating the tool.
 - Preserve the existing superadmin feature bypass unless the user explicitly changes policy.
 
 ## Identity and ownership

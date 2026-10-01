@@ -42,6 +42,96 @@
         font-size: 13.5px !important;
         font-weight: 600 !important;
     }
+    .dashboard-metric-card {
+        position: relative;
+        min-height: 148px;
+        overflow: hidden;
+        border: 1px solid #edf0f6;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 5px 18px rgba(44, 58, 87, 0.06);
+    }
+    .dashboard-metric-card .card-body {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        grid-template-rows: 48px 26px 18px;
+        column-gap: 12px;
+        align-content: start;
+        min-height: 146px;
+        padding: 17px 18px !important;
+    }
+    .dashboard-metric-card .card-body > div.d-flex {
+        display: contents !important;
+    }
+    .dashboard-metric-card .card-icon {
+        grid-column: 1;
+        grid-row: 1;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        border-radius: 12px;
+    }
+    .dashboard-metric-card .card-body > div.d-flex > span { grid-column: 2; grid-row: 1; align-self: center; padding-top: 0; font-size: 14px !important; font-weight: 700 !important; }
+    .dashboard-metric-card h3 { grid-column: 2; grid-row: 2; position: relative; z-index: 1; align-self: center; margin: 0 !important; transform: translateY(-5px); font-size: 25px !important; line-height: 1; }
+    .dashboard-metric-card p { grid-column: 2; grid-row: 3; position: relative; z-index: 1; align-self: center; margin: 0 !important; color: #8190a8 !important; font-size: 12px !important; }
+    .dashboard-metric-card__wave { position: absolute; right: 0; bottom: 0; left: 0; width: 100%; height: 38px; pointer-events: none; }
+    .dashboard-metric-card--revenue .dashboard-metric-card__wave { color: #9af0c2; }
+    .dashboard-metric-card--pending .dashboard-metric-card__wave { color: #ffd36d; }
+    .dashboard-metric-card--processing .dashboard-metric-card__wave { color: #ff9bb0; }
+    .dashboard-metric-card--completed .dashboard-metric-card__wave { color: #8edcff; }
+    .dashboard-package-usage {
+        padding: 14px 18px;
+        border: 1px solid #e8edf8;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 5px 18px rgba(44, 58, 87, 0.05);
+    }
+    .dashboard-package-usage__intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dashboard-package-usage__intro-content { display: flex; min-width: 0; align-items: center; gap: 12px; }
+    .dashboard-package-usage__icon {
+        display: inline-flex;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: #713df2;
+        background: linear-gradient(145deg, #f2edff, #e9e0ff);
+    }
+    .dashboard-package-usage__title { color: #d11e28; font-size: 14px; font-weight: 800; }
+    .dashboard-package-usage__title-row { display: flex; align-items: center; gap: 10px; }
+    .dashboard-package-usage__badge {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border: 1px solid #e3d9ff;
+        border-radius: 999px;
+        color: #713df2;
+        background: #f5f1ff;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    .dashboard-package-usage__item {
+        min-width: 0;
+        height: 100%;
+        padding: 14px;
+        border: 1px solid #edf1f8;
+        border-radius: 12px;
+        background: #fbfcff;
+    }
+    .dashboard-package-usage__meta { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #8190a8; font-size: 12px; font-weight: 600; }
+    .dashboard-package-usage__meta strong { color: #627391; font-weight: 800; white-space: nowrap; }
+    .dashboard-package-usage .progress { height: 5px !important; border-radius: 999px; background-color: #e8edf5; }
+    .dashboard-package-usage .progress-bar { border-radius: inherit; background-color: #d11e28 !important; }
+    @media (max-width: 991.98px) { .dashboard-package-usage__intro { margin-bottom: 12px; } }
+    @media (max-width: 575.98px) {
+        .dashboard-package-usage__intro { align-items: flex-start; flex-direction: column; }
+    }
     
     /* Headings and card titles */
     .card-body h5 {
@@ -53,16 +143,136 @@
         font-size: 15px !important;
         color: #5a6a85 !important;
     }
+
+    .dashboard-welcome-banner {
+        position: relative;
+        min-height: 194px;
+        padding: 28px 36px;
+        overflow: hidden;
+        border-radius: 16px;
+        background: #fff7f7 url('{{ asset('admin-assets/images/backgrounds/bg-brecumb-dashboard.png') }}') center / cover no-repeat;
+    }
+    .dashboard-welcome-content {
+        position: relative;
+        z-index: 1;
+        max-width: 60%;
+    }
+    .dashboard-welcome-banner h1 {
+        color: #101d48;
+        font-size: clamp(26px, 2.2vw, 36px) !important;
+        font-weight: 700 !important;
+        line-height: 1.15;
+    }
+    .dashboard-welcome-banner p {
+        color: #53627e !important;
+    }
+    .dashboard-welcome-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+    }
+    .dashboard-welcome-feature {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: #53627e;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .dashboard-welcome-feature-icon {
+        display: inline-flex;
+        width: 34px;
+        height: 34px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(168, 94, 111, 0.10);
+    }
+    .dashboard-welcome-mascot {
+        position: absolute;
+        right: 1.5%;
+        /* The PNG includes transparent space under the mascot. */
+        bottom: -44px;
+        width: min(48%, 620px);
+        height: calc(100% + 55px);
+        object-fit: contain;
+        object-position: bottom right;
+    }
+    @media (max-width: 991.98px) {
+        .dashboard-welcome-banner { padding: 24px; }
+        .dashboard-welcome-content { max-width: 63%; }
+        .dashboard-welcome-mascot { width: 46%; right: -2%; bottom: -36px; height: calc(100% + 36px); }
+    }
+    @media (max-width: 767.98px) {
+        .dashboard-welcome-banner { min-height: 0; padding: 24px 20px; }
+        .dashboard-welcome-content { max-width: none; }
+        .dashboard-welcome-mascot { display: none; }
+        .dashboard-welcome-features { gap: 10px 16px; }
+    }
 </style>
 @endpush
 
 @section('content')
-    <x-admin.page-header :title="__('admin.dashboard')">
-        <x-slot:breadcrumbs>
-            <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.dashboard') }}</a></li>
-            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.dashboard') }}</li>
-        </x-slot:breadcrumbs>
-    </x-admin.page-header>
+    <section class="dashboard-welcome-banner mb-4" aria-labelledby="dashboard-welcome-title">
+        <div class="dashboard-welcome-content">
+            {{-- <p class="mb-1 fw-semibold">{{ __('admin.dashboard_page.welcome_greeting') }}</p> --}}
+            <h1 id="dashboard-welcome-title" class="mb-1">{{ __('admin.dashboard_page.welcome_title') }}</h1>
+            <p class="mb-4">{{ __('admin.dashboard_page.welcome_description') }}</p>
+            <div class="dashboard-welcome-features">
+                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-danger"><iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.revenue') }}</span>
+                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-primary"><iconify-icon icon="solar:bag-4-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.orders') }}</span>
+                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-success"><iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.customers') }}</span>
+                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-warning"><iconify-icon icon="solar:shop-2-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.growth') }}</span>
+            </div>
+        </div>
+        <img class="dashboard-welcome-mascot" src="{{ asset('admin-assets/images/backgrounds/icon-homme.png') }}" alt="" aria-hidden="true">
+    </section>
+
+    @if(! empty($packageUsage['rows']))
+        <section class="dashboard-package-usage mb-4" aria-label="{{ __('admin.package.usage_title') }}">
+            <div class="dashboard-package-usage__intro mb-3">
+                <div class="dashboard-package-usage__intro-content">
+                    <span class="dashboard-package-usage__icon"><iconify-icon icon="solar:database-bold-duotone" class="fs-6"></iconify-icon></span>
+                    <div>
+                        <div class="dashboard-package-usage__title-row">
+                            <div class="dashboard-package-usage__title">{{ __('admin.package.usage_title') }}</div>
+                            <form method="POST" action="{{ route('admin.dashboard.package-usage.refresh') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" title="{{ __('admin.package.refresh') }}">
+                                    <i class="ti ti-refresh" aria-hidden="true"></i>{{ __('admin.package.refresh') }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <span class="dashboard-package-usage__badge"><i class="ti ti-crown" aria-hidden="true"></i>{{ $packageUsage['package'] ?? __('admin.package.no_package') }}</span>
+            </div>
+            <div class="row g-3">
+                @foreach($packageUsage['rows'] as $row)
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="dashboard-package-usage__item">
+                            <div class="dashboard-package-usage__meta">
+                                <span>{{ $row['label'] }}</span>
+                                <strong>{{ $row['used'] }} / {{ $row['limit'] ?? __('admin.package.unlimited') }}</strong>
+                            </div>
+                            @if($row['percent'] !== null)
+                                <div class="progress" role="progressbar" aria-label="{{ $row['label'] }}" aria-valuenow="{{ $row['percent'] }}" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar" style="width: {{ $row['percent'] }}%"></div>
+                                </div>
+                            @else
+                                <div class="progress" aria-hidden="true"><div class="progress-bar" style="width: 0%"></div></div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if($analyticsEnabled ?? false)
+        @include('admin.dashboard._analytics')
+    @endif
 
     @if(!$canViewOrders)
         <div class="card shadow-sm">
@@ -80,10 +290,10 @@
         </div>
     @else
     <!-- Stat Cards Row -->
-    <div class="row mb-4">
+    <div class="row g-3 mb-4">
         <!-- Revenue Card -->
-        <div class="col-xl-3 col-sm-6 mb-4 mb-xl-0">
-            <div class="card stat-card shadow-sm h-100 mb-0">
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-metric-card dashboard-metric-card--revenue h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="fw-semibold text-muted fs-3">{{ __('admin.dashboard_page.monthly_revenue') }}</span>
@@ -96,13 +306,14 @@
                         <iconify-icon icon="solar:round-arrow-right-up-bold-duotone" class="fs-4"></iconify-icon>
                         <span>{{ __('admin.dashboard_page.today_revenue', ['amount' => number_format($metrics['today_revenue'], 0, ',', '.')]) }}</span>
                     </p>
+                    <svg class="dashboard-metric-card__wave" viewBox="0 0 300 38" preserveAspectRatio="none" aria-hidden="true"><path d="M0 25C24 10 45 14 65 22s40 10 62 1 40-12 63-2 42 9 61-3 35-7 49 0v20H0Z" fill="currentColor" fill-opacity=".42"/></svg>
                 </div>
             </div>
         </div>
 
         <!-- Pending Orders Card -->
-        <div class="col-xl-3 col-sm-6 mb-4 mb-xl-0">
-            <div class="card stat-card shadow-sm h-100 mb-0">
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-metric-card dashboard-metric-card--pending h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="fw-semibold text-muted fs-3">{{ __('admin.dashboard_page.pending_orders') }}</span>
@@ -115,13 +326,14 @@
                         <iconify-icon icon="solar:bell-bing-bold-duotone" class="fs-4"></iconify-icon>
                         <span>{{ __('admin.dashboard_page.today_pending', ['count' => number_format($metrics['today_pending_orders'])]) }}</span>
                     </p>
+                    <svg class="dashboard-metric-card__wave" viewBox="0 0 300 38" preserveAspectRatio="none" aria-hidden="true"><path d="M0 19c20-12 38-12 57 1s36 8 54-3 40-7 59 4 38 7 58-3 44-8 72 2v18H0Z" fill="currentColor" fill-opacity=".43"/></svg>
                 </div>
             </div>
         </div>
 
         <!-- Processing Orders Card -->
-        <div class="col-xl-3 col-sm-6 mb-4 mb-sm-0">
-            <div class="card stat-card shadow-sm h-100 mb-0">
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-metric-card dashboard-metric-card--processing h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="fw-semibold text-muted fs-3">{{ __('admin.dashboard_page.processing_orders') }}</span>
@@ -134,13 +346,14 @@
                         <iconify-icon icon="solar:refresh-bold-duotone" class="fs-4"></iconify-icon>
                         <span>{{ __('admin.dashboard_page.today_processing', ['count' => number_format($metrics['today_processing_orders'])]) }}</span>
                     </p>
+                    <svg class="dashboard-metric-card__wave" viewBox="0 0 300 38" preserveAspectRatio="none" aria-hidden="true"><path d="M0 21c19-13 40-8 61 1s40 8 60-2 38-11 57 0 42 8 60-2 40-8 62 0v20H0Z" fill="currentColor" fill-opacity=".44"/></svg>
                 </div>
             </div>
         </div>
 
         <!-- Completed Orders Card -->
         <div class="col-xl-3 col-sm-6">
-            <div class="card stat-card shadow-sm h-100 mb-0">
+            <div class="dashboard-metric-card dashboard-metric-card--completed h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="fw-semibold text-muted fs-3">{{ __('admin.dashboard_page.completed_orders') }}</span>
@@ -153,6 +366,7 @@
                         <iconify-icon icon="solar:pie-chart-bold-duotone" class="fs-4"></iconify-icon>
                         <span>{{ __('admin.dashboard_page.completed_rate', ['rate' => $metrics['completed_rate']]) }}</span>
                     </p>
+                    <svg class="dashboard-metric-card__wave" viewBox="0 0 300 38" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20c20-10 40-8 61 1s39 9 58-1 40-10 59 0 39 9 59-2 40-8 63 1v19H0Z" fill="currentColor" fill-opacity=".46"/></svg>
                 </div>
             </div>
         </div>
@@ -354,8 +568,11 @@
 @endsection
 
 @push('scripts')
-@if($canViewOrders)
+{{-- Loaded for the order charts and for the analytics section, which a role without orders.view may still see. --}}
+@if($canViewOrders || ($analyticsEnabled ?? false))
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+@endif
+@if($canViewOrders)
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // 1. Revenue & Orders Trend Chart

@@ -444,6 +444,24 @@ class PublicApiTest extends TestCase
         $this->assertJson($jsonContent);
     }
 
+    public function test_vnpay_checkout_needs_its_own_feature(): void
+    {
+        // online_payment alone covers bank transfer and SePay; VNPAY is sold separately.
+        \App\Models\PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
+            'name' => 'VNPAY',
+            'type' => 'connected',
+            'status' => 'active',
+            'settings' => ['tmn_code' => 'mock', 'hash_secret' => 'mock-secret', 'api_url' => 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'],
+        ]);
+        FeatureSetting::query()->where('feature_code', 'payment_vnpay')->update(['is_enabled' => false]);
+
+        $payload = $this->checkoutPayload('vnpay-off@example.com');
+        $payload['payment_method'] = 'vnpay';
+
+        $this->postJson('/api/public/orders/checkout', $payload)->assertForbidden();
+        $this->assertDatabaseMissing('orders', ['customer_email' => 'vnpay-off@example.com']);
+    }
+
     private function checkoutPayload(string $email): array
     {
         return [

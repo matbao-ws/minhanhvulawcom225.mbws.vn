@@ -1,5 +1,6 @@
 @php
     $cancelUrl = route('admin.users.index');
+    $canSaveDraft = ! $user->exists;
 @endphp
 
 <div class="row">
@@ -38,9 +39,16 @@
                             <span class="text-danger">*</span>
                         @endif
                     </label>
-                    <input type="password" class="form-control @error('password') is-invalid @enderror" id="password"
-                        name="password" placeholder="{{ __('admin.users.placeholders.password_placeholder') }}"
-                        {{ !$user->exists ? 'required' : '' }}>
+                    <div class="input-group">
+                        <input type="password" class="form-control @error('password') is-invalid @enderror" id="password"
+                            name="password" placeholder="{{ __('admin.users.placeholders.password_placeholder') }}"
+                            {{ !$user->exists ? 'required' : '' }}>
+                        <button type="button" class="btn btn-outline-secondary" id="toggle-user-password"
+                            aria-label="{{ __('admin.users.fields.show_password') }}"
+                            title="{{ __('admin.users.fields.show_password') }}">
+                            <i class="ti ti-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
                     @if ($user->exists)
                         <p class="fs-2 text-muted mb-0 mt-1">{{ __('admin.users.fields.password_help') }}</p>
                     @endif
@@ -192,7 +200,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {{ __('admin.users.unsaved.body') }}
+                {{ __($canSaveDraft ? 'admin.users.unsaved.body' : 'admin.users.unsaved.body_without_draft') }}
             </div>
             <div class="modal-footer justify-content-between">
                 <button type="button" class="btn btn-outline-secondary"
@@ -200,8 +208,10 @@
                 <div class="d-flex gap-2">
                     <button type="button" id="btn-discard-changes"
                         class="btn btn-danger">{{ __('admin.users.unsaved.discard') }}</button>
-                    <button type="button" id="btn-save-draft"
-                        class="btn btn-warning text-dark">{{ __('admin.users.unsaved.save_draft') }}</button>
+                    @if ($canSaveDraft)
+                        <button type="button" id="btn-save-draft"
+                            class="btn btn-warning text-dark">{{ __('admin.users.unsaved.save_draft') }}</button>
+                    @endif
                 </div>
             </div>
         </div>

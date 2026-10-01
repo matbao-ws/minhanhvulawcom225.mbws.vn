@@ -4,8 +4,8 @@
 
 @section('content')
     @php
-        $productImage = $product->image_url ?: asset('images/icons/default-product.png');
-        $fallbackImage = asset('images/icons/default-product.png');
+        $productImage = $product->image_url ?: asset('admin-assets/images/icons/empty-sanpham.png');
+        $fallbackImage = asset('admin-assets/images/icons/empty-sanpham.png');
         $totalStock = $product->usesVariantInventory()
             ? $product->variants->sum('stock_quantity')
             : $product->stock_quantity;

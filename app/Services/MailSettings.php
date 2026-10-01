@@ -3,19 +3,19 @@
 namespace App\Services;
 
 use App\Models\ProjectSetting;
+use App\Services\AiGateway\GatewayClient;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Http;
 
 /**
- * Decides which SMTP credentials the application actually sends with.
+ * Decides how the application actually sends mail.
  *
  * Three sources, in order:
- *   1. The admin screen, whenever the shop has filled it in and switched it on.
- *   2. The shared SMTP export (SMTP_EXPORT_URL) that every project deployed from
- *      this core points at, so rotating the provider or its key is done once on
- *      the tool instead of in each project's `.env`.
- *   3. The `.env` values, the last resort when neither of the above is usable.
+ *   1. The shop's own SMTP from the admin screen, whenever it is filled in and on.
+ *   2. The MatBao mail relay through the MatBaoAI-SEO gateway, authenticated by
+ *      this website's project token. The relay holds the provider key and sends
+ *      from Mắt Bão's verified domain; this website never sees a shared password,
+ *      and the monthly quota is enforced on the gateway.
+ *   3. The `.env` mailer, the last resort when neither is configured.
  *
  * Resolution lives here rather than at each send site — the previous arrangement
  * configured the mailer inline in one notification helper, which is why every
@@ -26,26 +26,22 @@ class MailSettings
 {
     public const CACHE_KEY = 'mail_settings.smtp';
 
-    public const REMOTE_CACHE_KEY = 'mail_settings.remote';
-
-    /** Survives a failed refresh so an outage of the tool does not stop mail. */
-    public const REMOTE_LAST_GOOD_KEY = 'mail_settings.remote_last_good';
-
     public const SOURCE_ADMIN = 'admin';
 
+    /** The shared MatBao relay (the gateway). */
     public const SOURCE_REMOTE = 'remote';
 
     public const SOURCE_ENV = 'env';
 
+    /** Name of the mailer in config/mail.php that talks to the gateway. */
+    public const GATEWAY_MAILER = 'matbao';
+
     private const CACHE_TTL = 300;
-
-    private const REMOTE_TTL = 3600;
-
-    /** Retry sooner after a failed fetch than after a successful one. */
-    private const REMOTE_RETRY_TTL = 300;
 
     /** Without all of these the admin configuration cannot send anything. */
     private const REQUIRED_FIELDS = ['host', 'port', 'username', 'password', 'from_email'];
+
+    public function __construct(private readonly GatewayClient $gateway) {}
 
     /**
      * @return array<string, mixed>
@@ -78,45 +74,9 @@ class MailSettings
         return true;
     }
 
-    /**
-     * Credentials from the shared SMTP export, or null when it is not configured
-     * or has never answered.
-     *
-     * Cached encrypted: the cache store is often the database, and the export
-     * hands out the provider password in clear.
-     *
-     * @return array{host: string, port: int, encryption: string, username: string, password: string, domain: ?string}|null
-     */
-    public function remote(): ?array
+    public function usesGateway(): bool
     {
-        if (blank(config('mail.smtp_export_url'))) {
-            return null;
-        }
-
-        $cached = Cache::get(self::REMOTE_CACHE_KEY);
-
-        if ($cached === null) {
-            $fetched = $this->fetchRemote();
-
-            if ($fetched !== null) {
-                $cached = Crypt::encrypt($fetched);
-                Cache::put(self::REMOTE_CACHE_KEY, $cached, self::REMOTE_TTL);
-                Cache::forever(self::REMOTE_LAST_GOOD_KEY, $cached);
-            } else {
-                $cached = Cache::get(self::REMOTE_LAST_GOOD_KEY, '');
-                Cache::put(self::REMOTE_CACHE_KEY, $cached, self::REMOTE_RETRY_TTL);
-            }
-        }
-
-        if ($cached === '') {
-            return null;
-        }
-
-        try {
-            return Crypt::decrypt($cached);
-        } catch (\Throwable) {
-            return null;
-        }
+        return ! $this->usesAdminSettings() && $this->gateway->configured();
     }
 
     public function source(): string
@@ -125,7 +85,16 @@ class MailSettings
             return self::SOURCE_ADMIN;
         }
 
-        return $this->remote() !== null ? self::SOURCE_REMOTE : self::SOURCE_ENV;
+        return $this->gateway->configured() ? self::SOURCE_REMOTE : self::SOURCE_ENV;
+    }
+
+    /**
+     * The address the relay sends from, as the gateway reports it, for the
+     * settings screen. Null when unknown.
+     */
+    public function sharedSender(): ?string
+    {
+        return $this->gateway->project()['mail_from'] ?? null;
     }
 
     /**
@@ -138,7 +107,7 @@ class MailSettings
         if ($this->usesAdminSettings()) {
             $smtp = $this->stored();
 
-            return $this->transport([
+            return $this->smtpTransport([
                 'host' => data_get($smtp, 'host'),
                 'port' => (int) data_get($smtp, 'port'),
                 'encryption' => data_get($smtp, 'encryption'),
@@ -150,18 +119,14 @@ class MailSettings
             ];
         }
 
-        $remote = $this->remote();
-
-        if ($remote === null) {
+        if (! $this->gateway->configured()) {
             return null;
         }
 
-        $overrides = $this->transport($remote) + [
-            'mail.from.address' => $this->remoteFromAddress($remote['domain']),
-        ];
+        // The relay replaces the From address with Mắt Bão's verified one and keeps
+        // the display name, so a reply would otherwise go to a mailbox nobody reads.
+        $overrides = ['mail.default' => self::GATEWAY_MAILER];
 
-        // Mail leaves from the shared sending domain, so a customer who hits reply
-        // would otherwise write to a mailbox nobody reads.
         if ($owner = $this->ownerEmail()) {
             $overrides['mail.reply_to'] = ['address' => $owner, 'name' => config('mail.from.name')];
         }
@@ -203,19 +168,10 @@ class MailSettings
     }
 
     /**
-     * Drop the cached export so the next mail fetches it again. The last good copy
-     * is kept: it is what keeps mail flowing if the refetch fails.
-     */
-    public static function flushRemote(): void
-    {
-        Cache::forget(self::REMOTE_CACHE_KEY);
-    }
-
-    /**
      * @param  array{host: mixed, port: int, encryption: mixed, username: mixed, password: mixed}  $smtp
      * @return array<string, mixed>
      */
-    private function transport(array $smtp): array
+    private function smtpTransport(array $smtp): array
     {
         return [
             'mail.default' => 'smtp',
@@ -235,60 +191,6 @@ class MailSettings
             // A MAIL_URL left in .env outranks host/port and would send these
             // credentials to the wrong server.
             'mail.mailers.smtp.url' => null,
-        ];
-    }
-
-    /**
-     * The provider only relays for its verified domain, so MAIL_FROM_ADDRESS is
-     * kept when it already sits on that domain and replaced otherwise.
-     */
-    private function remoteFromAddress(?string $domain): mixed
-    {
-        $configured = config('mail.from.address');
-
-        if (blank($domain)) {
-            return $configured;
-        }
-
-        $configuredDomain = strtolower((string) substr(strrchr((string) $configured, '@') ?: '', 1));
-
-        return $configuredDomain === strtolower($domain)
-            ? $configured
-            : config('mail.smtp_export_local_part', 'noreply').'@'.$domain;
-    }
-
-    /**
-     * @return array{host: string, port: int, encryption: string, username: string, password: string, domain: ?string}|null
-     */
-    private function fetchRemote(): ?array
-    {
-        try {
-            $response = Http::acceptJson()
-                ->connectTimeout(2)
-                ->timeout(4)
-                ->get(config('mail.smtp_export_url'));
-        } catch (\Throwable) {
-            // Deliberately not logged: the URL carries the export token.
-            return null;
-        }
-
-        $smtp = $response->successful() && $response->json('ok') === true
-            ? (array) $response->json('smtp', [])
-            : [];
-
-        foreach (['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password'] as $field) {
-            if (blank($smtp[$field] ?? null)) {
-                return null;
-            }
-        }
-
-        return [
-            'host' => (string) $smtp['smtp_host'],
-            'port' => (int) $smtp['smtp_port'],
-            'encryption' => strtolower((string) ($smtp['smtp_encryption'] ?? 'tls')),
-            'username' => (string) $smtp['smtp_username'],
-            'password' => (string) $smtp['smtp_password'],
-            'domain' => filled($smtp['smtp_domain'] ?? null) ? strtolower((string) $smtp['smtp_domain']) : null,
         ];
     }
 }

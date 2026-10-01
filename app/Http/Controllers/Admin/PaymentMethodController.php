@@ -26,8 +26,13 @@ class PaymentMethodController extends Controller
         $isSuperadmin = auth()->user()?->isSuperAdmin() === true;
         $canUseCod = $isSuperadmin || $this->features->enabled('cod_order');
         $canUseOnlinePayment = $isSuperadmin || $this->features->enabled('online_payment');
+        $canUseVnpay = $isSuperadmin || $this->features->enabled('payment_vnpay');
         $methods = PaymentMethod::all()
-            ->filter(fn (PaymentMethod $method) => $method->method_code === 'cod' ? $canUseCod : $canUseOnlinePayment)
+            ->filter(fn (PaymentMethod $method) => match ($method->method_code) {
+                'cod' => $canUseCod,
+                'vnpay' => $canUseOnlinePayment && $canUseVnpay,
+                default => $canUseOnlinePayment,
+            })
             ->values();
 
         return view('admin.payment_methods.index', compact('methods', 'canUseOnlinePayment'));

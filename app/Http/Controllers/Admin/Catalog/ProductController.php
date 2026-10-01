@@ -475,7 +475,14 @@ class ProductController extends Controller
             ]);
 
             if ($results['failed'] > 0) {
-                return back()->with('warning', $msg)->with('import_errors', $results['errors']);
+                $response = back()->with('warning', $msg)->with('import_errors', $results['errors']);
+
+                // Rows refused by the package limit get the blocking dialog, not just a line in the error list.
+                if ($limitHit = app(\App\Services\Packages\PackageLimits::class)->lastExceeded()) {
+                    $response->with(\App\Exceptions\PackageLimitExceeded::FLASH_KEY, $limitHit->getMessage());
+                }
+
+                return $response;
             }
 
             return back()->with('success', $msg);

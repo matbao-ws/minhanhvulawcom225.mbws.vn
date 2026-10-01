@@ -64,7 +64,7 @@ class NotificationSettingController extends Controller
         $mailSettings = app(\App\Services\MailSettings::class);
         $mailSource = $mailSettings->source();
         $mailSourceDomain = $mailSource === \App\Services\MailSettings::SOURCE_REMOTE
-            ? $mailSettings->remote()['domain']
+            ? (string) substr(strrchr((string) $mailSettings->sharedSender(), '@') ?: '@mail.matbaows.com', 1)
             : null;
 
         return view('admin.notification_settings.index', compact('settings', 'zaloFeatureEnabled', 'mailSource', 'mailSourceDomain'));

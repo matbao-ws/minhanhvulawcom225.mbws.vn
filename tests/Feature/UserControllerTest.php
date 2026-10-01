@@ -217,6 +217,19 @@ class UserControllerTest extends TestCase
         $this->assertTrue(Hash::check('oldpassword', $userToEdit->password)); // Password unchanged
     }
 
+    public function test_user_edit_form_does_not_offer_save_draft(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+        $userToEdit = User::factory()->create(['role_id' => $this->editorRole->id]);
+
+        $this->actingAs($admin)
+            ->get("/vi/admin/users/{$userToEdit->id}/edit")
+            ->assertOk()
+            ->assertDontSee('id="btn-save-draft"', false)
+            ->assertSee('id="toggle-user-password"', false)
+            ->assertSee(__('admin.users.unsaved.body_without_draft'));
+    }
+
     public function test_users_routes_cannot_manage_or_convert_customer_accounts(): void
     {
         $admin = User::factory()->create(['role_id' => $this->adminRole->id]);

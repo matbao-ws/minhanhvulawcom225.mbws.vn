@@ -37,6 +37,9 @@ class SettingController extends Controller
         return view('admin.settings.index', [
             'settings' => $settings,
             'multilingualSettings' => $this->multilingual->get(),
+            'analyticsSettings' => app(\App\Services\Analytics\AnalyticsReport::class)->settings(),
+            // The address a property owner adds as Viewer; the key itself never reaches a view.
+            'analyticsServiceEmail' => app(\App\Services\Analytics\AnalyticsReport::class)->readerEmail(),
             'contentLanguages' => auth()->user()?->isSuperAdmin()
                 ? Language::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
                 : collect(),
@@ -81,6 +84,8 @@ class SettingController extends Controller
             // Embed code validation
             'embed_header' => 'nullable|string',
             'embed_footer' => 'nullable|string',
+            'google_analytics.measurement_id' => ['nullable', 'string', 'max:30', 'regex:/^G-[A-Z0-9]+$/i'],
+            'google_analytics.property_id' => ['nullable', 'string', 'regex:/^\d{4,20}$/'],
         ];
 
         if ($request->user()?->isSuperAdmin()) {
@@ -109,7 +114,10 @@ class SettingController extends Controller
             ];
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'google_analytics.measurement_id.regex' => __('admin.analytics.invalid_measurement_id'),
+            'google_analytics.property_id.regex' => __('admin.analytics.invalid_property_id'),
+        ]);
 
         // Update basic and nested JSON columns
         ProjectSetting::updateOrCreate(
@@ -142,6 +150,11 @@ class SettingController extends Controller
             ['setting_key' => 'embed_footer'],
             ['setting_value' => $validated['embed_footer'] ?? '']
         );
+
+        if ($request->has('google_analytics')) {
+            // Through the report service so cached statistics of an old property are dropped.
+            app(\App\Services\Analytics\AnalyticsReport::class)->saveSettings($validated['google_analytics'] ?? []);
+        }
 
         // Upload logo if uploaded
         if ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) {
@@ -178,6 +191,7 @@ class SettingController extends Controller
                 'social_links',
                 'embed_header',
                 'embed_footer',
+                $request->has('google_analytics') ? 'google_analytics' : null,
                 $request->user()?->isSuperAdmin() ? 'multilingual' : null,
                 ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) ? 'logo_url' : null,
                 ($request->hasFile('favicon') || filled($validated['favicon_url'] ?? null)) ? 'favicon_url' : null,

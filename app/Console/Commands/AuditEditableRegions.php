@@ -120,13 +120,13 @@ class AuditEditableRegions extends Command
         $directory = resource_path('views/client/sections');
 
         foreach (array_keys($registry->sections()) as $section) {
-            if (! is_file($directory.'/'.$section.'.blade.php')) {
+            if (! is_file($directory . '/' . $section . '.blade.php')) {
                 $errors[] = "SectionRegistry khai báo section `{$section}` nhưng không có views/client/sections/{$section}.blade.php";
             }
         }
 
         foreach ($this->sectionsNamedInTemplates() as $section => $where) {
-            if (! is_file($directory.'/'.$section.'.blade.php')) {
+            if (! is_file($directory . '/' . $section . '.blade.php')) {
                 $errors[] = "{$where} gọi section `{$section}` nhưng không có Blade tương ứng — @includeIf sẽ render rỗng, không báo lỗi";
             }
         }
@@ -141,7 +141,7 @@ class AuditEditableRegions extends Command
      * and the request validates `exists:pages,id`, and a page deleted later
      * renders as plain text rather than a broken link. A `type=url` item has
      * neither protection. Cutting a theme and wiring the nav with hand-typed
-     * paths — `/vi/pages/gioi-thieu` — before the pages exist produces a menu
+     * paths — `/vi/chinh-sach/gioi-thieu` — before the pages exist produces a menu
      * that looks finished and 404s on click, and nothing anywhere reports it.
      *
      * @return array<int, string>
@@ -167,7 +167,7 @@ class AuditEditableRegions extends Command
                 continue;
             }
 
-            if (! preg_match('~^/(?:([a-z]{2}(?:-[a-zA-Z]{2,4})?)/)?pages/([^/]+)/?$~', $path, $match)) {
+            if (! preg_match('~^/(?:([a-z]{2}(?:-[a-zA-Z]{2,4})?)/)?(?:chinh-sach|pages)/([^/]+)/?$~', $path, $match)) {
                 continue;
             }
 
@@ -181,7 +181,7 @@ class AuditEditableRegions extends Command
             }
 
             $errors[] = sprintf(
-                'menu item #%d (%s) trỏ tới %s nhưng không có trang nội dung nào mang slug `%s` — link này 404',
+                'menu item #%d (%s) trỏ tới %s nhưng không có trang chính sách nào mang slug `%s` — link này 404',
                 $item->id,
                 $this->menuItemLabel($item),
                 $item->url,
@@ -253,7 +253,7 @@ class AuditEditableRegions extends Command
         $remaining = [];
 
         foreach ($grouped as $relative => $findings) {
-            $path = resource_path('views/client/'.$relative);
+            $path = resource_path('views/client/' . $relative);
             $source = (string) file_get_contents($path);
             $skipped = [];
 
@@ -267,14 +267,14 @@ class AuditEditableRegions extends Command
                 }
 
                 $source = substr($source, 0, $finding['start'])
-                    .$replacement
-                    .substr($source, $finding['end']);
+                    . $replacement
+                    . substr($source, $finding['end']);
             }
 
             file_put_contents($path, $source);
             $this->components->twoColumnDetail(
                 $relative,
-                (count($findings) - count($skipped)).' vùng đã bọc',
+                (count($findings) - count($skipped)) . ' vùng đã bọc',
             );
 
             if ($skipped !== []) {
@@ -392,9 +392,9 @@ class AuditEditableRegions extends Command
         }
 
         $this->newLine();
-        $this->components->warn($total.' vùng chưa đánh dấu.');
+        $this->components->warn($total . ' vùng chưa đánh dấu.');
         $this->line('  Bọc tự động: <fg=cyan>php artisan client:editable-audit --fix</>');
-        $this->line('  Cố ý để tĩnh: thêm <fg=cyan>'.EditableRegionScanner::IGNORE_ATTRIBUTE.'</> lên phần tử.');
+        $this->line('  Cố ý để tĩnh: thêm <fg=cyan>' . EditableRegionScanner::IGNORE_ATTRIBUTE . '</> lên phần tử.');
         $this->newLine();
     }
 }

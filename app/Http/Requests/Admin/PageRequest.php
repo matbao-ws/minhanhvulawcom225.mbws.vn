@@ -20,6 +20,7 @@ class PageRequest extends FormRequest
             'slug' => ['nullable', 'array'],
             'meta_title' => ['nullable', 'array'],
             'meta_description' => ['nullable', 'array'],
+            'published_html' => ['nullable', 'array'],
             'is_active' => ['required', 'boolean'],
         ];
 
@@ -29,6 +30,7 @@ class PageRequest extends FormRequest
             $rules["slug.$locale"] = ['nullable', 'string', 'max:255'];
             $rules["meta_title.$locale"] = ['nullable', 'string', 'max:255'];
             $rules["meta_description.$locale"] = ['nullable', 'string', 'max:500'];
+            $rules["published_html.$locale"] = ['nullable', 'string', 'max:500000'];
         }
 
         return $rules;

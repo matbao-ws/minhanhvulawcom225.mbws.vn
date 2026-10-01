@@ -505,6 +505,7 @@
 
             <div class="body-wrapper">
                 <div class="container-fluid">
+                    <x-admin.package-limit-alerts :alerts="$packageLimitAlerts ?? []" />
                     @yield('content')
                 </div>
             </div>
@@ -585,6 +586,8 @@
             let activeImage = null;
             let overlay = null;
             let toolbar = null;
+            let overlayPositionUpdater = null;
+            let overlayScrollContainer = null;
 
             document.addEventListener('click', function (e) {
                 if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) {
@@ -602,6 +605,7 @@
                 removeOverlay();
                 
                 activeImage = img;
+                overlayScrollContainer = img.closest('.ql-editor');
                 
                 // Create overlay wrapper that mirrors the image position
                 overlay = document.createElement('div');
@@ -660,6 +664,41 @@
                     
                     toolbar.appendChild(button);
                 });
+
+                const altInput = document.createElement('input');
+                altInput.type = 'text';
+                altInput.value = img.getAttribute('alt') || '';
+                altInput.placeholder = 'Mô tả ảnh (alt text)';
+                altInput.setAttribute('aria-label', 'Mô tả ảnh (alt text)');
+                altInput.style.width = '180px';
+                altInput.style.padding = '4px 8px';
+                altInput.style.border = '1px solid rgba(255,255,255,0.35)';
+                altInput.style.borderRadius = '4px';
+                altInput.style.backgroundColor = '#fff';
+                altInput.style.fontSize = '12px';
+                altInput.addEventListener('input', function () {
+                    if (!activeImage) return;
+                    activeImage.setAttribute('alt', altInput.value.trim());
+                    triggerEditorUpdate();
+                });
+                toolbar.appendChild(altInput);
+
+                const captionInput = document.createElement('input');
+                captionInput.type = 'text';
+                captionInput.value = getImageCaption(img)?.textContent.trim() || '';
+                captionInput.placeholder = 'Chú thích hiển thị dưới ảnh';
+                captionInput.setAttribute('aria-label', 'Chú thích hiển thị dưới ảnh');
+                captionInput.style.width = '220px';
+                captionInput.style.padding = '4px 8px';
+                captionInput.style.border = '1px solid rgba(255,255,255,0.35)';
+                captionInput.style.borderRadius = '4px';
+                captionInput.style.backgroundColor = '#fff';
+                captionInput.style.fontSize = '12px';
+                captionInput.addEventListener('input', function () {
+                    setImageCaption(activeImage, captionInput.value);
+                    triggerEditorUpdate();
+                });
+                toolbar.appendChild(captionInput);
                 
                 document.body.appendChild(toolbar);
                 
@@ -745,10 +784,14 @@
                     }
                 }
                 
+                overlayPositionUpdater = updateOverlayPosition;
                 updateOverlayPosition();
                 
                 window.addEventListener('scroll', updateOverlayPosition, { passive: true });
                 window.addEventListener('resize', updateOverlayPosition, { passive: true });
+                if (overlayScrollContainer) {
+                    overlayScrollContainer.addEventListener('scroll', updateOverlayPosition, { passive: true });
+                }
                 
                 setTimeout(updateOverlayPosition, 10);
             }
@@ -771,14 +814,7 @@
                 }
                 
                 setTimeout(() => {
-                    if (!activeImage) return;
-                    const rect = activeImage.getBoundingClientRect();
-                    overlay.style.top = (window.scrollY + rect.top) + 'px';
-                    overlay.style.left = (window.scrollX + rect.left) + 'px';
-                    overlay.style.width = rect.width + 'px';
-                    overlay.style.height = rect.height + 'px';
-                    toolbar.style.top = (window.scrollY + rect.top - 45) + 'px';
-                    toolbar.style.left = (window.scrollX + rect.left + (rect.width - toolbar.offsetWidth) / 2) + 'px';
+                    if (overlayPositionUpdater) overlayPositionUpdater();
                 }, 50);
                 
                 triggerEditorUpdate();
@@ -828,7 +864,45 @@
                 }
             }
 
+            function getImageCaption(image) {
+                const imageBlock = image?.parentElement?.matches('p') ? image.parentElement : image;
+                const caption = imageBlock?.nextElementSibling;
+
+                return caption?.matches('div.ql-image-caption') ? caption : null;
+            }
+
+            function setImageCaption(image, value) {
+                if (!image) return;
+
+                const text = value.trim();
+                const imageBlock = image.parentElement?.matches('p') ? image.parentElement : image;
+                let caption = getImageCaption(image);
+
+                if (!text) {
+                    caption?.remove();
+                    return;
+                }
+
+                if (!caption) {
+                    caption = document.createElement('div');
+                    caption.className = 'ql-image-caption';
+                    imageBlock.insertAdjacentElement('afterend', caption);
+                }
+
+                caption.textContent = text;
+                image.closest('.catalog-quill')?.__quill?.update('user');
+            }
+
             function removeOverlay() {
+                if (overlayPositionUpdater) {
+                    window.removeEventListener('scroll', overlayPositionUpdater);
+                    window.removeEventListener('resize', overlayPositionUpdater);
+                    if (overlayScrollContainer) {
+                        overlayScrollContainer.removeEventListener('scroll', overlayPositionUpdater);
+                    }
+                }
+                overlayPositionUpdater = null;
+                overlayScrollContainer = null;
                 activeImage = null;
                 if (overlay) {
                     overlay.remove();

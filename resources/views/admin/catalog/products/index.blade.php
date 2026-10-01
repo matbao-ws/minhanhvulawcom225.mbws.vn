@@ -113,8 +113,8 @@
                                                 <i class="ti ti-grip-vertical fs-5"></i>
                                             </span>
                                         @endunless
-                                        <img src="{{ $product->image_url ?: asset('images/icons/default-product.png') }}"
-                                             onerror="this.src='{{ asset('images/icons/default-product.png') }}'"
+                                        <img src="{{ $product->image_url ?: asset('admin-assets/images/icons/empty-sanpham.png') }}"
+                                             onerror="this.onerror=null;this.src='{{ asset('admin-assets/images/icons/empty-sanpham.png') }}'"
                                              alt="{{ $product->name }}"
                                              class="rounded-2 object-fit-cover"
                                              width="50" height="50"

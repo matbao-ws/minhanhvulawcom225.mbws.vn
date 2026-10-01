@@ -9,6 +9,7 @@
     @endif
     <link rel="stylesheet" href="{{ asset('client-assets/css/storefront.css') }}">
     @stack('styles')
+    @include('client.partials.google-analytics')
 </head>
 <body>
     {{-- Header and footer are rendered from the Menu admin and site settings.

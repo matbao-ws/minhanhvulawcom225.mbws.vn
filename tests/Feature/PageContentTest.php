@@ -43,7 +43,7 @@ class PageContentTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/vi/admin/pages/create')
             ->assertOk()
-            ->assertSee('Thêm trang')
+            ->assertSee('Tạo trang chính sách')
             ->assertSee('Tiêu đề')
             ->assertSee('SEO title')
             ->assertSee('aria-label="breadcrumb"', false)
@@ -113,7 +113,7 @@ class PageContentTest extends TestCase
     public function test_published_client_page_only_shows_edit_bar_to_authorized_admin(): void
     {
         $page = $this->publishedPage();
-        $clientUrl = '/vi/pages/'.$page->canonicalSlug('vi');
+        $clientUrl = '/vi/chinh-sach/'.$page->canonicalSlug('vi');
 
         $this->get($clientUrl)
             ->assertOk()
@@ -267,7 +267,7 @@ class PageContentTest extends TestCase
             'is_active' => false,
         ]);
 
-        $this->get('/vi/pages/'.$draft->slug)->assertNotFound();
+        $this->get('/vi/chinh-sach/'.$draft->slug)->assertNotFound();
 
         $published = Page::query()->create([
             'title' => ['vi' => 'Trang đang hoạt động'],
@@ -282,7 +282,7 @@ class PageContentTest extends TestCase
             ->update(['is_enabled' => false]);
 
         $this->actingAs($this->admin)
-            ->get('/vi/pages/'.$published->slug)
+            ->get('/vi/chinh-sach/'.$published->slug)
             ->assertNotFound();
     }
 
@@ -306,14 +306,14 @@ class PageContentTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get('/vi/pages/chinh-sach')
+            ->get('/vi/chinh-sach/chinh-sach')
             ->assertOk()
             ->assertSee('Nhập nội dung trang tại đây.')
             ->assertSee('data-client-editable-root', false);
 
         $this->app['auth']->logout();
 
-        $this->get('/vi/pages/chinh-sach')
+        $this->get('/vi/chinh-sach/chinh-sach')
             ->assertOk()
             ->assertDontSee('Nhập nội dung trang tại đây.')
             ->assertDontSee('data-client-editable-root', false);
@@ -329,7 +329,7 @@ class PageContentTest extends TestCase
         $page = $this->publishedPage();
 
         $this->actingAs($this->admin)
-            ->get('/vi/pages/gioi-thieu')
+            ->get('/vi/chinh-sach/gioi-thieu')
             ->assertOk()
             ->assertSee('Trang giới thiệu')
             ->assertDontSee('Nhập nội dung trang tại đây.');
@@ -441,6 +441,65 @@ class PageContentTest extends TestCase
             'is_active' => true,
             'published_at' => now(),
         ]);
+    }
+
+    public function test_admin_form_saves_policy_content_for_the_submitted_locale_only(): void
+    {
+        $this->actingAs($this->admin);
+        $this->post('/vi/admin/pages', $this->payload())->assertRedirect();
+        $page = Page::query()->firstOrFail();
+        $page->update(['published_html' => ['vi' => '<section class="hero"><h1>Cũ</h1></section>', 'en' => '<p>English</p>']]);
+
+        $updated = $this->payload();
+        $updated['published_html'] = ['vi' => '<h2>Chính sách đổi trả</h2><p onclick="x()">Trong 7 ngày.</p><script>alert(1)</script>'];
+        $this->put("/vi/admin/pages/{$page->id}", $updated)->assertRedirect();
+
+        $page->refresh();
+        $this->assertSame('<h2>Chính sách đổi trả</h2><p>Trong 7 ngày.</p>', $page->getTranslation('published_html', 'vi', false));
+        $this->assertSame('<p>English</p>', $page->getTranslation('published_html', 'en', false));
+    }
+
+    public function test_admin_form_save_without_touching_the_editor_keeps_stored_content(): void
+    {
+        $this->actingAs($this->admin);
+        $this->post('/vi/admin/pages', $this->payload())->assertRedirect();
+        $page = Page::query()->firstOrFail();
+        $page->update(['published_html' => ['vi' => '<section class="hero"><h1>Giữ nguyên</h1></section>']]);
+
+        $this->put("/vi/admin/pages/{$page->id}", $this->payload())->assertRedirect();
+
+        $this->assertSame('<section class="hero"><h1>Giữ nguyên</h1></section>', $page->fresh()->getTranslation('published_html', 'vi', false));
+    }
+
+    public function test_admin_form_can_empty_a_locale(): void
+    {
+        $this->actingAs($this->admin);
+        $this->post('/vi/admin/pages', $this->payload())->assertRedirect();
+        $page = Page::query()->firstOrFail();
+        $page->update(['published_html' => ['vi' => '<p>Có nội dung</p>']]);
+
+        $updated = $this->payload();
+        $updated['published_html'] = ['vi' => ''];
+        $this->put("/vi/admin/pages/{$page->id}", $updated)->assertRedirect();
+
+        $this->assertSame('', $page->fresh()->getTranslation('published_html', 'vi', false));
+    }
+
+    public function test_page_form_renders_the_content_editor(): void
+    {
+        $this->actingAs($this->admin)
+            ->get('/vi/admin/pages/create')
+            ->assertOk()
+            ->assertSee('name="published_html[vi]"', false)
+            ->assertSee('quill.min.js', false)
+            ->assertDontSee('page-open-inline-editor', false);
+    }
+
+    public function test_old_pages_path_redirects_permanently_to_policy_path(): void
+    {
+        $this->get('/vi/pages/chinh-sach-bao-mat')
+            ->assertStatus(301)
+            ->assertRedirect('/vi/chinh-sach/chinh-sach-bao-mat');
     }
 
     private function payload(): array

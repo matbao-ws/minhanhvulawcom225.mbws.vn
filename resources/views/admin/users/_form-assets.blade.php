@@ -61,6 +61,23 @@
                 });
             }
 
+            const passwordInput = document.getElementById('password');
+            const togglePasswordButton = document.getElementById('toggle-user-password');
+            if (passwordInput && togglePasswordButton) {
+                togglePasswordButton.addEventListener('click', function() {
+                    const isHidden = passwordInput.type === 'password';
+                    passwordInput.type = isHidden ? 'text' : 'password';
+
+                    const label = isHidden
+                        ? "{{ __('admin.users.fields.hide_password') }}"
+                        : "{{ __('admin.users.fields.show_password') }}";
+                    togglePasswordButton.setAttribute('aria-label', label);
+                    togglePasswordButton.setAttribute('title', label);
+                    togglePasswordButton.querySelector('i')?.classList.toggle('ti-eye', !isHidden);
+                    togglePasswordButton.querySelector('i')?.classList.toggle('ti-eye-off', isHidden);
+                });
+            }
+
             // Intercept link clicks
             document.querySelectorAll('a').forEach(function(link) {
                 link.addEventListener('click', function(e) {

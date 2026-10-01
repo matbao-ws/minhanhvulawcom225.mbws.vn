@@ -421,13 +421,13 @@
                                       </a>
                                   </li>
                                   @endcan
-                                  @can('languages.view')
+                                  @if($sidebarFeatures->availableTo($sidebarUser, 'multilingual') && $sidebarUser?->can('languages.view'))
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.languages.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.content_languages') }}
                                       </a>
                                   </li>
-                                  @endcan
+                                  @endif
                                   @if($sidebarUser?->isSuperAdmin())
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.features.index') }}">

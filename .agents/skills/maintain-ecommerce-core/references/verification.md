@@ -20,7 +20,7 @@ Always inspect the production-targeted migration semantics separately.
 | Change | Minimum focused verification |
 |---|---|
 | Auth/session/token | `AdminAuthTest`, `PublicApiTest`, `SecurityHardeningTest` |
-| Roles/permissions/features | `RoleCrudTest`, `UserControllerTest`, `FeatureGateAndSuperadminTest` |
+| Roles/permissions/features | `RoleCrudTest`, `UserControllerTest`, `FeatureGateAndSuperadminTest`, `FeatureDisablesAdminScreensTest`, `PackageSyncTest`, `PackageLimitsTest` |
 | Catalog/variants | `CatalogCrudTest`, `VariantV2Test`, `ProductUploadAndMediaTest` |
 | Promotions/vouchers | `PromotionTest`, voucher test files |
 | Checkout/orders/stock | `PublicApiTest`, `OrderLifecycleTest`, `OrderCrudTest` |

@@ -16,6 +16,9 @@
         'multi_admin' => 'ti ti-users-group',
         'inventory_log' => 'ti ti-clipboard-list',
         'cms_page' => 'ti ti-article',
+        'product_variant' => 'ti ti-versions',
+        'payment_vnpay' => 'ti ti-qrcode',
+        'multilingual' => 'ti ti-language',
     ];
     $icon = $iconMap[$feature->feature_code] ?? 'ti ti-apps';
     
@@ -33,6 +36,9 @@
         'multi_admin' => 'bg-success-subtle text-success',
         'inventory_log' => 'bg-danger-subtle text-danger',
         'cms_page' => 'bg-secondary-subtle text-secondary',
+        'product_variant' => 'bg-primary-subtle text-primary',
+        'payment_vnpay' => 'bg-success-subtle text-success',
+        'multilingual' => 'bg-info-subtle text-info',
     ];
     $colorClass = $colorMap[$feature->feature_code] ?? 'bg-light text-dark';
 @endphp
@@ -57,6 +63,13 @@
                 </div>
 
                 <h5 class="fw-bold text-dark mb-2">{{ $displayName }}</h5>
+                @if($feature->package_enabled !== null)
+                    <div class="d-flex align-items-center gap-2 mb-2" data-feature-source="{{ $feature->feature_code }}">
+                        <span class="badge bg-warning-subtle text-warning {{ $feature->is_overridden ? '' : 'd-none' }}" data-source-override>{{ __('admin.package.badge_override') }}</span>
+                        <button type="submit" form="feature-reset-form" name="feature_code" value="{{ $feature->feature_code }}" class="btn btn-link btn-sm p-0 {{ $feature->is_overridden ? '' : 'd-none' }}" data-source-override>{{ __('admin.package.reset_one') }}</button>
+                        <span class="badge bg-primary-subtle text-primary {{ $feature->is_overridden ? 'd-none' : '' }}" data-source-package>{{ __('admin.package.badge_package') }}</span>
+                    </div>
+                @endif
                 <p class="text-muted small mb-4" style="min-height: 48px;">
                     {{ Lang::has("admin.features.subtitle_for_{$feature->feature_code}") ? __("admin.features.subtitle_for_{$feature->feature_code}") : '' }}
                 </p>

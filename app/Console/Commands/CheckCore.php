@@ -81,6 +81,8 @@ class CheckCore extends Command
             $this->components->twoColumnDetail('Foundation configuration', 'available');
         }
 
+        $this->reportPackage();
+
         $this->reportEditableCoverage();
 
         if ($hasErrors) {
@@ -90,6 +92,34 @@ class CheckCore extends Command
         $this->components->info('Admin core checks passed.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Which package the shop runs on. Read from the stored snapshot only: this
+     * command is read-only and must not call out to the internal tool.
+     * Reported, never fatal — manual feature control is a valid setup.
+     */
+    private function reportPackage(): void
+    {
+        if (! app(\App\Services\Packages\PackageInfo::class)->configured()) {
+            $this->components->twoColumnDetail('Service package', 'manual (PACKAGE_INFO_DOMAIN not set)');
+
+            return;
+        }
+
+        $package = app(\App\Services\Packages\PackageSync::class)->snapshot();
+
+        if ($package === null) {
+            $this->components->warn('No package synced yet for '.config('packages.domain').'. Run "php artisan package:sync".');
+
+            return;
+        }
+
+        $this->components->twoColumnDetail('Service package', $package['code'].' — '.$package['name']);
+
+        if (! ($package['plan_known'] ?? false)) {
+            $this->components->warn('Package '.$package['code'].' has no entry in config/packages.php; features are not managed by the package.');
+        }
     }
 
     /**
