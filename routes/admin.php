@@ -72,6 +72,43 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
+    // AI SEO Copilot. Applying also checks the record's own update permission (MetaSuggestionService).
+    Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
+        Route::post('meta-suggestions', [\App\Http\Controllers\Admin\AiMetaController::class, 'suggest'])
+            ->middleware('throttle:admin-ai')->name('meta.suggest');
+        Route::post('meta-suggestions/{suggestion}/apply', [\App\Http\Controllers\Admin\AiMetaController::class, 'apply'])
+            ->whereNumber('suggestion')->name('meta.apply');
+        Route::post('meta-suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\AiMetaController::class, 'reject'])
+            ->whereNumber('suggestion')->name('meta.reject');
+        Route::post('content-edits', [\App\Http\Controllers\Admin\AiContentController::class, 'suggest'])
+            ->middleware('throttle:admin-ai')->name('content.suggest');
+        Route::post('content-edits/{suggestion}/apply', [\App\Http\Controllers\Admin\AiContentController::class, 'apply'])
+            ->whereNumber('suggestion')->name('content.apply');
+        Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
+            ->whereNumber('suggestion')->name('content.reject');
+
+        // FAQ, alt text, SEO fixes, product descriptions (AiToolsController).
+        Route::controller(\App\Http\Controllers\Admin\AiToolsController::class)->group(function () {
+            Route::post('faq', 'faqSuggest')->middleware('throttle:admin-ai')->name('faq.suggest');
+            Route::post('faq/{suggestion}/apply', 'faqApply')->whereNumber('suggestion')->name('faq.apply');
+            Route::post('alt/missing', 'altMissing')->name('alt.missing');
+            Route::post('alt', 'altSuggest')->middleware('throttle:admin-ai')->name('alt.suggest');
+            Route::post('alt/{suggestion}/apply', 'altApply')->whereNumber('suggestion')->name('alt.apply');
+            Route::post('seo-fixes', 'seoSuggest')->middleware('throttle:admin-ai')->name('seo.suggest');
+            Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->name('seo.apply');
+            Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
+            Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->name('product.apply');
+            Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
+        });
+
+        Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
+            Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');
+            // A draft is a new post: it counts against the package's data units like any other.
+            Route::post('post-drafts', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'store'])
+                ->middleware(['package.limit:data_unit', 'throttle:admin-ai'])->name('post-drafts.store');
+        });
+    });
+
     Route::middleware('can:media.view')->group(function () {
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
         Route::get('media/resources', [MediaController::class, 'resources'])->name('media.resources');

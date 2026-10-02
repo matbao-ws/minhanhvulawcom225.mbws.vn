@@ -19,4 +19,7 @@ return [
 
     // Seconds. The gateway answers from its own cache most of the time.
     'timeout' => (int) env('MATBAO_AI_TIMEOUT', 15),
+
+    // Seconds for one AI task; the model alone may use most of the gateway's 30 s.
+    'task_timeout' => (int) env('MATBAO_AI_TASK_TIMEOUT', 45),
 ];

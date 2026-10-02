@@ -44,6 +44,8 @@ class PermissionRegistry
         'media' => ['group' => 'system', 'label' => 'Thư viện tệp', 'actions' => ['view', 'create', 'delete']],
         'activity_logs' => ['group' => 'system', 'label' => 'Nhật ký hoạt động', 'actions' => ['view']],
         'translations' => ['group' => 'system', 'label' => 'Dịch nội dung tự động', 'actions' => ['use']],
+        // Asking for suggestions; applying one still needs the record's own update permission.
+        'ai' => ['group' => 'marketing', 'label' => 'Trợ lý AI SEO', 'actions' => ['use']],
     ];
 
     /** @var array<string, string> */

@@ -41,7 +41,9 @@
                                  Quill, which would flatten markup saved by the storefront editor. --}}
                             <textarea class="d-none" name="published_html[{{ $code }}]" id="page-html-{{ $code }}" @disabled(old("published_html.$code") === null)>{{ $html }}</textarea>
                             <div class="page-quill" data-target="page-html-{{ $code }}" data-placeholder="Nhập nội dung chính sách..." style="min-height:360px">{!! app(\App\Support\PageHtmlSanitizer::class)->clean($html) !!}</div>
+                            @include('admin.shared.ai-edit-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'target' => "page-html-$code"])
                         </div>
+                        <div class="col-12">@include('admin.shared.ai-meta-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'titleField' => "meta_title[$code]", 'descriptionField' => "meta_description[$code]"])</div>
                         <div class="col-md-6 mb-3"><label class="form-label">SEO title</label><input class="form-control" name="meta_title[{{ $code }}]" value="{{ old("meta_title.$code", $page->getTranslation('meta_title', $code, false)) }}"></div>
                         <div class="col-md-6 mb-3"><label class="form-label">SEO description</label><input class="form-control" name="meta_description[{{ $code }}]" value="{{ old("meta_description.$code", $page->getTranslation('meta_description', $code, false)) }}"></div>
                     </div>

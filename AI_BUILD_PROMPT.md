@@ -306,6 +306,30 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   `AnalyticsUnavailable`, không bao giờ đưa nguyên văn lỗi Google ra UI; token gateway không log, không
   in ra (`analytics:check`). gtag không gắn cho nhân viên (`role_id`), khung preview
   (`client_chrome=off`) hoặc khi feature `analytics` tắt.
+- AI SEO Copilot (feature `ai_seo`, quyền `ai.use`): AI chỉ **đề xuất** qua gateway (`GatewayClient::task()`,
+  luôn kèm `Idempotency-Key`); website tự dựng đầu vào từ record — trình duyệt chỉ gửi loại + id — và chỉ gửi nội
+  dung công khai dạng text, không bao giờ gửi dữ liệu khách mua hàng. Đề xuất lưu ở `ai_suggestions` cùng giá trị
+  cũ; chỉ ghi khi admin bấm Áp dụng, cần thêm quyền update của chính record, chỉ ghi đúng các trường SEO của
+  locale đó, và từ chối (409) nếu trường đã bị sửa từ lúc đề xuất. Áp dụng ghi `ActivityLogger` và báo sự kiện
+  (`applied`/`applied_after_edit` + `edit_distance`/`rejected`) về gateway; lỗi báo sự kiện không bao giờ chặn
+  việc áp dụng. Thêm loại record = thêm vào `MetaSuggestionService::ENTITIES`, không viết luồng ghi riêng.
+  **AI biên tập** (`ContentEditService`) gửi bản nội dung **đã lưu**, chạy kết quả qua đúng sanitizer của record
+  (Page: `PageHtmlSanitizer`, còn lại `HtmlSanitizer`) trước khi hiển thị, và **loại bỏ** kết quả nếu danh sách
+  `href`/`src` khác bản gốc — AI không được thêm, bỏ hay đổi link/ảnh. Page ghi qua
+  `PageContentService::updateLocale()` (revision); suggestion của luồng này không áp dụng được qua endpoint meta và
+  ngược lại.
+  **Viết bài bằng AI** (`PostDraftService`, `admin.ai.post-drafts.*`): chỉ nhận brief có đủ thông tin doanh nghiệp
+  + ý chính (hoặc ghi chú của chủ shop) — không viết từ một từ khoá; luôn tạo bài **chưa đăng**
+  (`is_active=false`), bỏ mọi link/ảnh AI tự thêm rồi qua `HtmlSanitizer`, đi qua `package.limit:data_unit` như tạo
+  bài thường. Trang sửa bài hiện "thông tin còn thiếu / câu cần kiểm chứng" tới khi bài được đăng. AI không bao giờ
+  tự đăng bài.
+  **FAQ** (`FaqService`) nối phần hỏi–đáp vào cuối nội dung, mọi chữ được escape. **Alt ảnh** (`AltTextService`) chỉ đọc
+  ảnh từ disk `public` của site hoặc Cloudinary của chính site rồi gửi bytes — không bao giờ tải URL lạ (SSRF); chặn
+  xung đột theo từng ảnh. **Sửa theo điểm SEO** (`SeoFixService`, chỉ bài viết): `PostSeoAnalyzer` quyết định quy tắc nào
+  trượt, điểm trước/sau do code tính lại; đoạn mở bài sửa không được đổi link/ảnh. **Mô tả sản phẩm**
+  (`ProductDescriptionService`) gửi tên, danh mục, thương hiệu, thuộc tính, mô tả ngắn — **không gửi giá/tồn kho**.
+  Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
+  meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.

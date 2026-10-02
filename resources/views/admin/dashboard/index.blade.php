@@ -274,6 +274,8 @@
         @include('admin.dashboard._analytics')
     @endif
 
+    @include('admin.dashboard._ai-usage')
+
     @if(!$canViewOrders)
         <div class="card shadow-sm">
             <div class="card-body p-4">

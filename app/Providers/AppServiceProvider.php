@@ -77,6 +77,18 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
         });
 
+        // Shown to staff who can use AI; the gateway is asked at most every five minutes.
+        view()->composer('admin.dashboard._ai-usage', function ($view) {
+            $user = auth()->user();
+            $visible = $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo');
+            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(\App\Services\AiGateway\AiUsage::class)->current() : null]);
+        });
+
+        view()->composer('admin.shared.ai-draft-review', function ($view) {
+            $post = $view->getData()['post'] ?? null;
+            $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);
+        });
+
         view()->composer('client.partials.google-analytics', function ($view) {
             $id = null;
 
@@ -111,6 +123,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by($request->ip()),
             Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
         ]);
+        // Each request spends an AI credit; the gateway enforces the monthly quota itself.
+        RateLimiter::for('admin-ai', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->user()?->id ?: $request->ip())));
+
         RateLimiter::for('admin-translation', fn (Request $request) => [
             Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip())),
             Limit::perDay(500)->by((string) ($request->user()?->id ?: $request->ip())),
