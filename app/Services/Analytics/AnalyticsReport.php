@@ -37,7 +37,7 @@ class AnalyticsReport
     public function __construct(private readonly GatewayClient $gateway) {}
 
     /**
-     * @return array{measurement_id: string|null, property_id: string|null}
+     * @return array{measurement_id: string|null, property_id: string|null, gsc_site_url: string|null}
      */
     public function settings(): array
     {
@@ -47,6 +47,8 @@ class AnalyticsReport
         return [
             'measurement_id' => filled($value['measurement_id'] ?? null) ? (string) $value['measurement_id'] : null,
             'property_id' => filled($value['property_id'] ?? null) ? (string) $value['property_id'] : null,
+            // Search Console property: https://…/ (URL prefix) or sc-domain:example.com.
+            'gsc_site_url' => filled($value['gsc_site_url'] ?? null) ? (string) $value['gsc_site_url'] : null,
         ];
     }
 
@@ -63,6 +65,7 @@ class AnalyticsReport
             ['setting_value' => [
                 'measurement_id' => filled($settings['measurement_id'] ?? null) ? strtoupper(trim($settings['measurement_id'])) : null,
                 'property_id' => filled($settings['property_id'] ?? null) ? trim($settings['property_id']) : null,
+                'gsc_site_url' => filled($settings['gsc_site_url'] ?? null) ? trim($settings['gsc_site_url']) : null,
             ]],
         );
 
@@ -71,7 +74,7 @@ class AnalyticsReport
         // Best effort: the settings form must save even when the gateway is down;
         // report() re-sends the ID the first time the gateway does not know it.
         try {
-            $this->pushPropertyId();
+            $this->pushConnections();
         } catch (GatewayUnavailable $e) {
             Log::warning('Could not hand the GA4 property to the gateway.', ['reason' => $e->reason]);
         }
@@ -201,7 +204,7 @@ class AnalyticsReport
                     throw $e;
                 }
 
-                $this->pushPropertyId();
+                $this->pushConnections();
 
                 return $call();
             }
@@ -213,13 +216,15 @@ class AnalyticsReport
     /**
      * @throws GatewayUnavailable
      */
-    private function pushPropertyId(): void
+    public function pushConnections(): void
     {
         if (! $this->gateway->configured()) {
             return;
         }
 
-        $this->gateway->put('v1/project/connections', ['ga4_property_id' => $this->settings()['property_id']]);
+        $settings = $this->settings();
+        // The gateway reads both properties; it is told about both together.
+        $this->gateway->put('v1/project/connections', ['ga4_property_id' => $settings['property_id'], 'gsc_site_url' => $settings['gsc_site_url']]);
         GatewayClient::forgetProject();
     }
 

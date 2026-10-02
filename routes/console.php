@@ -12,3 +12,6 @@ Schedule::command('vouchers:expire')->dailyAt('00:10')->withoutOverlapping();
 
 // Also refreshed lazily from admin requests, for hosting without a cron.
 Schedule::command('package:sync')->hourly()->withoutOverlapping();
+
+// Before the gateway's Search Console sync (03:00) reads it.
+Schedule::command('ai:site-index')->dailyAt('02:30')->withoutOverlapping();

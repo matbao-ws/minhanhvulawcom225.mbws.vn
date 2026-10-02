@@ -160,7 +160,7 @@
 @endpush
 
 @push('scripts')
-    <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/select2/dist/js/select2.full.min.js') }}"></script>
     <script>

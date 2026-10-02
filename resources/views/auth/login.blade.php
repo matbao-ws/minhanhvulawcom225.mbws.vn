@@ -7,8 +7,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="{{ $siteBranding['favicon_url'] }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/css/styles.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/css/core-controls.css') }}">
+    <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/core-controls.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -188,9 +188,9 @@
 
     <script src="{{ asset('admin-assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/simplebar/dist/simplebar.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/js/theme/app.init.js') }}"></script>
-    <script src="{{ asset('admin-assets/js/theme/theme.js') }}"></script>
-    <script src="{{ asset('admin-assets/js/theme/app.min.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/theme/app.init.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/theme/theme.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/theme/app.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
     @include('admin.layouts.toast')

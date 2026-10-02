@@ -86,6 +86,7 @@ class SettingController extends Controller
             'embed_footer' => 'nullable|string',
             'google_analytics.measurement_id' => ['nullable', 'string', 'max:30', 'regex:/^G-[A-Z0-9]+$/i'],
             'google_analytics.property_id' => ['nullable', 'string', 'regex:/^\d{4,20}$/'],
+            'google_analytics.gsc_site_url' => ['nullable', 'string', 'max:255', 'regex:/^(https?:\/\/\S+|sc-domain:[a-z0-9.-]+)$/i'],
         ];
 
         if ($request->user()?->isSuperAdmin()) {
@@ -117,6 +118,7 @@ class SettingController extends Controller
         $validated = $request->validate($rules, [
             'google_analytics.measurement_id.regex' => __('admin.analytics.invalid_measurement_id'),
             'google_analytics.property_id.regex' => __('admin.analytics.invalid_property_id'),
+            'google_analytics.gsc_site_url.regex' => __('admin.analytics.invalid_gsc_site_url'),
         ]);
 
         // Update basic and nested JSON columns

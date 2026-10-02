@@ -790,11 +790,21 @@
                                        value="{{ old('google_analytics.property_id', $analyticsSettings['property_id']) }}" placeholder="987654321" maxlength="20">
                                 <div class="form-text">{{ __('admin.analytics.property_id_help') }}</div>
                             </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold text-dark" for="gsc_site_url">{{ __('admin.analytics.gsc_site_url') }}</label>
+                                <input type="text" class="form-control text-dark font-monospace" id="gsc_site_url" name="google_analytics[gsc_site_url]"
+                                       value="{{ old('google_analytics.gsc_site_url', $analyticsSettings['gsc_site_url'] ?? '') }}" placeholder="sc-domain:example.com" maxlength="255">
+                                <div class="form-text">{{ __('admin.analytics.gsc_site_url_help') }}</div>
+                            </div>
                         </div>
 
                         @if($analyticsServiceEmail)
                             <div class="d-flex flex-wrap align-items-center gap-3">
                                 <x-admin.action-button variant="outline-primary" icon="plug-connected" data-ga-check="{{ route('admin.settings.analytics.check') }}">{{ __('admin.analytics.check') }}</x-admin.action-button>
+                                <span class="small" data-ga-check-result role="status"></span>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+                                <x-admin.action-button variant="outline-primary" icon="brand-google" data-ga-check="{{ route('admin.settings.search-console.check') }}">{{ __('admin.analytics.gsc_check') }}</x-admin.action-button>
                                 <span class="small" data-ga-check-result role="status"></span>
                             </div>
                         @endif
@@ -829,9 +839,9 @@
             });
 
             // Tests the saved IDs: save the form first when they were just changed.
-            const checkButton = document.querySelector('[data-ga-check]');
-            const checkResult = document.querySelector('[data-ga-check-result]');
-            checkButton?.addEventListener('click', async function () {
+            document.querySelectorAll('[data-ga-check]').forEach(function (checkButton) {
+            const checkResult = checkButton.parentElement.querySelector('[data-ga-check-result]');
+            checkButton.addEventListener('click', async function () {
                 checkButton.disabled = true;
                 checkResult.className = 'small text-muted';
                 checkResult.textContent = '…';
@@ -853,6 +863,7 @@
                 } finally {
                     checkButton.disabled = false;
                 }
+            });
             });
         });
     </script>
