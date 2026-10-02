@@ -74,6 +74,14 @@ Create a shared layout and use Blade composition:
 </html>
 ```
 
+Keep `<title>@yield('title')</title>` and the meta description in the theme's head; everything else a
+search engine or link preview reads (robots, canonical, hreflang, Open Graph, JSON-LD, Settings → Embed)
+comes from `@include('core.head')` / `@include('core.editor')`, so never write those tags yourself. Name
+the theme's product and post detail routes `client.products.show` and `client.posts.show` (with a
+`{slug}` parameter) so they join `sitemap.xml`, and pass `$seo` from `SeoMetaFactory::forProduct()` /
+`forPost()` in their controllers; page views set the title and description sections from `$seo`.
+Never copy the theme's `robots.txt` or `sitemap.xml` into `public/`; both are Laravel routes.
+
 Use Blade components or partials for repeated commerce markup. Use server-rendered loops for initial
 lists:
 

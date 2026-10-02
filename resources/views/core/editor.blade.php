@@ -10,6 +10,8 @@
      for a visitor and for the responsive preview frame — which loads this same URL with the
      editor suppressed, and would otherwise hold a second admin bar and a second owner of
      edit mode. Gating them here as well would be a second mechanism for one rule. --}}
+{{-- Settings → Embed footer code: for every visitor, not only editors. --}}
+@include('core.partials.embed-footer')
 @include('core.partials.admin-bar')
 @include('core.partials.inline-blocks')
 @include('core.partials.inline-outline')

@@ -1,11 +1,12 @@
 @extends('client.layouts.app')
 
-@section('title', $metaTitle ?: $title)
+{{-- $seo (SeoMetaFactory) holds the cleaned title and description the search tags use too. --}}
+@section('title', $seo->title)
 
 {{-- Guarded: `@section($name, null)` makes Blade open an output buffer it never
      closes, because a null body means "the section content follows". --}}
-@if($metaDescription)
-    @section('meta_description', $metaDescription)
+@if($seo->description)
+    @section('meta_description', $seo->description)
 @endif
 
 @php($editing = \App\Support\ClientEditorChrome::editorActive())

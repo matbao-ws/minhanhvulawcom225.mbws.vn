@@ -552,6 +552,39 @@ Kiểm kê toàn bộ theme/
 - Nếu không có `theme/` và không có storefront hiện hữu, không tự phát minh giao diện.
 - Chỉ loại bỏ mock data sau khi phần API tương ứng được kiểm chứng.
 
+### SEO storefront
+
+- Thẻ SEO đến từ `@include('core.head')` (partial `core.partials.seo-head`): `robots`, canonical,
+  hreflang, Open Graph/Twitter, JSON-LD `Organization` và mã **Cài đặt → Embed** phần header. Phần
+  footer của Embed đến từ `@include('core.editor')`. Layout theme **không** include partial SEO nào
+  khác và không có composer riêng: mọi thứ nằm sau hai dòng `core.*`, nên site đang chạy nhận bản
+  sửa qua cập nhật core (`resources/views/client/**` thuộc website, cập nhật không bao giờ chạm tới).
+- `<title>` và meta description vẫn do layout theme in (`@yield('title')`,
+  `@yield('meta_description')`): theme cắt trước khi có partial này đã in chúng, và hai thẻ
+  `<title>` còn tệ hơn không có. Page Blade đặt hai section này từ `$seo->title` / `$seo->description`.
+- Controller storefront truyền `$seo`:
+  - trang có record + route `{locale}/…/{slug}`: `SeoMetaFactory::forRecord()`;
+  - **trang chi tiết sản phẩm của theme**: `SeoMetaFactory::forProduct($product)` với sản phẩm lấy từ
+    `ProductQueryService::findActiveDetail()` — có JSON-LD `Product` (giá/`AggregateOffer` theo biến
+    thể đang bán, còn hàng theo đúng luật tồn kho của checkout, `AggregateRating` chỉ từ review đang
+    hiện) và breadcrumb qua danh mục;
+  - **trang bài viết của theme**: `SeoMetaFactory::forPost($post)` — tôn trọng `seo_title`,
+    `seo_description`, `robots_index`/`robots_follow`, `canonical_url` của bài, JSON-LD `Article`.
+  Trang không truyền `$seo` vẫn có thẻ, dựng từ hai section trên. Không tự viết canonical, hreflang
+  hay `robots` trong page Blade.
+- Route chi tiết của theme đặt tên `client.products.show` / `client.posts.show` với tham số `{slug}`:
+  khi đó chúng có canonical/hreflang đúng và tự vào `sitemap.xml`. Đặt tên khác thì trang vẫn có thẻ
+  (canonical là URL đang mở) nhưng không vào sitemap.
+- Chỉ **production** được index (`SeoMetaFactory::indexable()`): staging/local trả `noindex` trong
+  meta và `Disallow: /` trong `robots.txt`.
+- JSON-LD chỉ dựng từ dữ liệu có thật qua `App\Support\Seo\StructuredData`, in bằng
+  `StructuredData::script()` (escape `<`/`>` để tên shop không đóng được thẻ `<script>`). Không bịa
+  rating, giá hay tồn kho cho schema; sản phẩm giá 0 ("liên hệ") không có `offers`.
+- `robots.txt` và `sitemap.xml` là route Laravel (`SeoFileController`, `SitemapService`, view
+  `core.seo.sitemap`). **Không đặt file cùng tên trong `public/`** — web server trả file tĩnh trước
+  khi tới Laravel. `public/robots.txt` thuộc website nên cập nhật core không xoá nó: site cài trước
+  bản này phải xoá tay một lần. Sitemap cache 1 giờ (`SitemapService::flush()`).
+
 ### Sửa trực tiếp trên storefront
 
 Core **không có** page builder kéo-thả. Tính năng đó đã bị loại bỏ cùng GrapesJS,
