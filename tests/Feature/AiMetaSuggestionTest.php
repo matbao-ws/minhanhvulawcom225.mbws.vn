@@ -171,7 +171,9 @@ class AiMetaSuggestionTest extends TestCase
     public function test_the_feature_switch_closes_the_endpoints_and_hides_the_button(): void
     {
         $this->actingAs($this->editor)->get("/vi/admin/products/{$this->product->id}/edit")
-            ->assertOk()->assertSee('js-ai-meta-suggest', false);
+            ->assertOk()->assertSee('js-ai-meta-suggest', false)
+            // The button's fetch() sends this token; without the tag every click was a 419.
+            ->assertSee('<meta name="csrf-token" content="'.csrf_token().'">', false);
 
         FeatureSetting::query()->where('feature_code', 'ai_seo')->update(['is_enabled' => false]);
 
