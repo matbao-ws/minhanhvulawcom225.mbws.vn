@@ -183,6 +183,7 @@ return [
         'gsc_connected' => 'Search Console connected (permission: :permission).',
         'gsc_not_connected' => 'Save the Search Console site URL first.',
         'gsc_no_access' => 'The robot e-mail has not been added to this Search Console property.',
+        'gsc_api_disabled' => 'MatBao\'s Search Console service is not enabled yet. Please contact support.',
         'gsc_not_found' => 'This property was not found in Search Console. Check the site URL.',
         'step_1' => 'Create (or open) a GA4 property for the website and add a web data stream for its domain.',
         'step_2' => 'In Admin → Property access management, add this email with the Viewer role:',

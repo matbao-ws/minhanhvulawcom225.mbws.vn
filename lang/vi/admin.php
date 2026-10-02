@@ -186,6 +186,7 @@ return [
         'gsc_connected' => 'Đã kết nối Search Console (quyền: :permission).',
         'gsc_not_connected' => 'Lưu Site URL Search Console trước.',
         'gsc_no_access' => 'Email robot chưa được thêm vào thuộc tính Search Console này.',
+        'gsc_api_disabled' => 'Dịch vụ Search Console của Mắt Bão chưa được kích hoạt. Vui lòng liên hệ bộ phận hỗ trợ.',
         'gsc_not_found' => 'Không tìm thấy thuộc tính này trong Search Console. Kiểm tra lại Site URL.',
         'step_1' => 'Tạo (hoặc mở) thuộc tính GA4 cho website và thêm luồng dữ liệu web với tên miền của site.',
         'step_2' => 'Trong Quản trị → Quản lý quyền truy cập thuộc tính, thêm email dưới đây với vai trò Người xem (Viewer):',

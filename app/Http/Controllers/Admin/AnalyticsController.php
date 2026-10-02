@@ -86,6 +86,7 @@ class AnalyticsController extends Controller
             $message = match ($e->reason) {
                 'no_access' => __('admin.analytics.gsc_no_access'),
                 'not_found' => __('admin.analytics.gsc_not_found'),
+                'api_disabled' => __('admin.analytics.gsc_api_disabled'),
                 'not_connected' => __('admin.analytics.gsc_not_connected'),
                 GatewayUnavailable::NOT_CONFIGURED, 'unauthorized', 'project_suspended' => __('admin.analytics.error.no_key'),
                 default => __('admin.analytics.error.google_error'),
