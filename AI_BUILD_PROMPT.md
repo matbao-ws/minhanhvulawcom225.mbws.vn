@@ -306,6 +306,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   `AnalyticsUnavailable`, không bao giờ đưa nguyên văn lỗi Google ra UI; token gateway không log, không
   in ra (`analytics:check`). gtag không gắn cho nhân viên (`role_id`), khung preview
   (`client_chrome=off`) hoặc khi feature `analytics` tắt.
+- AI SEO Copilot (feature `ai_seo`, quyền `ai.use`): AI chỉ **đề xuất** qua gateway (`GatewayClient::task()`,
+  luôn kèm `Idempotency-Key`); website tự dựng đầu vào từ record — trình duyệt chỉ gửi loại + id — và chỉ gửi nội
+  dung công khai dạng text, không bao giờ gửi dữ liệu khách mua hàng. Đề xuất lưu ở `ai_suggestions` cùng giá trị
+  cũ; chỉ ghi khi admin bấm Áp dụng, cần thêm quyền update của chính record, chỉ ghi đúng các trường SEO của
+  locale đó, và từ chối (409) nếu trường đã bị sửa từ lúc đề xuất. Áp dụng ghi `ActivityLogger` và báo sự kiện
+  (`applied`/`applied_after_edit` + `edit_distance`/`rejected`) về gateway; lỗi báo sự kiện không bao giờ chặn
+  việc áp dụng. Thêm loại record = thêm vào `MetaSuggestionService::ENTITIES`, không viết luồng ghi riêng.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.

@@ -111,6 +111,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by($request->ip()),
             Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
         ]);
+        // Each request spends an AI credit; the gateway enforces the monthly quota itself.
+        RateLimiter::for('admin-ai', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->user()?->id ?: $request->ip())));
+
         RateLimiter::for('admin-translation', fn (Request $request) => [
             Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip())),
             Limit::perDay(500)->by((string) ($request->user()?->id ?: $request->ip())),

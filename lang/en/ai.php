@@ -1,0 +1,38 @@
+<?php
+
+return [
+    'meta' => [
+        'button' => 'AI meta suggestions',
+        'title' => 'AI meta suggestions',
+        'loading' => 'The AI is reading the content and drafting suggestions…',
+        'current' => 'Current',
+        'empty' => '(empty)',
+        'option' => 'Option :number',
+        'meta_title' => 'SEO title',
+        'meta_description' => 'SEO description',
+        'focus_keyword' => 'Suggested focus keyword',
+        'apply' => 'Apply this option',
+        'reject' => 'Use none of these',
+        'applied' => 'Meta suggestion applied.',
+        'review_note' => 'The AI only proposes. You can edit the text first; nothing is saved until you click Apply.',
+        'save_first' => 'Save the record before asking for meta suggestions.',
+        'credits' => ':used/:limit AI credits used this month.',
+    ],
+    'errors' => [
+        'conflict' => 'The SEO title/description changed after the suggestion was made. Reload the page and ask again.',
+        'closed' => 'This suggestion was already handled or has expired.',
+        'option' => 'Invalid option.',
+        'not_configured' => 'This website is not connected to the MatBao AI service.',
+        'unreachable' => 'The AI service cannot be reached. Try again in a few minutes.',
+        'quota_exceeded' => 'This month\'s AI credits are used up. Contact MatBao to upgrade.',
+        'cost_cap_reached' => 'The website has reached its AI limit for this month.',
+        'too_many_failures' => 'Too many AI requests failed in a row. Try again in about an hour.',
+        'ai_disabled' => 'AI features are switched off for now.',
+        'refused' => 'The AI cannot process this content. Please review the page content.',
+        'input_too_large' => 'The content is too long for this task.',
+        'invalid_input' => 'There is not enough content for a suggestion. Add a title and content first.',
+        'project_suspended' => 'This website\'s service is suspended.',
+        'rate_limited' => 'Too many requests. Try again in a few minutes.',
+        'default' => 'The AI service is busy. Try again in a few minutes.',
+    ],
+];

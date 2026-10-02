@@ -19,6 +19,7 @@ return [
         'payment_vnpay',
         'multilingual',
         'analytics',
+        'ai_seo',
     ],
 
     'groups' => [
@@ -42,6 +43,7 @@ return [
             'multi_admin',
             'multilingual',
             'analytics',
+            'ai_seo',
         ],
     ],
 ];

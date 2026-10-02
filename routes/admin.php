@@ -72,6 +72,16 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
+    // AI SEO Copilot. Applying also checks the record's own update permission (MetaSuggestionService).
+    Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
+        Route::post('meta-suggestions', [\App\Http\Controllers\Admin\AiMetaController::class, 'suggest'])
+            ->middleware('throttle:admin-ai')->name('meta.suggest');
+        Route::post('meta-suggestions/{suggestion}/apply', [\App\Http\Controllers\Admin\AiMetaController::class, 'apply'])
+            ->whereNumber('suggestion')->name('meta.apply');
+        Route::post('meta-suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\AiMetaController::class, 'reject'])
+            ->whereNumber('suggestion')->name('meta.reject');
+    });
+
     Route::middleware('can:media.view')->group(function () {
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
         Route::get('media/resources', [MediaController::class, 'resources'])->name('media.resources');

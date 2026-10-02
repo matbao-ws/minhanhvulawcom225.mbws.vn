@@ -1,0 +1,39 @@
+<?php
+
+return [
+    'meta' => [
+        'button' => 'Gợi ý meta bằng AI',
+        'title' => 'Gợi ý meta bằng AI',
+        'loading' => 'AI đang đọc nội dung và soạn gợi ý…',
+        'current' => 'Hiện tại',
+        'empty' => '(trống)',
+        'option' => 'Phương án :number',
+        'meta_title' => 'Tiêu đề SEO',
+        'meta_description' => 'Mô tả SEO',
+        'focus_keyword' => 'Từ khoá chính gợi ý',
+        'apply' => 'Áp dụng phương án này',
+        'reject' => 'Không dùng gợi ý nào',
+        'applied' => 'Đã áp dụng gợi ý meta.',
+        'review_note' => 'AI chỉ đề xuất. Bạn có thể sửa chữ trước khi áp dụng; thay đổi chỉ được lưu khi bạn bấm Áp dụng.',
+        'save_first' => 'Lưu bản ghi trước rồi mới dùng gợi ý meta.',
+        'credits' => 'Đã dùng :used/:limit lượt AI tháng này.',
+    ],
+    'errors' => [
+        'conflict' => 'Tiêu đề/mô tả SEO đã bị sửa sau khi AI đưa gợi ý. Tải lại trang và tạo gợi ý mới.',
+        'closed' => 'Gợi ý này đã được xử lý hoặc đã hết hạn.',
+        'option' => 'Phương án không hợp lệ.',
+        // Gateway reason codes.
+        'not_configured' => 'Website chưa được kết nối dịch vụ AI của Mắt Bão.',
+        'unreachable' => 'Không kết nối được dịch vụ AI. Thử lại sau ít phút.',
+        'quota_exceeded' => 'Đã hết lượt AI của tháng này. Liên hệ Mắt Bão để nâng gói.',
+        'cost_cap_reached' => 'Dịch vụ AI của website đã đạt giới hạn tháng này.',
+        'too_many_failures' => 'Có quá nhiều yêu cầu AI lỗi liên tiếp. Thử lại sau khoảng một giờ.',
+        'ai_disabled' => 'Tính năng AI đang tạm tắt.',
+        'refused' => 'AI không thể xử lý nội dung này. Kiểm tra lại nội dung trang.',
+        'input_too_large' => 'Nội dung quá dài cho tác vụ này.',
+        'invalid_input' => 'Nội dung chưa đủ để AI gợi ý. Hãy nhập tiêu đề và nội dung trước.',
+        'project_suspended' => 'Dịch vụ của website đang tạm khoá.',
+        'rate_limited' => 'Bạn thao tác quá nhanh. Thử lại sau ít phút.',
+        'default' => 'Dịch vụ AI đang bận. Thử lại sau ít phút.',
+    ],
+];

@@ -82,6 +82,24 @@ class GatewayClient
     }
 
     /**
+     * One AI task (`POST v1/tasks/{code}`). The key makes a retry after a timeout
+     * return the first answer instead of charging the project twice.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     *
+     * @throws GatewayUnavailable
+     */
+    public function task(string $code, array $input, string $idempotencyKey): array
+    {
+        return $this->send(fn () => $this->request()
+            ->withHeaders(['Idempotency-Key' => $idempotencyKey])
+            // The model may take most of the gateway's own 30 s budget.
+            ->timeout((int) config('ai_gateway.task_timeout', 45))
+            ->post($this->url('v1/tasks/'.$code), $input));
+    }
+
+    /**
      * @param  callable(): Response  $call
      * @return array<string, mixed>
      */
