@@ -84,6 +84,12 @@ class AppServiceProvider extends ServiceProvider
             $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(\App\Services\AiGateway\AiUsage::class)->current() : null]);
         });
 
+        // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
+        view()->composer('admin.dashboard._seo-tasks', function ($view) {
+            $user = auth()->user();
+            $view->with('seoTasksVisible', $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'));
+        });
+
         view()->composer('admin.shared.ai-draft-review', function ($view) {
             $post = $view->getData()['post'] ?? null;
             $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);

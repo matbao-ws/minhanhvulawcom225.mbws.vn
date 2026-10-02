@@ -357,6 +357,17 @@
                               @endcan
                           @endif
 
+                          @if($sidebarFeatures->availableTo($sidebarUser, 'ai_seo'))
+                              @can('ai.use')
+                              <li class="sidebar-item">
+                                  <a class="sidebar-link" href="{{ route('admin.ai.seo-tasks.index') }}" aria-expanded="false">
+                                      <i class="ti ti-chart-arrows-vertical fs-6" aria-hidden="true"></i>
+                                      <span class="hide-menu">{{ __('ai.tasks.title') }}</span>
+                                  </a>
+                              </li>
+                              @endcan
+                          @endif
+
                           <!-- Quản lý người dùng -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'multi_admin'))
                                @if($sidebarUser?->can('users.view') || $sidebarUser?->can('roles.view'))

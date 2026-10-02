@@ -275,6 +275,7 @@
     @endif
 
     @include('admin.dashboard._ai-usage')
+    @include('admin.dashboard._seo-tasks')
 
     @if(!$canViewOrders)
         <div class="card shadow-sm">

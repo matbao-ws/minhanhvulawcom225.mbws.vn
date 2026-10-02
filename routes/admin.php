@@ -101,6 +101,12 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
         });
 
+        // This week's SEO work (Search Console + the site index, ranked by the gateway).
+        Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');
+        Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');
+        Route::post('seo-tasks/{task}/advice', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'advice'])
+            ->where('task', '[a-f0-9]{16}')->middleware('throttle:admin-ai')->name('seo-tasks.advice');
+
         Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
             Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');
             // A draft is a new post: it counts against the package's data units like any other.
