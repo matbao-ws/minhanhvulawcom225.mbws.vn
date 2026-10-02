@@ -185,6 +185,22 @@ class AiMetaSuggestionTest extends TestCase
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), '/v1/tasks/'));
     }
 
+    public function test_superadmin_is_not_held_back_by_a_switched_off_record_feature(): void
+    {
+        // Local install whose package mapped to no features: catalog off, superadmin still edits products.
+        FeatureSetting::query()->where('feature_code', 'catalog')->update(['is_enabled' => false]);
+        $superadmin = User::factory()->create(['role_id' => Role::query()->create([
+            'name' => 'Superadmin', 'is_system' => true, 'is_superadmin' => true, 'permissions' => ['*'],
+        ])->id]);
+        $ask = ['entity_type' => 'product', 'entity_id' => $this->product->id, 'content_locale' => 'vi'];
+
+        $this->actingAs($superadmin)->postJson('/vi/admin/ai/meta-suggestions', $ask)->assertOk();
+
+        // Staff keep the feature rule, and get a message instead of an empty one.
+        $this->actingAs($this->editor)->postJson('/vi/admin/ai/meta-suggestions', $ask)
+            ->assertNotFound()->assertJsonPath('message', __('ai.errors.not_found'));
+    }
+
     public function test_a_gateway_refusal_becomes_a_plain_message_and_stores_nothing(): void
     {
         $this->metaResponse = Http::response(['ok' => false, 'reason' => 'quota_exceeded'], 429);

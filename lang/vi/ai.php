@@ -22,6 +22,9 @@ return [
         'conflict' => 'Tiêu đề/mô tả SEO đã bị sửa sau khi AI đưa gợi ý. Tải lại trang và tạo gợi ý mới.',
         'closed' => 'Gợi ý này đã được xử lý hoặc đã hết hạn.',
         'option' => 'Phương án không hợp lệ.',
+        'not_found' => 'Không tìm thấy nội dung này hoặc tính năng đang tắt.',
+        'forbidden' => 'Bạn không có quyền sửa nội dung này.',
+        'locale' => 'Ngôn ngữ không hợp lệ.',
         // Gateway reason codes.
         'not_configured' => 'Website chưa được kết nối dịch vụ AI của Mắt Bão.',
         'unreachable' => 'Không kết nối được dịch vụ AI. Thử lại sau ít phút.',

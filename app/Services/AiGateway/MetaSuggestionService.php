@@ -66,7 +66,7 @@ class MetaSuggestionService
     public function suggest(string $type, int $id, string $locale, User $user): array
     {
         [$definition, $record] = $this->resolve($type, $id, $user);
-        abort_unless($this->languages->supports($locale), 422);
+        abort_unless($this->languages->supports($locale), 422, __('ai.errors.locale'));
 
         $current = $this->currentValues($definition, $record, $locale);
         $input = [
@@ -168,12 +168,15 @@ class MetaSuggestionService
      */
     private function resolve(string $type, int $id, User $user): array
     {
-        $definition = self::ENTITIES[$type] ?? abort(404);
+        $definition = self::ENTITIES[$type] ?? abort(404, __('ai.errors.not_found'));
 
-        abort_unless($this->features->enabled($definition['feature']), 404);
-        abort_unless($user->can($definition['permission']), 403);
+        // Same rule as the feature middleware: superadmin is not held back by a switched-off feature.
+        abort_unless($this->features->availableTo($user, $definition['feature']), 404, __('ai.errors.not_found'));
+        abort_unless($user->can($definition['permission']), 403, __('ai.errors.forbidden'));
 
-        return [$definition, $definition['model']::query()->findOrFail($id)];
+        $record = $definition['model']::query()->find($id) ?? abort(404, __('ai.errors.not_found'));
+
+        return [$definition, $record];
     }
 
     /** @return array{title: string, description: string} */

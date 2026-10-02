@@ -7,7 +7,7 @@
 @php
     $aiDefinition = \App\Services\AiGateway\MetaSuggestionService::ENTITIES[$entityType] ?? null;
     $aiAllowed = $aiDefinition
-        && app(\App\Support\FeatureGate::class)->enabled('ai_seo')
+        && app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'ai_seo')
         && auth()->user()?->can('ai.use')
         && auth()->user()?->can($aiDefinition['permission']);
 @endphp
