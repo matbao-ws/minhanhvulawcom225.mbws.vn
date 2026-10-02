@@ -318,6 +318,11 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   `href`/`src` khác bản gốc — AI không được thêm, bỏ hay đổi link/ảnh. Page ghi qua
   `PageContentService::updateLocale()` (revision); suggestion của luồng này không áp dụng được qua endpoint meta và
   ngược lại.
+  **Viết bài bằng AI** (`PostDraftService`, `admin.ai.post-drafts.*`): chỉ nhận brief có đủ thông tin doanh nghiệp
+  + ý chính (hoặc ghi chú của chủ shop) — không viết từ một từ khoá; luôn tạo bài **chưa đăng**
+  (`is_active=false`), bỏ mọi link/ảnh AI tự thêm rồi qua `HtmlSanitizer`, đi qua `package.limit:data_unit` như tạo
+  bài thường. Trang sửa bài hiện "thông tin còn thiếu / câu cần kiểm chứng" tới khi bài được đăng. AI không bao giờ
+  tự đăng bài.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.

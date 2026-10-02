@@ -77,6 +77,11 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
         });
 
+        view()->composer('admin.shared.ai-draft-review', function ($view) {
+            $post = $view->getData()['post'] ?? null;
+            $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);
+        });
+
         view()->composer('client.partials.google-analytics', function ($view) {
             $id = null;
 

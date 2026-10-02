@@ -86,6 +86,13 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             ->whereNumber('suggestion')->name('content.apply');
         Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
             ->whereNumber('suggestion')->name('content.reject');
+
+        Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
+            Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');
+            // A draft is a new post: it counts against the package's data units like any other.
+            Route::post('post-drafts', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'store'])
+                ->middleware(['package.limit:data_unit', 'throttle:admin-ai'])->name('post-drafts.store');
+        });
     });
 
     Route::middleware('can:media.view')->group(function () {

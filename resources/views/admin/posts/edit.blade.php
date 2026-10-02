@@ -61,6 +61,8 @@
         </x-slot:breadcrumbs>
     </x-admin.page-header>
 
+    @include('admin.shared.ai-draft-review', ['post' => $post])
+
     <!-- Form Section -->
     <form action="{{ route('admin.posts.update', $post) }}" method="POST" enctype="multipart/form-data" class="admin-form-with-sticky-actions">
         @csrf

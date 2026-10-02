@@ -90,12 +90,12 @@ class GatewayClient
      *
      * @throws GatewayUnavailable
      */
-    public function task(string $code, array $input, string $idempotencyKey): array
+    public function task(string $code, array $input, string $idempotencyKey, ?int $timeout = null): array
     {
         return $this->send(fn () => $this->request()
             ->withHeaders(['Idempotency-Key' => $idempotencyKey])
-            // The model may take most of the gateway's own 30 s budget.
-            ->timeout((int) config('ai_gateway.task_timeout', 45))
+            // The model may take most of the gateway's own 30 s budget; drafts pass a longer one.
+            ->timeout($timeout ?? (int) config('ai_gateway.task_timeout', 45))
             ->post($this->url('v1/tasks/'.$code), $input));
     }
 
