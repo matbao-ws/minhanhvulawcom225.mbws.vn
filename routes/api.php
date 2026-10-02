@@ -127,6 +127,9 @@ Route::prefix('admin')->group(function () {
     });
 });
 
+// MatBao AI gateway: a signed signal that a job finished (AiWebhookController).
+Route::post('/ai/webhook', \App\Http\Controllers\Api\AiWebhookController::class)->middleware('throttle:webhook');
+
 Route::post('/webhooks/ghtk', [WebhookController::class, 'handleGHTK'])->middleware('throttle:webhook');
 Route::post('/webhooks/sepay', [WebhookController::class, 'handleSepay'])
     ->middleware('throttle:webhook')

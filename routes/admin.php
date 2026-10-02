@@ -103,6 +103,13 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
         });
 
+        // Bulk SEO: one gateway job, results reviewed here (AiBulkController).
+        Route::get('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'index'])->name('bulk.index');
+        Route::post('bulk/estimate', [\App\Http\Controllers\Admin\AiBulkController::class, 'estimate'])->middleware('throttle:admin-ai')->name('bulk.estimate');
+        Route::post('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'store'])->middleware('throttle:admin-ai')->name('bulk.store');
+        Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->name('bulk.show');
+        Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->name('bulk.apply');
+
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
         Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');
         Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');
