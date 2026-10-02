@@ -80,6 +80,12 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             ->whereNumber('suggestion')->name('meta.apply');
         Route::post('meta-suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\AiMetaController::class, 'reject'])
             ->whereNumber('suggestion')->name('meta.reject');
+        Route::post('content-edits', [\App\Http\Controllers\Admin\AiContentController::class, 'suggest'])
+            ->middleware('throttle:admin-ai')->name('content.suggest');
+        Route::post('content-edits/{suggestion}/apply', [\App\Http\Controllers\Admin\AiContentController::class, 'apply'])
+            ->whereNumber('suggestion')->name('content.apply');
+        Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
+            ->whereNumber('suggestion')->name('content.reject');
     });
 
     Route::middleware('can:media.view')->group(function () {

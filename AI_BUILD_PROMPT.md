@@ -313,6 +313,11 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   locale đó, và từ chối (409) nếu trường đã bị sửa từ lúc đề xuất. Áp dụng ghi `ActivityLogger` và báo sự kiện
   (`applied`/`applied_after_edit` + `edit_distance`/`rejected`) về gateway; lỗi báo sự kiện không bao giờ chặn
   việc áp dụng. Thêm loại record = thêm vào `MetaSuggestionService::ENTITIES`, không viết luồng ghi riêng.
+  **AI biên tập** (`ContentEditService`) gửi bản nội dung **đã lưu**, chạy kết quả qua đúng sanitizer của record
+  (Page: `PageHtmlSanitizer`, còn lại `HtmlSanitizer`) trước khi hiển thị, và **loại bỏ** kết quả nếu danh sách
+  `href`/`src` khác bản gốc — AI không được thêm, bỏ hay đổi link/ảnh. Page ghi qua
+  `PageContentService::updateLocale()` (revision); suggestion của luồng này không áp dụng được qua endpoint meta và
+  ngược lại.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.

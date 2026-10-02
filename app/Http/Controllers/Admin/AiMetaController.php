@@ -32,7 +32,7 @@ class AiMetaController extends Controller
                 $data['entity_type'], (int) $data['entity_id'], $data['content_locale'], $request->user(),
             );
         } catch (GatewayUnavailable $e) {
-            return $this->unavailable($e);
+            return self::unavailableResponse($e);
         }
 
         return response()->json([
@@ -75,12 +75,12 @@ class AiMetaController extends Controller
     }
 
     /** Gateway reason code → message for the admin. Nothing from the gateway is shown verbatim. */
-    private function unavailable(GatewayUnavailable $e): JsonResponse
+    public static function unavailableResponse(GatewayUnavailable $e): JsonResponse
     {
         $key = 'ai.errors.'.$e->reason;
         $status = match ($e->reason) {
             'quota_exceeded', 'cost_cap_reached', 'too_many_failures', 'rate_limited' => 429,
-            'invalid_input', 'refused', 'input_too_large' => 422,
+            'invalid_input', 'refused', 'input_too_large', 'unsafe_output' => 422,
             default => 503,
         };
 
