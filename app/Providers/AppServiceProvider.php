@@ -77,6 +77,13 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
         });
 
+        // Shown to staff who can use AI; the gateway is asked at most every five minutes.
+        view()->composer('admin.dashboard._ai-usage', function ($view) {
+            $user = auth()->user();
+            $visible = $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo');
+            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(\App\Services\AiGateway\AiUsage::class)->current() : null]);
+        });
+
         view()->composer('admin.shared.ai-draft-review', function ($view) {
             $post = $view->getData()['post'] ?? null;
             $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);

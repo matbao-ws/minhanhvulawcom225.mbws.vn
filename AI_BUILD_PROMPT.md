@@ -323,6 +323,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   (`is_active=false`), bỏ mọi link/ảnh AI tự thêm rồi qua `HtmlSanitizer`, đi qua `package.limit:data_unit` như tạo
   bài thường. Trang sửa bài hiện "thông tin còn thiếu / câu cần kiểm chứng" tới khi bài được đăng. AI không bao giờ
   tự đăng bài.
+  **FAQ** (`FaqService`) nối phần hỏi–đáp vào cuối nội dung, mọi chữ được escape. **Alt ảnh** (`AltTextService`) chỉ đọc
+  ảnh từ disk `public` của site hoặc Cloudinary của chính site rồi gửi bytes — không bao giờ tải URL lạ (SSRF); chặn
+  xung đột theo từng ảnh. **Sửa theo điểm SEO** (`SeoFixService`, chỉ bài viết): `PostSeoAnalyzer` quyết định quy tắc nào
+  trượt, điểm trước/sau do code tính lại; đoạn mở bài sửa không được đổi link/ảnh. **Mô tả sản phẩm**
+  (`ProductDescriptionService`) gửi tên, danh mục, thương hiệu, thuộc tính, mô tả ngắn — **không gửi giá/tồn kho**.
+  Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
+  meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.

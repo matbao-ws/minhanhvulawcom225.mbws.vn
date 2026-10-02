@@ -87,6 +87,20 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
             ->whereNumber('suggestion')->name('content.reject');
 
+        // FAQ, alt text, SEO fixes, product descriptions (AiToolsController).
+        Route::controller(\App\Http\Controllers\Admin\AiToolsController::class)->group(function () {
+            Route::post('faq', 'faqSuggest')->middleware('throttle:admin-ai')->name('faq.suggest');
+            Route::post('faq/{suggestion}/apply', 'faqApply')->whereNumber('suggestion')->name('faq.apply');
+            Route::post('alt/missing', 'altMissing')->name('alt.missing');
+            Route::post('alt', 'altSuggest')->middleware('throttle:admin-ai')->name('alt.suggest');
+            Route::post('alt/{suggestion}/apply', 'altApply')->whereNumber('suggestion')->name('alt.apply');
+            Route::post('seo-fixes', 'seoSuggest')->middleware('throttle:admin-ai')->name('seo.suggest');
+            Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->name('seo.apply');
+            Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
+            Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->name('product.apply');
+            Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
+        });
+
         Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
             Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');
             // A draft is a new post: it counts against the package's data units like any other.

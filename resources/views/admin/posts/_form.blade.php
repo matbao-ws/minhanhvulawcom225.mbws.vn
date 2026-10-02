@@ -248,6 +248,7 @@
                         <span class="fs-3 fw-bold" id="seo_rating_label" style="color: #ef4444;">{{ __('admin.posts.seo_widget.rating_too_short') }}</span>
                     </div>
                 </div>
+                @include('admin.shared.ai-seo-fix-button', ['post' => $post])
 
                 <div class="row g-2 text-center mb-4">
                     <div class="col-6">

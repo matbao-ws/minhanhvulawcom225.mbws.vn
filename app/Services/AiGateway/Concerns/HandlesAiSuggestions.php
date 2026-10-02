@@ -65,6 +65,52 @@ trait HandlesAiSuggestions
         $post->seo_analysis = $analysis;
     }
 
+    /**
+     * Write a record's body through the path its own form uses. Needs $htmlSanitizer,
+     * $pageSanitizer and $pages (PageContentService) on the using class.
+     */
+    protected function writeBody(Model $record, array $definition, string $locale, string $html, User $user): void
+    {
+        if ($record instanceof \App\Models\Page) {
+            // Same path as the inline editor: sanitizer + revision checkpoint.
+            $this->pages->updateLocale($record, $locale, $html, $user->id);
+
+            return;
+        }
+
+        $record->setTranslation($definition['content'], $locale, $this->htmlSanitizer->clean($html));
+        if ($record instanceof Post) {
+            $this->refreshPostScore($record);
+        }
+        $record->save();
+    }
+
+    protected function sanitizeBody(Model $record, string $html): string
+    {
+        return $record instanceof \App\Models\Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->clean($html);
+    }
+
+    /** Every href/src in order: an AI edit must leave this list exactly as it was. */
+    protected function bodyReferences(string $html): array
+    {
+        preg_match_all('/\s(?:href|src)\s*=\s*("([^"]*)"|\'([^\']*)\')/i', $html, $matches);
+
+        return array_map(fn ($double, $single) => html_entity_decode($double !== '' ? $double : $single), $matches[2], $matches[3]);
+    }
+
+    /** Text the AI wrote from scratch carries no links or images of its own. */
+    protected function withoutLinksAndImages(string $html): string
+    {
+        $html = (string) preg_replace('/<img\b[^>]*>/i', '', $html);
+
+        return (string) preg_replace('/<a\b[^>]*>(.*?)<\/a>/is', '$1', $html);
+    }
+
+    protected function body(array $definition, Model $record, string $locale): string
+    {
+        return (string) $record->getTranslation($definition['content'], $locale, false);
+    }
+
     /** Feedback for the gateway's metrics. Never blocks or undoes what the admin did. */
     protected function report(AiSuggestion $suggestion, string $event, array $data = []): void
     {
