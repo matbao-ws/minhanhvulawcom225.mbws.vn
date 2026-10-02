@@ -87,7 +87,7 @@ class AiMetaSuggestionTest extends TestCase
             return $request->hasHeader('Authorization', 'Bearer mbp_project_token')
                 && preg_match('/^[0-9a-f-]{36}$/', $request->header('Idempotency-Key')[0] ?? '') === 1
                 // Only these fields leave the site, and content goes as plain text.
-                && array_keys($request->data()) === ['locale', 'entity_type', 'entity_id', 'title', 'content_text', 'current_meta_title', 'current_meta_description', 'site_name']
+                && array_keys($request->data()) === ['locale', 'entity_type', 'entity_id', 'title', 'content_text', 'current_meta_title', 'current_meta_description', 'site_name', 'focus_keyword']
                 && $request['content_text'] === 'Ống nhựa uPVC cho cấp thoát nước.'
                 && $request['entity_id'] === $this->product->id;
         });
@@ -232,9 +232,12 @@ class AiMetaSuggestionTest extends TestCase
             'slug' => 'cach-chon-ong-nhua',
             'content' => ['vi' => '<p>Nội dung bài viết về ống nhựa uPVC.</p>'],
             'is_active' => true,
+            'seo_keys' => 'ống nhựa uPVC',
         ]);
 
         $suggestion = $this->suggest('post', $post->id);
+        // The checker scores the meta against this keyword, so the model gets it.
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), '/v1/tasks/meta.suggest') && $request['focus_keyword'] === 'ống nhựa uPVC');
         $this->actingAs($this->editor)->postJson("/vi/admin/ai/meta-suggestions/{$suggestion->id}/apply", [
             'option' => 2, 'title' => 'Nên chọn ống nhựa nào cho nhà?', 'description' => 'Ống uPVC: bền, nhẹ, dễ lắp đặt.',
         ])->assertOk();

@@ -45,6 +45,7 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label" for="keyword">{{ __('ai.draft.keyword') }} <span class="text-danger">*</span></label>
                                 <input class="form-control @error('keyword') is-invalid @enderror" id="keyword" name="keyword" maxlength="120" value="{{ old('keyword') }}" placeholder="{{ __('ai.draft.keyword_hint') }}" required>
+                                <div class="form-text">{{ __('ai.draft.keyword_help') }}</div>
                                 @error('keyword')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6 mb-3">
@@ -98,9 +99,17 @@
                     <form method="POST" action="{{ route('admin.ai.post-drafts.store') }}" class="js-ai-draft-form">
                         @csrf
                         <input type="hidden" name="mode" value="notes">
-                        <div class="mb-3">
-                            <label class="form-label" for="notes_title">{{ __('ai.draft.post_title') }}</label>
-                            <input class="form-control" id="notes_title" name="title" maxlength="200" value="{{ old('title') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="notes_title">{{ __('ai.draft.post_title') }}</label>
+                                <input class="form-control" id="notes_title" name="title" maxlength="200" value="{{ old('title') }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="notes_keyword">{{ __('ai.draft.keyword') }}</label>
+                                <input class="form-control @error('keyword') is-invalid @enderror" id="notes_keyword" name="keyword" maxlength="120" value="{{ old('mode') === 'notes' ? old('keyword') : '' }}" placeholder="{{ __('ai.draft.keyword_hint') }}">
+                                <div class="form-text">{{ __('ai.draft.keyword_help') }}</div>
+                                @error('keyword')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="notes">{{ __('ai.draft.notes') }} <span class="text-danger">*</span></label>

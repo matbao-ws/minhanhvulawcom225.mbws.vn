@@ -63,7 +63,8 @@ class AiPostDraftTest extends TestCase
         $this->assertFalse($post->is_active);
         $this->assertNull($post->published_at);
         $this->assertSame('Cách chọn ống nhựa uPVC cho nhà phố', $post->getTranslation('title', 'vi', false));
-        $this->assertSame('cach-chon-ong-nhua-upvc-cho-nha-pho', $post->slug);
+        // From the keyword, so the SEO checker finds it in the slug.
+        $this->assertSame('chon-ong-nhua-upvc', $post->slug);
         $this->assertSame('chọn ống nhựa uPVC', $post->seo_keys);
         $this->assertNotNull($post->seo_score);
 
@@ -115,6 +116,14 @@ class AiPostDraftTest extends TestCase
 
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), '/v1/tasks/'));
         $this->assertSame(0, Post::query()->count());
+    }
+
+    public function test_a_sentence_is_refused_as_a_keyword(): void
+    {
+        $this->actingAs($this->writer)->post('/vi/admin/ai/post-drafts', ['keyword' => 'Những yếu tố cần xem xét kỹ trước khi thi công nhà phố'] + $this->brief())
+            ->assertSessionHasErrors('keyword');
+
+        Http::assertNotSent(fn (Request $request) => str_contains($request->url(), '/v1/tasks/'));
     }
 
     public function test_a_gateway_refusal_keeps_the_form_and_creates_nothing(): void

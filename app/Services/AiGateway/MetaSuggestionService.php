@@ -81,6 +81,8 @@ class MetaSuggestionService
             'current_meta_title' => $current['title'] !== '' ? $current['title'] : null,
             'current_meta_description' => $current['description'] !== '' ? $current['description'] : null,
             'site_name' => Str::limit((string) ($this->branding->current()['name'] ?? ''), 120, ''),
+            // Posts carry a focus keyword the SEO checker scores the meta against.
+            'focus_keyword' => $record instanceof Post && filled($record->seo_keys) ? Str::limit((string) $record->seo_keys, 120, '') : null,
         ];
 
         $response = $this->gateway->task(self::TASK, $input, (string) Str::uuid());

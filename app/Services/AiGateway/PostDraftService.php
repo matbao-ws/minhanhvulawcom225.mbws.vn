@@ -32,6 +32,9 @@ class PostDraftService
 
     public const MIN_WORDS = 300;
 
+    /** Longer phrases cannot sit verbatim in a 40–60 character SEO title. */
+    public const MAX_KEYWORD_WORDS = 8;
+
     /** One synchronous request (gateway prompt timeout 50 s); longer posts need a job. */
     public const MAX_WORDS = 1500;
 
@@ -72,11 +75,12 @@ class PostDraftService
         return DB::transaction(function () use ($mode, $task, $locale, $title, $html, $result, $response, $brief, $user) {
             $post = new Post([
                 'title' => [$locale => $title],
-                'slug' => $this->uniqueSlug($title),
+                // The SEO checker wants the keyword in the slug; fall back to the title.
+                'slug' => $this->uniqueSlug(filled($brief['keyword'] ?? null) ? $brief['keyword'] : $title),
                 'content' => [$locale => $html],
                 'seo_title' => [$locale => Str::limit((string) ($result['meta_title'] ?? ''), 255, '')],
                 'seo_description' => [$locale => Str::limit((string) ($result['meta_description'] ?? ''), 500, '')],
-                'seo_keys' => $mode === 'draft' ? Str::limit((string) ($brief['keyword'] ?? ''), 255, '') : null,
+                'seo_keys' => filled($brief['keyword'] ?? null) ? Str::limit((string) $brief['keyword'], 255, '') : null,
                 'is_active' => false,
                 'published_at' => null,
                 'robots_index' => true,

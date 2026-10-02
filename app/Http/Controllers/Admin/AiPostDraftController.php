@@ -39,10 +39,16 @@ class AiPostDraftController extends Controller
     {
         $mode = $request->input('mode') === 'notes' ? 'notes' : 'draft';
         $words = ['required', 'integer', 'min:'.PostDraftService::MIN_WORDS, 'max:'.PostDraftService::MAX_WORDS];
+        // A search phrase, not a sentence: the SEO checker needs it verbatim in a 60-character title.
+        $keyword = ['string', 'min:2', 'max:120', function (string $attribute, mixed $value, \Closure $fail) {
+            if (count(preg_split('/\s+/u', trim((string) $value))) > PostDraftService::MAX_KEYWORD_WORDS) {
+                $fail(__('ai.draft.keyword_too_long', ['max' => PostDraftService::MAX_KEYWORD_WORDS]));
+            }
+        }];
 
         $data = $mode === 'draft'
             ? $request->validate([
-                'keyword' => ['required', 'string', 'min:2', 'max:120'],
+                'keyword' => ['required', ...$keyword],
                 'business_info' => ['required', 'string', 'min:30', 'max:3000'],
                 'key_points' => ['required', 'string', 'min:20', 'max:4000'],
                 'products' => ['nullable', 'string', 'max:3000'],
@@ -53,6 +59,7 @@ class AiPostDraftController extends Controller
             ])
             : $request->validate([
                 'title' => ['nullable', 'string', 'max:200'],
+                'keyword' => ['nullable', ...$keyword],
                 'notes' => ['required', 'string', 'min:50', 'max:15000'],
                 'tone' => ['nullable', Rule::in(PostDraftService::TONES)],
                 'target_words' => $words,
