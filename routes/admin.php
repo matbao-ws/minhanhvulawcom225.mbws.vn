@@ -249,6 +249,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::post('settings', [SettingController::class, 'update'])->middleware('can:settings.update')->name('settings.update');
     Route::post('settings/analytics/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'check'])
         ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.analytics.check');
+    Route::post('settings/search-console/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'checkSearchConsole'])
+        ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.search-console.check');
 
     Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');
     Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');

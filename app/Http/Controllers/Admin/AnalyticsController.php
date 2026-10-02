@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\AnalyticsUnavailable;
 use App\Http\Controllers\Controller;
+use App\Services\AiGateway\GatewayClient;
+use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\Analytics\AnalyticsReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,5 +62,38 @@ class AnalyticsController extends Controller
         } catch (AnalyticsUnavailable $e) {
             return response()->json(['success' => false, 'reason' => $e->reason, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    /** "Test Search Console" in Settings: asks the gateway for the robot's permission on the property. */
+    public function checkSearchConsole(GatewayClient $gateway): JsonResponse
+    {
+        if ($this->report->settings()['gsc_site_url'] === null) {
+            return response()->json(['success' => false, 'reason' => 'not_connected', 'message' => __('admin.analytics.gsc_not_connected')], 422);
+        }
+
+        try {
+            try {
+                $response = $gateway->get('v1/search-console/check');
+            } catch (GatewayUnavailable $e) {
+                if ($e->reason !== 'not_connected') {
+                    throw $e;
+                }
+                // The gateway has not heard of the property yet (saved while it was down).
+                $this->report->pushConnections();
+                $response = $gateway->get('v1/search-console/check');
+            }
+        } catch (GatewayUnavailable $e) {
+            $message = match ($e->reason) {
+                'no_access' => __('admin.analytics.gsc_no_access'),
+                'not_found' => __('admin.analytics.gsc_not_found'),
+                'not_connected' => __('admin.analytics.gsc_not_connected'),
+                GatewayUnavailable::NOT_CONFIGURED, 'unauthorized', 'project_suspended' => __('admin.analytics.error.no_key'),
+                default => __('admin.analytics.error.google_error'),
+            };
+
+            return response()->json(['success' => false, 'reason' => $e->reason, 'message' => $message], 422);
+        }
+
+        return response()->json(['success' => true, 'message' => __('admin.analytics.gsc_connected', ['permission' => (string) ($response['permission'] ?? '')])]);
     }
 }

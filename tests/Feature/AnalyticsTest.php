@@ -95,7 +95,7 @@ class AnalyticsTest extends TestCase
         $this->actingAs($this->admin())->postJson('/vi/admin/settings', $this->settingsPayload(['measurement_id' => 'g-ab12cd34', 'property_id' => '345678901']))
             ->assertOk();
 
-        $this->assertSame(['measurement_id' => 'G-AB12CD34', 'property_id' => '345678901'], app(AnalyticsReport::class)->settings());
+        $this->assertSame(['measurement_id' => 'G-AB12CD34', 'property_id' => '345678901', 'gsc_site_url' => null], app(AnalyticsReport::class)->settings());
         $this->assertSame('345678901', $this->gatewayProperty);
     }
 
