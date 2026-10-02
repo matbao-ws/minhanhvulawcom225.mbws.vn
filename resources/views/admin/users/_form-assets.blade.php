@@ -1,5 +1,5 @@
 @push('scripts')
-    <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/vendor.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             let isDirty = false;
