@@ -18,6 +18,25 @@
             </div></div>
         </div>
 
+        {{-- Internal links --}}
+        <div class="modal fade" id="ai-links-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title"><i class="ti ti-link me-1"></i>{{ __('ai.links.title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <p class="text-muted small">{{ __('ai.links.note') }}</p>
+                    <div class="js-ai-loading text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>{{ __('ai.links.loading') }}</div>
+                    <div class="js-ai-error alert alert-danger d-none"></div>
+                    <p class="small text-muted js-ai-links-none d-none">{{ __('ai.links.none') }}</p>
+                    <div class="js-ai-links-items"></div>
+                    <p class="small text-muted mb-0 js-ai-usage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary js-ai-reject d-none">{{ __('ai.meta.reject') }}</button>
+                    <button type="button" class="btn btn-primary js-ai-apply d-none">{{ __('ai.links.apply') }}</button>
+                </div>
+            </div></div>
+        </div>
+
         {{-- Image alts --}}
         <div class="modal fade" id="ai-alt-modal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
@@ -95,10 +114,12 @@
                     altGenerate: @json(__('ai.alt.generate')), altApply: @json(__('ai.alt.apply')),
                     seoFields: { seo_title: @json(__('ai.seo.seo_title')), seo_description: @json(__('ai.seo.seo_description')), intro_html: @json(__('ai.seo.intro_html')) },
                     seoUse: @json(__('ai.seo.use')),
+                    linkReview: @json(__('ai.links.review')), linkTo: @json(__('ai.links.to')),
                 };
                 const urls = {
                     faq: @json(route('admin.ai.faq.suggest')), altMissing: @json(route('admin.ai.alt.missing')),
                     alt: @json(route('admin.ai.alt.suggest')), product: @json(route('admin.ai.product.suggest')), seo: @json(route('admin.ai.seo.suggest')),
+                    links: @json(route('admin.ai.links.suggest')),
                 };
                 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const notify = (icon, message) => window.Swal
@@ -188,6 +209,47 @@
                         })).filter((item) => item.question && item.answer);
                         this.disabled = true;
                         try { applied(faqState, await post(faqState.data.apply_url, { items }), faq); }
+                        catch (error) { notify('error', error.message); }
+                        finally { this.disabled = false; }
+                    });
+
+                    // Internal links: anchor + target, links a person must look at start unticked.
+                    const links = setup('ai-links-modal');
+                    const linksState = {};
+                    wireReject(links, linksState);
+                    document.querySelectorAll('.js-ai-links').forEach((button) => button.addEventListener('click', async function () {
+                        Object.assign(linksState, { button, data: null });
+                        links.part('.js-ai-links-items').replaceChildren();
+                        ['.js-ai-error', '.js-ai-apply', '.js-ai-reject', '.js-ai-links-none'].forEach((s) => links.show(s, false));
+                        links.show('.js-ai-loading', true);
+                        links.modal.show();
+                        try {
+                            const payload = await post(urls.links, record(button));
+                            linksState.data = payload.data;
+                            payload.data.links.forEach(function (link, index) {
+                                const row = el('label', { class: 'd-flex gap-2 border rounded p-2 mb-2' });
+                                const check = el('input', { type: 'checkbox', class: 'form-check-input mt-1 js-link', value: String(index) });
+                                check.checked = !link.needs_review;
+                                const body = el('div', { class: 'small' });
+                                const head = el('div', {});
+                                head.append(el('strong', {}, '“' + link.anchor + '”'), document.createTextNode(' ' + t.linkTo + ' '), el('span', { class: 'fw-semibold' }, link.title || link.url));
+                                if (link.needs_review) head.append(el('span', { class: 'badge bg-warning-subtle text-warning ms-2' }, t.linkReview));
+                                body.append(head, el('div', { class: 'text-muted text-break' }, link.url));
+                                if (link.reason) body.append(el('div', { class: 'mt-1' }, link.reason));
+                                row.append(check, body);
+                                links.part('.js-ai-links-items').appendChild(row);
+                            });
+                            usage(links.element, payload.data);
+                            links.show('.js-ai-loading', false);
+                            links.show('.js-ai-links-none', payload.data.links.length === 0);
+                            links.show('.js-ai-apply', payload.data.links.length > 0); links.show('.js-ai-reject', payload.data.links.length > 0);
+                        } catch (error) { links.fail(error.message); }
+                    }));
+                    links.part('.js-ai-apply').addEventListener('click', async function () {
+                        const chosen = Array.from(links.element.querySelectorAll('.js-link:checked')).map((check) => Number(check.value));
+                        if (!chosen.length) return;
+                        this.disabled = true;
+                        try { applied(linksState, await post(linksState.data.apply_url, { chosen }), links); }
                         catch (error) { notify('error', error.message); }
                         finally { this.disabled = false; }
                     });

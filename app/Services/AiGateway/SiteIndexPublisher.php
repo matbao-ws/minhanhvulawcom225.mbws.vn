@@ -103,7 +103,8 @@ class SiteIndexPublisher
             'entity_type' => $type,
             'entity_id' => (int) $record->getKey(),
             'locale' => $locale,
-            'slug' => Str::limit($record->canonicalSlug($locale), 255, ''),
+            'slug' => $slug = Str::limit($record->canonicalSlug($locale), 255, ''),
+            'url' => $this->url($type, $locale, $slug),
             'title' => Str::limit($this->plain($this->translation($record, $definition['title'], $locale)) ?: '#'.$record->getKey(), 300, ''),
             'meta_title' => $this->optional($record, $definition['meta_title'], $locale, 300),
             'meta_description' => $this->optional($record, $definition['meta_description'], $locale, 1000),
@@ -115,6 +116,14 @@ class SiteIndexPublisher
             'indexable' => ! ($record instanceof Post) || $record->robots_index !== false,
             'site_updated_at' => $record->updated_at?->toIso8601String(),
         ];
+    }
+
+    /** URLs of the storefront routes this core has; products and posts belong to the theme, so null. */
+    private function url(string $type, string $locale, string $slug): ?string
+    {
+        $route = ['category' => 'client.categories.show', 'page' => 'client.pages.show'][$type] ?? null;
+
+        return $route && $slug !== '' && preg_match('/^[A-Za-z0-9\-_]+$/', $slug) ? route($route, ['locale' => $locale, 'slug' => $slug]) : null;
     }
 
     private function send(string $generation, array $pages, bool $final): void
