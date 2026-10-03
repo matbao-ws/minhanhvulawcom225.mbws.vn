@@ -140,6 +140,7 @@ class SeoTaskService
             'metrics' => array_filter((array) ($task['metrics'] ?? []), 'is_numeric'),
             'queries' => array_values(array_slice(array_map(fn ($q) => Str::limit((string) ($q['query'] ?? ''), 290, ''), (array) ($task['queries'] ?? [])), 0, 5)),
             'issues' => array_values((array) ($task['issues'] ?? [])),
+            'intent' => $task['intent'] ?? null,
         ], fn ($value) => $value !== null && $value !== []);
 
         $response = $this->gateway->task(self::TASK, $input, (string) Str::uuid());
