@@ -446,6 +446,15 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   không còn dùng nó: migration đó ghi `@contract-migration` kèm lý do và bản phát hành chứa nó không
   rollback-safe (cần backup, không tự rollout). `App\Support\MigrationSafety` +
   `CoreManifestTest` chặn vi phạm trong CI với migration từ `MigrationSafety::POLICY_FROM`.
+- **Bản phát hành có chữ ký.** Tag `vX.Y.Z` (khớp `VERSION`) chạy `.github/workflows/release.yml`:
+  test, `composer install --no-dev`, `core:release` build `release.json` + `release.json.sig` +
+  `core-X.Y.Z.zip` + `dependencies-{lock}.zip`, `core:verify-release`, rồi đăng GitHub Release.
+  Kênh theo tag: `-dev`/`-alpha` → dev, hậu tố khác → beta, không hậu tố → stable. Chữ ký ECDSA P-256
+  qua ext-openssl; private key chỉ nằm trong secret `CORE_RELEASE_SIGNING_KEY`, public key trong
+  `config/core_update.php`. `App\Support\CoreUpdate\ReleaseVerifier` từ chối gói sai chữ ký, artifact
+  hỏng, file ngoài danh sách, đường dẫn thoát thư mục, hoặc bất kỳ đường dẫn nào thuộc
+  `CoreManifest::SITE_OWNED` (kể cả khi allowlist của bản phát hành khai báo nó). Vận hành:
+  `docs/CORE_RELEASES.md`.
 
 ## 8. Chiến lược test
 

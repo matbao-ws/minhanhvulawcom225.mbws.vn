@@ -18,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(\App\Services\SiteBranding::class);
+        $this->app->bind(\App\Support\CoreUpdate\ReleaseVerifier::class, fn () => new \App\Support\CoreUpdate\ReleaseVerifier(
+            array_values(array_filter((array) config('core_update.public_keys'))),
+        ));
         // One image downloader per import run: posts, pages and products share its cache and report.
         $this->app->scoped(\App\Services\WordPressImageImportService::class);
         // Scoped: a storefront page renders dozens of regions and must not

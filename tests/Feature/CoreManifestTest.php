@@ -69,6 +69,18 @@ class CoreManifestTest extends TestCase
         }
     }
 
+    public function test_no_core_path_reaches_into_what_a_website_owns(): void
+    {
+        foreach (CoreManifest::CORE as $pattern) {
+            $path = str_ends_with($pattern, '/**') ? substr($pattern, 0, -2).'x.php' : $pattern;
+            $this->assertFalse(CoreManifest::matches($path, CoreManifest::SITE_OWNED), $pattern);
+        }
+        foreach (CoreManifest::SITE_OWNED as $pattern) {
+            $path = str_ends_with($pattern, '/**') ? substr($pattern, 0, -2).'x.php' : $pattern;
+            $this->assertSame('site', (new CoreManifest($this->site))->owner($path), $pattern);
+        }
+    }
+
     public function test_the_file_list_holds_core_files_only(): void
     {
         $files = (new CoreManifest($this->site))->coreFiles();

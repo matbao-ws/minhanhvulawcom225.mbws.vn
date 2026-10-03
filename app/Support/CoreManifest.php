@@ -56,10 +56,21 @@ class CoreManifest
 
     public const DEPENDENCIES = ['vendor/**'];
 
-    /** For people reading this: never in a core package. Not used for matching — the allowlist is. */
-    public const SITE_OWNED_EXAMPLES = [
-        'resources/views/client/**', 'public/client-assets/css/**', 'routes/theme.php', 'theme/**',
-        '.env', '.htaccess', 'storage/**', 'public/storage', 'public/robots.txt', 'public/*.png',
+    /**
+     * Never core, whatever CORE says — in this version or in a release's own list. A hard deny:
+     * the updater refuses a release that would write any of these.
+     */
+    public const SITE_OWNED = [
+        'resources/views/client/**',
+        'public/client-assets/css/**',
+        'routes/theme.php',
+        'theme/**',
+        '.env',
+        '.htaccess',
+        'public/.htaccess',
+        'public/robots.txt',
+        'public/storage/**',
+        'storage/**',
     ];
 
     /** Files never recorded even inside a core directory. */
@@ -85,6 +96,7 @@ class CoreManifest
         $path = ltrim(str_replace('\\', '/', $path), '/');
 
         return match (true) {
+            self::matches($path, self::SITE_OWNED) => 'site',
             self::matches($path, self::CORE) => 'core',
             self::matches($path, self::DEPENDENCIES) => 'dependencies',
             default => 'site',
@@ -184,7 +196,8 @@ class CoreManifest
         ];
     }
 
-    private static function matches(string $path, array $patterns): bool
+    /** `dir/**` = everything under dir; anything else = that exact path. */
+    public static function matches(string $path, array $patterns): bool
     {
         foreach ($patterns as $pattern) {
             if (str_ends_with($pattern, '/**') ? str_starts_with($path, substr($pattern, 0, -2)) : $path === $pattern) {
