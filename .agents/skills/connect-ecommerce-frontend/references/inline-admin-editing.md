@@ -16,19 +16,20 @@ the bar's Save without becoming a second owner of edit mode.
 
 ## Preserve the integration point
 
-Every in-repository storefront layout must include these partials once near the end of `<body>`, in
-this order and as direct children of `<body>`:
+The editor is core (`resources/views/core/`, updated with core — see AI_BUILD_PROMPT.md, "Core và theme").
+Every storefront layout includes it with **one line**, once, near the end of `<body>` and as a direct
+child of `<body>`; the head additions (analytics…) with one line in `<head>`:
 
 ```blade
-@include('client.partials.admin-bar')          {{-- owns edit mode, publishes window.clientBlocks --}}
-@include('client.partials.inline-blocks')      {{-- formatting toolbar --}}
-@include('client.partials.inline-outline')     {{-- outline panel: jump, reorder, open a panel --}}
-@include('client.partials.inline-section-panel')
-@include('client.partials.inline-viewport')
-@include('client.partials.inline-history-panel')
+@include('core.head')      {{-- in <head> --}}
+@include('core.editor')    {{-- before </body>: admin bar, toolbar, outline, section panel, viewport, history --}}
 ```
 
-Each one gates itself on `App\Support\ClientEditorChrome::editorActive()`, so they appear and
+Never list the editor partials one by one in a theme: core adds or changes panels in an update and a
+theme that lists them would miss them. Inside `core.editor` the order is fixed (the admin bar owns edit
+mode and publishes window.clientBlocks; the toolbar attaches to it).
+
+Each part gates itself on `App\Support\ClientEditorChrome::editorActive()`, so they appear and
 disappear together and nothing extra is needed around the includes. Direct children of `<body>`
 matters: a `transform`, `filter` or `perspective` on an ancestor creates a containing block, and
 `position: fixed` inside one anchors to that element instead of the viewport.

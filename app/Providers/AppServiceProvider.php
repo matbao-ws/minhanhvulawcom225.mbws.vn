@@ -97,7 +97,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);
         });
 
-        view()->composer('client.partials.google-analytics', function ($view) {
+        view()->composer('core.partials.google-analytics', function ($view) {
             $id = null;
 
             try {
@@ -148,12 +148,13 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useBootstrapFive();
 
-        // Storefront components live beside the rest of the client views rather
-        // than in the framework default directory.
-        \Illuminate\Support\Facades\Blade::anonymousComponentPath(
-            resource_path('views/client/components'),
-            'client',
-        );
+        // Storefront editing components (<x-client::editable> …) are core: they live in
+        // views/core/components and are updated with core. A theme may add its own
+        // components in views/client/components under the same prefix.
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/core/components'), 'client');
+        if (is_dir(resource_path('views/client/components'))) {
+            \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/client/components'), 'client');
+        }
 
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {

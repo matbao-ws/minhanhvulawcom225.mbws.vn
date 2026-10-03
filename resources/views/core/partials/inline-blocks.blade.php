@@ -3,12 +3,12 @@
 @endphp
 
 @if($inlineBlocksAllowed)
-    @include('client.partials.media-picker')
+    @include('core.partials.media-picker')
 
     {{--
         Formatting toolbar for the static regions of the storefront.
 
-        Edit mode is not owned here. `client.partials.admin-bar` decides when a
+        Edit mode is not owned here. `core.partials.admin-bar` decides when a
         region opens and holds the pending changes; this file is a view onto that
         state, reached through `window.clientBlocks`. Two owners over the same
         [data-block-key] elements would each believe they knew whether a region
