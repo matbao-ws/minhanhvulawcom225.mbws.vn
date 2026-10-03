@@ -26,6 +26,9 @@ class AiInternalLinksTest extends TestCase
     /** @var array<string, mixed>|null */
     private ?array $sent = null;
 
+    /** @var list<array<string, mixed>> */
+    private array $events = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -51,7 +54,11 @@ class AiInternalLinksTest extends TestCase
                         ['anchor' => 'hệ thống cấp nước', 'url' => 'javascript:alert(1)', 'title' => 'x', 'reason' => 'x', 'needs_review' => false],
                     ]]]);
             },
-            'gw.test/v1/suggestions/*/events' => Http::response(['ok' => true]),
+            'gw.test/v1/suggestions/*/events' => function (Request $request) {
+                $this->events[] = $request->data();
+
+                return Http::response(['ok' => true]);
+            },
         ]);
     }
 
@@ -67,6 +74,10 @@ class AiInternalLinksTest extends TestCase
         $this->actingAs($this->editor)->postJson($response->json('data.apply_url'), ['chosen' => [0, 1]])
             ->assertOk()
             ->assertJsonPath('message', __('ai.links.applied', ['count' => 2]));
+
+        // One weak label per offered link, so the gateway can follow each to its decision.
+        $this->assertSame([['option_applied', 0], ['option_applied', 1]], collect($this->events)->filter(fn ($e) => str_starts_with($e['event'], 'option_'))
+            ->map(fn ($e) => [$e['event'], $e['option_index']])->values()->all());
 
         $html = (string) $this->post->fresh()->getTranslation('content', 'vi');
         $this->assertStringContainsString('<strong><a href="https://spico.vn/vi/san-pham/ong-nhua-upvc">ống nhựa uPVC</a></strong>', $html);

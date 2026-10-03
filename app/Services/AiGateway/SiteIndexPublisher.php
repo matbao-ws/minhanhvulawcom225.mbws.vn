@@ -83,7 +83,9 @@ class SiteIndexPublisher
     /** @return Builder<Model> */
     private function publicRecords(string $type, string $model): Builder
     {
-        $query = $model::query()->with('localizedSlugs')->where('is_active', true);
+        // The category a record sits in (a category: its parent) describes it for internal-link decisions.
+        $relation = ['post' => 'category', 'product' => 'category', 'category' => 'parent'][$type] ?? null;
+        $query = $model::query()->with(array_filter(['localizedSlugs', $relation]))->where('is_active', true);
 
         // The same rules the storefront applies before showing a record.
         return match ($type) {
@@ -105,7 +107,10 @@ class SiteIndexPublisher
             'locale' => $locale,
             'slug' => $slug = Str::limit($record->canonicalSlug($locale), 255, ''),
             'url' => $this->url($type, $locale, $slug),
-            'title' => Str::limit($this->plain($this->translation($record, $definition['title'], $locale)) ?: '#'.$record->getKey(), 300, ''),
+            'title' => $title = Str::limit($this->plain($this->translation($record, $definition['title'], $locale)) ?: '#'.$record->getKey(), 300, ''),
+            // A body without its own H1 shows the title as the H1, as the storefront does.
+            'h1' => Str::limit($this->plain((string) (preg_match('/<h1\b[^>]*>(.*?)<\/h1>/is', $html, $h1) ? $h1[1] : '')), 300, '') ?: $title,
+            'category' => $this->categoryName($type, $record, $locale),
             'meta_title' => $this->optional($record, $definition['meta_title'], $locale, 300),
             'meta_description' => $this->optional($record, $definition['meta_description'], $locale, 1000),
             'focus_keyword' => $record instanceof Post && filled($record->seo_keys) ? Str::limit((string) $record->seo_keys, 120, '') : null,
@@ -116,6 +121,18 @@ class SiteIndexPublisher
             'indexable' => ! ($record instanceof Post) || $record->robots_index !== false,
             'site_updated_at' => $record->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function categoryName(string $type, Model $record, string $locale): ?string
+    {
+        $category = match ($type) {
+            'post', 'product' => $record->category,
+            'category' => $record->parent,
+            default => null,
+        };
+        $name = $category ? Str::limit($this->plain($this->translation($category, 'name', $locale)), 150, '') : '';
+
+        return $name !== '' ? $name : null;
     }
 
     /** URLs of the storefront routes this core has; products and posts belong to the theme, so null. */
