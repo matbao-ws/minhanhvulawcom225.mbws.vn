@@ -455,6 +455,17 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   hỏng, file ngoài danh sách, đường dẫn thoát thư mục, hoặc bất kỳ đường dẫn nào thuộc
   `CoreManifest::SITE_OWNED` (kể cả khi allowlist của bản phát hành khai báo nó). Vận hành:
   `docs/CORE_RELEASES.md`.
+- **Cài trên website: `php artisan core:update`** (chỉ CLI/cron, không gọi từ request web).
+  `App\Support\CoreUpdate\CoreUpdater`: `--check` liệt kê lý do chặn (`UPDATE_BLOCKED`: chữ ký,
+  không mới hơn, `min_from`, PHP, lệch file core, cần backup, thiếu gói vendor, không ghi được, thiếu
+  dung lượng, đang khoá, lần trước bị gián đoạn). Khi cài: khoá → sao lưu đúng các file sẽ ghi/xoá →
+  giải nén vào staging → `down` → thay `vendor/` (chỉ khi composer.lock đổi) và file core (ghi file tạm
+  rồi rename) → trong **tiến trình mới**: `package:discover`, `migrate --force`, `optimize:clear`,
+  (`optimize` nếu site đang cache config), `core:health` → ghi `installed.json` → `up`. Lỗi sau khi bắt
+  đầu thay file thì tự trả code cũ và `up`; **không bao giờ `migrate:rollback`**. `core:rollback` trả
+  code của lần cập nhật gần nhất (sau lỗi, sau khi bị gián đoạn, hoặc bằng tay). Trạng thái, lịch sử,
+  backup (giữ 3 bản) nằm trong `storage/app/core`. `core:health` phải nhanh, không side effect, và
+  luôn tồn tại: bản cập nhật gọi nó để quyết định giữ hay trả lại.
 
 ## 8. Chiến lược test
 

@@ -59,3 +59,30 @@ Muốn bắt website phải lên một bản trung gian trước, nâng `min_fro
 ```bash
 php artisan core:verify-release path/to/downloaded-release
 ```
+
+## Cập nhật một website (Phase C, chạy tay qua SSH/terminal của Plesk/cPanel)
+
+Lần đầu trên mỗi website, khi các file core đúng như bản đã phát hành:
+
+```bash
+php artisan core:status --baseline
+```
+
+Rồi cài bản mới. Dùng `--url` trỏ tới thư mục chứa `release.json` và các gói, hoặc `--from` trỏ tới
+thư mục đã tải về:
+
+```bash
+php artisan core:update --from=/path/to/release --check   # chỉ kiểm tra: UPDATE_READY / UPDATE_BLOCKED
+php artisan core:update --from=/path/to/release           # cài: UPDATE_INSTALLED / UPDATE_FAILED
+php artisan core:rollback                                 # trả code của lần cập nhật gần nhất
+```
+
+- Chạy bằng PHP CLI, đúng user sở hữu file của site. Host có nhiều phiên bản PHP thì đặt
+  `CORE_UPDATE_PHP_BINARY` (ví dụ `/opt/plesk/php/8.3/bin/php`) trong `.env`.
+- Bản có `backup_required`: backup database trên Plesk/cPanel trước, rồi chạy thêm cờ `--backup-done`.
+- `UPDATE_BLOCKED drift`: có file core bị sửa tay trên site. Chuyển chỗ sửa vào theme (hoặc vào core
+  ở repo), trả file về như cũ, rồi `core:status` để kiểm tra lại.
+- Cập nhật hỏng thì code cũ tự được trả lại và site được mở lại. Database giữ nguyên, vì migration chỉ
+  được thêm (expand), code cũ vẫn chạy được trên schema mới.
+- `storage/app/core/` chứa `state.json` (lần chạy gần nhất), `history.jsonl` và `backups/` (3 bản gần
+  nhất, gồm cả `vendor/` cũ khi bản đó có đổi dependencies).

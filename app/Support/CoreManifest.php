@@ -83,6 +83,11 @@ class CoreManifest
         $this->base = rtrim(str_replace('\\', '/', $base ?? base_path()), '/');
     }
 
+    public function base(): string
+    {
+        return $this->base;
+    }
+
     public function version(): string
     {
         $file = $this->base.'/VERSION';
@@ -166,12 +171,19 @@ class CoreManifest
     public function recordInstalled(): array
     {
         $manifest = $this->build();
+        $this->writeInstalled($manifest);
+
+        return $manifest;
+    }
+
+    /** @param array{version: string, files: array<string, string>} $manifest */
+    public function writeInstalled(array $manifest): void
+    {
         if (! is_dir(dirname($this->installedPath()))) {
             mkdir(dirname($this->installedPath()), 0775, true);
         }
+        $manifest += ['generated_at' => now()->toIso8601String()];
         file_put_contents($this->installedPath(), json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        return $manifest;
     }
 
     /**

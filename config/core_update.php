@@ -20,4 +20,10 @@ return [
      * release needs an earlier one installed first (typically after a contract migration).
      */
     'min_from' => '1.0.0',
+
+    /*
+     * The CLI php the updater starts for migrate/package:discover/core:health. Empty = the binary
+     * running the update (right under cron). Set it on hosts with several PHP versions.
+     */
+    'php_binary' => env('CORE_UPDATE_PHP_BINARY'),
 ];
