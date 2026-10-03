@@ -74,6 +74,53 @@ class WordPressPostImportService
         ];
     }
 
+    /**
+     * One post from the WordPress REST API (`/wp/v2/posts?_embed`), stored exactly like a WXR
+     * item: same normalizer, image localization, Yoast meta, SEO score and slug.
+     *
+     * @param  array<string, mixed>  $post
+     * @return string imported | updated | skipped
+     */
+    public function importRestPost(array $post, string $duplicateAction = 'skip'): string
+    {
+        $embedded = (array) ($post['_embedded'] ?? []);
+        $categories = collect((array) ($embedded['wp:term'] ?? []))->flatten(1)
+            ->filter(fn ($term) => is_array($term) && ($term['taxonomy'] ?? '') === 'category')
+            ->map(fn (array $term) => ['name' => html_entity_decode((string) ($term['name'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'slug' => rawurldecode((string) ($term['slug'] ?? ''))])
+            ->values()->all();
+        $featuredId = (string) ($post['featured_media'] ?? '');
+        $featuredUrl = (string) ($embedded['wp:featuredmedia'][0]['source_url'] ?? '');
+        $yoast = (array) ($post['yoast_head_json'] ?? []);
+
+        $data = [
+            'post_id' => (string) ($post['id'] ?? ''),
+            'post_type' => 'post',
+            // The public API lists published posts only.
+            'status' => (string) ($post['status'] ?? 'publish'),
+            'slug' => rawurldecode((string) ($post['slug'] ?? '')),
+            'post_date' => (string) ($post['date_gmt'] ?? $post['date'] ?? ''),
+            'post_password' => ! empty($post['content']['protected']) ? 'protected' : '',
+            'attachment_url' => '',
+            'title' => trim(html_entity_decode(strip_tags((string) ($post['title']['rendered'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8')),
+            'content' => (string) ($post['content']['rendered'] ?? ''),
+            'excerpt' => (string) ($post['excerpt']['rendered'] ?? ''),
+            'categories' => $categories,
+            'meta' => array_filter([
+                '_yoast_wpseo_title' => trim((string) ($yoast['title'] ?? '')),
+                '_yoast_wpseo_metadesc' => trim((string) ($yoast['description'] ?? '')),
+                '_thumbnail_id' => $featuredId,
+            ]),
+        ];
+
+        if ($data['title'] === '') {
+            return 'skipped';
+        }
+
+        $attachments = $featuredId !== '' && ($url = $this->safeUrl($featuredUrl)) !== null ? [$featuredId => $url] : [];
+
+        return DB::transaction(fn (): string => $this->persistPost($data, $attachments, $duplicateAction));
+    }
+
     /** @return array<string, string> */
     private function attachmentMap(string $filePath): array
     {
