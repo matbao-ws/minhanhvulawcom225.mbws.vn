@@ -466,6 +466,13 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   code của lần cập nhật gần nhất (sau lỗi, sau khi bị gián đoạn, hoặc bằng tay). Trạng thái, lịch sử,
   backup (giữ 3 bản) nằm trong `storage/app/core`. `core:health` phải nhanh, không side effect, và
   luôn tồn tại: bản cập nhật gọi nó để quyết định giữ hay trả lại.
+- **Update service trên gateway** quyết định website nào nhận bản nào, khi nào: kênh, ghim phiên bản,
+  rollout theo %, pause; website vẫn tự verify mọi gói. `App\Support\CoreUpdate\CoreUpdateService`:
+  `core:poll` mỗi giờ vào một phút riêng của website (`pollMinute()`, rải đều trong giờ) hỏi
+  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang superadmin
+  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`), còn `core:run-requested`
+  chạy bằng cron mỗi phút; không bao giờ cài trong request web. Mọi lần cài, lỗi, quay lại đều báo
+  về `POST v1/core/report`. `CORE_UPDATE_ENABLED=false` tắt cả hai lệnh (staging Docker, máy dev).
 
 ## 8. Chiến lược test
 

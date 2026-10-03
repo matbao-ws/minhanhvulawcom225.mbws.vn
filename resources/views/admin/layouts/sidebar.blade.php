@@ -451,6 +451,11 @@
                                           <span class="icon-small"></span>{{ __('admin.sidebar.feature_settings') }}
                                       </a>
                                   </li>
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ route('admin.core-update.index') }}">
+                                          <span class="icon-small"></span>{{ __('admin.sidebar.core_update') }}
+                                      </a>
+                                  </li>
                                   @endif
                               </ul>
                           </li>

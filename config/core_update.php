@@ -26,4 +26,10 @@ return [
      * running the update (right under cron). Set it on hosts with several PHP versions.
      */
     'php_binary' => env('CORE_UPDATE_PHP_BINARY'),
+
+    /*
+     * Off where the code is not this website's to change: a Docker image (staging), a developer
+     * machine. Then the website neither polls the update service nor runs requested updates.
+     */
+    'enabled' => (bool) env('CORE_UPDATE_ENABLED', true),
 ];
