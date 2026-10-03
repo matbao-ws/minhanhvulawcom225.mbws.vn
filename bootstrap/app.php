@@ -21,6 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     Route::name('client.')
                         ->group(base_path('routes/client.php'));
 
+                    // A theme's own storefront routes (product or post detail, landing pages…).
+                    // Theme-owned: a core update never ships or touches this file (CoreManifest).
+                    if (is_file(base_path('routes/theme.php'))) {
+                        Route::name('client.')
+                            ->group(base_path('routes/theme.php'));
+                    }
+
                     Route::prefix('admin')
                         ->name('admin.')
                         ->group(base_path('routes/admin.php'));
@@ -28,14 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Behind a TLS-terminating proxy the app would otherwise see plain HTTP
-        // and generate http:// asset URLs, which browsers block as mixed
-        // content. Opt in per environment via TRUSTED_PROXIES ("*" for a
-        // trusted load balancer, or a comma-separated list of addresses).
-        $proxies = trim((string) env('TRUSTED_PROXIES', ''));
-        if ($proxies !== '') {
-            $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
-        }
+        // Trusted proxies: config/trustedproxy.php (TRUSTED_PROXIES), read per request.
 
         $middleware->prepend(\App\Http\Middleware\ValidateLocalizedAdminPath::class);
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request): string {
@@ -52,6 +52,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
             'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
+            'package.sync' => \App\Http\Middleware\SyncPackageInfo::class,
+            'package.limit' => \App\Http\Middleware\EnsurePackageLimit::class,
             'setLocale' => \App\Http\Middleware\SetLocaleFromRoute::class,
             'apiLocale' => \App\Http\Middleware\ResolveApiLocale::class,
             'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,

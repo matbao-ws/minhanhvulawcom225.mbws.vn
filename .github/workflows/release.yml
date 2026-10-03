@@ -1,0 +1,88 @@
+name: Core release
+
+# A version tag builds a signed core release (AI_BUILD_PROMPT.md, "Cập nhật phiên bản core"):
+#   v1.4.0          → stable
+#   v1.4.0-beta.1   → beta
+#   v1.4.0-dev.3    → dev   (also -alpha, -rc counts as beta)
+# The tag must equal the VERSION file. Nothing is pushed to websites from here: the release is
+# only published as GitHub release assets, the rollout is the update service's job.
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: core-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Holds the CORE_RELEASE_SIGNING_KEY secret; add required reviewers to gate releases.
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          if [ "$version" != "$(tr -d '[:space:]' < VERSION)" ]; then
+            echo "Tag $tag does not match VERSION $(cat VERSION)"; exit 1
+          fi
+          case "$version" in
+            *-dev*|*-alpha*) channel=dev ;;
+            *-*) channel=beta ;;
+            *) channel=stable ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+      # The lowest PHP composer.json allows, so the vendor/ artifact runs on every supported host.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, openssl, curl, intl, gd, zip, bcmath, exif, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Test
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          cp .env.example .env && php artisan key:generate
+          php artisan test --compact
+
+      # No --optimize-autoloader: an optimized classmap lists app/ classes, and the dependencies
+      # artifact is reused by every release with the same composer.lock — it must not depend on app/.
+      - name: Production dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      # Migrations new since the last stable release decide "migration" in release.json.
+      - name: Previous stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prev=$(gh release list --exclude-pre-releases --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [ -n "$prev" ]; then gh release download "$prev" --pattern release.json --dir prev || true; fi
+
+      - name: Build and sign
+        env:
+          CORE_RELEASE_SIGNING_KEY: ${{ secrets.CORE_RELEASE_SIGNING_KEY }}
+        run: |
+          php artisan core:release --output=dist \
+            --channel=${{ steps.version.outputs.channel }} \
+            --commit=${GITHUB_SHA} \
+            --previous=prev/release.json
+
+      # The same check a website runs before installing, with the keys shipped in this code.
+      - name: Verify
+        run: php artisan core:verify-release dist
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=""
+          if [ "${{ steps.version.outputs.channel }}" != "stable" ]; then flags="--prerelease"; fi
+          gh release create "${GITHUB_REF_NAME}" dist/* --title "Core ${{ steps.version.outputs.version }}" --generate-notes $flags

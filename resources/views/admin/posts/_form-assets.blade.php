@@ -160,7 +160,7 @@
 @endpush
 
 @push('scripts')
-    <script src="{{ asset('admin-assets/js/vendor.min.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
@@ -213,6 +213,13 @@
             Font.whitelist = ['sans-serif', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'];
             Quill.register(Font, true);
 
+            const Block = Quill.import('blots/block');
+            class ImageCaptionBlot extends Block {}
+            ImageCaptionBlot.blotName = 'imageCaption';
+            ImageCaptionBlot.tagName = 'div';
+            ImageCaptionBlot.className = 'ql-image-caption';
+            Quill.register(ImageCaptionBlot, true);
+
             // Quill initialization
             let quill = null;
             const contentInput = document.getElementById('content_input');
@@ -224,6 +231,9 @@
                     theme: 'snow',
                     placeholder: editorElement.dataset.placeholder || '',
                     modules: {
+                        clipboard: {
+                            matchVisual: false
+                        },
                         toolbar: [
                             [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],
                             ['bold', 'italic', 'underline', 'strike'],

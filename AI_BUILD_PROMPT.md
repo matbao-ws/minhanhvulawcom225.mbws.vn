@@ -59,9 +59,10 @@ Core cung cấp:
 - Shipping configuration, GHTK push/webhook.
 - CMS post, CMS page (HTML thuần, không có builder kéo-thả), banner, menu điều hướng storefront, đa
   ngôn ngữ, media và notification.
-- Feature flags do support cấu hình qua `features`/`feature_settings`. Cụm SaaS billing cũ
-  (`packages`, `package_features`, `project_subscription`, `addons`, `invoices`) **đã bị gỡ hoàn
-  toàn** — đó là hoá đơn của bên bán core, không phải nghiệp vụ cửa hàng. Không dựng lại.
+- Feature flags nằm ở `features`/`feature_settings`, được áp theo gói dịch vụ đồng bộ từ tool nội bộ
+  (`package:sync`) và superadmin ghi đè được. Cụm SaaS billing cũ (`packages`, `package_features`,
+  `project_subscription`, `addons`, `invoices`) **đã bị gỡ hoàn toàn** — đó là hoá đơn của bên bán
+  core, không phải nghiệp vụ cửa hàng. Không dựng lại bảng gói trong database.
 
 Core không có storefront mặc định. Khi repository có thư mục `theme/` ở root, coi đây là giao diện
 HTML nguồn do người dùng cung cấp và cắt giao diện đó thành Laravel Blade ngay trong core:
@@ -146,12 +147,22 @@ Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc
 ### Tenant và feature
 
 - Không thêm multi-tenancy.
-- Dùng `FeatureGate`/middleware `feature:<code>`. Không có khái niệm gói dịch vụ trong core;
-  `FeatureGate` đọc thẳng `feature_settings` và không tra cứu package nào.
+- Dùng `FeatureGate`/middleware `feature:<code>`. `FeatureGate` đọc thẳng `feature_settings.is_enabled`
+  và không tra cứu package nào.
+- Gói dịch vụ (Hero 1–7, `COBAN`…) chỉ tồn tại ở **tầng đồng bộ**: `App\Services\Packages\PackageSync`
+  đọc gói từ tool nội bộ theo `PACKAGE_INFO_DOMAIN`, map mã gói → feature code bằng `config/packages.php`
+  rồi ghi `feature_settings.package_enabled` (và `is_enabled` cho row chưa bị ghi đè). Superadmin ghi đè
+  được từng tính năng (`is_overridden`), lần sync sau giữ nguyên. Tool lỗi/không tìm thấy domain không
+  bao giờ tắt tính năng; snapshot gần nhất nằm ở `project_settings.package_info`.
+- Hạn mức gói (`App\Services\Packages\PackageLimits`): `data_unit` = sản phẩm + bài viết, `banner`,
+  `email_monthly` (chỉ đếm khi gửi qua SMTP dùng chung). Chặn ở model event `creating` nên form admin,
+  import CSV và import WordPress đều bị áp; áp cả cho superadmin. Hạn mức **chỉ** lấy từ tool nội bộ, core không
+  có chỗ sửa: nâng hạn mức = Sales nâng gói/ký lại hợp đồng → cập nhật tool → `package:sync`.
+  Không có snapshot gói thì không giới hạn.
 - Superadmin có cơ chế bypass feature hiện hành; không thay đổi ngầm.
 - Feature bị tắt phải trả đúng hành vi web/API hiện có.
 
-Sai — gói dịch vụ không còn tồn tại trong core:
+Sai — controller/view không bao giờ đọc mã gói:
 
 ```php
 if ($packageCode === 'basic_2m') {
@@ -278,13 +289,47 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Dữ liệu nhạy cảm và nội dung
 
 - Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
-- Cấu hình SMTP resolve ở `App\Services\MailSettings` theo thứ tự: admin (`notification_settings.smtp`)
-  khi đã bật và điền đủ → SMTP dùng chung từ `SMTP_EXPORT_URL` (cache mã hoá 1 giờ, giữ bản tốt gần
-  nhất khi tool lỗi; gửi từ `smtp_domain` và reply-to về email chủ shop) → `.env` là dự phòng cuối.
-  URL export chứa token: chỉ để trong `.env`, không log. Xoay key xong chạy `php artisan mail:refresh-smtp`. Service này được áp khi container resolve
-  `mail.manager`, nên **mọi** email đều dùng chung một nguồn — không cấu hình mailer inline tại chỗ
-  gửi. Laravel 11+ dựng transport từ `scheme`, không đọc `encryption`; đổi cấu hình xong phải
-  `MailSettings::flush()` và `queue:restart` để worker nhận credential mới.
+- Cấu hình mail resolve ở `App\Services\MailSettings` theo thứ tự: admin (`notification_settings.smtp`)
+  khi đã bật và điền đủ → **mail relay MatBao** trên gateway khi có `MATBAO_AI_URL` + `MATBAO_AI_TOKEN`
+  (mailer `matbao`, transport `App\Mail\Transport\MatbaoGatewayTransport` gửi `POST v1/mail/send`;
+  gateway ép địa chỉ From, chặn quota email theo gói, reply-to về email chủ shop) → `.env` là dự phòng
+  cuối. Website **không bao giờ** nhận mật khẩu SMTP dùng chung; không đọc lại SMTP export. Quota email
+  hiển thị trong `PackageLimits` lấy từ `v1/mail/usage` của gateway, không đếm ở core. Service được áp khi
+  container resolve `mail.manager`, nên **mọi** email đều dùng chung một nguồn — không cấu hình mailer
+  inline tại chỗ gửi. Laravel 11+ dựng transport từ `scheme`, không đọc `encryption`; đổi cấu hình xong
+  chạy `php artisan mail:refresh-smtp` (flush + `queue:restart`). Email quên mật khẩu đi qua queue
+  (`QueuedResetPassword`), nên production cần queue worker.
+- Google Analytics 4: số liệu đọc qua gateway (`App\Services\Analytics\AnalyticsReport` →
+  `App\Services\AiGateway\GatewayClient`); service account nằm **chỉ** trên gateway, website không giữ
+  private key. Measurement ID/Property ID của từng shop nằm ở `project_settings.google_analytics` (Cài
+  đặt → Google Analytics) và được đẩy lên gateway qua `v1/project/connections`. Lỗi trả lý do
+  `AnalyticsUnavailable`, không bao giờ đưa nguyên văn lỗi Google ra UI; token gateway không log, không
+  in ra (`analytics:check`). gtag không gắn cho nhân viên (`role_id`), khung preview
+  (`client_chrome=off`) hoặc khi feature `analytics` tắt.
+- AI SEO Copilot (feature `ai_seo`, quyền `ai.use`): AI chỉ **đề xuất** qua gateway (`GatewayClient::task()`,
+  luôn kèm `Idempotency-Key`); website tự dựng đầu vào từ record — trình duyệt chỉ gửi loại + id — và chỉ gửi nội
+  dung công khai dạng text, không bao giờ gửi dữ liệu khách mua hàng. Đề xuất lưu ở `ai_suggestions` cùng giá trị
+  cũ; chỉ ghi khi admin bấm Áp dụng, cần thêm quyền update của chính record, chỉ ghi đúng các trường SEO của
+  locale đó, và từ chối (409) nếu trường đã bị sửa từ lúc đề xuất. Áp dụng ghi `ActivityLogger` và báo sự kiện
+  (`applied`/`applied_after_edit` + `edit_distance`/`rejected`) về gateway; lỗi báo sự kiện không bao giờ chặn
+  việc áp dụng. Thêm loại record = thêm vào `MetaSuggestionService::ENTITIES`, không viết luồng ghi riêng.
+  **AI biên tập** (`ContentEditService`) gửi bản nội dung **đã lưu**, chạy kết quả qua đúng sanitizer của record
+  (Page: `PageHtmlSanitizer`, còn lại `HtmlSanitizer`) trước khi hiển thị, và **loại bỏ** kết quả nếu danh sách
+  `href`/`src` khác bản gốc — AI không được thêm, bỏ hay đổi link/ảnh. Page ghi qua
+  `PageContentService::updateLocale()` (revision); suggestion của luồng này không áp dụng được qua endpoint meta và
+  ngược lại.
+  **Viết bài bằng AI** (`PostDraftService`, `admin.ai.post-drafts.*`): chỉ nhận brief có đủ thông tin doanh nghiệp
+  + ý chính (hoặc ghi chú của chủ shop) — không viết từ một từ khoá; luôn tạo bài **chưa đăng**
+  (`is_active=false`), bỏ mọi link/ảnh AI tự thêm rồi qua `HtmlSanitizer`, đi qua `package.limit:data_unit` như tạo
+  bài thường. Trang sửa bài hiện "thông tin còn thiếu / câu cần kiểm chứng" tới khi bài được đăng. AI không bao giờ
+  tự đăng bài.
+  **FAQ** (`FaqService`) nối phần hỏi–đáp vào cuối nội dung, mọi chữ được escape. **Alt ảnh** (`AltTextService`) chỉ đọc
+  ảnh từ disk `public` của site hoặc Cloudinary của chính site rồi gửi bytes — không bao giờ tải URL lạ (SSRF); chặn
+  xung đột theo từng ảnh. **Sửa theo điểm SEO** (`SeoFixService`, chỉ bài viết): `PostSeoAnalyzer` quyết định quy tắc nào
+  trượt, điểm trước/sau do code tính lại; đoạn mở bài sửa không được đổi link/ảnh. **Mô tả sản phẩm**
+  (`ProductDescriptionService`) gửi tên, danh mục, thương hiệu, thuộc tính, mô tả ngắn — **không gửi giá/tồn kho**.
+  Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
+  meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.
@@ -342,6 +387,14 @@ db:wipe
 seeder cũ có truncate/delete hàng loạt
 ```
 
+CI/CD (`.github/workflows/ci.yml`): mọi PR và push `main`/`dev` chạy toàn bộ test trên PHP 8.3; push
+`dev` mà test đạt thì tự deploy lên **staging** `corewbws-staging.webwow.vn` (nơi test webhook VNPay,
+SePay, GHTK bằng key sandbox). `main` không tự deploy ra website khách — rollout qua tool. Staging chạy
+bằng Docker: `Dockerfile` (serversideup/php 8.3 fpm-nginx) được CI build, smoke test, đẩy lên GHCR rồi
+deploy qua `infra/compose.yml` + `infra/deploy.sh` của repo MatBaoAI-SEO (web container tự chạy
+`migrate --force` và cache khi khởi động; worker và scheduler là container riêng). `.env` mount lúc chạy,
+không bao giờ đóng vào image. Hướng dẫn dựng server và secrets GitHub: `docs/DEPLOY.md` của MatBaoAI-SEO.
+
 Quy trình cài core:
 
 ```bash
@@ -364,6 +417,62 @@ QUEUE_AFTER_COMMIT=true
 
 Không đọc hoặc in giá trị secret trong `.env`. Chỉ kiểm tra tên key hoặc trạng thái boolean khi
 cần thiết.
+
+### Cập nhật phiên bản core: core và theme
+
+Mỗi website là một bản cài riêng nhưng **core** là chung: một bản phát hành thay file core trên mọi
+website, không đụng phần của website. Phiên bản nằm trong file `VERSION` (semver).
+
+- `App\Support\CoreManifest` là nguồn sự thật duy nhất, dạng **allowlist**: chỉ đường dẫn trong
+  `CoreManifest::CORE` là core (app, config, database, lang, routes của core, views admin/api/auth/
+  components/core/emails/vendor, `public/admin-assets`, `public/client-assets/vendor`, `public/docs`,
+  `public/index.php`, `artisan`, composer.json/lock, `VERSION`). `vendor/` là gói dependencies riêng,
+  chỉ phát hành khi composer.lock đổi. Mọi thứ khác thuộc website và bản cập nhật không bao giờ ghi:
+  theme `resources/views/client/**`, `public/client-assets/css`, `routes/theme.php`, `.env`, `storage`,
+  `.htaccess`, robots, logo. Thêm thư mục core mới thì phải thêm vào allowlist (kèm test).
+- **Không sửa file core trên từng website.** Thay đổi riêng của khách đi vào theme; route riêng của theme
+  vào `routes/theme.php` (nạp dưới `{locale}`, tên `client.`); component Blade riêng vào
+  `resources/views/client/components` (cùng namespace `x-client::`, ghi đè được). Cần đổi hành vi core
+  thì sửa core ở repo này để mọi website cùng nhận. Layout theme chỉ include `core.head` và
+  `core.editor`, không chép partial của core.
+- `php artisan core:status` báo phiên bản và file core bị sửa tay so với lúc cài (checksum trong
+  `storage/app/core/installed.json`); `--baseline` ghi mốc lần đầu hoặc sau khi đã gỡ chỗ lệch.
+  Website lệch thì bản cập nhật dừng, không ghi đè. `php artisan core:manifest` in danh sách file core
+  kèm sha256 (dùng khi build bản phát hành; `--owner=path` cho biết một file thuộc bên nào).
+- **Migration expand/contract.** Cập nhật hỏng thì chỉ trả **code** về bản cũ, không bao giờ
+  `migrate:rollback` trên website khách; vậy schema mới phải chạy được với code bản trước. Trong `up()`
+  chỉ thêm bảng, cột nullable/có default, index, dữ liệu. Không xóa/đổi tên cột hoặc bảng, không
+  `->change()`, không truncate. Bỏ cột cũ làm ở một bản **contract** sau, khi mọi website đã chạy code
+  không còn dùng nó: migration đó ghi `@contract-migration` kèm lý do và bản phát hành chứa nó không
+  rollback-safe (cần backup, không tự rollout). `App\Support\MigrationSafety` +
+  `CoreManifestTest` chặn vi phạm trong CI với migration từ `MigrationSafety::POLICY_FROM`.
+- **Bản phát hành có chữ ký.** Tag `vX.Y.Z` (khớp `VERSION`) chạy `.github/workflows/release.yml`:
+  test, `composer install --no-dev`, `core:release` build `release.json` + `release.json.sig` +
+  `core-X.Y.Z.zip` + `dependencies-{lock}.zip`, `core:verify-release`, rồi đăng GitHub Release.
+  Kênh theo tag: `-dev`/`-alpha` → dev, hậu tố khác → beta, không hậu tố → stable. Chữ ký ECDSA P-256
+  qua ext-openssl; private key chỉ nằm trong secret `CORE_RELEASE_SIGNING_KEY`, public key trong
+  `config/core_update.php`. `App\Support\CoreUpdate\ReleaseVerifier` từ chối gói sai chữ ký, artifact
+  hỏng, file ngoài danh sách, đường dẫn thoát thư mục, hoặc bất kỳ đường dẫn nào thuộc
+  `CoreManifest::SITE_OWNED` (kể cả khi allowlist của bản phát hành khai báo nó). Vận hành:
+  `docs/CORE_RELEASES.md`.
+- **Cài trên website: `php artisan core:update`** (chỉ CLI/cron, không gọi từ request web).
+  `App\Support\CoreUpdate\CoreUpdater`: `--check` liệt kê lý do chặn (`UPDATE_BLOCKED`: chữ ký,
+  không mới hơn, `min_from`, PHP, lệch file core, cần backup, thiếu gói vendor, không ghi được, thiếu
+  dung lượng, đang khoá, lần trước bị gián đoạn). Khi cài: khoá → sao lưu đúng các file sẽ ghi/xoá →
+  giải nén vào staging → `down` → thay `vendor/` (chỉ khi composer.lock đổi) và file core (ghi file tạm
+  rồi rename) → trong **tiến trình mới**: `package:discover`, `migrate --force`, `optimize:clear`,
+  (`optimize` nếu site đang cache config), `core:health` → ghi `installed.json` → `up`. Lỗi sau khi bắt
+  đầu thay file thì tự trả code cũ và `up`; **không bao giờ `migrate:rollback`**. `core:rollback` trả
+  code của lần cập nhật gần nhất (sau lỗi, sau khi bị gián đoạn, hoặc bằng tay). Trạng thái, lịch sử,
+  backup (giữ 3 bản) nằm trong `storage/app/core`. `core:health` phải nhanh, không side effect, và
+  luôn tồn tại: bản cập nhật gọi nó để quyết định giữ hay trả lại.
+- **Update service trên gateway** quyết định website nào nhận bản nào, khi nào: kênh, ghim phiên bản,
+  rollout theo %, pause; website vẫn tự verify mọi gói. `App\Support\CoreUpdate\CoreUpdateService`:
+  `core:poll` mỗi giờ vào một phút riêng của website (`pollMinute()`, rải đều trong giờ) hỏi
+  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang superadmin
+  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`), còn `core:run-requested`
+  chạy bằng cron mỗi phút; không bao giờ cài trong request web. Mọi lần cài, lỗi, quay lại đều báo
+  về `POST v1/core/report`. `CORE_UPDATE_ENABLED=false` tắt cả hai lệnh (staging Docker, máy dev).
 
 ## 8. Chiến lược test
 
@@ -447,9 +556,10 @@ chưa từng có — biên tập viên thêm được thành viên thứ năm, k
 Cơ chế hiện hành là inline editing bằng `contenteditable` thuần của browser, không thư viện ngoài.
 Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 
-- Layout chung phải include `client.partials.admin-bar` đúng một lần, gần cuối `<body>`, rồi
-  `client.partials.inline-blocks` ngay sau. Không xóa, sao chép hoặc nhúng lại toàn bộ mã editor vào
-  từng page.
+- Layout chung include editor bằng **một dòng** `@include('core.editor')`, đúng một lần, gần cuối
+  `<body>` (con trực tiếp của `<body>`), và `@include('core.head')` trong `<head>`. Editor là core
+  (`resources/views/core/`): không liệt kê từng partial, không sao chép hay nhúng lại mã editor vào
+  theme hoặc từng page — bản cập nhật core thêm/đổi panel thì theme tự có.
 - **Edit mode có đúng một chủ sở hữu: `admin-bar`.** Nó quyết định vùng nào đang mở, giữ các thay đổi
   đang chờ, và công bố `window.clientBlocks` (`isEditing`, `activeRegion`, `markDirty`, `status`,
   `on('open'|'close'|'mode')`, `urls`, `csrf`, `locale`). `inline-blocks` chỉ là thanh công cụ nhìn
@@ -463,6 +573,13 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
   `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
   Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
+- URL storefront của Page là `/{locale}/chinh-sach/{slug}` (route `client.pages.show`), dùng chung
+  một view `client.pages.show`; `/{locale}/pages/{slug}` chỉ còn là redirect 301. Không đưa slug Page
+  ra gốc `/{locale}/{slug}` — route bắt mọi slug sẽ nuốt `/{locale}/admin`.
+- Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng Quill (đã có
+  sẵn trong admin). Ô nội dung của mỗi locale chỉ được submit khi editor của locale đó thực sự bị sửa;
+  `PageContentService` merge các locale gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm
+  editor không bao giờ đẩy HTML đã lưu qua Quill — Quill làm phẳng markup do inline editor lưu.
 - Vùng sửa được tìm bằng id `client-page-{id}`, dự phòng bằng thuộc tính
   `data-client-editable-root` để layout theme tự đánh dấu wrapper của mình. Không tìm thấy vùng nào
   thì editor thoát im lặng và nút **Sửa trực tiếp** không hiện — không được để script ném lỗi vì sẽ

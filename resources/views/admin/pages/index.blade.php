@@ -1,15 +1,15 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Trang nội dung')
+@section('title', 'Trang chính sách')
 
 @section('content')
-<x-admin.page-header title="Trang nội dung">
+<x-admin.page-header title="Trang chính sách">
     <x-slot:breadcrumbs>
         <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-        <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Trang nội dung</li>
+        <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Trang chính sách</li>
     </x-slot:breadcrumbs>
     <x-slot:actions>
-        <x-admin.action-button :href="route('admin.pages.create')" icon="plus">Thêm trang</x-admin.action-button>
+        <x-admin.action-button :href="route('admin.pages.create')" icon="plus">Tạo trang chính sách</x-admin.action-button>
     </x-slot:actions>
 </x-admin.page-header>
 

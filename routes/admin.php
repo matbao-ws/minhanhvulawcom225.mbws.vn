@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\Catalog\ProductVariantController;
 use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\CoreUpdateController;
 use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
@@ -52,14 +53,80 @@ Route::post('/impersonate/leave', [UserController::class, 'leaveImpersonate'])
     ->middleware('auth')
     ->name('users.impersonate.leave');
 
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    // Each click may call the internal tool; keep it to a handful per minute.
+    Route::post('dashboard/package-usage/refresh', [DashboardController::class, 'refreshPackageUsage'])
+        ->middleware('throttle:6,1')
+        ->name('dashboard.package-usage.refresh');
+    // Google Analytics: loaded after the dashboard renders; each call may reach Google.
+    Route::middleware(['can:analytics.view', 'feature:analytics'])->group(function () {
+        Route::get('dashboard/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'show'])
+            ->middleware('throttle:30,1')->name('dashboard.analytics');
+        Route::post('dashboard/analytics/refresh', [\App\Http\Controllers\Admin\AnalyticsController::class, 'refresh'])
+            ->middleware('throttle:6,1')->name('dashboard.analytics.refresh');
+    });
     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
     Route::get('search', [SearchController::class, 'search'])->name('search');
     Route::post('translations/preview', [TranslationController::class, 'preview'])
-        ->middleware(['can:translations.use', 'throttle:admin-translation'])
+        ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
+
+    // AI SEO Copilot. ai.use asks for suggestions; ai.apply writes them, and applying also checks
+    // the record's own update permission (MetaSuggestionService).
+    Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
+        Route::post('meta-suggestions', [\App\Http\Controllers\Admin\AiMetaController::class, 'suggest'])
+            ->middleware('throttle:admin-ai')->name('meta.suggest');
+        Route::post('meta-suggestions/{suggestion}/apply', [\App\Http\Controllers\Admin\AiMetaController::class, 'apply'])
+            ->whereNumber('suggestion')->middleware('can:ai.apply')->name('meta.apply');
+        Route::post('meta-suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\AiMetaController::class, 'reject'])
+            ->whereNumber('suggestion')->name('meta.reject');
+        Route::post('content-edits', [\App\Http\Controllers\Admin\AiContentController::class, 'suggest'])
+            ->middleware('throttle:admin-ai')->name('content.suggest');
+        Route::post('content-edits/{suggestion}/apply', [\App\Http\Controllers\Admin\AiContentController::class, 'apply'])
+            ->whereNumber('suggestion')->middleware('can:ai.apply')->name('content.apply');
+        Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
+            ->whereNumber('suggestion')->name('content.reject');
+
+        // FAQ, alt text, SEO fixes, product descriptions (AiToolsController).
+        Route::controller(\App\Http\Controllers\Admin\AiToolsController::class)->group(function () {
+            Route::post('faq', 'faqSuggest')->middleware('throttle:admin-ai')->name('faq.suggest');
+            Route::post('faq/{suggestion}/apply', 'faqApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('faq.apply');
+            Route::post('alt/missing', 'altMissing')->name('alt.missing');
+            Route::post('alt', 'altSuggest')->middleware('throttle:admin-ai')->name('alt.suggest');
+            Route::post('alt/{suggestion}/apply', 'altApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('alt.apply');
+            Route::post('seo-fixes', 'seoSuggest')->middleware('throttle:admin-ai')->name('seo.suggest');
+            Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('seo.apply');
+            Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
+            Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('product.apply');
+            Route::post('internal-links', 'linksSuggest')->middleware('throttle:admin-ai')->name('links.suggest');
+            Route::post('internal-links/{suggestion}/apply', 'linksApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('links.apply');
+            Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
+        });
+
+        // Bulk SEO: one gateway job, results reviewed here (AiBulkController).
+        Route::get('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'index'])->name('bulk.index');
+        Route::post('bulk/estimate', [\App\Http\Controllers\Admin\AiBulkController::class, 'estimate'])->middleware('throttle:admin-ai')->name('bulk.estimate');
+        Route::post('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'store'])->middleware('throttle:admin-ai')->name('bulk.store');
+        Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->name('bulk.show');
+        Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
+
+        // This week's SEO work (Search Console + the site index, ranked by the gateway).
+        Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');
+        Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');
+        Route::post('seo-tasks/{task}/advice', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'advice'])
+            ->where('task', '[a-f0-9]{16}')->middleware('throttle:admin-ai')->name('seo-tasks.advice');
+        Route::post('seo-tasks/{task}/status', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'mark'])
+            ->where('task', '[a-f0-9]{16}')->name('seo-tasks.status');
+
+        Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
+            Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');
+            // A draft is a new post: it counts against the package's data units like any other.
+            Route::post('post-drafts', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'store'])
+                ->middleware(['package.limit:data_unit', 'throttle:admin-ai'])->name('post-drafts.store');
+        });
+    });
 
     Route::middleware('can:media.view')->group(function () {
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
@@ -82,12 +149,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('features', [FeatureController::class, 'update'])->name('features.update');
         Route::post('features/toggle', [FeatureController::class, 'toggle'])->name('features.toggle');
         Route::post('features/group-toggle', [FeatureController::class, 'toggleGroup'])->name('features.group-toggle');
+        Route::post('features/sync-package', [FeatureController::class, 'syncPackage'])->name('features.sync-package');
+        Route::post('features/reset-overrides', [FeatureController::class, 'resetOverrides'])->name('features.reset-overrides');
+
+        // Core updates replace the code of the website: superadmin only, and only queued here.
+        Route::get('core-update', [CoreUpdateController::class, 'index'])->name('core-update.index');
+        Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
+        Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
+        Route::post('core-update/rollback', [CoreUpdateController::class, 'rollback'])->name('core-update.rollback');
     });
 
-    Route::get('languages', [LanguageController::class, 'index'])->middleware('can:languages.view')->name('languages.index');
-    Route::post('languages', [LanguageController::class, 'store'])->middleware('can:languages.create')->name('languages.store');
-    Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->middleware('can:languages.update')->name('languages.preferences');
-    Route::put('languages/{language}', [LanguageController::class, 'update'])->middleware('can:languages.update')->name('languages.update');
+    Route::get('languages', [LanguageController::class, 'index'])->middleware(['feature:multilingual', 'can:languages.view'])->name('languages.index');
+    Route::post('languages', [LanguageController::class, 'store'])->middleware(['feature:multilingual', 'can:languages.create'])->name('languages.store');
+    Route::put('languages/preferences', [LanguageController::class, 'updatePreferences'])->middleware(['feature:multilingual', 'can:languages.update'])->name('languages.preferences');
+    Route::put('languages/{language}', [LanguageController::class, 'update'])->middleware(['feature:multilingual', 'can:languages.update'])->name('languages.update');
 
     Route::middleware('feature:multi_admin')->group(function () {
         // Literal segments are registered before `{user}` so /users/create is
@@ -120,7 +195,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('post-categories', PostCategoryController::class)->only(['edit', 'update'])->middleware('can:posts.update');
         Route::resource('post-categories', PostCategoryController::class)->only(['destroy'])->middleware('can:posts.delete');
 
-        Route::resource('posts', PostController::class)->only(['create', 'store'])->middleware('can:posts.create');
+        Route::resource('posts', PostController::class)->only(['create', 'store'])->middleware(['can:posts.create', 'package.limit:data_unit']);
         Route::resource('posts', PostController::class)->only(['index', 'show'])->middleware('can:posts.view');
         Route::resource('posts', PostController::class)->only(['edit', 'update'])->middleware('can:posts.update');
         Route::resource('posts', PostController::class)->only(['destroy'])->middleware('can:posts.delete');
@@ -197,6 +272,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::get('settings', [SettingController::class, 'index'])->middleware('can:settings.view')->name('settings.index');
     Route::post('settings', [SettingController::class, 'update'])->middleware('can:settings.update')->name('settings.update');
+    Route::post('settings/analytics/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'check'])
+        ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.analytics.check');
+    Route::post('settings/search-console/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'checkSearchConsole'])
+        ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.search-console.check');
 
     Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');
     Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');
@@ -245,13 +324,18 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::middleware('feature:banner')->group(function () {
         Route::patch('banners/bulk', [BannerController::class, 'bulk'])->middleware('can:banners.update')->name('banners.bulk');
-        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware('can:banners.create');
+        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware(['can:banners.create', 'package.limit:banner']);
         Route::resource('banners', BannerController::class)->only(['index'])->middleware('can:banners.view');
         Route::resource('banners', BannerController::class)->only(['edit', 'update'])->middleware('can:banners.update');
         Route::resource('banners', BannerController::class)->only(['destroy'])->middleware('can:banners.delete');
     });
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:activity_logs.view')->name('activity-logs.index');
+    // Wiping the audit trail is superadmin-only, like feature flags.
+    Route::middleware('superadmin')->group(function () {
+        Route::delete('activity-logs/bulk', [ActivityLogController::class, 'bulkDestroy'])->name('activity-logs.bulk-destroy');
+        Route::delete('activity-logs', [ActivityLogController::class, 'destroyAll'])->name('activity-logs.destroy-all');
+    });
 
     Route::middleware('can:customers.view')->group(function () {
         Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
@@ -294,16 +378,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('products/export', [ProductController::class, 'export'])->middleware('can:products.view')->name('products.export');
         Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
         Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.create')->name('products.import');
-        Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware('can:products.create');
+        Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware(['can:products.create', 'package.limit:data_unit']);
         Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('can:products.view');
         Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('can:products.update');
         Route::resource('products', ProductController::class)->only(['destroy'])->middleware('can:products.delete');
 
-        Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->middleware('can:products.update')->name('products.options.edit');
-        Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->middleware('can:products.update')->name('products.options.update');
-        Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->middleware('can:products.create')->name('products.variants.generate');
-        Route::resource('products.variants', ProductVariantController::class)->only(['create', 'store'])->middleware('can:products.create');
-        Route::resource('products.variants', ProductVariantController::class)->only(['edit', 'update'])->middleware('can:products.update');
-        Route::resource('products.variants', ProductVariantController::class)->only(['destroy'])->middleware('can:products.delete');
+        // Variants are a package feature of their own (Hero 3+).
+        Route::middleware('feature:product_variant')->group(function () {
+            Route::get('products/{product}/options', [ProductOptionController::class, 'edit'])->middleware('can:products.update')->name('products.options.edit');
+            Route::put('products/{product}/options', [ProductOptionController::class, 'update'])->middleware('can:products.update')->name('products.options.update');
+            Route::post('products/{product}/variants/generate', [ProductVariantController::class, 'generate'])->middleware('can:products.create')->name('products.variants.generate');
+            Route::resource('products.variants', ProductVariantController::class)->only(['create', 'store'])->middleware('can:products.create');
+            Route::resource('products.variants', ProductVariantController::class)->only(['edit', 'update'])->middleware('can:products.update');
+            Route::resource('products.variants', ProductVariantController::class)->only(['destroy'])->middleware('can:products.delete');
+        });
     });
 });

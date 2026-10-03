@@ -384,6 +384,9 @@ class PublicController extends Controller
         if (! $this->features->enabled($paymentFeature)) {
             return ApiResponse::error($this->features->unavailableMessage(), 403);
         }
+        if ($paymentMethod->method_code === 'vnpay' && ! $this->features->enabled('payment_vnpay')) {
+            return ApiResponse::error($this->features->unavailableMessage(), 403);
+        }
         if ($request->filled('voucher_code') && ! $this->features->enabled('voucher')) {
             return ApiResponse::error($this->features->unavailableMessage(), 403);
         }

@@ -149,11 +149,10 @@ class PageContentService
     }
 
     /**
-     * `published_html` is only present in $data for programmatic callers
-     * (e.g. seeders) — the admin metadata form no longer submits it, since
-     * content is authored via the client inline editor instead. Omitting the
-     * key here (rather than defaulting to empty) means an admin metadata save
-     * never wipes out content the inline editor has already saved.
+     * The admin form submits `published_html` only for the locales whose
+     * editor was actually touched, so submitted locales are merged over the
+     * stored ones. A save that leaves the editor alone never rewrites content
+     * the storefront inline editor saved — Quill would flatten its markup.
      */
     private function payload(array $data, ?Page $page = null): array
     {
@@ -173,7 +172,10 @@ class PageContentService
         ];
 
         if (array_key_exists('published_html', $data)) {
-            $payload['published_html'] = $this->cleanHtmlByLocale($data['published_html']);
+            $payload['published_html'] = array_merge(
+                $page?->getTranslations('published_html') ?? [],
+                $this->cleanHtmlByLocale($data['published_html'] ?? []),
+            );
         }
 
         return $payload;
@@ -182,8 +184,10 @@ class PageContentService
     private function cleanHtmlByLocale(array $values): array
     {
         return collect($values)
-            ->filter(fn ($value, $locale) => $this->languages->supports((string) $locale) && is_string($value))
-            ->map(fn (string $value) => $this->htmlSanitizer->clean($value))
+            // null is an emptied editor after ConvertEmptyStringsToNull: a real
+            // "no content" the admin chose, stored as '' like the inline editor does.
+            ->filter(fn ($value, $locale) => $this->languages->supports((string) $locale) && (is_string($value) || $value === null))
+            ->map(fn (?string $value) => $value === null ? '' : $this->htmlSanitizer->clean($value))
             ->all();
     }
 

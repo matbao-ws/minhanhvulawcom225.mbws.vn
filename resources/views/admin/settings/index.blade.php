@@ -202,6 +202,32 @@
             font-size: 14px;
             flex: 1;
         }
+
+        /* Analytics setup is a guided workflow, not a dense list of fields. */
+        .analytics-settings { max-width: 1040px; }
+        .analytics-settings__hero { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: linear-gradient(135deg, #fdf3f4 0%, #ffffff 56%); }
+        .analytics-settings__hero-icon { display: inline-flex; width: 46px; height: 46px; flex: 0 0 46px; align-items: center; justify-content: center; border-radius: 12px; color: #c01e25; background: #ffe8ea; }
+        .analytics-settings__title { margin: 0 0 4px; color: #2a3547; font-size: 18px; font-weight: 800; }
+        .analytics-settings__help { margin: 0; color: #5a6a85; font-size: 13px; }
+        .analytics-settings__section { padding: 18px; border: 1px solid #e5ebf3; border-radius: 14px; background: #fff; }
+        .analytics-settings__section + .analytics-settings__section { margin-top: 16px; }
+        .analytics-settings__section-title { margin-bottom: 14px; color: #344256; font-size: 14px; font-weight: 800; }
+        .analytics-settings__steps { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; counter-reset: analytics-step; }
+        .analytics-settings__steps > li { position: relative; min-height: 40px; padding: 10px 12px 10px 48px; border-radius: 10px; color: #526174; background: #f8fafc; font-size: 13px; }
+        .analytics-settings__steps > li::before { position: absolute; top: 9px; left: 12px; display: inline-flex; width: 25px; height: 25px; align-items: center; justify-content: center; border-radius: 50%; color: #c01e25; background: #ffe8ea; content: counter(analytics-step); counter-increment: analytics-step; font-size: 12px; font-weight: 800; }
+        .analytics-settings__service-account { margin-top: 10px; }
+        .analytics-settings__field { height: 100%; padding: 14px; border: 1px solid #e8edf5; border-radius: 12px; background: #fbfcff; }
+        .analytics-settings__field .form-label { margin-bottom: 7px; }
+        .analytics-settings__field .form-text { margin-top: 7px; color: #627391; }
+        .analytics-settings__actions { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding-top: 16px; margin-top: 18px; border-top: 1px dashed #dce4ec; }
+        .analytics-settings__check { display: flex; align-items: center; gap: 10px; }
+        .analytics-settings__check [data-ga-check-result] { min-width: 180px; color: #526174; }
+        [data-bs-theme="dark"] .analytics-settings__hero, [data-bs-theme="dark"] .analytics-settings__section { border-color: #3b4c64; background: #203046; }
+        [data-bs-theme="dark"] .analytics-settings__hero { background: linear-gradient(135deg, rgba(192, 30, 37, .22), #203046 56%); }
+        [data-bs-theme="dark"] .analytics-settings__title, [data-bs-theme="dark"] .analytics-settings__section-title { color: #edf2f8; }
+        [data-bs-theme="dark"] .analytics-settings__help, [data-bs-theme="dark"] .analytics-settings__steps > li, [data-bs-theme="dark"] .analytics-settings__field .form-text { color: #c4cfde; }
+        [data-bs-theme="dark"] .analytics-settings__steps > li, [data-bs-theme="dark"] .analytics-settings__field { border-color: #40536d; background: #293a51; }
+        [data-bs-theme="dark"] .analytics-settings__actions { border-color: #40536d; }
     </style>
 @endpush
 
@@ -216,29 +242,35 @@
     <!-- Nav tabs -->
     <ul class="nav nav-tabs mb-4" role="tablist">
         <li class="nav-item">
-            <a class="nav-link active d-flex align-items-center gap-2" data-bs-toggle="tab" href="#general-pane" role="tab">
+            <a class="nav-link {{ $activeTab === 'general' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="general" href="#general-pane" role="tab" aria-selected="{{ $activeTab === 'general' ? 'true' : 'false' }}">
                 <span><i class="ti ti-settings fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.general') }}</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link d-flex align-items-center gap-2" data-bs-toggle="tab" href="#contact-pane" role="tab">
+            <a class="nav-link {{ $activeTab === 'contact' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="contact" href="#contact-pane" role="tab" aria-selected="{{ $activeTab === 'contact' ? 'true' : 'false' }}">
                 <span><i class="ti ti-phone fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.contact') }}</span>
             </a>
         </li>
         @if(auth()->user()?->isSuperAdmin())
         <li class="nav-item">
-            <a class="nav-link d-flex align-items-center gap-2" data-bs-toggle="tab" href="#multilingual-pane" role="tab">
+            <a class="nav-link {{ $activeTab === 'multilingual' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="multilingual" href="#multilingual-pane" role="tab" aria-selected="{{ $activeTab === 'multilingual' ? 'true' : 'false' }}">
                 <span><i class="ti ti-world fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.multilingual') }}</span>
             </a>
         </li>
         @endif
         <li class="nav-item">
-            <a class="nav-link d-flex align-items-center gap-2" data-bs-toggle="tab" href="#embed-pane" role="tab">
+            <a class="nav-link {{ $activeTab === 'embed' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="embed" href="#embed-pane" role="tab" aria-selected="{{ $activeTab === 'embed' ? 'true' : 'false' }}">
                 <span><i class="ti ti-code fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.embed') }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ $activeTab === 'analytics' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="analytics" href="#analytics-pane" role="tab" aria-selected="{{ $activeTab === 'analytics' ? 'true' : 'false' }}">
+                <span><i class="ti ti-chart-line fs-4"></i></span>
+                <span>{{ __('admin.analytics.tab') }}</span>
             </a>
         </li>
     </ul>
@@ -246,10 +278,11 @@
     <!-- Form -->
     <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data" id="settingsForm">
         @csrf
+        <input type="hidden" name="active_tab" value="{{ $activeTab }}" data-settings-active-tab>
         <div class="tab-content" id="settingTabsContent">
             
             <!-- Cài đặt website Pane -->
-            <div class="tab-pane fade show active" id="general-pane" role="tabpanel">
+            <div class="tab-pane fade {{ $activeTab === 'general' ? 'show active' : '' }}" id="general-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.general.title') }}</h5>
@@ -323,7 +356,7 @@
                     $sourceLanguage = $contentLanguages->firstWhere('is_default', true) ?? $contentLanguages->first();
                     $allGTranslateLanguages = \App\Services\MultilingualSettings::allGTranslateLanguages();
                 @endphp
-                <div class="tab-pane fade" id="multilingual-pane" role="tabpanel">
+                <div class="tab-pane fade {{ $activeTab === 'multilingual' ? 'show active' : '' }}" id="multilingual-pane" role="tabpanel">
                     <div class="card">
                         <div class="card-body">
                             <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
@@ -509,7 +542,7 @@
             @endif
 
             <!-- Nút liên hệ Pane -->
-            <div class="tab-pane fade" id="contact-pane" role="tabpanel">
+            <div class="tab-pane fade {{ $activeTab === 'contact' ? 'show active' : '' }}" id="contact-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.contact.title') }}</h5>
@@ -727,7 +760,7 @@
             </div>
 
             <!-- Mã nhúng Pane -->
-            <div class="tab-pane fade" id="embed-pane" role="tabpanel">
+            <div class="tab-pane fade {{ $activeTab === 'embed' ? 'show active' : '' }}" id="embed-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.embed.title') }}</h5>
@@ -747,6 +780,74 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade {{ $activeTab === 'analytics' ? 'show active' : '' }}" id="analytics-pane" role="tabpanel">
+                <div class="analytics-settings">
+                    <div class="analytics-settings__section">
+                        <div class="analytics-settings__section-title">{{ __('admin.analytics.settings_title') }}</div>
+                        <ol class="analytics-settings__steps">
+                            <li class="mb-2">{{ __('admin.analytics.step_1') }}</li>
+                            <li>
+                                {{ __('admin.analytics.step_2') }}
+                                @if($analyticsServiceEmail)
+                                    <div class="input-group input-group-sm analytics-settings__service-account" style="max-width: 560px;">
+                                        <input type="text" class="form-control font-monospace" id="ga_service_email" value="{{ $analyticsServiceEmail }}" readonly>
+                                        <button type="button" class="btn btn-outline-primary" data-copy-target="ga_service_email" data-copied-text="{{ __('admin.analytics.copied') }}">
+                                            <i class="ti ti-copy me-1" aria-hidden="true"></i>{{ __('admin.analytics.copy') }}
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="alert alert-warning small py-2 mt-2 mb-0">{{ __('admin.analytics.service_account_missing') }}</div>
+                                @endif
+                            </li>
+                            <li>{{ __('admin.analytics.step_3') }}</li>
+                        </ol>
+                    </div>
+
+                    <div class="analytics-settings__section">
+                        <div class="analytics-settings__section-title">{{ __('admin.analytics.tab') }}</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="analytics-settings__field">
+                                    <label class="form-label fw-semibold text-dark" for="ga_measurement_id">{{ __('admin.analytics.measurement_id') }}</label>
+                                    <input type="text" class="form-control text-dark font-monospace" id="ga_measurement_id" name="google_analytics[measurement_id]"
+                                           value="{{ old('google_analytics.measurement_id', $analyticsSettings['measurement_id']) }}" placeholder="G-XXXXXXXXXX" maxlength="30">
+                                    <div class="form-text">{{ __('admin.analytics.measurement_id_help') }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="analytics-settings__field">
+                                    <label class="form-label fw-semibold text-dark" for="ga_property_id">{{ __('admin.analytics.property_id') }}</label>
+                                    <input type="text" inputmode="numeric" class="form-control text-dark font-monospace" id="ga_property_id" name="google_analytics[property_id]"
+                                           value="{{ old('google_analytics.property_id', $analyticsSettings['property_id']) }}" placeholder="987654321" maxlength="20">
+                                    <div class="form-text">{{ __('admin.analytics.property_id_help') }}</div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="analytics-settings__field">
+                                    <label class="form-label fw-semibold text-dark" for="gsc_site_url">{{ __('admin.analytics.gsc_site_url') }}</label>
+                                    <input type="text" class="form-control text-dark font-monospace" id="gsc_site_url" name="google_analytics[gsc_site_url]"
+                                           value="{{ old('google_analytics.gsc_site_url', $analyticsSettings['gsc_site_url'] ?? '') }}" placeholder="sc-domain:example.com" maxlength="255">
+                                    <div class="form-text">{{ __('admin.analytics.gsc_site_url_help') }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if($analyticsServiceEmail)
+                            <div class="analytics-settings__actions">
+                                <div class="analytics-settings__check">
+                                    <x-admin.action-button variant="outline-primary" icon="plug-connected" data-ga-check="{{ route('admin.settings.analytics.check') }}">{{ __('admin.analytics.check') }}</x-admin.action-button>
+                                    <span class="small" data-ga-check-result role="status"></span>
+                                </div>
+                                <div class="analytics-settings__check">
+                                    <x-admin.action-button variant="outline-primary" icon="brand-google" data-ga-check="{{ route('admin.settings.search-console.check') }}">{{ __('admin.analytics.gsc_check') }}</x-admin.action-button>
+                                    <span class="small" data-ga-check-result role="status"></span>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Sticky Save Button -->
@@ -757,6 +858,69 @@
         </div>
     </form>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const activeTabInput = document.querySelector('[data-settings-active-tab]');
+            document.querySelectorAll('[data-settings-tab]').forEach(function (tab) {
+                tab.addEventListener('shown.bs.tab', function (event) {
+                    const activeTab = event.target.dataset.settingsTab;
+                    if (!activeTab) return;
+
+                    if (activeTabInput) activeTabInput.value = activeTab;
+                    const url = new URL(window.location.href);
+                    if (activeTab === 'general') {
+                        url.searchParams.delete('tab');
+                    } else {
+                        url.searchParams.set('tab', activeTab);
+                    }
+                    window.history.replaceState({}, '', url);
+                });
+            });
+
+            document.querySelectorAll('[data-copy-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const input = document.getElementById(button.dataset.copyTarget);
+                    if (!input) return;
+                    navigator.clipboard?.writeText(input.value);
+                    input.select();
+                    const original = button.innerHTML;
+                    button.textContent = button.dataset.copiedText;
+                    setTimeout(function () { button.innerHTML = original; }, 1500);
+                });
+            });
+
+            // Tests the saved IDs: save the form first when they were just changed.
+            document.querySelectorAll('[data-ga-check]').forEach(function (checkButton) {
+            const checkResult = checkButton.parentElement.querySelector('[data-ga-check-result]');
+            checkButton.addEventListener('click', async function () {
+                checkButton.disabled = true;
+                checkResult.className = 'small text-muted';
+                checkResult.textContent = '…';
+                try {
+                    const response = await fetch(checkButton.dataset.gaCheck, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': @json(csrf_token()),
+                        },
+                    });
+                    const data = await response.json().catch(function () { return {}; });
+                    checkResult.className = 'small fw-semibold ' + (data.success ? 'text-success' : 'text-danger');
+                    checkResult.textContent = data.message || response.statusText;
+                } catch (error) {
+                    checkResult.className = 'small fw-semibold text-danger';
+                    checkResult.textContent = error.message;
+                } finally {
+                    checkButton.disabled = false;
+                }
+            });
+            });
+        });
+    </script>
+@endpush
 
 @push('scripts')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

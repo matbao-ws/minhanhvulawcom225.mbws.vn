@@ -53,7 +53,7 @@ class ClientInlineEditorHardeningTest extends TestCase
     {
         $this->actingWith($permissions);
 
-        return $this->get('/vi/pages/gioi-thieu')->assertOk()->getContent();
+        return $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->getContent();
     }
 
     public function test_the_editable_root_carries_a_theme_portable_hook(): void
@@ -165,7 +165,7 @@ class ClientInlineEditorHardeningTest extends TestCase
 
     public function test_guests_receive_no_editor_at_all(): void
     {
-        $html = $this->get('/vi/pages/gioi-thieu')->assertOk()->getContent();
+        $html = $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->getContent();
 
         foreach ([
             'client-admin-bar',

@@ -15,6 +15,11 @@ return [
         'menu',
         'multi_admin',
         'inventory_log',
+        'product_variant',
+        'payment_vnpay',
+        'multilingual',
+        'analytics',
+        'ai_seo',
     ],
 
     'groups' => [
@@ -27,6 +32,8 @@ return [
             'review',
             'shipping',
             'inventory_log',
+            'product_variant',
+            'payment_vnpay',
         ],
         'non_ecommerce' => [
             'cms_page',
@@ -34,6 +41,9 @@ return [
             'menu',
             'zalo_oa',
             'multi_admin',
+            'multilingual',
+            'analytics',
+            'ai_seo',
         ],
     ],
 ];

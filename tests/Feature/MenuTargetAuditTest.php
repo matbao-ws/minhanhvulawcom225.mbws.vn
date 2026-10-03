@@ -48,7 +48,7 @@ class MenuTargetAuditTest extends TestCase
             'menu_id' => $this->menu()->id,
             'label' => ['vi' => 'Giới thiệu'],
             'type' => MenuItem::TYPE_URL,
-            'url' => '/vi/pages/gioi-thieu',
+            'url' => '/vi/chinh-sach/gioi-thieu',
             'is_active' => true,
             'sort_order' => 1,
         ]);
@@ -73,7 +73,7 @@ class MenuTargetAuditTest extends TestCase
             'menu_id' => $this->menu()->id,
             'label' => ['vi' => 'Giới thiệu'],
             'type' => MenuItem::TYPE_URL,
-            'url' => '/vi/pages/gioi-thieu',
+            'url' => '/vi/chinh-sach/gioi-thieu',
             'is_active' => true,
             'sort_order' => 1,
         ]);
@@ -87,7 +87,7 @@ class MenuTargetAuditTest extends TestCase
     {
         $menu = $this->menu();
 
-        foreach (['https://example.com/tin-tuc', '/vi/danh-muc/ao-thun', '/vi/pages/a/b'] as $index => $url) {
+        foreach (['https://example.com/tin-tuc', '/vi/danh-muc/ao-thun', '/vi/chinh-sach/a/b'] as $index => $url) {
             MenuItem::query()->create([
                 'menu_id' => $menu->id,
                 'label' => ['vi' => 'Link '.$index],

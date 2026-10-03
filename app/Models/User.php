@@ -22,6 +22,15 @@ class User extends Authenticatable
     private ?array $permissionOverrideMap = null;
 
     /**
+     * Send the reset link from the queue, with retries: a brief outage of the
+     * mail relay must delay the mail, not break the "forgot password" form.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new \App\Notifications\QueuedResetPassword($token));
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>

@@ -16,6 +16,8 @@ use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
 {
+    private const TABS = ['general', 'contact', 'multilingual', 'embed', 'analytics'];
+
     public function __construct(
         private readonly CloudinaryService $cloudinaryService,
         private readonly MultilingualSettings $multilingual,
@@ -25,7 +27,7 @@ class SettingController extends Controller
     /**
      * Display the settings page.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Integration credentials have their own guarded screen and must never
         // be handed to a general-purpose settings view.
@@ -34,9 +36,19 @@ class SettingController extends Controller
             ->get()
             ->pluck('setting_value', 'setting_key');
 
+        $activeTab = $request->string('tab')->toString();
+        if (! in_array($activeTab, self::TABS, true)
+            || ($activeTab === 'multilingual' && ! auth()->user()?->isSuperAdmin())) {
+            $activeTab = 'general';
+        }
+
         return view('admin.settings.index', [
             'settings' => $settings,
+            'activeTab' => $activeTab,
             'multilingualSettings' => $this->multilingual->get(),
+            'analyticsSettings' => app(\App\Services\Analytics\AnalyticsReport::class)->settings(),
+            // The address a property owner adds as Viewer; the key itself never reaches a view.
+            'analyticsServiceEmail' => app(\App\Services\Analytics\AnalyticsReport::class)->readerEmail(),
             'contentLanguages' => auth()->user()?->isSuperAdmin()
                 ? Language::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
                 : collect(),
@@ -53,6 +65,7 @@ class SettingController extends Controller
         }
 
         $rules = [
+            'active_tab' => ['nullable', Rule::in(self::TABS)],
             'shop_name' => 'required|string|max:255',
             'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
             'favicon' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
@@ -81,6 +94,9 @@ class SettingController extends Controller
             // Embed code validation
             'embed_header' => 'nullable|string',
             'embed_footer' => 'nullable|string',
+            'google_analytics.measurement_id' => ['nullable', 'string', 'max:30', 'regex:/^G-[A-Z0-9]+$/i'],
+            'google_analytics.property_id' => ['nullable', 'string', 'regex:/^\d{4,20}$/'],
+            'google_analytics.gsc_site_url' => ['nullable', 'string', 'max:255', 'regex:/^(https?:\/\/\S+|sc-domain:[a-z0-9.-]+)$/i'],
         ];
 
         if ($request->user()?->isSuperAdmin()) {
@@ -109,7 +125,11 @@ class SettingController extends Controller
             ];
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'google_analytics.measurement_id.regex' => __('admin.analytics.invalid_measurement_id'),
+            'google_analytics.property_id.regex' => __('admin.analytics.invalid_property_id'),
+            'google_analytics.gsc_site_url.regex' => __('admin.analytics.invalid_gsc_site_url'),
+        ]);
 
         // Update basic and nested JSON columns
         ProjectSetting::updateOrCreate(
@@ -142,6 +162,11 @@ class SettingController extends Controller
             ['setting_key' => 'embed_footer'],
             ['setting_value' => $validated['embed_footer'] ?? '']
         );
+
+        if ($request->has('google_analytics')) {
+            // Through the report service so cached statistics of an old property are dropped.
+            app(\App\Services\Analytics\AnalyticsReport::class)->saveSettings($validated['google_analytics'] ?? []);
+        }
 
         // Upload logo if uploaded
         if ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) {
@@ -178,6 +203,7 @@ class SettingController extends Controller
                 'social_links',
                 'embed_header',
                 'embed_footer',
+                $request->has('google_analytics') ? 'google_analytics' : null,
                 $request->user()?->isSuperAdmin() ? 'multilingual' : null,
                 ($request->hasFile('logo') || filled($validated['logo_url'] ?? null)) ? 'logo_url' : null,
                 ($request->hasFile('favicon') || filled($validated['favicon_url'] ?? null)) ? 'favicon_url' : null,
@@ -187,7 +213,15 @@ class SettingController extends Controller
         $redirectLocale = $this->languages->supportsAdmin(app()->getLocale())
             ? app()->getLocale()
             : $this->languages->defaultLocale();
-        $redirectUrl = route('admin.settings.index', ['locale' => $redirectLocale]);
+        $activeTab = $request->string('active_tab')->toString();
+        if (! in_array($activeTab, self::TABS, true)
+            || ($activeTab === 'multilingual' && ! $request->user()?->isSuperAdmin())) {
+            $activeTab = 'general';
+        }
+        $redirectUrl = route('admin.settings.index', array_filter([
+            'locale' => $redirectLocale,
+            'tab' => $activeTab === 'general' ? null : $activeTab,
+        ]));
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

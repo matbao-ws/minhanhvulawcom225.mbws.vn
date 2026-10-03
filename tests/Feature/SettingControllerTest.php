@@ -71,6 +71,29 @@ class SettingControllerTest extends TestCase
         $response->assertDontSee('Cấu hình Email (SMTP)');
     }
 
+    public function test_settings_page_restores_the_requested_tab(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->get('/vi/admin/settings?tab=contact')
+            ->assertOk()
+            ->assertViewHas('activeTab', 'contact')
+            ->assertSee('data-settings-tab="contact"', false);
+    }
+
+    public function test_settings_update_redirects_back_to_the_active_tab(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)
+            ->post('/vi/admin/settings', [
+                'shop_name' => 'Updated Shop Name',
+                'active_tab' => 'analytics',
+            ])
+            ->assertRedirect('/vi/admin/settings?tab=analytics');
+    }
+
     public function test_admin_layout_uses_the_configured_favicon(): void
     {
         ProjectSetting::query()->create([

@@ -357,6 +357,23 @@
                               @endcan
                           @endif
 
+                          @if($sidebarFeatures->availableTo($sidebarUser, 'ai_seo'))
+                              @can('ai.use')
+                              <li class="sidebar-item">
+                                  <a class="sidebar-link" href="{{ route('admin.ai.seo-tasks.index') }}" aria-expanded="false">
+                                      <i class="ti ti-chart-arrows-vertical fs-6" aria-hidden="true"></i>
+                                      <span class="hide-menu">{{ __('ai.tasks.title') }}</span>
+                                  </a>
+                              </li>
+                              <li class="sidebar-item">
+                                  <a class="sidebar-link" href="{{ route('admin.ai.bulk.index') }}" aria-expanded="false">
+                                      <i class="ti ti-stack-2 fs-6" aria-hidden="true"></i>
+                                      <span class="hide-menu">{{ __('ai.bulk.title') }}</span>
+                                  </a>
+                              </li>
+                              @endcan
+                          @endif
+
                           <!-- Quản lý người dùng -->
                           @if($sidebarFeatures->availableTo($sidebarUser, 'multi_admin'))
                                @if($sidebarUser?->can('users.view') || $sidebarUser?->can('roles.view'))
@@ -421,17 +438,22 @@
                                       </a>
                                   </li>
                                   @endcan
-                                  @can('languages.view')
+                                  @if($sidebarFeatures->availableTo($sidebarUser, 'multilingual') && $sidebarUser?->can('languages.view'))
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.languages.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.content_languages') }}
                                       </a>
                                   </li>
-                                  @endcan
+                                  @endif
                                   @if($sidebarUser?->isSuperAdmin())
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.features.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.feature_settings') }}
+                                      </a>
+                                  </li>
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ route('admin.core-update.index') }}">
+                                          <span class="icon-small"></span>{{ __('admin.sidebar.core_update') }}
                                       </a>
                                   </li>
                                   @endif

@@ -18,6 +18,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(\App\Services\SiteBranding::class);
+        $this->app->bind(\App\Support\CoreUpdate\ReleaseVerifier::class, fn () => new \App\Support\CoreUpdate\ReleaseVerifier(
+            array_values(array_filter((array) config('core_update.public_keys'))),
+        ));
+        $this->app->bind(\App\Support\CoreUpdate\ArtisanRunner::class, fn () => new \App\Support\CoreUpdate\ArtisanRunner(base_path()));
+        // One image downloader per import run: posts, pages and products share its cache and report.
+        $this->app->scoped(\App\Services\WordPressImageImportService::class);
         // Scoped: a storefront page renders dozens of regions and must not
         // issue a query per region.
         $this->app->scoped(\App\Services\SiteContentService::class);
@@ -29,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
         // Media pages and upload services consult the same encrypted
         // Cloudinary setting several times in one request.
         $this->app->scoped(\App\Services\CloudinaryCredentials::class);
+        // Scoped so an importer can ask, after the loop, whether any row hit the limit.
+        $this->app->scoped(\App\Services\Packages\PackageLimits::class);
 
         $this->app->bind(
             \App\Contracts\TranslationProvider::class,
@@ -49,9 +57,17 @@ class AppServiceProvider extends ServiceProvider
         // Hooked on resolution rather than run here directly: this fires only when
         // mail is actually used, which keeps the settings lookup off every web
         // request and out of `migrate` on a database that has no settings table yet.
-        $this->app->resolving('mail.manager', function () {
+        $this->app->resolving('mail.manager', function ($manager) {
             app(\App\Services\MailSettings::class)->apply();
+
+            // The MatBao relay transport; registered on resolution, like the settings
+            // above, so requests that send no mail never touch the mailer.
+            $manager->extend(\App\Services\MailSettings::GATEWAY_MAILER, fn () => new \App\Mail\Transport\MatbaoGatewayTransport(
+                app(\App\Services\AiGateway\GatewayClient::class),
+            ));
         });
+
+        $this->enforcePackageLimits();
 
         view()->composer([
             'admin.layouts.app',
@@ -67,6 +83,45 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
         });
 
+        // Shown to staff who can use AI; the gateway is asked at most every five minutes.
+        view()->composer('admin.dashboard._ai-usage', function ($view) {
+            $user = auth()->user();
+            $visible = $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo');
+            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(\App\Services\AiGateway\AiUsage::class)->current() : null]);
+        });
+
+        // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
+        view()->composer('admin.dashboard._seo-tasks', function ($view) {
+            $user = auth()->user();
+            $view->with('seoTasksVisible', $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'));
+        });
+
+        view()->composer('admin.shared.ai-draft-review', function ($view) {
+            $post = $view->getData()['post'] ?? null;
+            $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);
+        });
+
+        view()->composer('core.partials.google-analytics', function ($view) {
+            $id = null;
+
+            try {
+                // role_id marks staff (customers have none); the preview frame is staff too.
+                if (auth()->user()?->role_id === null
+                    && ! \App\Support\ClientEditorChrome::suppressed()
+                    && app(\App\Support\FeatureGate::class)->enabled('analytics')) {
+                    $id = app(\App\Services\Analytics\AnalyticsReport::class)->settings()['measurement_id'];
+                }
+            } catch (\Throwable) {
+                // Tracking must never break a storefront page.
+            }
+
+            $view->with('gaMeasurementId', $id);
+        });
+
+        view()->composer('admin.layouts.app', function ($view) {
+            $view->with('packageLimitAlerts', app(\App\Services\Packages\PackageUsageAlerts::class)->forAdmin());
+        });
+
         RateLimiter::for('public-auth', fn (Request $request) => [
             Limit::perMinute(10)->by($request->ip()),
             Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
@@ -80,6 +135,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by($request->ip()),
             Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
         ]);
+        // Each request spends an AI credit; the gateway enforces the monthly quota itself.
+        RateLimiter::for('admin-ai', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->user()?->id ?: $request->ip())));
+
         RateLimiter::for('admin-translation', fn (Request $request) => [
             Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip())),
             Limit::perDay(500)->by((string) ($request->user()?->id ?: $request->ip())),
@@ -94,12 +152,13 @@ class AppServiceProvider extends ServiceProvider
 
         Paginator::useBootstrapFive();
 
-        // Storefront components live beside the rest of the client views rather
-        // than in the framework default directory.
-        \Illuminate\Support\Facades\Blade::anonymousComponentPath(
-            resource_path('views/client/components'),
-            'client',
-        );
+        // Storefront editing components (<x-client::editable> …) are core: they live in
+        // views/core/components and are updated with core. A theme may add its own
+        // components in views/client/components under the same prefix.
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/core/components'), 'client');
+        if (is_dir(resource_path('views/client/components'))) {
+            \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/client/components'), 'client');
+        }
 
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
@@ -218,5 +277,25 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('headerNotifications', $notifications);
         });
+    }
+
+    /**
+     * Quantity limits of the sold package, enforced where records are born.
+     *
+     * Model events rather than controllers: the admin form, the CSV importer and
+     * the WordPress importer all create products and posts, and a limit that
+     * only one of them honours is not a limit. Without a package snapshot every
+     * check is a no-op.
+     */
+    private function enforcePackageLimits(): void
+    {
+        $limits = fn () => app(\App\Services\Packages\PackageLimits::class);
+
+        \App\Models\Product::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::DATA_UNIT));
+        \App\Models\Post::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::DATA_UNIT));
+        \App\Models\Banner::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::BANNER));
+
+        // The monthly mail quota is enforced by the MatBao relay on the gateway,
+        // where this website's code cannot reach it; PackageLimits only reads it.
     }
 }

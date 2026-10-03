@@ -27,13 +27,14 @@ class PermissionRegistry
         'orders' => ['group' => 'orders', 'label' => 'Đơn hàng', 'actions' => ['view', 'create', 'update']],
         'customers' => ['group' => 'orders', 'label' => 'Hồ sơ khách hàng', 'actions' => ['view']],
         'posts' => ['group' => 'content', 'label' => 'Bài viết và chuyên mục', 'actions' => ['view', 'create', 'update', 'delete']],
-        'pages' => ['group' => 'content', 'label' => 'Trang nội dung', 'actions' => ['view', 'create', 'update', 'delete']],
+        'pages' => ['group' => 'content', 'label' => 'Trang chính sách', 'actions' => ['view', 'create', 'update', 'delete']],
         'banners' => ['group' => 'content', 'label' => 'Banner', 'actions' => ['view', 'create', 'update', 'delete']],
         'menus' => ['group' => 'content', 'label' => 'Menu điều hướng', 'actions' => ['view', 'create', 'update', 'delete']],
         'vouchers' => ['group' => 'marketing', 'label' => 'Mã giảm giá', 'actions' => ['view', 'create', 'update', 'delete']],
         'promotions' => ['group' => 'marketing', 'label' => 'Khuyến mãi', 'actions' => ['view', 'create', 'update', 'delete']],
         'reviews' => ['group' => 'marketing', 'label' => 'Đánh giá', 'actions' => ['view', 'update', 'delete']],
         'contacts' => ['group' => 'marketing', 'label' => 'Liên hệ', 'actions' => ['view', 'update', 'delete']],
+        'analytics' => ['group' => 'marketing', 'label' => 'Thống kê truy cập (Google Analytics)', 'actions' => ['view']],
         'users' => ['group' => 'users', 'label' => 'Tài khoản quản trị', 'actions' => ['view', 'create', 'update', 'delete']],
         'roles' => ['group' => 'users', 'label' => 'Vai trò và phân quyền', 'actions' => ['view', 'create', 'update', 'delete']],
         'settings' => ['group' => 'settings', 'label' => 'Cấu hình website', 'actions' => ['view', 'update']],
@@ -43,6 +44,8 @@ class PermissionRegistry
         'media' => ['group' => 'system', 'label' => 'Thư viện tệp', 'actions' => ['view', 'create', 'delete']],
         'activity_logs' => ['group' => 'system', 'label' => 'Nhật ký hoạt động', 'actions' => ['view']],
         'translations' => ['group' => 'system', 'label' => 'Dịch nội dung tự động', 'actions' => ['use']],
+        // use: ask for suggestions. apply: write them — still also needing the record's own update permission.
+        'ai' => ['group' => 'marketing', 'label' => 'Trợ lý AI SEO', 'actions' => ['use', 'apply']],
     ];
 
     /** @var array<string, string> */
@@ -52,6 +55,7 @@ class PermissionRegistry
         'update' => 'Chỉnh sửa',
         'delete' => 'Xoá',
         'use' => 'Sử dụng',
+        'apply' => 'Áp dụng gợi ý',
     ];
 
     /**

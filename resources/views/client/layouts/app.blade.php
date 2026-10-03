@@ -9,6 +9,8 @@
     @endif
     <link rel="stylesheet" href="{{ asset('client-assets/css/storefront.css') }}">
     @stack('styles')
+    {{-- Core head additions (analytics…): one line, whatever core adds in an update. --}}
+    @include('core.head')
 </head>
 <body>
     {{-- Header and footer are rendered from the Menu admin and site settings.
@@ -32,20 +34,7 @@
         </div>
     </footer>
 
-    {{-- Order matters: the bar owns edit mode and publishes window.clientBlocks,
-         which the formatting toolbar attaches to on DOMContentLoaded.
-
-         Each of these asks `ClientEditorChrome::editorActive()` itself, so they
-         disappear together for a visitor and for the responsive preview frame — which
-         loads this same URL with the editor suppressed, and would otherwise hold a
-         second admin bar and a second owner of edit mode. Gating them here as well
-         would be a second mechanism for one rule, and the partial's own check is the
-         one a replacement theme layout cannot forget. --}}
-    @include('client.partials.admin-bar')
-    @include('client.partials.inline-blocks')
-    @include('client.partials.inline-outline')
-    @include('client.partials.inline-section-panel')
-    @include('client.partials.inline-viewport')
-    @include('client.partials.inline-history-panel')
+    {{-- The inline editor (core): one line, whatever panels core adds in an update. --}}
+    @include('core.editor')
 </body>
 </html>
