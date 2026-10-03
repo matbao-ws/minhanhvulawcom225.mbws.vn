@@ -115,6 +115,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');
         Route::post('seo-tasks/{task}/advice', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'advice'])
             ->where('task', '[a-f0-9]{16}')->middleware('throttle:admin-ai')->name('seo-tasks.advice');
+        Route::post('seo-tasks/{task}/status', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'mark'])
+            ->where('task', '[a-f0-9]{16}')->name('seo-tasks.status');
 
         Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
             Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');

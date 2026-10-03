@@ -51,6 +51,7 @@ class AiSeoTasksController extends Controller
             'count' => count($weekly['tasks']),
             'tasks' => array_map(fn (array $task) => [
                 'type' => $task['type'],
+                'priority' => $task['priority'] ?? null,
                 'label' => __('ai.tasks.types.'.$task['type']),
                 'title' => $task['entity']['title'] ?? $this->path($task['page'] ?? ''),
                 'gain' => (int) ($task['gain'] ?? 0),
@@ -69,6 +70,20 @@ class AiSeoTasksController extends Controller
         }
 
         return response()->json(['success' => true, 'data' => $result]);
+    }
+
+    public function mark(Request $request): JsonResponse
+    {
+        $data = $request->validate(['status' => ['required', 'in:done,dismissed,open']]);
+
+        try {
+            // By name, for the same reason as advice().
+            $this->tasks->mark((string) $request->route('task'), $data['status']);
+        } catch (GatewayUnavailable $e) {
+            return AiMetaController::unavailableResponse($e);
+        }
+
+        return response()->json(['success' => true, 'message' => __('ai.tasks.marked.'.$data['status'])]);
     }
 
     private function message(GatewayUnavailable $e): string

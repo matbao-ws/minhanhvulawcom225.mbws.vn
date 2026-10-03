@@ -55,12 +55,25 @@ class SeoTaskService
             'status' => (string) ($response['status'] ?? 'pending'),
             'synced_through' => $response['synced_through'] ?? null,
             'totals' => $response['totals'] ?? null,
+            // Tasks the owner marked done or dismissed, kept out of the list for a while.
+            'hidden' => (int) ($response['hidden'] ?? 0),
             'tasks' => array_values(array_filter((array) ($response['tasks'] ?? []), 'is_array')),
         ];
         // The gateway recomputes once a day; a short cache keeps page loads off it.
         Cache::put(self::CACHE_KEY, $result, 900);
 
         return $result;
+    }
+
+    /**
+     * Mark a task done or dismissed (or bring it back with 'open'); the gateway keeps it hidden for a while.
+     *
+     * @throws GatewayUnavailable
+     */
+    public function mark(string $taskId, string $status): void
+    {
+        $this->gateway->post('v1/seo-tasks/'.$taskId.'/status', [], ['status' => $status]);
+        self::forget();
     }
 
     public static function forget(): void
