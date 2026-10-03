@@ -35,7 +35,7 @@ class AiInternalLinksTest extends TestCase
         }
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_project_token']);
 
-        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['posts.view', 'posts.update', 'ai.use']]);
+        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['posts.view', 'posts.update', 'ai.use', 'ai.apply']]);
         $this->editor = User::factory()->create(['role_id' => $role->id]);
         $this->post = Post::query()->create(['title' => ['vi' => 'Cách chọn ống'], 'slug' => 'cach-chon-ong', 'content' => ['vi' => self::BODY], 'is_active' => true]);
 

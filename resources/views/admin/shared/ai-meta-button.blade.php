@@ -27,4 +27,5 @@
         @endif
     </div>
     @include('admin.shared.ai-meta-assets')
+    @include('admin.shared.ai-apply-guard')
 @endif

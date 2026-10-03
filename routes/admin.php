@@ -72,34 +72,35 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
-    // AI SEO Copilot. Applying also checks the record's own update permission (MetaSuggestionService).
+    // AI SEO Copilot. ai.use asks for suggestions; ai.apply writes them, and applying also checks
+    // the record's own update permission (MetaSuggestionService).
     Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
         Route::post('meta-suggestions', [\App\Http\Controllers\Admin\AiMetaController::class, 'suggest'])
             ->middleware('throttle:admin-ai')->name('meta.suggest');
         Route::post('meta-suggestions/{suggestion}/apply', [\App\Http\Controllers\Admin\AiMetaController::class, 'apply'])
-            ->whereNumber('suggestion')->name('meta.apply');
+            ->whereNumber('suggestion')->middleware('can:ai.apply')->name('meta.apply');
         Route::post('meta-suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\AiMetaController::class, 'reject'])
             ->whereNumber('suggestion')->name('meta.reject');
         Route::post('content-edits', [\App\Http\Controllers\Admin\AiContentController::class, 'suggest'])
             ->middleware('throttle:admin-ai')->name('content.suggest');
         Route::post('content-edits/{suggestion}/apply', [\App\Http\Controllers\Admin\AiContentController::class, 'apply'])
-            ->whereNumber('suggestion')->name('content.apply');
+            ->whereNumber('suggestion')->middleware('can:ai.apply')->name('content.apply');
         Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
             ->whereNumber('suggestion')->name('content.reject');
 
         // FAQ, alt text, SEO fixes, product descriptions (AiToolsController).
         Route::controller(\App\Http\Controllers\Admin\AiToolsController::class)->group(function () {
             Route::post('faq', 'faqSuggest')->middleware('throttle:admin-ai')->name('faq.suggest');
-            Route::post('faq/{suggestion}/apply', 'faqApply')->whereNumber('suggestion')->name('faq.apply');
+            Route::post('faq/{suggestion}/apply', 'faqApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('faq.apply');
             Route::post('alt/missing', 'altMissing')->name('alt.missing');
             Route::post('alt', 'altSuggest')->middleware('throttle:admin-ai')->name('alt.suggest');
-            Route::post('alt/{suggestion}/apply', 'altApply')->whereNumber('suggestion')->name('alt.apply');
+            Route::post('alt/{suggestion}/apply', 'altApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('alt.apply');
             Route::post('seo-fixes', 'seoSuggest')->middleware('throttle:admin-ai')->name('seo.suggest');
-            Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->name('seo.apply');
+            Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('seo.apply');
             Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
-            Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->name('product.apply');
+            Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('product.apply');
             Route::post('internal-links', 'linksSuggest')->middleware('throttle:admin-ai')->name('links.suggest');
-            Route::post('internal-links/{suggestion}/apply', 'linksApply')->whereNumber('suggestion')->name('links.apply');
+            Route::post('internal-links/{suggestion}/apply', 'linksApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('links.apply');
             Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
         });
 
@@ -108,7 +109,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('bulk/estimate', [\App\Http\Controllers\Admin\AiBulkController::class, 'estimate'])->middleware('throttle:admin-ai')->name('bulk.estimate');
         Route::post('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'store'])->middleware('throttle:admin-ai')->name('bulk.store');
         Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->name('bulk.show');
-        Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->name('bulk.apply');
+        Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
         Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');

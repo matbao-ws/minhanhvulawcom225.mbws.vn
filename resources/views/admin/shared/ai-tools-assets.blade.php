@@ -273,7 +273,7 @@
                                 const body = el('div', { class: 'flex-grow-1' });
                                 const input = el('input', { class: 'form-control form-control-sm mb-1', maxlength: '255' });
                                 const generate = el('button', { type: 'button', class: 'btn btn-sm btn-outline-primary me-1' }, t.altGenerate);
-                                const save = el('button', { type: 'button', class: 'btn btn-sm btn-primary d-none' }, t.altApply);
+                                const save = el('button', { type: 'button', class: 'btn btn-sm btn-primary d-none js-ai-alt-save' }, t.altApply);
                                 let applyUrl = null;
                                 generate.addEventListener('click', async function () {
                                     generate.disabled = true;

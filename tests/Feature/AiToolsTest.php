@@ -38,7 +38,7 @@ class AiToolsTest extends TestCase
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_project_token']);
 
         $this->editor = User::factory()->create(['role_id' => Role::query()->create([
-            'name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'posts.view', 'posts.update', 'pages.update', 'ai.use'],
+            'name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'posts.view', 'posts.update', 'pages.update', 'ai.use', 'ai.apply'],
         ])->id]);
 
         Http::fake([

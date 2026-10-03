@@ -34,7 +34,7 @@ class AiBulkFixAltTest extends TestCase
             FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);
         }
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_project_token']);
-        $this->editor = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Editor', 'permissions' => ['posts.view', 'posts.update', 'ai.use']])->id]);
+        $this->editor = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Editor', 'permissions' => ['posts.view', 'posts.update', 'ai.use', 'ai.apply']])->id]);
 
         Http::fake([
             'gw.test/v1/jobs/bulk.*' => function (Request $request) {

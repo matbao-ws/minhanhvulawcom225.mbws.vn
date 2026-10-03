@@ -39,4 +39,5 @@
     </div>
     @include('admin.shared.ai-edit-assets')
     @include('admin.shared.ai-tools-assets')
+    @include('admin.shared.ai-apply-guard')
 @endif

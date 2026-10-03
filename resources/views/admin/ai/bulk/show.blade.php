@@ -41,6 +41,8 @@
         </div>
     @elseif($suggestions->isEmpty())
         <div class="alert alert-success" role="status">{{ __('ai.bulk.nothing_left') }}</div>
+    @elsecannot('ai.apply')
+        <div class="alert alert-info" role="status">{{ __('ai.bulk.waiting_review', ['count' => $suggestions->count()]) }} {{ __('ai.errors.cannot_apply') }}</div>
     @else
         <form method="POST" action="{{ route('admin.ai.bulk.apply', ['job' => $job->id]) }}">
             @csrf

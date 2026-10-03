@@ -41,7 +41,7 @@ class AiBulkSeoTest extends TestCase
         }
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_project_token', 'ai_gateway.webhook_secret' => self::SECRET]);
 
-        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'ai.use']]);
+        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'ai.use', 'ai.apply']]);
         $this->editor = User::factory()->create(['role_id' => $role->id]);
 
         foreach ([1, 2, 3] as $i) {

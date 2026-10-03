@@ -38,7 +38,7 @@ class AiMetaSuggestionTest extends TestCase
 
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_project_token']);
 
-        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'posts.update', 'ai.use']]);
+        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'posts.update', 'ai.use', 'ai.apply']]);
         $this->editor = User::factory()->create(['role_id' => $role->id]);
 
         $this->product = Product::query()->create([
@@ -68,6 +68,22 @@ class AiMetaSuggestionTest extends TestCase
                 return Http::response(['ok' => true]);
             },
         ]);
+    }
+
+    public function test_without_ai_apply_suggestions_can_be_asked_but_not_written(): void
+    {
+        $drafter = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Drafter', 'permissions' => ['products.view', 'products.update', 'ai.use']])->id]);
+
+        $applyUrl = $this->actingAs($drafter)
+            ->postJson('/vi/admin/ai/meta-suggestions', ['entity_type' => 'product', 'entity_id' => $this->product->id, 'content_locale' => 'vi'])
+            ->assertOk()->json('data.apply_url');
+
+        $this->actingAs($drafter)->postJson($applyUrl, ['option' => 0, 'title' => 'X', 'description' => 'Y'])->assertForbidden();
+        $this->assertSame('Ống nhựa', $this->product->fresh()->getTranslation('meta_title', 'vi'));
+
+        // The editor hides the apply buttons for them; an editor with ai.apply keeps them.
+        $this->actingAs($drafter)->get("/vi/admin/products/{$this->product->id}/edit")->assertOk()->assertSee('.js-ai-apply, .js-ai-edit-apply, .js-option-apply', false);
+        $this->actingAs($this->editor)->get("/vi/admin/products/{$this->product->id}/edit")->assertOk()->assertDontSee('.js-ai-apply, .js-ai-edit-apply, .js-option-apply', false);
     }
 
     public function test_the_site_builds_the_input_from_the_record_and_keeps_the_suggestion(): void
