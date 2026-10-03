@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Support\CoreManifest;
-use App\Support\CoreUpdate\ArtisanRunner;
 use App\Support\CoreUpdate\CoreUpdater;
 use App\Support\CoreUpdate\ReleaseBuilder;
 use App\Support\CoreUpdate\ReleaseDownloader;
@@ -12,7 +11,7 @@ use App\Support\CoreUpdate\ReleaseVerifier;
 use App\Support\CoreUpdate\Semver;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
+use Tests\Support\FakeArtisan;
 use Tests\TestCase;
 
 /**
@@ -323,28 +322,4 @@ class CoreUpdaterTest extends TestCase
             file_put_contents($base.'/'.$path, $contents);
         }
     }
-}
-
-class FakeArtisan extends ArtisanRunner
-{
-    public array $calls = [];
-
-    public ?string $failOn = null;
-
-    public function __construct()
-    {
-        parent::__construct('');
-    }
-
-    public function run(array $arguments, int $timeout = 600): string
-    {
-        $this->calls[] = implode(' ', $arguments);
-        if ($arguments[0] === $this->failOn) {
-            throw new RuntimeException('simulated failure');
-        }
-
-        return '';
-    }
-
-    public function warm(): void {}
 }

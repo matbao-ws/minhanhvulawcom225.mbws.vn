@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\Catalog\ProductVariantController;
 use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\CoreUpdateController;
 use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
@@ -150,6 +151,12 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('features/group-toggle', [FeatureController::class, 'toggleGroup'])->name('features.group-toggle');
         Route::post('features/sync-package', [FeatureController::class, 'syncPackage'])->name('features.sync-package');
         Route::post('features/reset-overrides', [FeatureController::class, 'resetOverrides'])->name('features.reset-overrides');
+
+        // Core updates replace the code of the website: superadmin only, and only queued here.
+        Route::get('core-update', [CoreUpdateController::class, 'index'])->name('core-update.index');
+        Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
+        Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
+        Route::post('core-update/rollback', [CoreUpdateController::class, 'rollback'])->name('core-update.rollback');
     });
 
     Route::get('languages', [LanguageController::class, 'index'])->middleware(['feature:multilingual', 'can:languages.view'])->name('languages.index');

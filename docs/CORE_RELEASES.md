@@ -60,7 +60,34 @@ Muốn bắt website phải lên một bản trung gian trước, nâng `min_fro
 php artisan core:verify-release path/to/downloaded-release
 ```
 
-## Cập nhật một website (Phase C, chạy tay qua SSH/terminal của Plesk/cPanel)
+## Đưa bản phát hành tới các website (update service trên gateway)
+
+Bản phát hành mới đi tới website theo thứ tự sau:
+
+1. GitHub Release được tạo (tag). Mỗi giờ gateway chạy `core:releases:sync` và ghi bản đó với
+   **rollout 0%**, tức chưa website nào nhận.
+2. Trên gateway, tăng dần số website được nhận:
+
+   ```bash
+   php artisan core:project beta1.vn --pin=1.1.0              # thử trước trên 1 site
+   php artisan core:release 1.1.0 --rollout=1                 # rồi 1% → 10 → 25 → 50 → 100
+   php artisan core:fleet                                     # site nào chạy bản nào, bản nào lỗi
+   php artisan core:release 1.1.0 --pause                     # dừng phát hành (--resume để tiếp)
+   ```
+
+   Khi có ≥3 website lỗi và tỷ lệ lỗi ≥20%, gateway tự **pause** bản đó.
+3. Website hỏi gateway mỗi giờ. Admin thấy "Bản mới" trong **Cấu hình → Cập nhật phiên bản**
+   (chỉ superadmin) và bấm cập nhật; cron cài trong vòng 1 phút. Website bật `core:project <domain>
+   --auto=on` thì tự cài các bản patch/minor an toàn. Bản major hoặc bản cần backup luôn cần bấm tay.
+
+Kênh của từng website: `core:project <domain> --channel=beta`. Bỏ một site ra khỏi mọi đợt phát hành:
+`--exclude`. Tool nội bộ cũng đặt được qua `PATCH /internal/projects/{domain}` (`core_channel`,
+`core_pinned_version`, `core_auto_update`, `core_excluded`).
+
+Website cần: gateway đã kết nối (`MATBAO_AI_URL`/`MATBAO_AI_TOKEN`), cron `schedule:run` mỗi phút,
+và đã chạy `core:status --baseline` một lần.
+
+## Cập nhật một website bằng tay (SSH/terminal của Plesk/cPanel)
 
 Lần đầu trên mỗi website, khi các file core đúng như bản đã phát hành:
 
