@@ -119,6 +119,16 @@ class AiBulkFixAltTest extends TestCase
         $this->assertStringContainsString('alt="Van tay"', $html);
     }
 
+    public function test_a_file_name_alt_counts_as_missing(): void
+    {
+        $images = app(\App\Services\AiGateway\AltTextService::class)->imagesWithoutAlt(
+            '<img src="/storage/media/ong-nhua.png" alt="ong-nhua.png" /><img src="/storage/media/van.jpg" alt="Van" />'
+            .'<img src="/storage/media/van.jpg" alt="Van khoá đồng" /><img src="/storage/media/co.png" alt="co" />',
+        );
+
+        $this->assertSame(['/storage/media/ong-nhua.png', '/storage/media/van.jpg', '/storage/media/co.png'], $images);
+    }
+
     private function makePost(string $content, ?string $keyword, ?string $seoTitle): Post
     {
         return Post::query()->create(array_filter([

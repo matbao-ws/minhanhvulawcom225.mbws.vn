@@ -153,7 +153,8 @@ class SiteIndexPublisher
     {
         preg_match_all('/<img\b[^>]*>/i', $html, $images);
 
-        return count(array_filter($images[0], fn (string $tag) => ! preg_match('/\salt\s*=\s*("[^"]*\S[^"]*"|\'[^\']*\S[^\']*\')/i', $tag)));
+        // Same rule as the alt tool: a file-name alt is no description.
+        return count(array_filter($images[0], fn (string $tag) => ! AltTextService::hasAlt($tag)));
     }
 
     /** Links to this website: relative, or absolute to the site's own host. */

@@ -143,7 +143,8 @@ class AltTextService
                 if ($this->srcOf($tag) !== $src || $this->hasAlt($tag)) {
                     return $tag;
                 }
-                $tag = (string) preg_replace('/\salt\s*=\s*(["\'])\s*\1/i', '', $tag);
+                // Drop the empty or file-name alt it has.
+                $tag = (string) preg_replace('/\salt\s*=\s*(["\']).*?\1/i', '', $tag);
 
                 return (string) preg_replace('/^<img\b/i', '<img alt="'.e($alt).'"', $tag);
             }, $html);
@@ -171,14 +172,25 @@ class AltTextService
         ))));
     }
 
-    private function srcOf(string $tag): ?string
+    public static function srcOf(string $tag): ?string
     {
         return preg_match('/\ssrc\s*=\s*(["\'])(.*?)\1/i', $tag, $m) ? html_entity_decode($m[2]) : null;
     }
 
-    private function hasAlt(string $tag): bool
+    /**
+     * A real description. An empty alt does not count, nor the image's file name — the
+     * HTML sanitizer fills a missing alt with it ("ong-nhua.png"), which tells nobody anything.
+     */
+    public static function hasAlt(string $tag): bool
     {
-        return preg_match('/\salt\s*=\s*(["\'])\s*\S.*?\1/i', $tag) === 1;
+        if (! preg_match('/\salt\s*=\s*(["\'])(.*?)\1/i', $tag, $m) || trim($m[2]) === '') {
+            return false;
+        }
+
+        $alt = mb_strtolower(trim(html_entity_decode($m[2])));
+        $file = mb_strtolower(rawurldecode(basename((string) parse_url((string) self::srcOf($tag), PHP_URL_PATH))));
+
+        return $file === '' || ($alt !== $file && $alt !== pathinfo($file, PATHINFO_FILENAME));
     }
 
     /** Text around the image, so the model knows what it illustrates. */
