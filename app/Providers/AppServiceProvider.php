@@ -18,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(\App\Services\SiteBranding::class);
+        // One image downloader per import run: posts, pages and products share its cache and report.
+        $this->app->scoped(\App\Services\WordPressImageImportService::class);
         // Scoped: a storefront page renders dozens of regions and must not
         // issue a query per region.
         $this->app->scoped(\App\Services\SiteContentService::class);

@@ -24,6 +24,14 @@ class WordPressImageImportService
 
     private int $downloaded = 0;
 
+    private string $userAgent = 'Laravel WordPress Importer/1.0';
+
+    /** Some hosts block unknown clients; the operator may name another for a site that agreed. */
+    public function useUserAgent(string $userAgent): void
+    {
+        $this->userAgent = $userAgent;
+    }
+
     public function reset(): void
     {
         $this->cache = [];
@@ -121,7 +129,7 @@ class WordPressImageImportService
             $this->assertPublicUrl($url);
             $response = Http::connectTimeout(8)
                 ->timeout(20)
-                ->withHeaders(['User-Agent' => 'Laravel WordPress Importer/1.0'])
+                ->withHeaders(['User-Agent' => $this->userAgent])
                 ->withOptions(['allow_redirects' => false, 'stream' => true])
                 ->get($url);
 
