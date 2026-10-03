@@ -129,6 +129,8 @@ class SearchConsoleSiteIndexTest extends TestCase
         $this->assertSame($post->id, $vi['entity_id']);
         $this->assertSame('cach-chon-ong-nhua', $vi['slug']);
         $this->assertSame('ống nhựa', $vi['focus_keyword']);
+        // No H1 in the body: the title is the H1. No category set.
+        $this->assertSame(['Cách chọn ống nhựa', null], [$vi['h1'], $vi['category']]);
         $this->assertSame(1, $vi['h2_count']);
         $this->assertSame(1, $vi['images_without_alt']);
         $this->assertSame(2, $vi['internal_links']);

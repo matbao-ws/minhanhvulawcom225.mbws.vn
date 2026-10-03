@@ -126,6 +126,10 @@ class InternalLinkService
         });
 
         $this->report($suggestion, count($links) === count($suggestion->options) ? 'applied' : 'applied_after_edit', ['option_index' => 0]);
+        // Weak labels per link (gateway: product_events → suggestion_decisions → decision_runs).
+        foreach (array_keys($suggestion->options) as $index) {
+            $this->report($suggestion, in_array($index, $chosen, true) ? 'option_applied' : 'option_rejected', ['option_index' => $index]);
+        }
 
         return [$record, $inserted];
     }
