@@ -16,6 +16,8 @@ use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
 {
+    private const TABS = ['general', 'contact', 'multilingual', 'embed', 'analytics'];
+
     public function __construct(
         private readonly CloudinaryService $cloudinaryService,
         private readonly MultilingualSettings $multilingual,
@@ -25,7 +27,7 @@ class SettingController extends Controller
     /**
      * Display the settings page.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Integration credentials have their own guarded screen and must never
         // be handed to a general-purpose settings view.
@@ -34,8 +36,15 @@ class SettingController extends Controller
             ->get()
             ->pluck('setting_value', 'setting_key');
 
+        $activeTab = $request->string('tab')->toString();
+        if (! in_array($activeTab, self::TABS, true)
+            || ($activeTab === 'multilingual' && ! auth()->user()?->isSuperAdmin())) {
+            $activeTab = 'general';
+        }
+
         return view('admin.settings.index', [
             'settings' => $settings,
+            'activeTab' => $activeTab,
             'multilingualSettings' => $this->multilingual->get(),
             'analyticsSettings' => app(\App\Services\Analytics\AnalyticsReport::class)->settings(),
             // The address a property owner adds as Viewer; the key itself never reaches a view.
@@ -56,6 +65,7 @@ class SettingController extends Controller
         }
 
         $rules = [
+            'active_tab' => ['nullable', Rule::in(self::TABS)],
             'shop_name' => 'required|string|max:255',
             'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
             'favicon' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
@@ -203,7 +213,15 @@ class SettingController extends Controller
         $redirectLocale = $this->languages->supportsAdmin(app()->getLocale())
             ? app()->getLocale()
             : $this->languages->defaultLocale();
-        $redirectUrl = route('admin.settings.index', ['locale' => $redirectLocale]);
+        $activeTab = $request->string('active_tab')->toString();
+        if (! in_array($activeTab, self::TABS, true)
+            || ($activeTab === 'multilingual' && ! $request->user()?->isSuperAdmin())) {
+            $activeTab = 'general';
+        }
+        $redirectUrl = route('admin.settings.index', array_filter([
+            'locale' => $redirectLocale,
+            'tab' => $activeTab === 'general' ? null : $activeTab,
+        ]));
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
