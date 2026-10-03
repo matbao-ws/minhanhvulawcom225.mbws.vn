@@ -23,6 +23,9 @@ class AiSeoTasksTest extends TestCase
 
     private int $adviceCalls = 0;
 
+    /** @var list<array{0: string, 1: string}> */
+    private array $marks = [];
+
     /** @var array<string, mixed>|null */
     private ?array $adviceInput = null;
 
@@ -41,6 +44,11 @@ class AiSeoTasksTest extends TestCase
         Http::fake([
             'gw.test/v1/project/connections' => Http::response(['ok' => true]),
             'gw.test/v1/project' => Http::response(['ok' => true, 'project' => []]),
+            'gw.test/v1/seo-tasks/*/status' => function (Request $request) {
+                $this->marks[] = [$request->url(), $request['status']];
+
+                return Http::response(['ok' => true]);
+            },
             'gw.test/v1/seo-tasks' => function () {
                 $this->listCalls++;
 
@@ -48,11 +56,11 @@ class AiSeoTasksTest extends TestCase
                     'totals' => ['days' => 28, 'current' => ['clicks' => 263, 'impressions' => 3456, 'ctr' => 0.0761, 'position' => 6.3],
                         'previous' => ['clicks' => 288, 'impressions' => 3676, 'ctr' => 0.0783, 'position' => 8.0]],
                     'tasks' => [
-                        ['id' => 'aaaaaaaaaaaaaaaa', 'type' => 'low_ctr', 'gain' => 12, 'page' => 'https://spico.vn/blog/cach-chon-ong',
+                        ['id' => 'aaaaaaaaaaaaaaaa', 'type' => 'low_ctr', 'priority' => 'important', 'gain' => 12, 'page' => 'https://spico.vn/blog/cach-chon-ong',
                             'entity' => ['type' => 'post', 'id' => $this->post->id, 'locale' => 'vi', 'title' => 'Cách chọn ống nhựa', 'meta_title' => 'Ống', 'meta_description' => null, 'focus_keyword' => 'chọn ống'],
                             'metrics' => ['clicks' => 13, 'impressions' => 621, 'ctr' => 0.0209, 'position' => 5.4, 'previous_clicks' => 5],
                             'issues' => [], 'queries' => [['query' => 'cách chọn ống nhựa', 'clicks' => 3, 'impressions' => 300, 'position' => 5.1]]],
-                        ['id' => 'bbbbbbbbbbbbbbbb', 'type' => 'declining', 'gain' => 6, 'page' => 'https://spico.vn/',
+                        ['id' => 'bbbbbbbbbbbbbbbb', 'type' => 'declining', 'priority' => 'important', 'gain' => 6, 'page' => 'https://spico.vn/',
                             'entity' => null, 'metrics' => ['clicks' => 4, 'impressions' => 16, 'ctr' => 0.25, 'position' => 6.7, 'previous_clicks' => 10],
                             'issues' => [], 'queries' => []],
                         // A record deleted on the website since the last index push.
@@ -122,6 +130,24 @@ class AiSeoTasksTest extends TestCase
         $this->assertSame(1, $this->adviceCalls);
 
         $this->actingAs($user)->postJson('/vi/admin/ai/seo-tasks/dddddddddddddddd/advice')->assertNotFound();
+    }
+
+    public function test_tasks_are_grouped_and_can_be_marked_done(): void
+    {
+        $user = $this->user(['ai.use']);
+
+        $this->actingAs($user)->get('/vi/admin/ai/seo-tasks')->assertOk()
+            ->assertSee(__('ai.tasks.priorities.important'))
+            ->assertSee(route('admin.ai.seo-tasks.status', ['task' => 'aaaaaaaaaaaaaaaa']), false);
+
+        $this->actingAs($user)->postJson('/vi/admin/ai/seo-tasks/aaaaaaaaaaaaaaaa/status', ['status' => 'done'])
+            ->assertOk()->assertJsonPath('message', __('ai.tasks.marked.done'));
+        $this->actingAs($user)->postJson('/vi/admin/ai/seo-tasks/aaaaaaaaaaaaaaaa/status', ['status' => 'deleted'])->assertStatus(422);
+
+        $this->assertSame([['https://gw.test/v1/seo-tasks/aaaaaaaaaaaaaaaa/status', 'done']], $this->marks);
+        // The list is asked again after a mark, not served from the old cache.
+        $this->actingAs($user)->getJson('/vi/admin/ai/seo-tasks/summary')->assertOk()->assertJsonPath('data.tasks.0.priority', 'important');
+        $this->assertSame(2, $this->listCalls);
     }
 
     public function test_without_search_console_the_page_says_how_to_connect(): void
