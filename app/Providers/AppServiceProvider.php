@@ -21,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Support\CoreUpdate\ReleaseVerifier::class, fn () => new \App\Support\CoreUpdate\ReleaseVerifier(
             array_values(array_filter((array) config('core_update.public_keys'))),
         ));
+        $this->app->bind(\App\Support\CoreUpdate\ArtisanRunner::class, fn () => new \App\Support\CoreUpdate\ArtisanRunner(base_path()));
         // One image downloader per import run: posts, pages and products share its cache and report.
         $this->app->scoped(\App\Services\WordPressImageImportService::class);
         // Scoped: a storefront page renders dozens of regions and must not
