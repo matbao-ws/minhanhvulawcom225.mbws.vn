@@ -12,7 +12,7 @@ return [
      * The private key lives only in the GitHub secret CORE_RELEASE_SIGNING_KEY.
      */
     'public_keys' => [
-        // 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...',
+        'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDMfz7jysVO2mOwuBnkvS5nbfqrANPkHb2OvXOhDZiiifgetY3KLR9wq1sLyCgxAI2HI0pcs76W8dej5hS5WKmQ==',
     ],
 
     /*
