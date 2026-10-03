@@ -105,7 +105,8 @@ Extract the approved prototype into:
 - `resources/views/client/pages`: page-specific Blade templates.
 - Storefront routes/controllers and a namespaced client asset structure.
 - Explicit render targets and event hooks for later API binding.
-- The existing `client.partials.admin-bar` include and CMS Page inline-editing contract.
+- The `@include('core.head')` / `@include('core.editor')` lines and the CMS Page inline-editing contract
+  (the editor is core; never copy or list its partials in the theme).
 
 Preserve layout, spacing, typography, responsive behavior, and interactions from the approved HTML.
 Do not mix mock fixtures with the future API client. Do not convert approved HTML markup into

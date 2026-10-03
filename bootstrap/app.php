@@ -21,6 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     Route::name('client.')
                         ->group(base_path('routes/client.php'));
 
+                    // A theme's own storefront routes (product or post detail, landing pages…).
+                    // Theme-owned: a core update never ships or touches this file (CoreManifest).
+                    if (is_file(base_path('routes/theme.php'))) {
+                        Route::name('client.')
+                            ->group(base_path('routes/theme.php'));
+                    }
+
                     Route::prefix('admin')
                         ->name('admin.')
                         ->group(base_path('routes/admin.php'));

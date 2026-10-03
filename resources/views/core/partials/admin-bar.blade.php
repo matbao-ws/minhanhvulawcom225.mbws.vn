@@ -239,7 +239,7 @@
 
             <span id="client-inline-edit-status" class="client-admin-bar__status" role="status"></span>
 
-        {{-- Wired by client.partials.inline-outline; stays hidden if that partial
+        {{-- Wired by core.partials.inline-outline; stays hidden if that partial
              is not on the page, so the bar never shows a dead control. --}}
         <button type="button" id="client-outline-button" class="client-admin-bar__outline" hidden
                 title="Mục lục vùng nội dung" aria-label="Mục lục vùng nội dung" aria-expanded="false">
@@ -247,7 +247,7 @@
             <span class="client-admin-bar__label">Mục lục</span>
         </button>
 
-        {{-- Wired by client.partials.inline-viewport; stays hidden if that partial
+        {{-- Wired by core.partials.inline-viewport; stays hidden if that partial
              is not on the page, so the bar never shows a dead control. --}}
         <button type="button" id="client-viewport-button" class="client-admin-bar__outline" hidden
                 title="Xem trước theo khổ máy" aria-label="Xem trước theo khổ máy" aria-expanded="false">

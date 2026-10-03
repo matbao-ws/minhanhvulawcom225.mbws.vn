@@ -418,6 +418,44 @@ QUEUE_AFTER_COMMIT=true
 Không đọc hoặc in giá trị secret trong `.env`. Chỉ kiểm tra tên key hoặc trạng thái boolean khi
 cần thiết.
 
+### Cập nhật phiên bản core: core và theme
+
+Mỗi website là một bản cài riêng nhưng **core** là chung: một bản phát hành thay file core trên mọi
+website, không đụng phần của website. Phiên bản nằm trong file `VERSION` (semver).
+
+- `App\Support\CoreManifest` là nguồn sự thật duy nhất, dạng **allowlist**: chỉ đường dẫn trong
+  `CoreManifest::CORE` là core (app, config, database, lang, routes của core, views admin/api/auth/
+  components/core/emails/vendor, `public/admin-assets`, `public/client-assets/vendor`, `public/docs`,
+  `public/index.php`, `artisan`, composer.json/lock, `VERSION`). `vendor/` là gói dependencies riêng,
+  chỉ phát hành khi composer.lock đổi. Mọi thứ khác thuộc website và bản cập nhật không bao giờ ghi:
+  theme `resources/views/client/**`, `public/client-assets/css`, `routes/theme.php`, `.env`, `storage`,
+  `.htaccess`, robots, logo. Thêm thư mục core mới thì phải thêm vào allowlist (kèm test).
+- **Không sửa file core trên từng website.** Thay đổi riêng của khách đi vào theme; route riêng của theme
+  vào `routes/theme.php` (nạp dưới `{locale}`, tên `client.`); component Blade riêng vào
+  `resources/views/client/components` (cùng namespace `x-client::`, ghi đè được). Cần đổi hành vi core
+  thì sửa core ở repo này để mọi website cùng nhận. Layout theme chỉ include `core.head` và
+  `core.editor`, không chép partial của core.
+- `php artisan core:status` báo phiên bản và file core bị sửa tay so với lúc cài (checksum trong
+  `storage/app/core/installed.json`); `--baseline` ghi mốc lần đầu hoặc sau khi đã gỡ chỗ lệch.
+  Website lệch thì bản cập nhật dừng, không ghi đè. `php artisan core:manifest` in danh sách file core
+  kèm sha256 (dùng khi build bản phát hành; `--owner=path` cho biết một file thuộc bên nào).
+- **Migration expand/contract.** Cập nhật hỏng thì chỉ trả **code** về bản cũ, không bao giờ
+  `migrate:rollback` trên website khách; vậy schema mới phải chạy được với code bản trước. Trong `up()`
+  chỉ thêm bảng, cột nullable/có default, index, dữ liệu. Không xóa/đổi tên cột hoặc bảng, không
+  `->change()`, không truncate. Bỏ cột cũ làm ở một bản **contract** sau, khi mọi website đã chạy code
+  không còn dùng nó: migration đó ghi `@contract-migration` kèm lý do và bản phát hành chứa nó không
+  rollback-safe (cần backup, không tự rollout). `App\Support\MigrationSafety` +
+  `CoreManifestTest` chặn vi phạm trong CI với migration từ `MigrationSafety::POLICY_FROM`.
+- **Bản phát hành có chữ ký.** Tag `vX.Y.Z` (khớp `VERSION`) chạy `.github/workflows/release.yml`:
+  test, `composer install --no-dev`, `core:release` build `release.json` + `release.json.sig` +
+  `core-X.Y.Z.zip` + `dependencies-{lock}.zip`, `core:verify-release`, rồi đăng GitHub Release.
+  Kênh theo tag: `-dev`/`-alpha` → dev, hậu tố khác → beta, không hậu tố → stable. Chữ ký ECDSA P-256
+  qua ext-openssl; private key chỉ nằm trong secret `CORE_RELEASE_SIGNING_KEY`, public key trong
+  `config/core_update.php`. `App\Support\CoreUpdate\ReleaseVerifier` từ chối gói sai chữ ký, artifact
+  hỏng, file ngoài danh sách, đường dẫn thoát thư mục, hoặc bất kỳ đường dẫn nào thuộc
+  `CoreManifest::SITE_OWNED` (kể cả khi allowlist của bản phát hành khai báo nó). Vận hành:
+  `docs/CORE_RELEASES.md`.
+
 ## 8. Chiến lược test
 
 Với mỗi thay đổi:
@@ -500,9 +538,10 @@ chưa từng có — biên tập viên thêm được thành viên thứ năm, k
 Cơ chế hiện hành là inline editing bằng `contenteditable` thuần của browser, không thư viện ngoài.
 Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 
-- Layout chung phải include `client.partials.admin-bar` đúng một lần, gần cuối `<body>`, rồi
-  `client.partials.inline-blocks` ngay sau. Không xóa, sao chép hoặc nhúng lại toàn bộ mã editor vào
-  từng page.
+- Layout chung include editor bằng **một dòng** `@include('core.editor')`, đúng một lần, gần cuối
+  `<body>` (con trực tiếp của `<body>`), và `@include('core.head')` trong `<head>`. Editor là core
+  (`resources/views/core/`): không liệt kê từng partial, không sao chép hay nhúng lại mã editor vào
+  theme hoặc từng page — bản cập nhật core thêm/đổi panel thì theme tự có.
 - **Edit mode có đúng một chủ sở hữu: `admin-bar`.** Nó quyết định vùng nào đang mở, giữ các thay đổi
   đang chờ, và công bố `window.clientBlocks` (`isEditing`, `activeRegion`, `markDirty`, `status`,
   `on('open'|'close'|'mode')`, `urls`, `csrf`, `locale`). `inline-blocks` chỉ là thanh công cụ nhìn
