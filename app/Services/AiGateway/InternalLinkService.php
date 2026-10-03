@@ -51,19 +51,14 @@ class InternalLinkService
     public function suggest(string $type, int $id, string $locale, User $user): array
     {
         abort_unless(in_array($type, self::ENTITY_TYPES, true), 404, __('ai.errors.not_found'));
-        [$definition, $record] = $this->resolve($type, $id, $user);
+        [, $record] = $this->resolve($type, $id, $user);
         abort_unless($this->languages->supports($locale), 422, __('ai.errors.locale'));
 
-        $html = $this->body($definition, $record, $locale);
-        abort_if(trim(strip_tags($html)) === '', 422, __('ai.edit.empty'));
+        $input = $this->taskInput($type, $record, $locale);
+        abort_if($input === null, 422, __('ai.edit.empty'));
+        $html = $input['html'];
 
-        $response = $this->gateway->task(self::TASK, [
-            'locale' => $locale,
-            'entity_type' => $type,
-            'entity_id' => $record->getKey(),
-            'title' => Str::limit((string) $record->getTranslation($definition['title'], $locale, false), 290, ''),
-            'html' => $html,
-        ], (string) Str::uuid());
+        $response = $this->gateway->task(self::TASK, $input, (string) Str::uuid());
 
         $links = array_values(array_filter((array) ($response['result']['links'] ?? []), fn ($link) => is_array($link)
             && filled($link['anchor'] ?? null)
@@ -88,6 +83,26 @@ class InternalLinkService
         ]);
 
         return [$suggestion, (array) ($response['usage'] ?? [])];
+    }
+
+    /**
+     * What the gateway receives for one record's saved body — the same for the editor button
+     * and for ai:link-candidates. Null when the body has no text.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function taskInput(string $type, Model $record, string $locale): ?array
+    {
+        $definition = MetaSuggestionService::ENTITIES[$type];
+        $html = $this->body($definition, $record, $locale);
+
+        return trim(strip_tags($html)) === '' ? null : [
+            'locale' => $locale,
+            'entity_type' => $type,
+            'entity_id' => $record->getKey(),
+            'title' => Str::limit((string) $record->getTranslation($definition['title'], $locale, false), 290, ''),
+            'html' => $html,
+        ];
     }
 
     /**
