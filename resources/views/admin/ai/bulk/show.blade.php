@@ -20,8 +20,11 @@
         <div class="alert alert-warning" role="alert">{{ $error }}</div>
     @endif
 
+    @php $kind = $job->kind(); @endphp
+
     <div class="card">
         <div class="card-body d-flex flex-wrap gap-4 small">
+            <span>{{ __('ai.bulk.kind') }}: <strong>{{ __('ai.bulk.kinds.'.$kind.'.title') }}</strong></span>
             <span>{{ __('ai.bulk.status') }}: <strong>{{ __('ai.bulk.statuses.'.$job->status) }}</strong></span>
             <span>{{ __('ai.bulk.items') }}: <strong>{{ $job->items_total }}</strong></span>
             <span>{{ __('ai.bulk.credits') }}: <strong>{{ $job->credits_estimated }}</strong></span>
@@ -49,19 +52,50 @@
 
             @foreach($suggestions as $suggestion)
                 @php
-                    $option = $suggestion->options[0] ?? ['title' => '', 'description' => ''];
-                    $known = $titles->get($suggestion->entity_type.':'.$suggestion->entity_id);
+                    $option = $suggestion->options[0] ?? [];
+                    $known = $titles->get($suggestion->id);
+                    $id = $suggestion->id;
                 @endphp
                 <div class="card mb-2">
                     <div class="card-body py-3">
                         <div class="d-flex gap-2 align-items-start">
-                            <input class="form-check-input mt-1" type="checkbox" name="chosen[]" value="{{ $suggestion->id }}" checked data-choice aria-label="{{ __('ai.bulk.choose') }}">
-                            <div class="flex-grow-1">
+                            <input class="form-check-input mt-1" type="checkbox" name="chosen[]" value="{{ $id }}" checked data-choice aria-label="{{ __('ai.bulk.choose') }}">
+                            <div class="flex-grow-1 min-w-0">
                                 <div class="small text-muted mb-1">{{ __('ai.bulk.types.'.$suggestion->entity_type) }} · {{ $known['title'] ?? '#'.$suggestion->entity_id }}</div>
-                                <input type="text" class="form-control form-control-sm mb-1" name="title[{{ $suggestion->id }}]" value="{{ $option['title'] }}" maxlength="{{ \App\Services\AiGateway\MetaSuggestionService::TITLE_MAX }}" aria-label="{{ __('ai.meta.meta_title') }}">
-                                <textarea class="form-control form-control-sm" name="description[{{ $suggestion->id }}]" rows="2" maxlength="{{ \App\Services\AiGateway\MetaSuggestionService::DESCRIPTION_MAX }}" aria-label="{{ __('ai.meta.meta_description') }}">{{ $option['description'] }}</textarea>
-                                @if(filled($suggestion->old_values['title'] ?? null) || filled($suggestion->old_values['description'] ?? null))
-                                    <div class="small text-muted mt-1">{{ __('ai.bulk.current') }}: {{ $suggestion->old_values['title'] ?: '—' }} · {{ $suggestion->old_values['description'] ?: '—' }}</div>
+
+                                @if($kind === 'meta')
+                                    <input type="text" class="form-control form-control-sm mb-1" name="title[{{ $id }}]" value="{{ $option['title'] ?? '' }}" maxlength="{{ \App\Services\AiGateway\MetaSuggestionService::TITLE_MAX }}" aria-label="{{ __('ai.meta.meta_title') }}">
+                                    <textarea class="form-control form-control-sm" name="description[{{ $id }}]" rows="2" maxlength="{{ \App\Services\AiGateway\MetaSuggestionService::DESCRIPTION_MAX }}" aria-label="{{ __('ai.meta.meta_description') }}">{{ $option['description'] ?? '' }}</textarea>
+                                    @if(filled($suggestion->old_values['title'] ?? null) || filled($suggestion->old_values['description'] ?? null))
+                                        <div class="small text-muted mt-1">{{ __('ai.bulk.current') }}: {{ $suggestion->old_values['title'] ?: '—' }} · {{ $suggestion->old_values['description'] ?: '—' }}</div>
+                                    @endif
+                                @elseif($kind === 'seo_fix')
+                                    @foreach(['seo_title' => 255, 'seo_description' => 500] as $field => $max)
+                                        @if(filled($option[$field] ?? null))
+                                            <label class="small fw-semibold mt-1">{{ __('ai.seo.'.$field) }}</label>
+                                            <textarea class="form-control form-control-sm" name="{{ $field }}[{{ $id }}]" rows="{{ $field === 'seo_title' ? 1 : 2 }}" maxlength="{{ $max }}">{{ $option[$field] }}</textarea>
+                                            <div class="small text-muted">{{ __('ai.bulk.current') }}: {{ $suggestion->old_values[$field] ?: '—' }}</div>
+                                        @endif
+                                    @endforeach
+                                    @if(filled($option['intro_html'] ?? null))
+                                        <label class="form-check small mt-2 mb-1">
+                                            <input class="form-check-input me-1" type="checkbox" name="use_intro[{{ $id }}]" value="1">{{ __('ai.bulk.use_intro') }}
+                                        </label>
+                                        {{-- Server-sanitized HTML (SeoFixService::proposal), shown as the reader will see it. --}}
+                                        <div class="border rounded p-2 small bg-light">{!! $option['intro_html'] !!}</div>
+                                    @endif
+                                    @if(! empty($option['notes']))
+                                        <ul class="small text-muted mt-2 mb-0 ps-3">
+                                            @foreach($option['notes'] as $note)
+                                                <li>{{ $note['note'] ?? '' }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                @else
+                                    <div class="d-flex gap-3 align-items-start">
+                                        <img src="{{ $suggestion->old_values['src'] ?? '' }}" alt="" class="rounded border object-fit-cover flex-shrink-0" width="96" height="72" loading="lazy">
+                                        <input type="text" class="form-control form-control-sm" name="alt[{{ $id }}]" value="{{ $option['alt'] ?? '' }}" maxlength="250" aria-label="{{ __('ai.alt.title') }}">
+                                    </div>
                                 @endif
                             </div>
                         </div>

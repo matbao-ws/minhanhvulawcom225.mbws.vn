@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /** Bulk SEO: one gateway job, results reviewed and applied through the single-suggestion path. */
-class AiBulkMetaTest extends TestCase
+class AiBulkSeoTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -82,10 +82,10 @@ class AiBulkMetaTest extends TestCase
     {
         $this->actingAs($this->editor)->get('/vi/admin/ai/bulk')->assertOk()->assertSee(__('ai.bulk.types.product').': <strong>3</strong>', false);
 
-        $this->actingAs($this->editor)->postJson('/vi/admin/ai/bulk/estimate', ['content_locale' => 'vi', 'types' => ['product']])
+        $this->actingAs($this->editor)->postJson('/vi/admin/ai/bulk/estimate', ['kind' => 'meta', 'content_locale' => 'vi', 'types' => ['product']])
             ->assertOk()->assertJsonPath('data.count', 3)->assertJsonPath('data.credits_estimated', 3);
 
-        $this->actingAs($this->editor)->post('/vi/admin/ai/bulk', ['content_locale' => 'vi', 'types' => ['product']])->assertRedirect();
+        $this->actingAs($this->editor)->post('/vi/admin/ai/bulk', ['kind' => 'meta', 'content_locale' => 'vi', 'types' => ['product']])->assertRedirect();
         $this->assertCount(3, $this->jobRequest['items']);
         $job = AiBulkJob::query()->sole();
 
@@ -114,7 +114,7 @@ class AiBulkMetaTest extends TestCase
 
     public function test_a_signed_webhook_imports_the_results_and_a_bad_one_is_refused(): void
     {
-        $this->actingAs($this->editor)->post('/vi/admin/ai/bulk', ['content_locale' => 'vi', 'types' => ['product']]);
+        $this->actingAs($this->editor)->post('/vi/admin/ai/bulk', ['kind' => 'meta', 'content_locale' => 'vi', 'types' => ['product']]);
         $this->remoteStatus = 'completed';
         $body = json_encode(['event' => 'job.finished', 'job_id' => 501, 'status' => 'completed']);
         $time = (string) time();
@@ -135,8 +135,8 @@ class AiBulkMetaTest extends TestCase
     {
         $viewer = User::factory()->create(['role_id' => Role::query()->create(['name' => 'V', 'permissions' => ['products.view', 'ai.use']])->id]);
 
-        $this->actingAs($viewer)->get('/vi/admin/ai/bulk')->assertOk()->assertSee(__('ai.bulk.all_good'));
-        $this->actingAs($viewer)->postJson('/vi/admin/ai/bulk/estimate', ['content_locale' => 'vi', 'types' => ['product']])->assertStatus(422);
+        $this->actingAs($viewer)->get('/vi/admin/ai/bulk')->assertOk()->assertSee(__('ai.bulk.kinds.meta.none'));
+        $this->actingAs($viewer)->postJson('/vi/admin/ai/bulk/estimate', ['kind' => 'meta', 'content_locale' => 'vi', 'types' => ['product']])->assertStatus(422);
         $this->assertNull($this->jobRequest);
     }
 

@@ -22,6 +22,12 @@ class AiBulkJob extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** meta | seo_fix | alt, from the gateway job type (bulk.meta …). */
+    public function kind(): string
+    {
+        return (string) \Illuminate\Support\Str::after($this->type, 'bulk.');
+    }
+
     public function isFinished(): bool
     {
         return in_array($this->status, ['completed', 'stopped'], true);

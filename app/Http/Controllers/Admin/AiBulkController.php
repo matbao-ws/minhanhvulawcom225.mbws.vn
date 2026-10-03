@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiBulkJob;
-use App\Services\AiGateway\BulkMetaService;
+use App\Services\AiGateway\BulkSeoService;
 use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\AiGateway\MetaSuggestionService;
 use App\Services\LanguageRegistry;
@@ -15,28 +15,27 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * "Bulk SEO": count what lacks meta, estimate, run one gateway job, review
- * the results with checkboxes, apply the chosen ones. Route: feature:ai_seo +
- * can:ai.use; each record also needs its own update permission.
+ * "Bulk SEO": count the work, estimate, run one gateway job per kind (meta,
+ * SEO fixes, image alts), review the results with checkboxes, apply the
+ * chosen ones. Route: feature:ai_seo + can:ai.use; each record also needs
+ * its own update permission.
  */
 class AiBulkController extends Controller
 {
     public function __construct(
-        private readonly BulkMetaService $bulk,
+        private readonly BulkSeoService $bulk,
         private readonly LanguageRegistry $languages,
     ) {}
 
     public function index(Request $request): View
     {
         $contentLocale = $this->contentLocale($request);
-        $candidates = $this->bulk->candidates($request->user(), $contentLocale);
-        $jobs = AiBulkJob::query()->latest('id')->limit(10)->get();
 
         return view('admin.ai.bulk.index', [
             'contentLocale' => $contentLocale,
             'languages' => $this->languages->active(),
-            'counts' => array_map(fn ($records) => $records->count(), $candidates),
-            'jobs' => $jobs,
+            'counts' => $this->bulk->counts($request->user(), $contentLocale),
+            'jobs' => AiBulkJob::query()->latest('id')->limit(10)->get(),
         ]);
     }
 
@@ -45,7 +44,7 @@ class AiBulkController extends Controller
         $data = $this->validated($request);
 
         try {
-            return response()->json(['success' => true, 'data' => $this->bulk->estimate($request->user(), $data['content_locale'], $data['types'])]);
+            return response()->json(['success' => true, 'data' => $this->bulk->estimate($data['kind'], $request->user(), $data['content_locale'], $data['types'] ?? [])]);
         } catch (GatewayUnavailable $e) {
             return AiMetaController::unavailableResponse($e);
         }
@@ -56,7 +55,7 @@ class AiBulkController extends Controller
         $data = $this->validated($request);
 
         try {
-            $job = $this->bulk->start($request->user(), $data['content_locale'], $data['types']);
+            $job = $this->bulk->start($data['kind'], $request->user(), $data['content_locale'], $data['types'] ?? []);
         } catch (GatewayUnavailable $e) {
             return back()->with('error', AiMetaController::unavailableResponse($e)->getData(true)['message']);
         }
@@ -73,13 +72,11 @@ class AiBulkController extends Controller
             $error = AiMetaController::unavailableResponse($e)->getData(true)['message'];
         }
 
-        $titles = collect($job->items)->keyBy(fn ($item) => $item['entity_type'].':'.$item['entity_id']);
-
         return view('admin.ai.bulk.show', [
             'job' => $job,
             'error' => $error,
             'suggestions' => $job->imported_at ? $this->bulk->review($job) : collect(),
-            'titles' => $titles,
+            'titles' => collect($job->items)->keyBy(fn ($item) => $item['suggestion_id'] ?? '-'),
         ]);
     }
 
@@ -88,31 +85,33 @@ class AiBulkController extends Controller
         $data = $request->validate([
             'chosen' => ['required', 'array', 'min:1', 'max:100'],
             'chosen.*' => ['integer'],
-            'title' => ['array'],
             'title.*' => ['nullable', 'string', 'max:'.MetaSuggestionService::TITLE_MAX],
-            'description' => ['array'],
             'description.*' => ['nullable', 'string', 'max:'.MetaSuggestionService::DESCRIPTION_MAX],
+            'seo_title.*' => ['nullable', 'string', 'max:255'],
+            'seo_description.*' => ['nullable', 'string', 'max:500'],
+            'use_intro.*' => ['nullable', 'boolean'],
+            'alt.*' => ['nullable', 'string', 'max:250'],
         ]);
 
-        $rows = array_map(fn ($id) => [
-            'suggestion_id' => (int) $id,
-            'title' => trim((string) ($data['title'][$id] ?? '')),
-            'description' => trim((string) ($data['description'][$id] ?? '')),
-        ], $data['chosen']);
-        $rows = array_values(array_filter($rows, fn ($row) => $row['title'] !== '' && $row['description'] !== ''));
+        $fields = ['meta' => ['title', 'description'], 'seo_fix' => ['seo_title', 'seo_description', 'use_intro'], 'alt' => ['alt']][$job->kind()] ?? [];
+        $chosen = [];
+        foreach (array_map('intval', $data['chosen']) as $id) {
+            $chosen[$id] = collect($fields)->mapWithKeys(fn ($field) => [$field => trim((string) ($data[$field][$id] ?? ''))])->all();
+        }
 
-        $counts = $this->bulk->apply($job, $rows, $request->user());
+        $counts = $this->bulk->apply($job, $chosen, $request->user());
 
         return redirect()->route('admin.ai.bulk.show', ['locale' => $locale, 'job' => $job->id])
             ->with($counts['conflicts'] + $counts['closed'] > 0 ? 'warning' : 'success', __('ai.bulk.applied', $counts));
     }
 
-    /** @return array{content_locale: string, types: list<string>} */
+    /** @return array{kind: string, content_locale: string, types?: list<string>} */
     private function validated(Request $request): array
     {
         return $request->validate([
+            'kind' => ['required', Rule::in(array_keys(BulkSeoService::KINDS))],
             'content_locale' => ['required', Rule::in($this->languages->codes())],
-            'types' => ['required', 'array', 'min:1'],
+            'types' => ['required_if:kind,meta', 'array'],
             'types.*' => [Rule::in(array_keys(MetaSuggestionService::ENTITIES))],
         ]);
     }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiBulkJob;
-use App\Services\AiGateway\BulkMetaService;
+use App\Services\AiGateway\BulkSeoService;
 use App\Services\AiGateway\GatewayUnavailable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -19,7 +19,7 @@ class AiWebhookController extends Controller
 {
     public const MAX_SKEW = 300;
 
-    public function __invoke(Request $request, BulkMetaService $bulk): Response
+    public function __invoke(Request $request, BulkSeoService $bulk): Response
     {
         $secret = (string) config('ai_gateway.webhook_secret');
         $timestamp = (string) $request->header('X-MB-Timestamp');

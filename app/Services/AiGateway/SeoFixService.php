@@ -52,32 +52,7 @@ class SeoFixService
         abort_if($failing === [], 422, __('ai.seo.all_good'));
 
         $current = $this->current($post, $locale);
-        $response = $this->gateway->task(self::TASK, [
-            'locale' => $locale,
-            'entity_type' => 'post',
-            'entity_id' => $post->id,
-            'title' => Str::limit((string) $post->getTranslation('title', $locale, false), 290, ''),
-            'focus_keyword' => filled($post->seo_keys) ? Str::limit((string) $post->seo_keys, 120, '') : null,
-            'seo_title' => $current['seo_title'],
-            'seo_description' => $current['seo_description'],
-            'intro_html' => $current['intro_html'],
-            'failing_rules' => $failing,
-            'metrics' => $analysis['metrics'],
-        ], (string) Str::uuid());
-
-        $result = (array) ($response['result'] ?? []);
-        $proposal = [];
-        foreach (self::FIELDS as $field) {
-            $value = trim((string) ($result[$field] ?? ''));
-            if ($field === 'intro_html' && $value !== '') {
-                $value = $this->htmlSanitizer->clean($value);
-                // The opening may be reworded, never re-linked.
-                if ($this->bodyReferences($value) !== $this->bodyReferences($current['intro_html'])) {
-                    $value = '';
-                }
-            }
-            $proposal[$field] = $value;
-        }
+        $response = $this->gateway->task(self::TASK, $this->taskInput($post, $locale, $analysis), (string) Str::uuid());
 
         $suggestion = AiSuggestion::query()->create([
             'gateway_suggestion_id' => (int) $response['suggestion_id'],
@@ -86,7 +61,7 @@ class SeoFixService
             'entity_id' => $post->id,
             'locale' => $locale,
             'old_values' => $current,
-            'options' => [$proposal + ['notes' => array_values(array_filter((array) ($result['notes'] ?? []), 'is_array')), 'failing' => $failing]],
+            'options' => [$this->proposal((array) ($response['result'] ?? []), $current, $failing)],
             'status' => AiSuggestion::PROPOSED,
             'user_id' => $user->id,
         ]);
@@ -151,8 +126,50 @@ class SeoFixService
         return $scores;
     }
 
+    /**
+     * What the model sees for one post — the same for a single click and a bulk job.
+     *
+     * @return array<string, mixed>
+     */
+    public function taskInput(Post $post, string $locale, array $analysis): array
+    {
+        $current = $this->current($post, $locale);
+
+        return [
+            'locale' => $locale,
+            'entity_type' => 'post',
+            'entity_id' => $post->id,
+            'title' => Str::limit((string) $post->getTranslation('title', $locale, false), 290, ''),
+            'focus_keyword' => filled($post->seo_keys) ? Str::limit((string) $post->seo_keys, 120, '') : null,
+            'seo_title' => $current['seo_title'],
+            'seo_description' => $current['seo_description'],
+            'intro_html' => $current['intro_html'],
+            'failing_rules' => array_keys(array_filter($analysis['rules'], fn (bool $passed) => ! $passed)),
+            'metrics' => $analysis['metrics'],
+        ];
+    }
+
+    /** The model's answer as an option: the opening sanitized, and dropped if it changed a link or image. */
+    public function proposal(array $result, array $current, array $failing): array
+    {
+        $proposal = [];
+        foreach (self::FIELDS as $field) {
+            $value = trim((string) ($result[$field] ?? ''));
+            if ($field === 'intro_html' && $value !== '') {
+                $value = $this->htmlSanitizer->clean($value);
+                // The opening may be reworded, never re-linked.
+                if ($this->bodyReferences($value) !== $this->bodyReferences($current['intro_html'])) {
+                    $value = '';
+                }
+            }
+            $proposal[$field] = $value;
+        }
+
+        return $proposal + ['notes' => array_values(array_filter((array) ($result['notes'] ?? []), 'is_array')), 'failing' => $failing];
+    }
+
     /** Scored like the post form: default language, saved fields. */
-    private function analyze(Post $post): array
+    public function analyze(Post $post): array
     {
         $locale = $this->languages->defaultLocale();
 
@@ -167,7 +184,7 @@ class SeoFixService
     }
 
     /** @return array{seo_title: string, seo_description: string, intro_html: string} */
-    private function current(Post $post, string $locale): array
+    public function current(Post $post, string $locale): array
     {
         $body = (string) $post->getTranslation('content', $locale, false);
         // The opening: everything before the first sub-heading (what first_paragraph reads), at most 8,000 bytes.
