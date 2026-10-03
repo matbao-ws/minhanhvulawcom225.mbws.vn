@@ -8,6 +8,7 @@ use App\Services\AiGateway\AiUsage;
 use App\Services\AiGateway\AltTextService;
 use App\Services\AiGateway\FaqService;
 use App\Services\AiGateway\GatewayUnavailable;
+use App\Services\AiGateway\InternalLinkService;
 use App\Services\AiGateway\ProductDescriptionService;
 use App\Services\AiGateway\SeoFixService;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,7 @@ class AiToolsController extends Controller
         private readonly AltTextService $alt,
         private readonly SeoFixService $seo,
         private readonly ProductDescriptionService $product,
+        private readonly InternalLinkService $links,
     ) {}
 
     public function faqSuggest(Request $request, string $locale): JsonResponse
@@ -132,6 +134,24 @@ class AiToolsController extends Controller
         return $this->applied(__('ai.product.applied'), $suggestion, $product->getTranslation('description', $suggestion->locale, false));
     }
 
+    public function linksSuggest(Request $request, string $locale): JsonResponse
+    {
+        $data = $request->validate($this->recordRules(InternalLinkService::ENTITY_TYPES));
+
+        return $this->asked(fn () => $this->links->suggest($data['entity_type'], (int) $data['entity_id'], $data['content_locale'], $request->user()),
+            fn (AiSuggestion $s) => ['links' => $s->options], $locale, 'links');
+    }
+
+    public function linksApply(Request $request, string $locale, AiSuggestion $suggestion): JsonResponse
+    {
+        $data = $request->validate(['chosen' => ['required', 'array', 'min:1', 'max:10'], 'chosen.*' => ['integer', 'min:0', 'max:20']]);
+        [$record, $inserted] = $this->links->apply($suggestion, array_map('intval', $data['chosen']), $request->user());
+
+        return $this->applied(__('ai.links.applied', ['count' => $inserted]), $suggestion, $record->getTranslation(
+            \App\Services\AiGateway\MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
+        ));
+    }
+
     /** Shared by every tool here: the record keeps its value, the gateway learns it was not used. */
     public function reject(Request $request, string $locale, AiSuggestion $suggestion): JsonResponse
     {
@@ -141,6 +161,7 @@ class AiToolsController extends Controller
             AltTextService::TASK => $this->alt,
             SeoFixService::TASK => $this->seo,
             ProductDescriptionService::TASK => $this->product,
+            InternalLinkService::TASK => $this->links,
             default => abort(404),
         };
         $service->reject($suggestion, $request->user(), $data['reason'] ?? null);

@@ -25,6 +25,11 @@
                 <i class="ti ti-photo-check me-1"></i>{{ __('ai.alt.button') }}
             </button>
         @endif
+        @if(in_array($entityType, \App\Services\AiGateway\InternalLinkService::ENTITY_TYPES, true))
+            <button type="button" class="btn btn-sm btn-outline-primary js-ai-links" {!! $aiData !!}>
+                <i class="ti ti-link me-1"></i>{{ __('ai.links.button') }}
+            </button>
+        @endif
         @if($entityType === 'product')
             <button type="button" class="btn btn-sm btn-outline-primary js-ai-product" {!! $aiData !!}>
                 <i class="ti ti-sparkles me-1"></i>{{ __('ai.product.button') }}
@@ -34,4 +39,5 @@
     </div>
     @include('admin.shared.ai-edit-assets')
     @include('admin.shared.ai-tools-assets')
+    @include('admin.shared.ai-apply-guard')
 @endif

@@ -78,17 +78,7 @@ class AltTextService
         $html = $this->body($definition, $record, $locale);
         abort_unless(in_array($src, $this->imagesWithoutAlt($html), true), 422, __('ai.alt.not_missing'));
 
-        [$mime, $bytes] = $this->read($src);
-
-        $response = $this->gateway->task(self::TASK, [
-            'locale' => $locale,
-            'entity_type' => $type,
-            'entity_id' => $record->getKey(),
-            'src' => Str::limit($src, 2000, ''),
-            'page_title' => Str::limit((string) $record->getTranslation($definition['title'], $locale, false), 290, ''),
-            'context' => Str::limit($this->context($html, $src), 1400, ''),
-            'image' => ['mime_type' => $mime, 'data' => base64_encode($bytes)],
-        ], (string) Str::uuid());
+        $response = $this->gateway->task(self::TASK, $this->taskInput($type, $record, $locale, $src), (string) Str::uuid());
 
         $suggestion = AiSuggestion::query()->create([
             'gateway_suggestion_id' => (int) $response['suggestion_id'],
@@ -103,6 +93,31 @@ class AltTextService
         ]);
 
         return [$suggestion, (array) ($response['usage'] ?? [])];
+    }
+
+    /**
+     * What the model sees for one image — the same for a single click and a bulk job.
+     * The image is read here (this website's disk or its own Cloudinary only).
+     *
+     * @return array<string, mixed>
+     *
+     * @throws GatewayUnavailable image_unavailable
+     */
+    public function taskInput(string $type, Model $record, string $locale, string $src): array
+    {
+        $definition = MetaSuggestionService::ENTITIES[$type];
+        $html = $this->body($definition, $record, $locale);
+        [$mime, $bytes] = $this->read($src);
+
+        return [
+            'locale' => $locale,
+            'entity_type' => $type,
+            'entity_id' => $record->getKey(),
+            'src' => Str::limit($src, 2000, ''),
+            'page_title' => Str::limit((string) $record->getTranslation($definition['title'], $locale, false), 290, ''),
+            'context' => Str::limit($this->context($html, $src), 1400, ''),
+            'image' => ['mime_type' => $mime, 'data' => base64_encode($bytes)],
+        ];
     }
 
     /** Set the (possibly edited) alt on every alt-less <img> with that src. */
@@ -128,7 +143,8 @@ class AltTextService
                 if ($this->srcOf($tag) !== $src || $this->hasAlt($tag)) {
                     return $tag;
                 }
-                $tag = (string) preg_replace('/\salt\s*=\s*(["\'])\s*\1/i', '', $tag);
+                // Drop the empty or file-name alt it has.
+                $tag = (string) preg_replace('/\salt\s*=\s*(["\']).*?\1/i', '', $tag);
 
                 return (string) preg_replace('/^<img\b/i', '<img alt="'.e($alt).'"', $tag);
             }, $html);
@@ -146,7 +162,7 @@ class AltTextService
     }
 
     /** @return list<string> */
-    private function imagesWithoutAlt(string $html): array
+    public function imagesWithoutAlt(string $html): array
     {
         preg_match_all('/<img\b[^>]*>/i', $html, $tags);
 
@@ -156,14 +172,25 @@ class AltTextService
         ))));
     }
 
-    private function srcOf(string $tag): ?string
+    public static function srcOf(string $tag): ?string
     {
         return preg_match('/\ssrc\s*=\s*(["\'])(.*?)\1/i', $tag, $m) ? html_entity_decode($m[2]) : null;
     }
 
-    private function hasAlt(string $tag): bool
+    /**
+     * A real description. An empty alt does not count, nor the image's file name — the
+     * HTML sanitizer fills a missing alt with it ("ong-nhua.png"), which tells nobody anything.
+     */
+    public static function hasAlt(string $tag): bool
     {
-        return preg_match('/\salt\s*=\s*(["\'])\s*\S.*?\1/i', $tag) === 1;
+        if (! preg_match('/\salt\s*=\s*(["\'])(.*?)\1/i', $tag, $m) || trim($m[2]) === '') {
+            return false;
+        }
+
+        $alt = mb_strtolower(trim(html_entity_decode($m[2])));
+        $file = mb_strtolower(rawurldecode(basename((string) parse_url((string) self::srcOf($tag), PHP_URL_PATH))));
+
+        return $file === '' || ($alt !== $file && $alt !== pathinfo($file, PATHINFO_FILENAME));
     }
 
     /** Text around the image, so the model knows what it illustrates. */

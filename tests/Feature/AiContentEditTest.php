@@ -40,7 +40,7 @@ class AiContentEditTest extends TestCase
         }
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_project_token']);
 
-        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'pages.update', 'ai.use']]);
+        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['products.view', 'products.update', 'pages.update', 'ai.use', 'ai.apply']]);
         $this->editor = User::factory()->create(['role_id' => $role->id]);
         $this->product = Product::query()->create([
             'name' => ['vi' => 'Ống nhựa uPVC'], 'slug' => 'ong-nhua', 'sku' => 'UPVC', 'price' => 1000, 'is_active' => true,

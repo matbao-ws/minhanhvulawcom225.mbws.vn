@@ -17,6 +17,10 @@ return [
 
     'token' => env('MATBAO_AI_TOKEN'),
 
+    // Signs the gateway's webhooks (POST /api/ai/webhook). Without it webhooks are refused
+    // and results are fetched when the page is opened.
+    'webhook_secret' => env('MATBAO_AI_WEBHOOK_SECRET'),
+
     // Seconds. The gateway answers from its own cache most of the time.
     'timeout' => (int) env('MATBAO_AI_TIMEOUT', 15),
 

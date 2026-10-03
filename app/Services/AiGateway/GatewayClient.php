@@ -100,6 +100,21 @@ class GatewayClient
     }
 
     /**
+     * Start a long task (`POST v1/jobs/{type}`); the key makes a retried request the same job.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return array<string, mixed>
+     *
+     * @throws GatewayUnavailable
+     */
+    public function job(string $type, array $items, string $idempotencyKey): array
+    {
+        return $this->send(fn () => $this->request()
+            ->withHeaders(['Idempotency-Key' => $idempotencyKey])
+            ->post($this->url('v1/jobs/'.$type), ['items' => $items]));
+    }
+
+    /**
      * @param  callable(): Response  $call
      * @return array<string, mixed>
      */

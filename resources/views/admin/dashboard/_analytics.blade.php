@@ -77,6 +77,40 @@
             letter-spacing: -.035em;
             line-height: 1.15;
         }
+
+        .dashboard-analytics [data-analytics-picker] .dropdown-item {
+            transition: background-color .16s ease, color .16s ease;
+        }
+
+        .dashboard-analytics [data-analytics-picker] .dropdown-item:hover,
+        .dashboard-analytics [data-analytics-picker] .dropdown-item.active {
+            color: #fff !important;
+            background-color: var(--bs-danger) !important;
+        }
+
+        .dashboard-analytics [data-analytics-picker] .dropdown-item:focus-visible {
+            color: #fff !important;
+            background-color: var(--bs-danger) !important;
+            outline: 0;
+            box-shadow: 0 0 0 .2rem rgba(var(--bs-danger-rgb), .24);
+        }
+
+        .dashboard-analytics [data-analytics-picker] > [data-bs-toggle="dropdown"] {
+            transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+        }
+
+        .dashboard-analytics [data-analytics-picker] > [data-bs-toggle="dropdown"]:hover,
+        .dashboard-analytics [data-analytics-picker] > [data-bs-toggle="dropdown"].show,
+        .dashboard-analytics [data-analytics-picker] > [data-bs-toggle="dropdown"]:focus-visible {
+            color: #fff !important;
+            background-color: var(--bs-danger) !important;
+            border-color: var(--bs-danger) !important;
+            box-shadow: 0 0 0 .2rem rgba(var(--bs-danger-rgb), .24);
+        }
+
+        .dashboard-analytics [data-analytics-picker] > [data-bs-toggle="dropdown"] .text-muted {
+            color: inherit !important;
+        }
     </style>
 @endpush
 
@@ -150,10 +184,10 @@
 
             {{-- Shown when the shop has not connected GA or Google refuses. --}}
             <div class="d-none" data-analytics-error>
-                <div class="alert alert-light border d-flex flex-column flex-md-row align-items-md-center gap-3 mb-0">
+                <div class="alert alert-light border d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
                     <i class="ti ti-chart-dots fs-6 text-primary" aria-hidden="true"></i>
                     <div class="flex-grow-1">
-                        <div class="fw-semibold" data-analytics-error-title>{{ __('admin.analytics.setup_title') }}
+                        <div class="fw-bold text-primary" data-analytics-error-title>{{ __('admin.analytics.setup_title') }}
                         </div>
                         <div class="small text-muted" data-analytics-error-message></div>
                     </div>

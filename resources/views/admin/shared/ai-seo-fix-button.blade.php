@@ -8,4 +8,5 @@
         <div class="text-muted small mt-1">{{ __('ai.seo.saved_only') }}</div>
     </div>
     @include('admin.shared.ai-tools-assets')
+    @include('admin.shared.ai-apply-guard')
 @endif

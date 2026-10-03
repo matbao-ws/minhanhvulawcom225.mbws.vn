@@ -128,9 +128,20 @@
     .dashboard-package-usage__meta strong { color: #627391; font-weight: 800; white-space: nowrap; }
     .dashboard-package-usage .progress { height: 5px !important; border-radius: 999px; background-color: #e8edf5; }
     .dashboard-package-usage .progress-bar { border-radius: inherit; background-color: #d11e28 !important; }
+    .dashboard-ai-usage { display: flex; align-items: center; gap: 16px; padding: 13px 14px; }
+    .dashboard-ai-usage__icon { display: inline-flex; width: 40px; height: 40px; flex: 0 0 40px; align-items: center; justify-content: center; border-radius: 11px; color: #713df2; background: #f2edff; }
+    .dashboard-ai-usage__content { min-width: 0; }
+    .dashboard-ai-usage__title { color: #2a3547; font-size: 13px; font-weight: 800; }
+    .dashboard-ai-usage__description { color: #8190a8; font-size: 12px; font-weight: 600; }
+    .dashboard-ai-usage__progress { width: min(100%, 320px); margin-left: auto; }
+    .dashboard-ai-usage__meta { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 12px; }
+    .dashboard-ai-usage__meta strong { color: #627391; font-weight: 800; }
+    .dashboard-ai-usage__meta span { color: #8190a8; font-weight: 600; text-align: right; }
     @media (max-width: 991.98px) { .dashboard-package-usage__intro { margin-bottom: 12px; } }
     @media (max-width: 575.98px) {
         .dashboard-package-usage__intro { align-items: flex-start; flex-direction: column; }
+        .dashboard-ai-usage { align-items: flex-start; flex-wrap: wrap; }
+        .dashboard-ai-usage__progress { width: 100%; margin-left: 0; }
     }
     
     /* Headings and card titles */
@@ -214,6 +225,7 @@
 @endpush
 
 @section('content')
+    <div class="dashboard-content">
     <section class="dashboard-welcome-banner mb-4" aria-labelledby="dashboard-welcome-title">
         <div class="dashboard-welcome-content">
             {{-- <p class="mb-1 fw-semibold">{{ __('admin.dashboard_page.welcome_greeting') }}</p> --}}
@@ -266,6 +278,7 @@
                         </div>
                     </div>
                 @endforeach
+                @include('admin.dashboard._ai-usage')
             </div>
         </section>
     @endif
@@ -274,7 +287,7 @@
         @include('admin.dashboard._analytics')
     @endif
 
-    @include('admin.dashboard._ai-usage')
+    @include('admin.dashboard._seo-tasks')
 
     @if(!$canViewOrders)
         <div class="card shadow-sm">
@@ -567,6 +580,7 @@
     </div>
 
     @endif
+    </div>
 @endsection
 
 @push('scripts')

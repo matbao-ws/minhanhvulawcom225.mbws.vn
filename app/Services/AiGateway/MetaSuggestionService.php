@@ -71,19 +71,7 @@ class MetaSuggestionService
         abort_unless($this->languages->supports($locale), 422, __('ai.errors.locale'));
 
         $current = $this->currentValues($definition, $record, $locale);
-        $input = [
-            'locale' => $locale,
-            'entity_type' => $type,
-            'entity_id' => $record->getKey(),
-            'title' => Str::limit($this->text($record, $definition['title'], $locale), 290, ''),
-            // Public content only, as plain text: no markup, no customer data.
-            'content_text' => Str::limit($this->text($record, $definition['content'], $locale), 19000, ''),
-            'current_meta_title' => $current['title'] !== '' ? $current['title'] : null,
-            'current_meta_description' => $current['description'] !== '' ? $current['description'] : null,
-            'site_name' => Str::limit((string) ($this->branding->current()['name'] ?? ''), 120, ''),
-            // Posts carry a focus keyword the SEO checker scores the meta against.
-            'focus_keyword' => $record instanceof Post && filled($record->seo_keys) ? Str::limit((string) $record->seo_keys, 120, '') : null,
-        ];
+        $input = $this->taskInput($type, $record, $locale);
 
         $response = $this->gateway->task(self::TASK, $input, (string) Str::uuid());
 
@@ -152,6 +140,37 @@ class MetaSuggestionService
         ]);
 
         return $record;
+    }
+
+    /**
+     * What the model sees for one record — the same for a single click and a bulk job.
+     *
+     * @return array<string, mixed>
+     */
+    public function taskInput(string $type, Model $record, string $locale): array
+    {
+        $definition = self::ENTITIES[$type];
+        $current = $this->currentValues($definition, $record, $locale);
+
+        return [
+            'locale' => $locale,
+            'entity_type' => $type,
+            'entity_id' => $record->getKey(),
+            'title' => Str::limit($this->text($record, $definition['title'], $locale), 290, ''),
+            // Public content only, as plain text: no markup, no customer data.
+            'content_text' => Str::limit($this->text($record, $definition['content'], $locale), 19000, ''),
+            'current_meta_title' => $current['title'] !== '' ? $current['title'] : null,
+            'current_meta_description' => $current['description'] !== '' ? $current['description'] : null,
+            'site_name' => Str::limit((string) ($this->branding->current()['name'] ?? ''), 120, ''),
+            // Posts carry a focus keyword the SEO checker scores the meta against.
+            'focus_keyword' => $record instanceof Post && filled($record->seo_keys) ? Str::limit((string) $record->seo_keys, 120, '') : null,
+        ];
+    }
+
+    /** @return array{title: string, description: string} */
+    public function currentValuesOf(string $type, Model $record, string $locale): array
+    {
+        return $this->currentValues(self::ENTITIES[$type], $record, $locale);
     }
 
     /** @return array{title: string, description: string} */
