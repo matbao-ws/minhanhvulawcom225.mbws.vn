@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\CoreUpdateController;
+use App\Http\Controllers\Admin\ExtensionController;
 use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
@@ -168,6 +169,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
         Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
         Route::post('core-update/rollback', [CoreUpdateController::class, 'rollback'])->name('core-update.rollback');
+
+        // The website's extensions/ and what became of each (read-only: extension:enable|disable).
+        Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');
     });
 
     Route::get('languages', [LanguageController::class, 'index'])->middleware(['feature:multilingual', 'can:languages.view'])->name('languages.index');
