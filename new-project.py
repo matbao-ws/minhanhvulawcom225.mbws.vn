@@ -2,8 +2,9 @@
 """
 Start a customer project from the core: one command instead of a page of steps.
 
+    python new-project.py                                 # asks for everything
     python new-project.py khach-abc
-    python new-project.py khach-abc --owner my-org        # repo private under an organisation
+    python new-project.py khach-abc --owner DucToanDev    # repo under another account
     python new-project.py khach-abc --origin https://github.com/m-t-bao-ws/khach-abc.git
     python new-project.py khach-abc --no-github           # local only
     python new-project.py khach-abc --ref v1.1.0 --db sqlite
@@ -18,7 +19,8 @@ What it does, in a new folder next to this repository:
   4. creates the database, installs dependencies, generates APP_KEY, runs core:install
      (asks for the admin account) and storage:link;
   5. commits the starting point and pushes it to the project's own repo: with --origin to that
-     URL, otherwise it creates a private GitHub repo <owner>/<name> with the GitHub CLI (gh).
+     URL, otherwise it creates a private GitHub repo <owner>/<name> with the GitHub CLI (gh),
+     <owner> being the organization by default.
 
 The theme then goes into resources/views/client, public/client-assets and routes/theme.php —
 never into core files (AI_BUILD_PROMPT.md, "Cập nhật phiên bản core: core và theme").
@@ -31,6 +33,11 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Customer projects live in the organization next to the core repository.
+DEFAULT_OWNER = 'M-t-Bao-WS'
+
+NAME_PATTERN = r'[a-z0-9][a-z0-9-]{1,48}'
 
 PROJECT_CI = """name: Tests
 
@@ -95,6 +102,57 @@ def tool(name):
     return path
 
 
+def ask(label, default=''):
+    hint = f' [{default}]' if default else ''
+    while True:
+        answer = input(f'    {label}{hint}: ').strip() or default
+        if answer:
+            return answer
+        say('    (bắt buộc)')
+
+
+def name_problem(name, parent):
+    if not re.fullmatch(NAME_PATTERN, name):
+        return 'Tên chỉ gồm chữ thường, số và gạch ngang (2–49 ký tự), vd: web-khachabc'
+    if os.path.exists(os.path.join(parent, name)):
+        return f'{os.path.join(parent, name)} đã tồn tại.'
+    return None
+
+
+def ask_missing(args):
+    """No name on the command line: ask for what the flags would have said."""
+    parent = os.path.abspath(args.parent)
+    say('Tạo dự án khách mới từ core (Enter = giá trị trong [ ]).')
+    while True:
+        args.name = ask('Tên dự án (vd: web-khachabc)').lower()
+        problem = name_problem(args.name, parent)
+        if not problem:
+            break
+        say('    ' + problem)
+
+    if not args.origin and not args.no_github:
+        answer = ask('Tạo repo GitHub private ở (owner, "-" = không tạo)', args.owner or DEFAULT_OWNER)
+        if answer == '-':
+            args.no_github = True
+        else:
+            args.owner = answer
+
+    args.db = ask('Database local (mysql/sqlite)', args.db).lower()
+    while args.db not in ('mysql', 'sqlite'):
+        args.db = ask('Database local (mysql/sqlite)', 'mysql').lower()
+
+    repo = 'không' if args.no_github else (args.origin or f'{args.owner}/{args.name} (private)')
+    say('')
+    say(f'    Thư mục:  {os.path.join(parent, args.name)}')
+    say(f'    Core:     {args.ref}')
+    say(f'    GitHub:   {repo}')
+    say(f'    Database: {args.db}' + (f' ({args.name.replace("-", "_")})' if args.db == 'mysql' else ''))
+    if input('    Tạo luôn? [C/k]: ').strip().lower() not in ('', 'c', 'co', 'y', 'yes'):
+        say('[-] Đã huỷ.')
+        sys.exit(0)
+    say('')
+
+
 def set_env(text, values):
     """Set KEY=value lines, uncommenting a commented template line when there is one."""
     for key, value in values.items():
@@ -126,7 +184,7 @@ def create_github_repo(target, name, owner, public):
 
 def parse_args():
     p = argparse.ArgumentParser(description='Tạo dự án khách mới từ core.')
-    p.add_argument('name', help='Tên dự án = tên thư mục (chữ thường, số, gạch ngang), vd: khach-abc')
+    p.add_argument('name', nargs='?', help='Tên dự án = tên thư mục (chữ thường, số, gạch ngang), vd: web-khachabc. Bỏ trống thì script hỏi.')
     p.add_argument('--parent', default=os.path.dirname(HERE),
                    help='Thư mục chứa dự án mới (mặc định: cạnh repo core).')
     p.add_argument('--from', dest='source', default=None,
@@ -135,7 +193,7 @@ def parse_args():
     p.add_argument('--origin', default=None,
                    help='URL repo GitHub (trống) có sẵn của dự án; bỏ trống thì tự tạo repo bằng gh.')
     p.add_argument('--owner', default=None,
-                   help='User/organization GitHub chứa repo mới (mặc định: tài khoản đang đăng nhập gh).')
+                   help=f'User/organization GitHub chứa repo mới (mặc định: {DEFAULT_OWNER}).')
     p.add_argument('--public', action='store_true', help='Tạo repo public (mặc định private).')
     p.add_argument('--no-github', action='store_true', help='Không tạo repo GitHub, chỉ git local.')
     p.add_argument('--db', choices=['mysql', 'sqlite'], default='mysql', help='Database local (mặc định: mysql của Laragon).')
@@ -151,15 +209,14 @@ def main():
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding='utf-8')  # Vietnamese messages on a cp1252 Windows console
     args = parse_args()
+    if not args.name:
+        ask_missing(args)
     name = args.name.strip().lower()
-    if not re.fullmatch(r'[a-z0-9][a-z0-9-]{1,48}', name):
-        say('[-] Tên dự án chỉ gồm chữ thường, số và gạch ngang, vd: khach-abc')
+    problem = name_problem(name, os.path.abspath(args.parent))
+    if problem:
+        say('[-] ' + problem)
         sys.exit(1)
-
     target = os.path.join(os.path.abspath(args.parent), name)
-    if os.path.exists(target):
-        say(f'[-] {target} đã tồn tại.')
-        sys.exit(1)
 
     git = tool('git')
     source = args.source or output([git, 'remote', 'get-url', 'origin'], cwd=HERE)
@@ -231,13 +288,14 @@ def main():
         repo_url = args.origin
     elif not args.no_github:
         say('[+] Tạo repo GitHub ' + ('public' if args.public else 'private'))
-        repo_url = create_github_repo(target, name, args.owner, args.public)
+        repo_url = create_github_repo(target, name, args.owner or DEFAULT_OWNER, args.public)
 
     say('')
     say(f'[+] Xong: {target} (core {core_version})')
     say(f'    Web local:  http://{name}.test  (Laragon: Menu → Reload để nhận thư mục mới)')
     say(f'    Admin:      http://{name}.test/vi/admin')
-    say('    Theme:      resources/views/client, public/client-assets, routes/theme.php — không sửa file core.')
+    say('    Theme:      resources/views/client, public/client-assets (trừ vendor/), routes/theme.php — không sửa file core.')
+    say(f'    Làm việc:   cd "{target}"; python team.py')
     if repo_url:
         say(f'    GitHub:     {repo_url}')
     else:

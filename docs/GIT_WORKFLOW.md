@@ -1,5 +1,8 @@
 # Quy trình Git: từ code local tới website khách
 
+> Tài liệu này dành cho người phát triển và phát hành **core**. Team dev làm website khách (tạo dự án,
+> nối giao diện, deploy) đọc [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md).
+
 Các lệnh dưới đây gõ trong PowerShell hoặc terminal của VS Code, tại thư mục repo
 (`F:\laragon\www\matbaows-core-admin` cho core, `F:\laragon\www\MatBaoAI-SEO` cho gateway).
 
