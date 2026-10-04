@@ -42,6 +42,7 @@ class CoreManifest
         'resources/views/components/**',
         'resources/views/core/**',
         'resources/views/emails/**',
+        'resources/views/errors/**',
         'resources/views/vendor/**',
         'resources/views/vnpay_mock.blade.php',
         'public/admin-assets/**',
