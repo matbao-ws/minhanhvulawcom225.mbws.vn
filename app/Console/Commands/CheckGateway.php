@@ -19,7 +19,7 @@ class CheckGateway extends Command
 
     protected $description = 'Check the connection to the MatBao gateway (mail relay, AI, core updates)';
 
-    public function handle(GatewayClient $gateway, MailSettings $mail): int
+    public function handle(MailSettings $mail): int
     {
         $url = (string) config('ai_gateway.url');
         $this->components->twoColumnDetail('Gửi mail bằng', match ($mail->source()) {
