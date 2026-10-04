@@ -175,13 +175,26 @@ def download_composer():
         f.write(data)
 
 
+def gh_candidates():
+    # A fresh install is not in this terminal's PATH until a new terminal is opened.
+    if WINDOWS:
+        roots = [os.environ.get('ProgramFiles', r'C:\Program Files'), os.environ.get('ProgramFiles(x86)', ''),
+                 os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs')]
+        return [os.path.join(r, 'GitHub CLI', 'gh.exe') for r in roots if r]
+    return ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh']
+
+
 def activate():
     """
-    Put a working php (8.2+) and composer first in PATH, for this process and everything it starts.
-    Installs nothing. Returns {'php', 'php_version', 'composer'}.
+    Put a working php (8.2+), composer and gh first in PATH, for this process and everything it
+    starts — found in PATH or where they install. Installs nothing. Returns {'php', 'php_version', 'composer'}.
     """
     php, version = find_php()
     path = os.environ.get('PATH', '')
+    if not shutil.which('gh', path=path):
+        gh = next((g for g in gh_candidates() if os.path.isfile(g)), None)
+        if gh:
+            path = os.path.dirname(gh) + os.pathsep + path
     if php and version[:2] >= PHP_MIN:
         path = os.path.dirname(php) + os.pathsep + path
     composer = shutil.which('composer', path=path) is not None
@@ -254,6 +267,9 @@ def doctor(offer_install=False):
         else:
             say('  ✗ php: không tìm thấy (đã tìm PATH, Laragon, XAMPP)')
         if offer_install and yes('Cài PHP ngay (Windows: Laragon; Linux/macOS: gói php)?') and install_php():
+            if find_php()[1] and find_php()[1][:2] >= PHP_MIN:
+                say('  Cài xong.')
+                return doctor(offer_install)
             say('  Cài xong. Mở terminal MỚI rồi chạy lại python team.py.')
         return False
 
@@ -296,8 +312,10 @@ def doctor(offer_install=False):
         say('  ✓ gh (GitHub CLI)')
     else:
         say('  ! gh (GitHub CLI) chưa có: không tự tạo repo / PR được')
-        if offer_install and yes('Cài GitHub CLI?') and install_gh():
-            say('  Cài xong. Mở terminal MỚI rồi chạy lại python team.py.')
+        if offer_install and yes('Cài GitHub CLI?'):
+            install_gh()  # winget answers "already installed" with a failure code: look anyway
+            activate()
+            say('  ✓ gh (GitHub CLI)' if has('gh') else '  Cài xong thì mở terminal MỚI rồi chạy lại python team.py.')
     return ok
 
 
