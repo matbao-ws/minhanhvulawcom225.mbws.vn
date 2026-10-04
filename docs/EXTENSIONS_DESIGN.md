@@ -65,7 +65,7 @@ Manifest **không** chứa cấu hình chạy (menu, route, khoá API...). Menu 
 | Namespace view / lang | `dealers::` |
 | Config | `config('extensions.dealers.*')` |
 | Tên route | `ext.dealers.*` |
-| URL admin / api | `/{locale}/admin/ext/dealers/...`, `/api/ext/dealers/...` |
+| URL (luôn có tiền tố, không bao giờ trùng route core) | admin `/{locale}/admin/ext/dealers/...` (middleware như admin core); api `/api/ext/dealers/...` (`api`, extension tự thêm xác thực); web `/ext/dealers/...` (`web`) |
 
 Cấu trúc thư mục (do `php artisan extension:make <id>` sinh ra):
 
@@ -222,7 +222,7 @@ bao giờ âm thầm ghi đè.
 | Dữ liệu bảng core | Đọc; thêm dòng qua model được phép | Không thêm cột vào bảng core. Metadata nhỏ cho đối tượng core dùng `extension_data` (Giai đoạn 2) |
 | Quyền | `dealers.*`, khai báo trong `extension.json` | Code không có tiền tố `<id>.` → manifest không hợp lệ. Hiện trong form vai trò ở nhóm "Extensions" |
 | Menu admin | `AdminMenu::register('dealers', key: 'dealers.index', ...)` | Key trùng, hoặc không có tiền tố `<id>.` → exception khi đăng ký → extension "failed" |
-| Route | Tên `ext.dealers.*`; URL admin/api có tiền tố bắt buộc (mục 1) | URL web trùng route core: route core thắng; `extension:check` cảnh báo |
+| Route | Tên `ext.dealers.*` (`ext.dealers.api.*`, `ext.dealers.web.*`); URL luôn có tiền tố (mục 1) | Không thể trùng route core. Trang storefront riêng thuộc theme (`routes/theme.php`) |
 | View, lang, config | `dealers::`, `config('extensions.dealers')` | — |
 | `id` | Duy nhất | Dành riêng, không được dùng: `admin`, `api`, `app`, `auth`, `client`, `core`, `custom`, `emails`, `enabled`, `errors`, `ext`, `extension`, `extensions`, `laravel`, `mail`, `notifications`, `pagination`, `theme`, `vendor`, `validation` |
 
