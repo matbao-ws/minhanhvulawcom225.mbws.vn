@@ -5,6 +5,11 @@ khách. Việc phát triển và phát hành **core** có quy trình riêng tron
 
 Lệnh gõ trong PowerShell hoặc terminal của VS Code.
 
+> **Cách nhanh:** chạy `python team.py` trong repo core hoặc trong thư mục dự án khách. Tool có menu
+> làm sẵn các bước ở mục 1, 2, 4, 5, 6: thiết lập máy, tạo dự án, bắt đầu việc, lưu & đẩy (chặn file
+> core), lấy bản core mới, deploy (chặn khi core cũ hơn website). Các mục dưới đây giải thích tool
+> đang làm gì, và là cách làm tay khi cần.
+
 ---
 
 ## 0. Hiểu mô hình trong 1 phút
@@ -109,14 +114,16 @@ Mở thư mục **dự án khách** trong VS Code (`F:\laragon\www\web-spico`), 
 | Thư mục / file | Dùng cho |
 |---|---|
 | `resources/views/client/` | Blade của giao diện: layout, trang chủ, sản phẩm, bài viết... |
-| `public/client-assets/` | CSS, JS, ảnh, font của giao diện |
+| `public/client-assets/` (trừ `vendor/`) | CSS, JS, ảnh, font của giao diện |
 | `routes/theme.php` | Route riêng của giao diện: landing page, trang đặc biệt |
 | `theme/` | Dành riêng cho website, không bị bản cập nhật core đụng tới |
 
 ### ❌ Không sửa (thuộc về core)
 
-Toàn bộ phần còn lại, ví dụ: `app/`, `resources/views/admin/`, `routes/web.php`, `routes/api.php`,
-`database/migrations/`, `config/`, `composer.json`, `public/admin-assets/`.
+Danh sách đầy đủ là hằng `CORE` trong `app/Support/CoreManifest.php`, ví dụ: `app/`,
+`resources/views/admin/`, `resources/views/components/`, `routes/web.php`, `routes/api.php`,
+`database/migrations/`, `config/`, `lang/`, `composer.json`, `public/admin-assets/`,
+`public/client-assets/vendor/`. `team.py` đọc đúng danh sách này khi kiểm tra trước lúc lưu.
 
 Cần thay đổi ở đó thì xem mục 3.2.
 
@@ -259,6 +266,16 @@ git merge v1.2.0
 ---
 
 ## 9. Tóm tắt một vòng
+
+Bằng tool:
+
+```powershell
+cd F:\laragon\www\matbaows-core-admin;  python team.py   # 1 Thiết lập máy, 2 Tạo dự án khách
+cd F:\laragon\www\web-spico;            python team.py   # 1 Bắt đầu việc → code → 2 Lưu & đẩy
+                                                          # → merge PR → 3 Dọn nhánh → 5 Deploy
+```
+
+Bằng tay:
 
 ```powershell
 # Dự án mới
