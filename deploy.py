@@ -748,6 +748,12 @@ def should_exclude(rel_path):
         if p in skip_entirely:
             return 'entirely'
             
+    normalized = '/'.join(path_parts)
+    # The website's own record of its core: installed.json (the baseline), update state, history,
+    # backups, extension state. This machine's copy must never land on the website.
+    if normalized == 'storage/app/core' or normalized.startswith('storage/app/core/'):
+        return 'entirely'
+
     # Directories where we keep the folder structure but skip files inside
     skip_contents = {
         'storage/logs',
