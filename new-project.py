@@ -4,7 +4,7 @@ Start a customer project from the core: one command instead of a page of steps.
 
     python new-project.py khach-abc
     python new-project.py khach-abc --owner my-org        # repo private under an organisation
-    python new-project.py khach-abc --origin https://github.com/DucToanDev/khach-abc.git
+    python new-project.py khach-abc --origin https://github.com/m-t-bao-ws/khach-abc.git
     python new-project.py khach-abc --no-github           # local only
     python new-project.py khach-abc --ref v1.1.0 --db sqlite
 
