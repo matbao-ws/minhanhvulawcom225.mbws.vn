@@ -13,10 +13,14 @@ class ContactSubmission extends Model
         'message',
         'meta',
         'is_read',
+        'is_spam',
+        'spam_reason',
+        'ip',
     ];
 
     protected $casts = [
         'meta' => 'array',
         'is_read' => 'boolean',
+        'is_spam' => 'boolean',
     ];
 }

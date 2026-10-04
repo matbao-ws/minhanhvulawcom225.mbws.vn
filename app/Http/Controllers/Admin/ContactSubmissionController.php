@@ -10,7 +10,9 @@ class ContactSubmissionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ContactSubmission::query();
+        // Spam stays out of the inbox; the "spam" box shows it for releasing false positives.
+        $spamBox = $request->input('box') === 'spam';
+        $query = ContactSubmission::query()->where('is_spam', $spamBox);
 
         if ($request->filled('is_read')) {
             $query->where('is_read', $request->boolean('is_read'));
@@ -30,7 +32,9 @@ class ContactSubmissionController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.contact-submissions.index', compact('submissions'));
+        $spamCount = ContactSubmission::query()->where('is_spam', true)->count();
+
+        return view('admin.contact-submissions.index', compact('submissions', 'spamBox', 'spamCount'));
     }
 
     public function toggleRead(Request $request, string $locale, ContactSubmission $contactSubmission)
@@ -45,6 +49,16 @@ class ContactSubmissionController extends Controller
         }
 
         return redirect()->route('admin.contact-submissions.index');
+    }
+
+    /** A real inquiry the filter caught: back to the inbox. The mail it never sent is not sent now. */
+    public function notSpam(string $locale, ContactSubmission $contactSubmission)
+    {
+        $contactSubmission->update(['is_spam' => false, 'spam_reason' => null]);
+
+        return redirect()
+            ->route('admin.contact-submissions.index', ['box' => 'spam'])
+            ->with('success', 'Đã chuyển liên hệ về hộp thư.');
     }
 
     public function destroy(Request $request, string $locale, ContactSubmission $contactSubmission)

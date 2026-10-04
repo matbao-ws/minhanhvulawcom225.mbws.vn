@@ -268,6 +268,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
     Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->middleware('can:contacts.view')->name('contact-submissions.index');
     Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');
+    Route::patch('contact-submissions/{contactSubmission}/not-spam', [ContactSubmissionController::class, 'notSpam'])->middleware('can:contacts.update')->name('contact-submissions.not-spam');
     Route::delete('contact-submissions/{contactSubmission}', [ContactSubmissionController::class, 'destroy'])->middleware('can:contacts.delete')->name('contact-submissions.destroy');
 
     Route::get('settings', [SettingController::class, 'index'])->middleware('can:settings.view')->name('settings.index');
