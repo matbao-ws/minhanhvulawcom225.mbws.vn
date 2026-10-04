@@ -45,6 +45,11 @@ class ExtensionChecker
                 $errors[] = $this->relative($manifest, $file).': '.$problem;
             }
         }
+        foreach ($this->files($manifest, ['src', 'database'], '.php') as $file) {
+            foreach ($this->scanLifecycle((string) file_get_contents($file)) as $problem) {
+                $errors[] = $this->relative($manifest, $file).': '.$problem;
+            }
+        }
         foreach ($this->files($manifest, ['views'], '.php') as $file) {
             foreach ($this->scanTemplate((string) file_get_contents($file)) as $problem) {
                 $errors[] = $this->relative($manifest, $file).': '.$problem;
@@ -142,6 +147,47 @@ class ExtensionChecker
                     $problems[] = "{$token[1]}({$target}) replaces a core class: extensions add, listen and register, never replace";
                 }
             }
+        }
+
+        return array_values(array_unique($problems));
+    }
+
+    /**
+     * What only the core does for an extension (routes under /ext/<id> with their middleware, views,
+     * translations, migrations, config): code in src/ or database/ that does it itself escapes the
+     * prefixes and the ownership rules.
+     *
+     * @return list<string>
+     */
+    public function scanLifecycle(string $code): array
+    {
+        $tokens = token_get_all($code);
+        $problems = [];
+        $routeFacade = false;
+
+        foreach ($tokens as $i => $token) {
+            if (! is_array($token)) {
+                continue;
+            }
+            if (in_array($token[0], [T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED], true)
+                && ltrim($token[1], '\\') === 'Illuminate\\Support\\Facades\\Route') {
+                $routeFacade = true;
+            }
+            if ($token[0] === T_STRING && strcasecmp($token[1], 'Route') === 0) {
+                $next = $this->next($tokens, $i);
+                if ($next !== null && ($tokens[$next][0] ?? null) === T_DOUBLE_COLON) {
+                    $routeFacade = true;
+                }
+            }
+            if ($token[0] === T_STRING && in_array(strtolower($token[1]), ['loadroutesfrom', 'loadviewsfrom', 'loadtranslationsfrom', 'loadjsontranslationsfrom', 'loadmigrationsfrom', 'mergeconfigfrom'], true)) {
+                $before = $this->previous($tokens, $i);
+                if ($before !== null && in_array($tokens[$before][0] ?? null, [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON], true)) {
+                    $problems[] = "{$token[1]}(): the core loads an extension's routes, views, translations, migrations and config itself";
+                }
+            }
+        }
+        if ($routeFacade) {
+            $problems[] = 'registers routes outside routes/*.php: they would escape /ext/<id> and its middleware';
         }
 
         return array_values(array_unique($problems));

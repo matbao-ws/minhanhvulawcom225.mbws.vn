@@ -147,6 +147,30 @@ class ExtensionCheckTest extends TestCase
             ->assertExitCode(1);
     }
 
+    /** Every rule the project CI relies on fails the check on its own — exit 1, not a warning. */
+    public function test_each_rule_fails_the_check_with_a_non_zero_exit(): void
+    {
+        $migration = fn (string $body) => "<?php return new class extends Illuminate\\Database\\Migrations\\Migration { public function up(): void { {$body} } };";
+        $cases = [
+            'App\\Services in use' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; use App\\Services\\MailSettings; class A {}'], 'not part of the extension API'],
+            'core binding replaced' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; class A { function r() { app()->singleton(\\App\\Support\\FeatureGate::class, fn () => null); } }'], 'replaces a core class'],
+            'migration on a core table' => [[], ['database/migrations/2026_11_01_000000_a.php' => $migration("Schema::table('orders', fn (\$t) => \$t->string('x')->nullable());")], "not its own table"],
+            'table with the wrong prefix' => [[], ['database/migrations/2026_11_01_000000_a.php' => $migration("Schema::create('misa_logs', fn (\$t) => \$t->id());")], 'must start with ext_misa_'],
+            'permission with the wrong prefix' => [['permissions' => [['code' => 'orders.view', 'label' => 'x']]], [], 'must be "misa.<action>"'],
+            'route outside routes/' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; use Illuminate\\Support\\Facades\\Route; class A { function b() { Route::get("/admin/x", fn () => 1); } }'], 'escape /ext/<id>'],
+            'loading its own routes' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; class A extends \\Illuminate\\Support\\ServiceProvider { function boot() { $this->loadRoutesFrom(__DIR__."/r.php"); } }'], 'the core loads'],
+            'invalid manifest' => [['schema' => 9], [], 'schema must be 1'],
+        ];
+
+        foreach ($cases as $name => [$manifest, $files, $expected]) {
+            \Illuminate\Support\Facades\File::deleteDirectory($this->extensionSite.'/extensions');
+            $this->makeExtension('misa', $manifest, $files);
+            app(ExtensionManager::class)->forget();
+
+            $this->artisan('extension:check')->expectsOutputToContain($expected)->assertExitCode(1);
+        }
+    }
+
     private function writeFile(string $id, string $path, string $contents): void
     {
         $file = $this->extensionSite.'/extensions/'.$id.'/'.$path;
