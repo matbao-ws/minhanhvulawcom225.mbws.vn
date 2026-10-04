@@ -659,7 +659,7 @@ def sync_remote_env(ftp, remote_dir, site, domain, args):
     if remote_raw:
         backup_remote_env(remote_raw, remote_dir)
     ftp_ensure_dir(ftp, remote_dir)
-    ftp.storbinary("STOR .env", io.BytesIO(new_text.encode("utf-8")))
+    ftp_store(ftp, ".env", lambda: io.BytesIO(new_text.encode("utf-8")))
     print("[+] Đã ghi .env lên server.")
 
 
@@ -879,6 +879,27 @@ def ftp_ensure_dir(ftp, remote_path):
 
 ensured_dirs = set()
 
+FTP_RETRIES = 3
+
+
+def ftp_store(ftp, remote_name, open_source, callback=None):
+    """
+    STOR with retries. On shared hosting the passive data connection times out now and then
+    while the control connection stays up, so the same session simply tries again.
+    `open_source` returns a fresh readable file object for each attempt.
+    """
+    for attempt in range(1, FTP_RETRIES + 1):
+        try:
+            with open_source() as source:
+                ftp.storbinary(f"STOR {remote_name}", source, callback=callback)
+            return
+        except (OSError, ftplib.error_temp) as e:
+            if attempt == FTP_RETRIES:
+                raise
+            print(f"\n[!] Upload {remote_name} lỗi ({e.__class__.__name__}); thử lại lần {attempt + 1}/{FTP_RETRIES}...")
+            time.sleep(2 * attempt)
+
+
 def ftp_upload_file_path(ftp, remote_base_dir, rel_file_path):
     rel_dir = os.path.dirname(rel_file_path)
     filename = os.path.basename(rel_file_path)
@@ -890,8 +911,7 @@ def ftp_upload_file_path(ftp, remote_base_dir, rel_file_path):
     else:
         ftp.cwd("/" + target_dir)
         
-    with open(rel_file_path, "rb") as f:
-        ftp.storbinary(f"STOR {filename}", f)
+    ftp_store(ftp, filename, lambda: open(rel_file_path, "rb"))
 
 def upload_file(ftp, local_file, remote_file):
     print(f"[*] Uploading {local_file} to {remote_file}...")
@@ -904,8 +924,12 @@ def upload_file(ftp, local_file, remote_file):
         percent = (uploaded / size) * 100
         print(f"\r    Uploading: {percent:.1f}% ({uploaded}/{size} bytes)", end="", flush=True)
 
-    with open(local_file, "rb") as f:
-        ftp.storbinary(f"STOR {remote_file}", f, callback=progress_callback)
+    def source():
+        nonlocal uploaded
+        uploaded = 0  # a retry starts the file over
+        return open(local_file, "rb")
+
+    ftp_store(ftp, remote_file, source, callback=progress_callback)
     print("\n[+] Upload complete.")
 
 def generate_extractor_php(run_migrate=False, seed_type='none', keep_zip=False):
@@ -1267,7 +1291,7 @@ def trigger_http_url(url, remote_dir, script_name):
 def upload_and_trigger(ftp, remote_dir, script_name, code, domain):
     public_dir = os.path.join(remote_dir, "public").replace("\\", "/").strip("/")
     ftp_ensure_dir(ftp, public_dir)
-    ftp.storbinary(f"STOR {script_name}", io.BytesIO(code.encode("utf-8")))
+    ftp_store(ftp, script_name, lambda: io.BytesIO(code.encode("utf-8")))
     print(f"[+] Uploaded {script_name}.")
     ftp.quit()
     return trigger_http_url(domain, remote_dir, script_name)
