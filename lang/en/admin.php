@@ -1273,7 +1273,7 @@ return [
         'gateway_error' => 'Could not reach the update service (:reason).',
         'last_run' => 'Last run',
         'history' => 'History',
-        'status' => ['installed' => 'Installed', 'failed' => 'Failed', 'rolled_back' => 'Rolled back', 'running' => 'Running'],
+        'status' => ['installed' => 'Installed', 'failed' => 'Failed', 'rolled_back' => 'Rolled back', 'running' => 'Running', 'blocked' => 'Blocked'],
         'event' => ['installed' => 'Installed', 'failed' => 'Failed', 'rollback' => 'Rollback'],
         'restored' => 'previous code restored',
     ],

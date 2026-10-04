@@ -1276,7 +1276,7 @@ return [
         'gateway_error' => 'Không hỏi được máy chủ cập nhật (:reason).',
         'last_run' => 'Lần chạy gần nhất',
         'history' => 'Lịch sử',
-        'status' => ['installed' => 'Đã cài', 'failed' => 'Lỗi', 'rolled_back' => 'Đã quay lại', 'running' => 'Đang chạy'],
+        'status' => ['installed' => 'Đã cài', 'failed' => 'Lỗi', 'rolled_back' => 'Đã quay lại', 'running' => 'Đang chạy', 'blocked' => 'Bị chặn'],
         'event' => ['installed' => 'Đã cài', 'failed' => 'Lỗi', 'rollback' => 'Quay lại'],
         'restored' => 'đã trả code cũ',
     ],

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Extensions\ExtensionManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -10,10 +11,14 @@ use Throwable;
 /**
  * Run by the updater in a fresh process once the new code is in place: if this fails, the update
  * is rolled back. Keep it fast and free of side effects.
+ *
+ * --extensions: the extensions that worked before the update and must still load. The updater
+ * passes it, and every later core version keeps accepting it (an older updater calls the newer
+ * core:health).
  */
 class CoreHealth extends Command
 {
-    protected $signature = 'core:health';
+    protected $signature = 'core:health {--extensions= : Comma-separated extension ids that must have loaded}';
 
     protected $description = 'Check that this website boots: database, migrations, routes, core views';
 
@@ -40,6 +45,14 @@ class CoreHealth extends Command
         foreach (['core.editor', 'core.head', 'admin.layouts.app'] as $view) {
             if (! view()->exists($view)) {
                 $problems[] = "view {$view} missing";
+            }
+        }
+
+        $extensions = app(ExtensionManager::class)->all();
+        foreach (array_filter(explode(',', (string) $this->option('extensions'))) as $id) {
+            $status = $extensions[$id]['status'] ?? 'missing';
+            if ($status !== ExtensionManager::LOADED) {
+                $problems[] = "extension {$id} did not load ({$status}".(empty($extensions[$id]['error']) ? '' : ': '.$extensions[$id]['error']).')';
             }
         }
 
