@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Extension\Registries\AdminMenu;
 use App\Support\Extensions\ExtensionAutoloader;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionManifest;
@@ -13,9 +14,10 @@ use Throwable;
 
 /**
  * Loads the website's extensions (docs/EXTENSIONS_DESIGN.md, section 2). This class owns the whole
- * lifecycle, the same for every extension: autoload, config, the extension's own provider
- * (register, then boot), then views, translations, migrations and routes under fixed prefixes. A
- * failure at any step marks that one extension "failed" and the website carries on without it.
+ * lifecycle, the same for every extension: autoload, config, the extension provider's register();
+ * then views, translations and migrations; the provider's boot() (its menu labels can already be
+ * translated); then routes under fixed prefixes. A failure at any step marks that one extension
+ * "failed", drops what it registered in the admin menu, and the website carries on without it.
  *
  * The extension:* commands never load extensions, so they keep working to rescue a website.
  */
@@ -26,6 +28,8 @@ class ExtensionServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->singletonIf(AdminMenu::class);
+
         if (! $this->app->bound(ExtensionManager::class)) {
             $this->app->singleton(ExtensionManager::class, fn ($app) => new ExtensionManager(
                 $app->basePath(),
@@ -63,10 +67,11 @@ class ExtensionServiceProvider extends ServiceProvider
 
         foreach ($this->extensions as $id => ['manifest' => $manifest, 'provider' => $provider]) {
             try {
+                $this->loadResources($manifest);
                 if (method_exists($provider, 'boot')) {
                     $this->app->call([$provider, 'boot']);
                 }
-                $this->loadResources($manifest);
+                $this->loadRoutes($manifest);
                 $manager->markLoaded($id);
             } catch (Throwable $e) {
                 $this->fail($manager, $manifest, $e);
@@ -88,7 +93,11 @@ class ExtensionServiceProvider extends ServiceProvider
         if (is_dir($manifest->path('database/migrations'))) {
             $this->loadMigrationsFrom($manifest->path('database/migrations'));
         }
+    }
 
+    private function loadRoutes(ExtensionManifest $manifest): void
+    {
+        $id = $manifest->id;
         if ($this->app->routesAreCached()) {
             return;
         }
@@ -117,6 +126,7 @@ class ExtensionServiceProvider extends ServiceProvider
     private function fail(ExtensionManager $manager, ExtensionManifest $manifest, Throwable $e): void
     {
         $manager->markFailed($manifest->id, $e);
+        $this->app->make(AdminMenu::class)->forget($manifest->id);
         unset($this->extensions[$manifest->id]);
         Log::error("Extension {$manifest->id} failed to load: ".$e->getMessage(), ['exception' => $e]);
     }

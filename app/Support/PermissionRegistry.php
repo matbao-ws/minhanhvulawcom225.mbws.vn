@@ -152,6 +152,19 @@ class PermissionRegistry
         return self::MODULES + self::extensionModules();
     }
 
+    /** @return array<int, string> the core's own codes, without any extension's */
+    public static function coreCodes(): array
+    {
+        $codes = [];
+        foreach (self::MODULES as $module => $definition) {
+            foreach ($definition['actions'] as $action) {
+                $codes[] = "{$module}.{$action}";
+            }
+        }
+
+        return $codes;
+    }
+
     /** @return array<int, string> module names of the core itself: an extension id may not take one */
     public static function coreModules(): array
     {
