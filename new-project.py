@@ -29,10 +29,13 @@ import argparse
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import devenv  # noqa: E402  (php and composer from Laragon, XAMPP, ~/.matbaows even outside PATH)
 
 # Customer projects live in the organization next to the core repository.
 DEFAULT_OWNER = 'M-t-Bao-WS'
@@ -97,9 +100,17 @@ def output(cmd, cwd=None):
 def tool(name):
     path = shutil.which(name)
     if not path:
-        say(f'[-] Không tìm thấy "{name}" trong PATH.')
+        say(f'[-] Không tìm thấy "{name}". Chạy: python team.py → "Thiết lập máy" (tự tìm hoặc cài).')
         sys.exit(1)
     return path
+
+
+def mysql_running(host='127.0.0.1', port=3306):
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except OSError:
+        return False
 
 
 def ask(label, default=''):
@@ -196,7 +207,8 @@ def parse_args():
                    help=f'User/organization GitHub chứa repo mới (mặc định: {DEFAULT_OWNER}).')
     p.add_argument('--public', action='store_true', help='Tạo repo public (mặc định private).')
     p.add_argument('--no-github', action='store_true', help='Không tạo repo GitHub, chỉ git local.')
-    p.add_argument('--db', choices=['mysql', 'sqlite'], default='mysql', help='Database local (mặc định: mysql của Laragon).')
+    p.add_argument('--db', choices=['mysql', 'sqlite'], default=None,
+                   help='Database local (mặc định: mysql nếu đang chạy, không thì sqlite).')
     p.add_argument('--db-host', default='127.0.0.1')
     p.add_argument('--db-user', default='root')
     p.add_argument('--db-pass', default='')
@@ -208,7 +220,10 @@ def parse_args():
 def main():
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding='utf-8')  # Vietnamese messages on a cp1252 Windows console
+    devenv.activate()
     args = parse_args()
+    if args.db is None:
+        args.db = 'mysql' if mysql_running(args.db_host) else 'sqlite'
     if not args.name:
         ask_missing(args)
     name = args.name.strip().lower()

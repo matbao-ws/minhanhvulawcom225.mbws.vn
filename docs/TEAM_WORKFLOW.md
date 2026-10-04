@@ -43,13 +43,30 @@ Repo core (M-t-Bao-WS/matbaows-core-admin)      ← trưởng nhóm sửa và ph
 
 ### 1.1. Cài công cụ
 
-- **Laragon** (có sẵn PHP 8.2+, MySQL, Composer). Dự án đặt trong `F:\laragon\www\`.
-- **Git**: <https://git-scm.com>
-- **GitHub CLI** (để tạo repo tự động):
-  ```powershell
-  winget install GitHub.cli
-  ```
-  Cài xong thì **mở terminal mới**.
+Chỉ cần cài sẵn **Git** và **Python 3**. Phần còn lại `team.py` tự lo:
+
+```powershell
+git clone https://github.com/M-t-Bao-WS/matbaows-core-admin.git
+cd matbaows-core-admin
+python team.py        # chọn 1. Thiết lập máy
+```
+
+Mục **Thiết lập máy** sẽ:
+
+| Công cụ | Tool làm gì |
+|---|---|
+| PHP 8.2+ | Tìm trong PATH, Laragon (mọi ổ đĩa), XAMPP, Homebrew. Không có thì đề nghị cài 1 lệnh: Windows cài **Laragon** qua `winget`, Linux cài gói `php-*` qua `apt`/`dnf`, macOS qua `brew` |
+| Extension PHP | Kiểm tra `zip`, `curl`, `mbstring`, `pdo_mysql`, `pdo_sqlite`...; thiếu thì chỉ đúng file `php.ini` cần sửa |
+| Composer | Không cần cài: tự tải `composer.phar` vào `~/.matbaows` (kiểm tra checksum) |
+| GitHub CLI | Đề nghị cài (`winget` / `apt` / `brew`) và đăng nhập |
+| MySQL | Không bắt buộc: không có MySQL đang chạy thì dự án mới dùng **SQLite** |
+
+Laragon có nhưng gõ `php` báo không nhận lệnh: bình thường, Laragon chỉ thêm PHP vào PATH khi bật
+*Menu → Tools → Path → Add Laragon to Path*. `team.py` vẫn tự tìm ra Laragon, không cần bật.
+
+Linux Ubuntu 22.04 chỉ có PHP 8.1: thêm `sudo add-apt-repository ppa:ondrej/php` rồi chạy lại.
+
+Cài xong thứ gì thì **mở terminal mới** rồi chạy lại `python team.py`.
 
 ### 1.2. Đăng nhập GitHub bằng tài khoản của chính bạn
 
@@ -64,14 +81,9 @@ git config --global fetch.prune true
 Trưởng nhóm phải mời tài khoản của bạn vào org `M-t-Bao-WS`, team `dev`. Kiểm tra lời mời trong
 email hoặc tại <https://github.com/orgs/M-t-Bao-WS/invitation>.
 
-### 1.3. Clone core
+### 1.3. Repo core
 
-```powershell
-cd F:\laragon\www
-git clone https://github.com/M-t-Bao-WS/matbaows-core-admin.git
-```
-
-Bạn chỉ có quyền **đọc** repo này: clone và `git pull` được, push thì GitHub từ chối. Đó là thiết
+Repo đã clone ở mục 1.1. Bạn chỉ có quyền **đọc** repo này: clone và `git pull` được, push thì GitHub từ chối. Đó là thiết
 lập có chủ đích, không phải lỗi.
 
 ---

@@ -17,6 +17,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import devenv  # noqa: E402  (next to this script)
+
 HERE = os.getcwd()
 
 
@@ -134,14 +137,7 @@ def kind():
 # ---------------------------------------------------------------- actions
 
 def setup_machine():
-    say('Kiểm tra công cụ:')
-    missing = []
-    for tool, how in [('git', 'https://git-scm.com'), ('php', 'Laragon'), ('composer', 'Laragon'),
-                      ('gh', 'winget install GitHub.cli (rồi mở terminal mới)')]:
-        ok = has(tool)
-        say(f'  {"✓" if ok else "✗"} {tool}' + ('' if ok else f'  → cài: {how}'))
-        if not ok:
-            missing.append(tool)
+    ready = devenv.doctor(install=True)
 
     if has('gh'):
         if subprocess.run(['gh', 'auth', 'status'], capture_output=True).returncode == 0:
@@ -162,10 +158,10 @@ def setup_machine():
         say(f'  ✓ git: {name} <{email}>')
     run(['git', 'config', '--global', 'fetch.prune', 'true'])
 
-    if missing:
-        say(f'[!] Còn thiếu: {", ".join(missing)}. Cài xong chạy lại mục này.')
-    else:
+    if ready:
         say('[+] Máy đã sẵn sàng.')
+    else:
+        say('[!] Còn thiếu công cụ (✗ ở trên). Cài xong, mở terminal mới rồi chạy lại mục này.')
 
 
 def new_project():
@@ -339,6 +335,9 @@ MENUS = {
 def main():
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding='utf-8')
+    env = devenv.activate()  # php/composer from Laragon, XAMPP... even when not in PATH
+    if not env['php'] or not env['composer']:
+        say('[!] Chưa đủ php/composer trên máy này: chọn "Thiết lập máy" trước.')
     where = kind()
     if where is None:
         say('[-] Chạy trong thư mục repo core (matbaows-core-admin) hoặc thư mục một dự án khách.')
