@@ -442,6 +442,20 @@ def resolve_site(args):
         site['ADMIN_PASSWORD'] = ask('Mật khẩu admin' + (' (CMS_ADMIN_PASS của panel)' if default_pass else ''),
                                      default_pass, secret=True)
 
+    if 'MATBAO_AI_URL' not in site or args.reconfigure:
+        # Mail goes through the MatBao relay when the site has a gateway token; without one, and
+        # without SMTP in Admin → Cài đặt thông báo, the server's MAIL_MAILER=log only logs it.
+        print('[?] Kết nối gateway Mắt Bão: gửi email, AI SEO, cập nhật core (Enter ở token để bỏ qua):')
+        site['MATBAO_AI_URL'] = ask('Gateway URL', site.get('MATBAO_AI_URL') or 'https://aimbw.webwow.vn')
+        token = ask('MATBAO_AI_TOKEN', site.get('MATBAO_AI_TOKEN', ''), secret=True, required=False)
+        if token:
+            site['MATBAO_AI_TOKEN'] = token
+
+    # Contact form and order notifications fall back to MAIL_SELLER: the admin's address
+    # rather than the template's owner@example.com.
+    if not site.get('MAIL_SELLER') and site.get('ADMIN_EMAIL'):
+        site['MAIL_SELLER'] = site['ADMIN_EMAIL']
+
     path = save_site_profile(domain, site)
     print(f'[+] Đã lưu hồ sơ {path} (chmod 600). Lần sau chỉ cần chọn site.')
     return domain, site
@@ -533,6 +547,10 @@ def sync_remote_env(ftp, remote_dir, site, domain, args):
     if key_is_new or site.get("APP_KEY") != app_key:
         site["APP_KEY"] = app_key
         save_site_profile(domain, site)
+
+    if not final.get("MATBAO_AI_TOKEN") and final.get("MAIL_MAILER", "log") == "log":
+        print("[!] Chưa có MATBAO_AI_TOKEN: email sẽ chỉ ghi vào log trên host. Bật SMTP trong")
+        print("    Admin → Cài đặt thông báo, hoặc chạy lại với --reconfigure để nhập token gateway.")
 
     new_text = render_env_file(template_text, final)
     if remote_raw is not None and new_text == remote_raw:
