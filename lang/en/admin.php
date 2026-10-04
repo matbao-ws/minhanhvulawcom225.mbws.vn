@@ -447,6 +447,7 @@ return [
             'select_all_in_group' => 'Select all',
             'module' => 'Module',
             'name_placeholder' => 'e.g. Sales Staff, Editor...',
+            'other_actions' => 'Other',
         ],
         'actions' => [
             'view' => 'View',
@@ -463,6 +464,7 @@ return [
             'users' => 'Accounts and permissions',
             'settings' => 'Settings',
             'system' => 'System',
+            'extensions' => 'Extensions',
         ],
         'no_grantable_permissions' => 'You hold no permission that can be granted to another role.',
         'overrides_title' => 'Account-specific permissions',

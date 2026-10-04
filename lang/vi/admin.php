@@ -450,6 +450,7 @@ return [
             'select_all_in_group' => 'Chọn tất cả',
             'module' => 'Nhóm chức năng',
             'name_placeholder' => 'Ví dụ: Nhân viên bán hàng, Biên tập viên...',
+            'other_actions' => 'Khác',
         ],
         'actions' => [
             'view' => 'Xem',
@@ -466,6 +467,7 @@ return [
             'users' => 'Tài khoản và phân quyền',
             'settings' => 'Cấu hình',
             'system' => 'Hệ thống',
+            'extensions' => 'Tiện ích mở rộng',
         ],
         'no_grantable_permissions' => 'Bạn không có quyền nào để cấp cho vai trò khác.',
         'overrides_title' => 'Quyền riêng của tài khoản',

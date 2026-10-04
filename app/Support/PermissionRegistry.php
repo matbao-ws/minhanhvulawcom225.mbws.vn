@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Support\Extensions\ExtensionManager;
+
 /**
  * The canonical catalogue of admin permissions.
  *
@@ -14,6 +16,11 @@ namespace App\Support;
  * Codes are `<module>.<action>`. Only actions that a real route enforces are
  * declared; inventing unenforced codes is what left `manage_roles` dead for
  * several releases.
+ *
+ * Each loaded extension adds one module in the `extensions` group: its id is the
+ * module, the `permissions` of its extension.json are the actions, each with its
+ * own label (docs/EXTENSIONS_DESIGN.md, section 5). A wildcard role never expands
+ * into them: an extension's permissions are granted on purpose.
  */
 class PermissionRegistry
 {
@@ -104,7 +111,7 @@ class PermissionRegistry
     public static function codes(): array
     {
         $codes = [];
-        foreach (self::MODULES as $module => $definition) {
+        foreach (self::modules() as $module => $definition) {
             foreach ($definition['actions'] as $action) {
                 $codes[] = "{$module}.{$action}";
             }
@@ -121,11 +128,11 @@ class PermissionRegistry
     public static function definitions(): array
     {
         $rows = [];
-        foreach (self::MODULES as $module => $definition) {
+        foreach (self::modules() as $module => $definition) {
             foreach ($definition['actions'] as $action) {
                 $rows[] = [
                     'code' => "{$module}.{$action}",
-                    'name' => self::ACTION_LABELS[$action].' — '.$definition['label'],
+                    'name' => self::actionLabelFor($module, $action).' — '.$definition['label'],
                     'group' => $definition['group'],
                     'description' => $definition['label'],
                 ];
@@ -135,15 +142,53 @@ class PermissionRegistry
         return $rows;
     }
 
-    /** @return array<string, array{group: string, label: string, actions: array<int, string>}> */
+    /**
+     * Core modules, then one per loaded extension that declares permissions.
+     *
+     * @return array<string, array{group: string, label: string, actions: array<int, string>, action_labels?: array<string, string>}>
+     */
     public static function modules(): array
     {
-        return self::MODULES;
+        return self::MODULES + self::extensionModules();
+    }
+
+    /** @return array<int, string> module names of the core itself: an extension id may not take one */
+    public static function coreModules(): array
+    {
+        return array_keys(self::MODULES);
     }
 
     public static function actionLabel(string $action): string
     {
         return self::ACTION_LABELS[$action] ?? $action;
+    }
+
+    /** An extension's own label for the action, else the core one. */
+    public static function actionLabelFor(string $module, string $action): string
+    {
+        return self::modules()[$module]['action_labels'][$action] ?? self::actionLabel($action);
+    }
+
+    /** @return array<string, array{group: string, label: string, actions: array<int, string>, action_labels: array<string, string>}> */
+    private static function extensionModules(): array
+    {
+        if (! app()->bound(ExtensionManager::class)) {
+            return [];
+        }
+
+        $modules = [];
+        foreach (app(ExtensionManager::class)->loaded() as $manifest) {
+            if ($manifest->permissions === [] || isset(self::MODULES[$manifest->id])) {
+                continue;
+            }
+            $labels = [];
+            foreach ($manifest->permissions as $permission) {
+                $labels[substr($permission['code'], strlen($manifest->id) + 1)] = $permission['label'];
+            }
+            $modules[$manifest->id] = ['group' => 'extensions', 'label' => $manifest->name, 'actions' => array_keys($labels), 'action_labels' => $labels];
+        }
+
+        return $modules;
     }
 
     public static function has(string $code): bool
@@ -184,7 +229,8 @@ class PermissionRegistry
         return array_values(array_filter(
             self::codes(),
             static fn (string $code): bool => ! str_starts_with($code, 'roles.')
-                && ! str_starts_with($code, 'languages.'),
+                && ! str_starts_with($code, 'languages.')
+                && isset(self::MODULES[explode('.', $code, 2)[0]]),
         ));
     }
 }

@@ -64,7 +64,7 @@
                                             @foreach($held as $module => $parts)
                                                 <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">
                                                     {{ $modules[$module]['label'] ?? $module }}:
-                                                    {{ collect($parts)->map(fn (array $p): string => __('admin.roles.actions.'.$p[1]))->implode(', ') }}
+                                                    {{ collect($parts)->map(fn (array $p): string => $modules[$module]['action_labels'][$p[1]] ?? __('admin.roles.actions.'.$p[1]))->implode(', ') }}
                                                 </span>
                                             @endforeach
                                         </div>

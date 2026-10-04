@@ -117,8 +117,10 @@ class Role extends Model
             $this->forceFill(['is_superadmin' => false])->saveQuietly();
         }
 
+        $codes = array_values(array_filter($codes, PermissionRegistry::has(...)));
+        Permission::ensureRegistered($codes);
         $ids = Permission::query()
-            ->whereIn('code', array_filter($codes, PermissionRegistry::has(...)))
+            ->whereIn('code', $codes)
             ->pluck('id')
             ->all();
 

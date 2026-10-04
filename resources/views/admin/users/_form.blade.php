@@ -166,7 +166,7 @@
                                 <div class="col-md-6 col-xl-4">
                                     <label class="form-label fs-2 text-muted mb-1"
                                         for="override_{{ $module }}_{{ $action }}">
-                                        {{ __('admin.roles.actions.' . $action) }} — {{ $definition['label'] }}
+                                        {{ $definition['action_labels'][$action] ?? __('admin.roles.actions.' . $action) }} — {{ $definition['label'] }}
                                     </label>
                                     <select class="form-select form-select-sm"
                                         id="override_{{ $module }}_{{ $action }}"
