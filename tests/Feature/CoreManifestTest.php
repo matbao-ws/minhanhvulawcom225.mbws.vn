@@ -60,6 +60,8 @@ class CoreManifestTest extends TestCase
         $this->assertSame('core', $manifest->owner('public/client-assets/vendor/sortable.min.js'));
         $this->assertSame('core', $manifest->owner('database/migrations/2026_01_01_000000_x.php'));
         $this->assertSame('core', $manifest->owner('VERSION'));
+        // The error pages are the same on every website, so an update brings their fixes.
+        $this->assertSame('core', $manifest->owner('resources/views/errors/404.blade.php'));
         $this->assertSame('dependencies', $manifest->owner('vendor/laravel/framework/src/x.php'));
 
         foreach (['resources/views/client/home.blade.php', 'public/client-assets/css/storefront.css', 'routes/theme.php',

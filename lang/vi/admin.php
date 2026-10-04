@@ -908,6 +908,7 @@ return [
         'payment_settings' => 'Cấu hình thanh toán',
         'feature_settings' => 'Cấu hình tính năng',
         'core_update' => 'Cập nhật phiên bản',
+        'core_version' => 'Phiên bản core :version',
         'notification_settings' => 'Cấu hình thông báo',
         'activity_logs' => 'Nhật ký hoạt động',
         'sales_channels' => 'Kênh bán hàng',

@@ -905,6 +905,7 @@ return [
         'payment_settings' => 'Payment Settings',
         'feature_settings' => 'Feature Settings',
         'core_update' => 'Core Updates',
+        'core_version' => 'Core version :version',
         'notification_settings' => 'Notification Settings',
         'activity_logs' => 'Activity Logs',
         'sales_channels' => 'Sales Channels',
