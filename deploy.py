@@ -17,9 +17,7 @@ import json
 
 EXCLUDE_FILES = {
     'deploy.py',
-    'new-project.py',
     'team.py',
-    'devenv.py',
     'deploy.zip',
     'composer.phar',
     'test_ftp.py',

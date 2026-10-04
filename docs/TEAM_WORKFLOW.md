@@ -18,8 +18,8 @@ Lệnh gõ trong PowerShell hoặc terminal của VS Code.
 Repo core (M-t-Bao-WS/matbaows-core-admin)      ← trưởng nhóm sửa và phát hành
    │  team dev: chỉ ĐỌC (clone, lấy bản mới)
    │
-   ├─ new-project.py ──► Repo web-khachA   ← dev làm giao diện ở đây ──deploy.py──► hosting khách A
-   ├─ new-project.py ──► Repo web-khachB   ← ...                                   ──► hosting khách B
+   ├─ team.py ───────► Repo web-khachA   ← dev làm giao diện ở đây ──deploy.py──► hosting khách A
+   ├─ team.py ───────► Repo web-khachB   ← ...                                   ──► hosting khách B
    └─ ...
 ```
 
@@ -32,7 +32,7 @@ Repo core (M-t-Bao-WS/matbaows-core-admin)      ← trưởng nhóm sửa và ph
 
 1. **Không sửa file core trong repo khách.** Chỉ làm trong thư mục theme (mục 3). Sửa file core
    khiến website đó **không nhận được bản cập nhật core nữa**, mất cả bản vá lỗi và bảo mật.
-2. **Mỗi website khách = một repo riêng** trong org `M-t-Bao-WS`, tạo bằng `new-project.py`. Không
+2. **Mỗi website khách = một repo riêng** trong org `M-t-Bao-WS`, tạo bằng `team.py`. Không
    copy thư mục bằng tay, không fork.
 3. **Không commit và không gửi secret**: `.env`, mật khẩu database, mật khẩu FTP, token. Không dán
    chúng vào chat, kể cả chat với AI.
@@ -48,7 +48,7 @@ Chỉ cần cài sẵn **Git** và **Python 3**. Phần còn lại `team.py` t�
 ```powershell
 git clone https://github.com/M-t-Bao-WS/matbaows-core-admin.git
 cd matbaows-core-admin
-python team.py        # chọn 1. Thiết lập máy
+python team.py        # thiếu công cụ thì tự thiết lập máy
 ```
 
 Mục **Thiết lập máy** sẽ:
@@ -92,8 +92,7 @@ lập có chủ đích, không phải lỗi.
 
 ```powershell
 cd F:\laragon\www\matbaows-core-admin
-git pull                       # lấy core mới nhất
-python new-project.py
+python team.py        # chọn 1. Tạo dự án khách mới
 ```
 
 Script hỏi lần lượt:
@@ -267,8 +266,8 @@ git merge v1.2.0
 
 | Hiện tượng | Nguyên nhân / cách xử lý |
 |---|---|
-| `new-project.py`: "Chưa có GitHub CLI" | Cài `gh` (mục 1.1), mở terminal mới, `gh auth login` |
-| `new-project.py`: "Tạo repo GitHub không được" | Tên repo đã có trong org, hoặc bạn chưa vào org. Dự án local vẫn được tạo; báo trưởng nhóm |
+| Tạo dự án: "Chưa có GitHub CLI" | `python team.py` → Thiết lập máy (cài và đăng nhập `gh`) |
+| Tạo dự án: "Tạo repo GitHub không được" | Tên repo đã có trong org, hoặc bạn chưa vào org. Dự án local vẫn được tạo; báo trưởng nhóm |
 | `git push` lên repo core báo 403 | Đúng thiết lập: team dev chỉ đọc core. Làm trong repo khách |
 | `http://web-xxx.test` không mở được | Laragon → Menu → Reload; kiểm tra Apache/Nginx đang chạy |
 | Website khách không gửi email | Chưa kết nối gateway ở lần deploy đầu. Báo trưởng nhóm |
@@ -282,7 +281,7 @@ git merge v1.2.0
 Bằng tool:
 
 ```powershell
-cd F:\laragon\www\matbaows-core-admin;  python team.py   # 1 Thiết lập máy, 2 Tạo dự án khách
+cd F:\laragon\www\matbaows-core-admin;  python team.py   # 1 Tạo dự án khách (lần đầu tự thiết lập máy)
 cd F:\laragon\www\web-spico;            python team.py   # 1 Bắt đầu việc → code → 2 Lưu & đẩy
                                                           # → merge PR → 3 Dọn nhánh → 5 Deploy
 ```
@@ -291,7 +290,7 @@ Bằng tay:
 
 ```powershell
 # Dự án mới
-cd F:\laragon\www\matbaows-core-admin;  git pull;  python new-project.py
+cd F:\laragon\www\matbaows-core-admin;  python team.py   # 1. Tạo dự án khách mới
 
 # Mỗi việc
 cd F:\laragon\www\web-spico
