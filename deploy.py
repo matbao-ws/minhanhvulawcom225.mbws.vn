@@ -1077,6 +1077,11 @@ if ({migrate_val}) {{
 
 {seed_block}
 
+// The core files are now exactly what this deploy shipped: record them, so the updater
+// (which refuses a website without a baseline, or with core files edited by hand) can run.
+echo "Recording core baseline...\\n";
+echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan core:status --baseline 2>&1") . "\\n";
+
 echo "Checking MatBao gateway...\\n";
 echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan gateway:check 2>&1") . "\\n";
 
@@ -1199,6 +1204,11 @@ if ({migrate_val}) {{
 }}
 
 {seed_block}
+
+// The core files are now exactly what this deploy shipped: record them, so the updater
+// (which refuses a website without a baseline, or with core files edited by hand) can run.
+echo "Recording core baseline...\\n";
+echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan core:status --baseline 2>&1") . "\\n";
 
 echo "Checking MatBao gateway...\\n";
 echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan gateway:check 2>&1") . "\\n";
