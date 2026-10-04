@@ -209,6 +209,10 @@ chạy** hoặc ngồi cùng. Không có kết nối này thì website không g�
 
 Cuối quá trình deploy, script tự kiểm tra kết nối: dòng `Kết nối gateway OK` là đạt.
 
+Website trên máy chủ Plesk 252 **không cần tạo cron riêng**: cron chung của máy chủ (phụ lục A) tự
+nhận website mới trong vòng 10 phút. Website ở hosting khác thì phải có cron chạy
+`php artisan schedule:run` mỗi phút, nếu không, bấm "Cập nhật" trong admin sẽ không chạy.
+
 ### Các lần sau
 
 `python deploy.py`, chọn domain đã lưu và Enter.
@@ -304,3 +308,38 @@ git switch main;  git pull
 # (VERSION cũ hơn website? → git fetch core --tags; git merge vX.Y.Z)
 python deploy.py
 ```
+
+---
+
+## Phụ lục A. Cron chung trên máy chủ Plesk 252 (trưởng nhóm làm 1 lần)
+
+Website cần cron chạy mỗi phút để: thực hiện bản cập nhật core khi admin bấm "Cập nhật", kiểm tra
+bản mới, đồng bộ gói, hết hạn voucher. Thay vì tạo cron cho từng website, máy chủ có **một** cron
+chung: `infra/plesk-cron.sh`.
+
+- Tự tìm mọi website chạy core trong `/var/www/vhosts` (có `artisan` và
+  `app/Support/CoreManifest.php`). Website khác (WordPress, Laravel khác...) không bị đụng tới.
+- Chạy `php artisan schedule:run` của từng website **bằng tài khoản sở hữu website**, không bằng root.
+- Chạy song song 8 website một lúc; một website đang cập nhật dở thì phút sau bỏ qua, không chồng lệnh.
+- Chỉ ghi lỗi vào `/var/log/matbaows-cron.log`.
+
+Cài (SSH vào máy chủ 252 bằng root):
+
+```bash
+curl -fsSL -H "Authorization: token <github token đọc repo core>"   https://raw.githubusercontent.com/M-t-Bao-WS/matbaows-core-admin/main/infra/plesk-cron.sh -o /tmp/plesk-cron.sh
+# hoặc: chép file infra/plesk-cron.sh lên máy chủ bằng SFTP
+sudo bash /tmp/plesk-cron.sh --install
+```
+
+Kiểm tra và gỡ:
+
+```bash
+sudo matbaows-cron --list          # các website tìm thấy, chủ sở hữu, phiên bản core
+sudo tail -f /var/log/matbaows-cron.log
+sudo matbaows-cron --uninstall
+```
+
+Cấu hình thêm (không bắt buộc) trong `/etc/matbaows-cron.conf`: `PHP=/opt/plesk/php/8.3/bin/php`
+(mặc định: bản PHP 8.2+ mới nhất của Plesk), `JOBS=8`.
+
+Không tạo thêm cron từng website trong Plesk cho các website này: hai cron cùng chạy là thừa.
