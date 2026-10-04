@@ -64,7 +64,7 @@ HOSTING_DB_ALIASES = {
 REMOTE_OWNED_KEYS = {'CMS_SYSTEM_PASS', 'CMS_ADMIN_PASS'}
 
 # Deploy credentials have no business sitting inside the web directory.
-ENV_KEYS_NOT_ON_REMOTE = {'FTP_HOST', 'FTP_USER', 'FTP_PASS', 'FTP_REMOTE_DIR', 'DEPLOY_LAST_TS'}
+ENV_KEYS_NOT_ON_REMOTE = {'FTP_HOST', 'FTP_USER', 'FTP_PASS', 'FTP_REMOTE_DIR', 'DEPLOY_LAST_TS', 'HOST_CRON'}
 
 ENV_PRODUCTION_FORCED = {
     'APP_ENV': 'production',
@@ -527,6 +527,20 @@ def resolve_site(args):
             site['MATBAO_AI_TOKEN'] = token
         else:
             site.update({k: v for k, v in provision_gateway_token(site['MATBAO_AI_URL'], domain, args).items() if v})
+
+    if not site.get('HOST_CRON') or args.reconfigure:
+        # Queued mail (password reset, order status, owner notifications) is sent by the cron
+        # scheduler. A host without cron sends it inline instead, or it would never leave `jobs`.
+        print('[?] Hosting này có tạo được cron chạy mỗi phút không (Plesk → Scheduled Tasks)?')
+        has_cron = prompt_yes_no('Có cron?', True, args)
+        site['HOST_CRON'] = 'yes' if has_cron else 'no'
+        if has_cron:
+            site.pop('QUEUE_CONNECTION', None)
+            print('    → Nhớ tạo task mỗi phút: php <thư mục code>/artisan schedule:run')
+        else:
+            site['QUEUE_CONNECTION'] = 'sync'
+            print('    → Mail gửi ngay (QUEUE_CONNECTION=sync). Không có cron thì cập nhật core tự động')
+            print('      cũng không chạy: cài bản mới bằng deploy.py.')
 
     # Contact form and order notifications fall back to MAIL_SELLER: the admin's address
     # rather than the template's owner@example.com.
