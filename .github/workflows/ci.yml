@@ -100,12 +100,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      # Through env, not ${{ }} in the script, and without \r: a key copied on Windows carries CRLF
+      # line ends, which OpenSSH rejects silently ("Permission denied (publickey)").
       - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
-          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          # The fingerprint is public: compare it with `ssh-keygen -lf /home/deploy/.ssh/authorized_keys` on the server.
+          ssh-keygen -lf ~/.ssh/deploy_key || { echo "SSH_KEY is not a valid private key"; exit 1; }
 
       # The key is pinned to /opt/matbaows/deploy.sh on the server; this line is its only input.
       - name: Deploy
