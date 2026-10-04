@@ -85,7 +85,7 @@ extensions/dealers/
 
 ## 2. Vòng đời: discover → validate → compatibility → register → boot
 
-Do `App\Extension\ExtensionManager` thực hiện, gọi từ một service provider của core
+Do `App\Support\Extensions\ExtensionManager` (nội bộ) thực hiện, gọi từ một service provider của core
 (`App\Providers\ExtensionServiceProvider`, thêm vào `bootstrap/providers.php`).
 
 ```
@@ -224,7 +224,7 @@ bao giờ âm thầm ghi đè.
 | Menu admin | `AdminMenu::register('dealers', key: 'dealers.index', ...)` | Key trùng, hoặc không có tiền tố `<id>.` → exception khi đăng ký → extension "failed" |
 | Route | Tên `ext.dealers.*`; URL admin/api có tiền tố bắt buộc (mục 1) | URL web trùng route core: route core thắng; `extension:check` cảnh báo |
 | View, lang, config | `dealers::`, `config('extensions.dealers')` | — |
-| `id` | Duy nhất | Dành riêng, không được dùng: `admin`, `api`, `app`, `auth`, `client`, `core`, `custom`, `emails`, `errors`, `ext`, `extension`, `extensions`, `laravel`, `mail`, `notifications`, `pagination`, `theme`, `vendor`, `validation` |
+| `id` | Duy nhất | Dành riêng, không được dùng: `admin`, `api`, `app`, `auth`, `client`, `core`, `custom`, `emails`, `enabled`, `errors`, `ext`, `extension`, `extensions`, `laravel`, `mail`, `notifications`, `pagination`, `theme`, `vendor`, `validation` |
 
 ### Quyền: nguồn sự thật
 
@@ -260,7 +260,7 @@ không có quyền (cùng cổng quyền `Gate` như menu core). Extension khôn
 | Thay đổi | File |
 |---|---|
 | `extensions/**` vào `SITE_OWNED` (cấm cứng: bản phát hành ghi vào đó bị từ chối) | `app/Support/CoreManifest.php` |
-| Bộ nạp, manifest, trạng thái, autoloader | `app/Extension/ExtensionManager.php`, `ExtensionManifest.php`, `ExtensionState.php`, `ExtensionAutoloader.php` |
+| Bộ nạp, manifest, trạng thái, autoloader — **nội bộ**, extension không được dùng | `app/Support/Extensions/ExtensionManager.php`, `ExtensionManifest.php`, `ExtensionState.php`, `ExtensionAutoloader.php` |
 | API công khai | `app/Extension/Registries/AdminMenu.php`, `Permissions.php`, `app/Extension/Support/ExtensionContext.php` |
 | Provider | `app/Providers/ExtensionServiceProvider.php`, `bootstrap/providers.php` |
 | Lệnh | `app/Console/Commands/Extension{List,Check,Enable,Disable,Make}.php` |
