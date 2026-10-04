@@ -33,8 +33,18 @@ EXCLUDE_FILES = {
     '.env.local',
 }
 
-PROD_ENV_FILE = '.env.production'
+# Before site profiles there was one .env.production per checkout; still read once to migrate it.
+LEGACY_PROD_ENV_FILE = '.env.production'
 BACKUP_DIR = '.deploy-backups'
+
+# One profile per website: FTP, database, admin password, APP_KEY and the last deploy time of
+# that site, so one core checkout deploys any number of customer sites without editing .env.
+# Never packaged or uploaded (should_exclude), never committed (.gitignore), chmod 600.
+SITES_DIR = '.deploy-sites'
+
+# The server's .env is built from this template — the core's documented settings — plus the
+# site's profile, never from the developer's own .env.
+ENV_TEMPLATE = '.env.example'
 
 # The hosting panel writes its own key names into backend/.env; Laravel reads
 # different ones. Translate instead of asking for credentials already on the server.
@@ -48,7 +58,7 @@ HOSTING_DB_ALIASES = {
 REMOTE_OWNED_KEYS = {'CMS_SYSTEM_PASS', 'CMS_ADMIN_PASS'}
 
 # Deploy credentials have no business sitting inside the web directory.
-ENV_KEYS_NOT_ON_REMOTE = {'FTP_HOST', 'FTP_USER', 'FTP_PASS', 'FTP_REMOTE_DIR'}
+ENV_KEYS_NOT_ON_REMOTE = {'FTP_HOST', 'FTP_USER', 'FTP_PASS', 'FTP_REMOTE_DIR', 'DEPLOY_LAST_TS'}
 
 ENV_PRODUCTION_FORCED = {
     'APP_ENV': 'production',
@@ -115,7 +125,9 @@ def parse_args(argv=None):
     p.add_argument('--reuse-zip', action='store_true',
                    help="Dùng deploy.zip đã có sẵn trên server thay vì nén và upload lại.")
     p.add_argument('--domain', default=None,
-                   help="Domain website remote. Mặc định lấy từ .deploy_url hoặc APP_URL.")
+                   help="Domain website cần deploy (bỏ qua câu hỏi chọn site).")
+    p.add_argument('--reconfigure', action='store_true',
+                   help="Nhập lại FTP / database / admin của site này (APP_KEY được giữ nguyên).")
     p.add_argument('--keep-default-index', action='store_true',
                    help="Giữ index.html mặc định của panel (mặc định là xoá, có backup).")
     p.add_argument('--reuse-local-app-key', action='store_true',
@@ -151,68 +163,6 @@ def prompt_choice(question, options, default_index, args):
         return options[int(answer) - 1][1]
     print('    (không hợp lệ, dùng mặc định)')
     return options[default_index][1]
-
-
-def write_env_values(values):
-    """Update or append keys in .env, leaving the rest of the file untouched."""
-    path = '.env'
-    with open(path) as f:
-        lines = f.read().splitlines()
-
-    remaining = dict(values)
-    out = []
-    for line in lines:
-        match = re.match(r'^\s*([A-Z0-9_]+)\s*=', line)
-        if match and match.group(1) in remaining:
-            key = match.group(1)
-            out.append(f'{key}={env_value_literal(remaining.pop(key))}')
-        else:
-            out.append(line)
-
-    if remaining:
-        out.extend(['', '# Thông tin FTP do deploy.py lưu lại'])
-        out.extend(f'{k}={env_value_literal(v)}' for k, v in remaining.items())
-
-    with open(path, 'w') as f:
-        f.write('\n'.join(out).rstrip('\n') + '\n')
-
-
-def resolve_ftp_credentials(env, args):
-    """
-    Ask for the connection once, then never again: the answers go into .env, which
-    is where every later run reads them from. Nothing FTP-related is ever uploaded
-    to the server, so keeping them there is safe.
-    """
-    required = [
-        ('FTP_HOST', 'FTP host', '', False),
-        ('FTP_USER', 'FTP user', '', False),
-        ('FTP_PASS', 'FTP password', '', True),
-        ('FTP_REMOTE_DIR', 'Thư mục trên host', 'httpdocs/backend', False),
-    ]
-    missing = [row for row in required if not env.get(row[0])]
-    if not missing:
-        return
-
-    if args.yes:
-        print('[-] Thiếu thông tin FTP và đang chạy với --yes: '
-              + ', '.join(row[0] for row in missing))
-        sys.exit(1)
-
-    print('[?] Chưa có thông tin FTP. Nhập một lần, các lần sau script tự dùng lại.')
-    captured = {}
-    for key, label, default, secret in missing:
-        while True:
-            hint = f' [{default}]' if default else ''
-            value = (getpass.getpass(f'    {label}{hint}: ') if secret
-                     else input(f'    {label}{hint}: ')).strip() or default
-            if value:
-                break
-            print('    (bắt buộc)')
-        env[key] = value
-        captured[key] = value
-
-    write_env_values(captured)
-    print(f'[+] Đã lưu {", ".join(captured)} vào .env.')
 
 
 def server_has_application(ftp, remote_dir):
@@ -262,14 +212,6 @@ def parse_env_text(text):
         key, val = line.split("=", 1)
         env[key.strip()] = val.strip().strip('"').strip("'")
     return env
-
-
-def load_env():
-    if not os.path.exists(".env"):
-        print("[-] Error: .env file not found. Run setup or create .env first.")
-        sys.exit(1)
-    with open(".env", "r") as f:
-        return parse_env_text(f.read())
 
 
 def env_value_literal(value):
@@ -335,7 +277,177 @@ def backup_remote_env(text, remote_dir):
     print(f"[+] Backed up the server's existing .env to {path}")
 
 
-def resolve_app_key(remote_env, prod_env, local_env, args):
+def host_of(domain):
+    return re.sub(r'^https?://', '', domain or '', flags=re.IGNORECASE).split('/')[0].lower()
+
+
+def site_profile_path(domain):
+    return os.path.join(SITES_DIR, host_of(domain) + '.env')
+
+
+def read_env_file(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding='utf-8') as f:
+        return parse_env_text(f.read())
+
+
+def save_site_profile(domain, site):
+    os.makedirs(SITES_DIR, exist_ok=True)
+    path = site_profile_path(domain)
+    header = [
+        f'# deploy.py profile of {host_of(domain)}. Holds passwords: never commit, never share.',
+        '# APP_KEY is pinned on purpose: rotating it blanks the encrypted payment settings.',
+        '',
+    ]
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(header))
+        f.write('\n'.join(f'{k}={env_value_literal(v)}' for k, v in site.items() if v not in (None, '')))
+        f.write('\n')
+    os.chmod(path, 0o600)
+    return path
+
+
+def saved_sites():
+    if not os.path.isdir(SITES_DIR):
+        return []
+    return sorted(name[:-4] for name in os.listdir(SITES_DIR) if name.endswith('.env'))
+
+
+def ask(label, default='', secret=False, required=True):
+    while True:
+        # A password's default is never echoed: Enter keeps it.
+        hint = (' [Enter = giữ nguyên]' if secret else f' [{default}]') if default else ''
+        prompt = f'    {label}{hint}: '
+        answer = (getpass.getpass(prompt) if secret else input(prompt)).strip() or default
+        if answer or not required:
+            return answer
+        print('    (bắt buộc)')
+
+
+def read_pasted_block():
+    """
+    The hosting panel hands out its database as KEY=VALUE lines (DB_HOST, DB_NAME, DB_USER,
+    DB_PASS, CMS_SYSTEM_PASS, CMS_ADMIN_PASS…). Paste them as they are; a blank line ends it.
+    """
+    lines = []
+    while True:
+        try:
+            line = input()
+        except EOFError:
+            break
+        if not line.strip():
+            break
+        lines.append(line)
+    values = parse_env_text('\n'.join(lines))
+    for hosting_key, laravel_key in HOSTING_DB_ALIASES.items():
+        if hosting_key in values:
+            values.setdefault(laravel_key, values.pop(hosting_key))
+    return values
+
+
+def choose_domain(args):
+    if args.domain:
+        return normalize_domain(args.domain)
+
+    sites = saved_sites()
+    # The site of the old single-site setup is offered too; choosing it migrates its settings.
+    if os.path.exists('.deploy_url'):
+        legacy_host = host_of(open('.deploy_url').read())
+        if legacy_host and legacy_host not in sites:
+            sites.append(legacy_host)
+    if args.yes:
+        if len(sites) == 1:
+            return normalize_domain(sites[0])
+        print('[-] Chạy với --yes thì phải chỉ rõ site: --domain https://...')
+        sys.exit(1)
+
+    print('[?] Deploy lên website nào?')
+    for index, host in enumerate(sites, 1):
+        print(f'    [{index}] {host}')
+    print('    Hoặc gõ domain mới (vd: shop.webwow.vn)')
+    while True:
+        answer = input('    Chọn: ').strip()
+        if answer.isdigit() and 1 <= int(answer) <= len(sites):
+            return normalize_domain(sites[int(answer) - 1])
+        if '.' in answer:
+            return normalize_domain(answer)
+        print('    Nhập số trong danh sách hoặc một domain.')
+
+
+def legacy_profile(domain):
+    """
+    The single-site setup kept FTP in the checkout's .env, overrides in .env.production and
+    the domain in .deploy_url. When those describe this domain, carry them into its profile
+    once so the APP_KEY of a live site is not lost.
+    """
+    url_file = '.deploy_url'
+    if not os.path.exists(url_file) or host_of(open(url_file).read()) != host_of(domain):
+        return {}
+    site = {k: v for k, v in read_env_file('.env').items() if k.startswith('FTP_')}
+    site.update(read_env_file(LEGACY_PROD_ENV_FILE))
+    if os.path.exists('.deploy_timestamp'):
+        site['DEPLOY_LAST_TS'] = open('.deploy_timestamp').read().strip()
+    if site:
+        print(f'[+] Chuyển cấu hình deploy cũ (.env / {LEGACY_PROD_ENV_FILE}) vào hồ sơ của {host_of(domain)}.')
+    return site
+
+
+def resolve_site(args):
+    """
+    Which website, and everything needed to reach and configure it — asked here, once per
+    site, and kept in .deploy-sites/<domain>.env. The checkout's own .env is never touched.
+    """
+    domain = choose_domain(args)
+    site = read_env_file(site_profile_path(domain)) or legacy_profile(domain)
+    is_new = not site
+
+    if not is_new and not args.reconfigure and not args.yes:
+        print(f'[+] Hồ sơ đã lưu của {host_of(domain)}:')
+        for key in ('FTP_HOST', 'FTP_USER', 'FTP_REMOTE_DIR', 'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'ADMIN_EMAIL'):
+            if site.get(key):
+                print(f'      {key:<15} {site[key]}')
+        if not prompt_yes_no('Dùng thông tin này?', True, args):
+            args.reconfigure = True
+
+    if args.reconfigure:
+        # Everything is asked again except the APP_KEY, which must never change on a live site.
+        site = {k: v for k, v in site.items() if k in ('APP_KEY', 'DEPLOY_LAST_TS')}
+
+    needs = lambda *keys: any(not site.get(k) for k in keys)
+    if (needs('FTP_HOST', 'FTP_USER', 'FTP_PASS') or needs('DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD')) and args.yes:
+        print(f'[-] Site {host_of(domain)} chưa có đủ thông tin và đang chạy --yes. Chạy lại không có --yes.')
+        sys.exit(1)
+
+    if needs('FTP_HOST', 'FTP_USER', 'FTP_PASS'):
+        print(f'[?] FTP của {host_of(domain)} (Plesk → Websites & Domains → FTP Access):')
+        site['FTP_HOST'] = ask('FTP host', site.get('FTP_HOST') or host_of(domain))
+        site['FTP_USER'] = ask('FTP user', site.get('FTP_USER', ''))
+        site['FTP_PASS'] = ask('FTP password', secret=True)
+        site['FTP_REMOTE_DIR'] = ask('Thư mục chứa code trên host', site.get('FTP_REMOTE_DIR') or 'httpdocs/backend')
+
+    if needs('DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'):
+        print('[?] Database. Dán nguyên khối thông tin từ panel (DB_HOST=..., DB_NAME=..., DB_USER=...,')
+        print('    DB_PASS=..., CMS_ADMIN_PASS=...), xong nhấn Enter ở một dòng trống.')
+        print('    Hoặc nhấn Enter ngay để nhập từng mục:')
+        site.update({k: v for k, v in read_pasted_block().items() if v})
+        for key, label, default, required, secret in DB_PROMPTS:
+            if not site.get(key):
+                site[key] = ask(label, default, secret=secret, required=required)
+
+    if is_new or args.reconfigure or not site.get('ADMIN_EMAIL'):
+        print('[?] Tài khoản superadmin (tạo ở lần cài đầu; site đã có thì giữ nguyên):')
+        site['ADMIN_EMAIL'] = ask('Email đăng nhập admin', site.get('ADMIN_EMAIL') or f'admin@{host_of(domain)}')
+        default_pass = site.get('ADMIN_PASSWORD') or site.get('CMS_ADMIN_PASS', '')
+        site['ADMIN_PASSWORD'] = ask('Mật khẩu admin' + (' (CMS_ADMIN_PASS của panel)' if default_pass else ''),
+                                     default_pass, secret=True)
+
+    path = save_site_profile(domain, site)
+    print(f'[+] Đã lưu hồ sơ {path} (chmod 600). Lần sau chỉ cần chọn site.')
+    return domain, site
+
+
+def resolve_app_key(remote_env, site, args):
     """
     APP_KEY must never change once encrypted rows exist. `payment_methods.settings`
     and `payment_transactions.payload` use the EncryptedJson cast, which swallows a
@@ -345,33 +457,40 @@ def resolve_app_key(remote_env, prod_env, local_env, args):
     No prompt: an existing key always wins, and a fresh install always wants a fresh
     key. Reusing the local key is the rare case, so it is an explicit flag.
     """
-    for source, env in (("server", remote_env), (PROD_ENV_FILE, prod_env)):
+    for source, env in (("server", remote_env), ("hồ sơ site", site)):
         if env.get("APP_KEY"):
             print(f"[+] APP_KEY: giữ nguyên key sẵn có ({source}).")
             return env["APP_KEY"], False
 
-    if args.reuse_local_app_key and local_env.get("APP_KEY"):
+    local_key = read_env_file('.env').get("APP_KEY")
+    if args.reuse_local_app_key and local_key:
         print("[+] APP_KEY: dùng lại key của máy local (--reuse-local-app-key).")
-        return local_env["APP_KEY"], True
+        return local_key, True
 
-    print(f"[+] APP_KEY: sinh key mới và ghim vào {PROD_ENV_FILE}.")
+    print("[+] APP_KEY: sinh key mới và ghim vào hồ sơ site.")
     return generate_app_key(), True
 
 
-def build_remote_env(local_env, remote_env, prod_env, domain, app_key):
-    final = dict(local_env)
-    final.update(prod_env)
+def build_remote_env(template_env, remote_env, site, domain, app_key):
+    """
+    Template (.env.example) → what the server already has for the database → what was typed
+    for this site → production values that are never negotiable.
+    """
+    final = dict(template_env)
 
     for hosting_key, laravel_key in HOSTING_DB_ALIASES.items():
         if remote_env.get(hosting_key):
             final[laravel_key] = remote_env[hosting_key]
-
-    # Credentials already on the server outrank the working copy: they belong to
-    # the host, and the local values describe a developer machine.
     for key, value in remote_env.items():
         if key in HOSTING_DB_ALIASES:
             continue
         if key.startswith("DB_") or key in REMOTE_OWNED_KEYS:
+            final[key] = value
+
+    for key, value in site.items():
+        if key in HOSTING_DB_ALIASES or key in ENV_KEYS_NOT_ON_REMOTE:
+            continue
+        if value not in (None, ''):
             final[key] = value
 
     final["APP_KEY"] = app_key
@@ -382,81 +501,40 @@ def build_remote_env(local_env, remote_env, prod_env, domain, app_key):
     return final
 
 
-def persist_prod_env(prod_env, app_key, key_is_new, prompted):
-    updated = dict(prod_env)
-    if key_is_new:
-        updated["APP_KEY"] = app_key
-    updated.update(prompted)
-    header = [
-        "# Written by deploy.py. Production-only overrides; never commit this file.",
-        "# APP_KEY is pinned here on purpose: rotating it makes existing encrypted",
-        "# payment settings decrypt to an empty array without raising an error.",
-        "",
-    ]
-    with open(PROD_ENV_FILE, "w") as f:
-        f.write("\n".join(header))
-        f.write("\n".join(f"{k}={env_value_literal(v)}" for k, v in updated.items()))
-        f.write("\n")
-    os.chmod(PROD_ENV_FILE, 0o600)
-    print(f"[+] Saved {PROD_ENV_FILE} (chmod 600); the next deploy will not ask again.")
-
-
-def sync_remote_env(ftp, remote_dir, local_env, domain, args):
+def sync_remote_env(ftp, remote_dir, site, domain, args):
     """
     Build the server's .env and upload it only when it would actually change.
 
-    Nothing here asks for confirmation: the previous file is backed up first, so the
-    write is reversible, and by construction the server's own DB credentials and
-    APP_KEY always win — this can add or correct application config, never replace
-    the host's secrets. The only unattended question is a credential nobody has.
+    Built from .env.example plus this site's profile — never from the developer's .env —
+    with APP_ENV=production, APP_DEBUG=false and APP_URL forced. The previous server file is
+    backed up first, and its APP_KEY always wins.
     """
     print("-" * 60)
     print("[*] Đồng bộ .env production ...")
-    with open(".env", "r") as f:
-        local_text = f.read()
+    if not os.path.exists(ENV_TEMPLATE):
+        print(f"[-] Thiếu {ENV_TEMPLATE}: không có mẫu để dựng .env cho server.")
+        sys.exit(1)
+    with open(ENV_TEMPLATE, encoding='utf-8') as f:
+        template_text = f.read()
 
     remote_raw = ftp_read_text(ftp, remote_dir, ".env")
     remote_env = parse_env_text(remote_raw) if remote_raw else {}
     if not remote_raw:
         print("[!] Server chưa có .env; sẽ tạo mới.")
 
-    prod_env = {}
-    if os.path.exists(PROD_ENV_FILE):
-        with open(PROD_ENV_FILE, "r") as f:
-            prod_env = parse_env_text(f.read())
+    app_key, key_is_new = resolve_app_key(remote_env, site, args)
+    final = build_remote_env(parse_env_text(template_text), remote_env, site, domain, app_key)
 
-    app_key, key_is_new = resolve_app_key(remote_env, prod_env, local_env, args)
-    final = build_remote_env(local_env, remote_env, prod_env, domain, app_key)
-
-    missing = [row for row in DB_PROMPTS if row[3] and not final.get(row[0])]
-    if missing and args.yes:
-        print("[-] Thiếu thông tin database và đang chạy với --yes: "
-              + ", ".join(row[0] for row in missing))
-        print(f"[-] Điền các khoá đó vào {PROD_ENV_FILE} rồi chạy lại.")
+    missing = [row[0] for row in DB_PROMPTS if row[3] and not final.get(row[0])]
+    if missing:
+        print("[-] Thiếu thông tin database: " + ", ".join(missing) + ". Chạy lại với --reconfigure.")
         sys.exit(1)
 
-    prompted = {}
-    if missing:
-        print("[?] Server chưa có thông tin database. Lấy trong panel Plesk rồi điền "
-              "(chỉ hỏi một lần, lần sau tự dùng lại):")
-    for key, label, default, required, secret in DB_PROMPTS:
-        if final.get(key):
-            continue
-        while True:
-            hint = f" [{default}]" if default else ""
-            answer = (getpass.getpass(f"    {label}{hint}: ") if secret
-                      else input(f"    {label}{hint}: ")).strip()
-            answer = answer or default
-            if answer or not required:
-                break
-            print("    (bắt buộc)")
-        final[key] = answer
-        prompted[key] = answer
+    if key_is_new or site.get("APP_KEY") != app_key:
+        site["APP_KEY"] = app_key
+        save_site_profile(domain, site)
 
-    if key_is_new or prompted:
-        persist_prod_env(prod_env, app_key, key_is_new, prompted)
-
-    new_text = render_env_file(local_text, final)
+    new_text = render_env_file(template_text, final)
     if remote_raw is not None and new_text == remote_raw:
         print("[+] .env trên server đã đúng; không cần ghi lại.")
         return
@@ -569,7 +647,7 @@ def should_exclude(rel_path):
     path_parts = rel_path.replace('\\', '/').split('/')
     
     # Core directories to skip entirely
-    skip_entirely = {'.git', '.github', '.idea', '.vscode', 'node_modules', 'tests', BACKUP_DIR}
+    skip_entirely = {'.git', '.github', '.idea', '.vscode', 'node_modules', 'tests', BACKUP_DIR, SITES_DIR}
     for p in path_parts:
         if p in skip_entirely:
             return 'entirely'
@@ -720,20 +798,6 @@ def upload_file(ftp, local_file, remote_file):
     with open(local_file, "rb") as f:
         ftp.storbinary(f"STOR {remote_file}", f, callback=progress_callback)
     print("\n[+] Upload complete.")
-
-def auto_detect_domain(ip_host):
-    url = f"http://{ip_host}/"
-    print(f"[*] Resolving HTTP domain for {ip_host}...")
-    try:
-        ssl_context = ssl._create_unverified_context()
-        with urllib.request.urlopen(url, timeout=5, context=ssl_context) as resp:
-            resolved_url = resp.geturl()
-            if resolved_url != url:
-                print(f"[+] Auto-detected domain URL: {resolved_url}")
-                return resolved_url.rstrip('/')
-    except Exception as e:
-        print(f"[!] Warning: Could not resolve domain automatically.")
-    return f"http://{ip_host}"
 
 def generate_extractor_php(run_migrate=False, seed_type='none', keep_zip=False):
     migrate_val = "true" if run_migrate else "false"
@@ -1085,34 +1149,6 @@ def trigger_http_url(url, remote_dir, script_name):
         print(f"      {candidate}")
     return False
 
-def resolve_domain(env, ftp_host, args):
-    """
-    Order: explicit flag, the value cached from the last run, APP_URL, then a
-    redirect probe. Only a completely fresh checkout has to be asked.
-    """
-    cached_file = ".deploy_url"
-    for candidate in (args.domain,
-                      open(cached_file).read() if os.path.exists(cached_file) else "",
-                      env.get("APP_URL", "")):
-        domain = normalize_domain(candidate)
-        if domain and "localhost" not in domain and "127.0.0.1" not in domain:
-            break
-    else:
-        domain = ""
-
-    if not domain:
-        domain = normalize_domain(auto_detect_domain(ftp_host))
-        if not domain or ftp_host in domain:
-            if args.yes:
-                print("[-] Không xác định được domain. Dùng --domain https://... rồi chạy lại.")
-                sys.exit(1)
-            domain = normalize_domain(input("Nhập domain website remote: "))
-
-    with open(cached_file, "w") as f:
-        f.write(domain)
-    return domain
-
-
 def upload_and_trigger(ftp, remote_dir, script_name, code, domain):
     public_dir = os.path.join(remote_dir, "public").replace("\\", "/").strip("/")
     ftp_ensure_dir(ftp, public_dir)
@@ -1125,16 +1161,14 @@ def upload_and_trigger(ftp, remote_dir, script_name, code, domain):
 def main():
     args = parse_args()
     print_banner()
-    env = load_env()
 
-    # 1. Connection. Asked once, then remembered in .env.
-    resolve_ftp_credentials(env, args)
-    ftp_host = env['FTP_HOST']
-    ftp_user = env['FTP_USER']
-    ftp_pass = env['FTP_PASS']
-    remote_dir = env.get('FTP_REMOTE_DIR', 'httpdocs/backend')
+    # 1. Which site, and its connection — from its profile in .deploy-sites/, asked once.
+    domain, site = resolve_site(args)
+    ftp_host = site['FTP_HOST']
+    ftp_user = site['FTP_USER']
+    ftp_pass = site['FTP_PASS']
+    remote_dir = site.get('FTP_REMOTE_DIR', 'httpdocs/backend')
 
-    domain = resolve_domain(env, ftp_host, args)
     print(f"[+] FTP {ftp_user}@{ftp_host} -> /{remote_dir.strip('/')}")
     print(f'[+] Web  {domain}')
     print('-' * 60)
@@ -1204,7 +1238,7 @@ def main():
     print(f"      Seed      {'có' if want_seed else 'không'}")
     if not incremental:
         print(f"      deploy.zip{'giữ lại trên server' if keep_zip else ' xoá sau khi giải nén'}")
-    print(f"      .env      ghi đè cấu hình app, giữ nguyên DB và APP_KEY của server")
+    print(f"      .env      dựng từ .env.example + hồ sơ site (production), giữ APP_KEY của server")
     if not args.keep_default_index:
         print('      index.html xoá trang mặc định của panel nếu còn (có backup)')
     print('-' * 60)
@@ -1216,10 +1250,9 @@ def main():
 
     # 4. The .env must be right before the trigger runs migrate/seed, and it is kept
     # out of the package so it can never clobber the server's own credentials.
-    sync_remote_env(ftp, remote_dir, env, domain, args)
+    sync_remote_env(ftp, remote_dir, site, domain, args)
     remove_default_index(ftp, remote_dir, args)
 
-    timestamp_file = '.deploy_timestamp'
     success = False
 
     if not incremental:
@@ -1248,17 +1281,15 @@ def main():
             os.remove(zip_name)
 
     else:
-        last_deploy_time = 0.0
-        if os.path.exists(timestamp_file):
-            try:
-                with open(timestamp_file) as f:
-                    last_deploy_time = float(f.read().strip())
-            except ValueError:
-                pass
+        # Per site: what changed since *this* site was last deployed from this machine.
+        try:
+            last_deploy_time = float(site.get('DEPLOY_LAST_TS') or 0)
+        except ValueError:
+            last_deploy_time = 0.0
 
         if last_deploy_time == 0.0:
             print('[-] Máy này chưa có lịch sử deploy nên không biết file nào đã đổi.')
-            print('[-] Chạy full một lần trước: python3 deploy.py --full')
+            print(f'[-] Chạy full một lần trước: python3 deploy.py --full --domain {host_of(domain)}')
             ftp.quit()
             sys.exit(1)
 
@@ -1289,8 +1320,8 @@ def main():
         )
 
     if success:
-        with open(timestamp_file, 'w') as f:
-            f.write(str(time.time()))
+        site['DEPLOY_LAST_TS'] = str(time.time())
+        save_site_profile(domain, site)
         print('-' * 60)
         probe_secret_exposure(domain, remote_dir)
         print('[+++] DEPLOYMENT COMPLETED SUCCESSFULLY!')
