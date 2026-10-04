@@ -317,11 +317,16 @@ Website cần cron chạy mỗi phút để: thực hiện bản cập nhật co
 bản mới, đồng bộ gói, hết hạn voucher. Thay vì tạo cron cho từng website, máy chủ có **một** cron
 chung: `infra/plesk-cron.sh`.
 
-- Tự tìm mọi website chạy core trong `/var/www/vhosts` (có `artisan` và
-  `app/Support/CoreManifest.php`). Website khác (WordPress, Laravel khác...) không bị đụng tới.
-- Chạy `php artisan schedule:run` của từng website **bằng tài khoản sở hữu website**, không bằng root.
-- Chạy song song 8 website một lúc; một website đang cập nhật dở thì phút sau bỏ qua, không chồng lệnh.
-- Chỉ ghi lỗi vào `/var/log/matbaows-cron.log`.
+- **Chỉ chạy website do hệ thống cập nhật quản lý**: có `artisan`, `app/Support/CoreManifest.php`
+  **và** `storage/app/core/installed.json` (file mốc do `deploy.py` và mỗi lần cập nhật core ghi ra).
+  Dự án cũ không có file mốc nên **không bao giờ bị đụng tới**; WordPress, Laravel khác cũng vậy.
+- Bỏ qua website đã có cron riêng chạy `schedule:run` (không chạy hai lần), và website có file
+  `storage/app/core/no-shared-cron` (muốn loại một website: tạo file này).
+- Chạy `php artisan schedule:run` **bằng tài khoản sở hữu website**, không bằng root.
+- Chống quá tải: tối đa 4 website cùng lúc, độ ưu tiên CPU/ổ đĩa thấp (truy cập web của khách được
+  ưu tiên); lượt phút trước chưa xong thì phút này bỏ qua; máy chủ tải cao (load > số CPU × 2) thì
+  hoãn; danh sách website quét lại 10 phút một lần.
+- Chỉ ghi lỗi và các phút bị bỏ qua vào `/var/log/matbaows-cron.log`.
 
 Cài (SSH vào máy chủ 252 bằng root):
 
@@ -334,12 +339,12 @@ sudo bash /tmp/plesk-cron.sh --install
 Kiểm tra và gỡ:
 
 ```bash
-sudo matbaows-cron --list          # các website tìm thấy, chủ sở hữu, phiên bản core
+sudo matbaows-cron --list          # mọi website core tìm thấy, và website nào được chạy (cột CHẠY?)
 sudo tail -f /var/log/matbaows-cron.log
 sudo matbaows-cron --uninstall
 ```
 
 Cấu hình thêm (không bắt buộc) trong `/etc/matbaows-cron.conf`: `PHP=/opt/plesk/php/8.3/bin/php`
-(mặc định: bản PHP 8.2+ mới nhất của Plesk), `JOBS=8`.
+(mặc định: bản PHP 8.2+ mới nhất của Plesk), `JOBS=4`, `LOAD_MAX=16`.
 
 Không tạo thêm cron từng website trong Plesk cho các website này: hai cron cùng chạy là thừa.
