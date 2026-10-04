@@ -94,8 +94,9 @@
                     @php
                         $apiToken = data_get($partner->settings, 'api_token', '');
                         $apiUrl = data_get($partner->settings, 'api_url', 'https://dev-online-gateway.ghn.vn');
-                        $clientId = data_get($partner->settings, 'client_id', '');
                         $shopId = data_get($partner->settings, 'shop_id', '');
+                        $realtimeTrackingEnabled = (bool) old('realtime_tracking_enabled', data_get($partner->settings, 'realtime_tracking_enabled', false));
+                        $webhookToken = data_get($partner->settings, 'webhook_token', '');
                     @endphp
                     <div class="row">
                         <div class="col-md-12 mb-3">
@@ -112,13 +113,21 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="shop_id">{{ __('admin.shipping_partners.shop_id_label') }} <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control text-dark" id="shop_id" name="shop_id" 
-                                value="{{ old('shop_id', $shopId) }}" placeholder="Nhập Shop ID...">
+                            <input type="number" min="1" class="form-control text-dark" id="shop_id" name="shop_id"
+                                value="{{ old('shop_id', $shopId) }}" placeholder="Nhập Shop ID..." required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="client_id">{{ __('admin.shipping_partners.client_id_label') }}</label>
-                            <input type="text" class="form-control text-dark" id="client_id" name="client_id" 
-                                value="{{ old('client_id', $clientId) }}" placeholder="Nhập Client ID (nếu có)...">
+                            <label class="form-label fw-semibold text-dark d-block">Đồng bộ trạng thái GHN</label>
+                            <input type="hidden" name="realtime_tracking_enabled" value="0">
+                            <div class="form-check form-switch pt-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="ghn_realtime_tracking" name="realtime_tracking_enabled" value="1" @checked($realtimeTrackingEnabled)>
+                                <label class="form-check-label" for="ghn_realtime_tracking">Nhận webhook trạng thái đơn từ GHN</label>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3" id="ghn-webhook-settings" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
+                            <label class="form-label fw-semibold text-dark" for="ghn_webhook_token">Webhook token</label>
+                            <input type="text" class="form-control text-dark" id="ghn_webhook_token" name="webhook_token" value="{{ old('webhook_token', $webhookToken) }}">
+                            <div class="form-text">URL trên GHN: <code>{{ url('/api/webhooks/ghn') }}?token=&lt;token&gt;</code>. Token để trống sẽ được sinh tự động.</div>
                         </div>
                     </div>
                 @elseif($partner->partner_code === 'DTGH000014') {{-- J&T --}}

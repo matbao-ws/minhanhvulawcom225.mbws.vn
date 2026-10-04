@@ -80,8 +80,9 @@ class OrderController extends Controller
 
         $shippingSettings = $this->shippingService->getSettings();
         $isGhtkEnabled = (bool) data_get($shippingSettings, 'ghtk.enabled', false);
+        $isGhnEnabled = (bool) data_get($shippingSettings, 'ghn.enabled', false);
 
-        return view('admin.orders.show', compact('order', 'isGhtkEnabled'));
+        return view('admin.orders.show', compact('order', 'isGhtkEnabled', 'isGhnEnabled'));
     }
 
     /**
@@ -431,12 +432,24 @@ class OrderController extends Controller
     public function pushShipping(Request $request, string $locale, Order $order)
     {
         $validated = $request->validate([
-            'carrier' => 'required|in:ghtk',
+            'carrier' => 'required|in:ghtk,ghn',
             'weight' => 'required|integer|min:1|max:50000',
-            'province' => 'required|string|max:255',
-            'district' => 'required|string|max:255',
-            'ward' => 'required|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'district' => 'nullable|string|max:255',
+            'ward' => 'nullable|string|max:255',
+            'to_district_id' => 'nullable|integer|min:1|max:2147483647',
+            'to_ward_code' => 'nullable|string|max:20',
+            'service_id' => 'nullable|integer|min:1|max:2147483647',
+            'length' => 'nullable|integer|min:1|max:200',
+            'width' => 'nullable|integer|min:1|max:200',
+            'height' => 'nullable|integer|min:1|max:200',
         ]);
+        if ($validated['carrier'] === 'ghtk' && (! filled($validated['province'] ?? null) || ! filled($validated['district'] ?? null) || ! filled($validated['ward'] ?? null))) {
+            return response()->json(['success' => false, 'message' => 'GHTK yêu cầu tỉnh, quận/huyện và phường/xã.'], 422);
+        }
+        if ($validated['carrier'] === 'ghn' && (! filled($validated['to_district_id'] ?? null) || ! filled($validated['to_ward_code'] ?? null))) {
+            return response()->json(['success' => false, 'message' => 'GHN yêu cầu mã quận/huyện và mã phường/xã theo dữ liệu GHN.'], 422);
+        }
 
         try {
             $claimedOrder = DB::transaction(function () use ($order): Order {
@@ -461,7 +474,9 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
         }
 
-        $result = $this->shippingService->pushToGHTK($claimedOrder, $validated);
+        $result = $validated['carrier'] === 'ghn'
+            ? $this->shippingService->pushToGHN($claimedOrder, $validated)
+            : $this->shippingService->pushToGHTK($claimedOrder, $validated);
 
         if ($result['success']) {
             try {
@@ -490,12 +505,12 @@ class OrderController extends Controller
                             'to_status' => 'processing',
                             'from_payment_status' => $lockedOrder->payment_status,
                             'to_payment_status' => $lockedOrder->payment_status,
-                            'note' => 'Đẩy đơn sang GHTK',
+                            'note' => 'Đẩy đơn sang '.strtoupper($validated['carrier']),
                             'changed_by' => auth()->id(),
                             'created_at' => now(),
                         ]);
                     }
-                    ActivityLogger::log('shipping_pushed', $lockedOrder, "Đẩy đơn hàng {$lockedOrder->order_number} sang GHTK", [
+                    ActivityLogger::log('shipping_pushed', $lockedOrder, "Đẩy đơn hàng {$lockedOrder->order_number} sang ".strtoupper($validated['carrier']), [
                         'tracking_number' => $result['tracking_number'],
                         'carrier_shipping_fee' => $result['fee'],
                     ]);

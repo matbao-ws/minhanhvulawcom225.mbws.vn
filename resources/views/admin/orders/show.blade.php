@@ -238,9 +238,9 @@
                         </p>
                     @else
                         <p class="text-muted mb-2 fs-3">{{ __('admin.orders.not_shipped') }}</p>
-                        @if($order->status !== 'cancelled' && $isGhtkEnabled)
+                        @if($order->status !== 'cancelled' && ($isGhtkEnabled || $isGhnEnabled))
                             <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 mt-1 fw-semibold py-2 px-3" data-bs-toggle="modal" data-bs-target="#pushShippingModal">
-                                <i class="ti ti-truck fs-4"></i> {{ __('admin.orders.create_ghtk') }}
+                                <i class="ti ti-truck fs-4"></i> Tạo vận đơn
                             </button>
                         @endif
                     @endif
@@ -367,26 +367,26 @@
         </div>
     </div>
 
-    @if($isGhtkEnabled && !$order->tracking_number)
+    @if(($isGhtkEnabled || $isGhnEnabled) && !$order->tracking_number)
     <!-- Push Shipping Modal -->
     <div class="modal fade" id="pushShippingModal" tabindex="-1" aria-labelledby="pushShippingModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-semibold text-dark" id="pushShippingModalLabel">{{ __('admin.orders.create_ghtk') }}</h5>
+                    <h5 class="modal-title fw-semibold text-dark" id="pushShippingModalLabel">Tạo vận đơn</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="pushShippingForm" action="{{ route('admin.orders.push-shipping', $order) }}" method="POST">
                     @csrf
-                    <input type="hidden" name="carrier" value="ghtk">
                     <div class="modal-body text-start">
+                        <div class="mb-3"><label class="form-label fw-semibold text-dark" for="shipping_carrier">Đơn vị vận chuyển</label><select class="form-select" id="shipping_carrier" name="carrier" required>@if($isGhtkEnabled)<option value="ghtk">Giao Hàng Tiết Kiệm (GHTK)</option>@endif @if($isGhnEnabled)<option value="ghn">Giao Hàng Nhanh (GHN)</option>@endif</select></div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-dark">{{ __('admin.orders.fields.shipping_address') }}</label>
                             <input type="text" class="form-control bg-light text-dark" value="{{ $order->shipping_address }}" readonly>
                         </div>
                         
                         <!-- Address details for shipping parsing -->
-                        <div class="row">
+                        <div class="row" id="ghtk-address-fields">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="shipping_province">{{ __('admin.orders.fields.province') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control text-dark" id="shipping_province" name="province" value="Hồ Chí Minh" required>
@@ -400,12 +400,14 @@
                                 <input type="text" class="form-control text-dark" id="shipping_ward" name="ward" value="Phường Bến Nghé" required>
                             </div>
                         </div>
+                        <div class="row d-none" id="ghn-address-fields"><div class="col-md-6 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_district_id">Mã quận/huyện GHN <span class="text-danger">*</span></label><input type="number" min="1" class="form-control" id="ghn_district_id" name="to_district_id"></div><div class="col-md-6 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_ward_code">Mã phường/xã GHN <span class="text-danger">*</span></label><input type="text" maxlength="20" class="form-control" id="ghn_ward_code" name="to_ward_code"></div><div class="col-12"><div class="form-text mb-3">Dùng mã Master Data của GHN, không nhập tên hành chính.</div></div></div>
 
                         <div class="mb-0">
                             <label class="form-label fw-semibold text-dark" for="shipping_weight">{{ __('admin.orders.fields.weight') }} <span class="text-danger">*</span></label>
                             <input type="number" class="form-control text-dark" id="shipping_weight" name="weight" value="500" min="1" required>
                             <div class="form-text">{{ __('admin.orders.weight_help') }}</div>
                         </div>
+                        <div class="row mt-1 d-none" id="ghn-dimension-fields"><div class="col-4"><label class="form-label small">Dài (cm)</label><input class="form-control" type="number" min="1" max="200" name="length" value="10"></div><div class="col-4"><label class="form-label small">Rộng (cm)</label><input class="form-control" type="number" min="1" max="200" name="width" value="10"></div><div class="col-4"><label class="form-label small">Cao (cm)</label><input class="form-control" type="number" min="1" max="200" name="height" value="10"></div></div>
                     </div>
                     <div class="modal-footer border-top">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('catalog.actions.cancel') }}</button>
@@ -424,6 +426,18 @@
             // Push Shipping Form AJAX handling
             const pushShippingForm = document.getElementById('pushShippingForm');
             if (pushShippingForm) {
+                const carrier = document.getElementById('shipping_carrier');
+                const syncCarrierFields = () => {
+                    const isGhn = carrier?.value === 'ghn';
+                    document.getElementById('ghn-address-fields').classList.toggle('d-none', !isGhn);
+                    document.getElementById('ghn-dimension-fields').classList.toggle('d-none', !isGhn);
+                    document.getElementById('ghtk-address-fields').classList.toggle('d-none', isGhn);
+                    document.getElementById('ghn_district_id').required = isGhn;
+                    document.getElementById('ghn_ward_code').required = isGhn;
+                    ['shipping_province', 'shipping_district', 'shipping_ward'].forEach(id => document.getElementById(id).required = !isGhn);
+                };
+                carrier?.addEventListener('change', syncCarrierFields);
+                syncCarrierFields();
                 pushShippingForm.addEventListener('submit', function (e) {
                     e.preventDefault();
 
