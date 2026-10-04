@@ -21,17 +21,27 @@ class SiteBranding
             return $this->branding;
         }
 
-        $settings = ProjectSetting::query()
-            ->whereIn('setting_key', ['shop_name', 'logo_url', 'favicon_url', 'contact'])
-            ->pluck('setting_value', 'setting_key');
+        try {
+            $settings = ProjectSetting::query()
+                ->whereIn('setting_key', ['shop_name', 'logo_url', 'favicon_url', 'contact'])
+                ->pluck('setting_value', 'setting_key');
 
-        $contact = $settings->get('contact');
+            $contact = $settings->get('contact');
+            $shopName = $this->textValue($settings->get('shop_name'));
+            $logoUrl = $settings->get('logo_url');
+            $faviconUrl = $settings->get('favicon_url');
+        } catch (\Throwable) {
+            $contact = null;
+            $shopName = null;
+            $logoUrl = null;
+            $faviconUrl = null;
+        }
 
         return $this->branding = [
-            'name' => $this->textValue($settings->get('shop_name')) ?: config('app.name', 'Laravel Ecommerce Core'),
-            'logo_url' => $this->assetUrl($settings->get('logo_url'), 'matbao-ws-logo.png'),
+            'name' => $shopName ?: config('app.name', 'Laravel Ecommerce Core'),
+            'logo_url' => $this->assetUrl($logoUrl, 'matbao-ws-logo.png'),
             'admin_logo_url' => asset('matbao-ws-logo.png'),
-            'favicon_url' => $this->assetUrl($settings->get('favicon_url'), 'admin-assets/images/logos/favicon.png'),
+            'favicon_url' => $this->assetUrl($faviconUrl, 'admin-assets/images/logos/favicon.png'),
             'contact' => is_array($contact) ? $contact : [],
         ];
     }

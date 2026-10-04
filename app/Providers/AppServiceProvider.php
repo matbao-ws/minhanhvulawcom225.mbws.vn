@@ -79,8 +79,28 @@ class AppServiceProvider extends ServiceProvider
             'auth.reset-password',
             'api.docs',
             'client.layouts.app',
+            'errors.*',
+            'errors::*',
         ], function ($view) {
             $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
+        });
+
+        view()->composer([
+            'errors.*',
+            'errors::*',
+        ], function ($view) {
+            $currentLocale = app()->getLocale();
+            $isAdminContext = request()->is('*/admin*') || request()->is('admin*') || (request()->is('error-preview*') && request()->query('context') !== 'client');
+            $adminDashboardUrl = route('admin.dashboard', ['locale' => $currentLocale]);
+            $clientHomeUrl = \Illuminate\Support\Facades\Route::has('client.home')
+                ? route('client.home')
+                : (is_file(base_path('routes/theme.php')) ? url('/' . $currentLocale) : null);
+
+            $view->with([
+                'isAdminContext' => $isAdminContext,
+                'adminDashboardUrl' => $adminDashboardUrl,
+                'clientHomeUrl' => $clientHomeUrl,
+            ]);
         });
 
         // Shown to staff who can use AI; the gateway is asked at most every five minutes.
