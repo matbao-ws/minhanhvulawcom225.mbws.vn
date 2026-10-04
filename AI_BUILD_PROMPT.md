@@ -428,8 +428,14 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   components/core/emails/errors/vendor, `public/admin-assets`, `public/client-assets/vendor`, `public/docs`,
   `public/index.php`, `artisan`, composer.json/lock, `VERSION`). `vendor/` là gói dependencies riêng,
   chỉ phát hành khi composer.lock đổi. Mọi thứ khác thuộc website và bản cập nhật không bao giờ ghi:
-  theme `resources/views/client/**`, `public/client-assets/css`, `routes/theme.php`, `.env`, `storage`,
-  `.htaccess`, robots, logo. Thêm thư mục core mới thì phải thêm vào allowlist (kèm test).
+  theme `resources/views/client/**`, `public/client-assets/css`, `routes/theme.php`, `extensions/**`,
+  `.env`, `storage`, `.htaccess`, robots, logo. Thêm thư mục core mới thì phải thêm vào allowlist (kèm test).
+- **Extension** (`extensions/<id>/`, `docs/EXTENSIONS.md`, thiết kế `docs/EXTENSIONS_DESIGN.md`): logic
+  riêng của một website — trang admin, bảng `ext_<id>_*`, quyền `<id>.*` — không sửa file core.
+  `App\Support\Extensions\ExtensionManager` + `App\Providers\ExtensionServiceProvider` sở hữu vòng đời
+  (extension lỗi chỉ tự nó bị bỏ qua); `App\Extension\**` là API công khai ổn định (chỉ đổi ở bản major);
+  `CoreUpdater::check()` chặn bản core không thoả `requires_core` của extension đang bật. Bỏ thư mục
+  `extensions/` thì hệ thống chạy y như không có extension layer.
 - **Không sửa file core trên từng website.** Thay đổi riêng của khách đi vào theme; route riêng của theme
   vào `routes/theme.php` (nạp dưới `{locale}`, tên `client.`); component Blade riêng vào
   `resources/views/client/components` (cùng namespace `x-client::`, ghi đè được). Cần đổi hành vi core

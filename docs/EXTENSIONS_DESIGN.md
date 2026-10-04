@@ -145,7 +145,7 @@ Cập nhật extension, hoặc tắt nó (php artisan extension:disable dealers)
 
 | Namespace / class | Ghi chú |
 |---|---|
-| `App\Extension\**` | **API ổn định.** Giai đoạn 1: `Registries\AdminMenu`, `Registries\Permissions`, `Support\ExtensionContext`. Giai đoạn 2 thêm `Events\*`, `Slots\*` |
+| `App\Extension\**` | **API ổn định.** Giai đoạn 1: `Registries\AdminMenu` (quyền khai báo trong `extension.json`, không cần class). Giai đoạn 2 thêm `Events\*`, `Slots\*` |
 | `App\Models\Order`, `OrderItem`, `Product`, `ProductVariant`, `Category`, `Brand`, `Post`, `User` | **Bề mặt tạm thời** cho 1.2.0, không phải API vĩnh viễn. Được **đọc** và tạo quan hệ (khoá ngoại). **Không** tự đổi trạng thái đơn, tiền, tồn kho bằng `->save()` — các thay đổi nghiệp vụ sẽ đi qua Contract riêng ở giai đoạn sau |
 | `Illuminate\*`, `Symfony\*`, `Psr\*`, `Carbon\*` | Framework |
 | `Extensions\<Studly(id)>\*` | Code của chính nó. **Không** gọi sang extension khác |
@@ -261,7 +261,7 @@ không có quyền (cùng cổng quyền `Gate` như menu core). Extension khôn
 |---|---|
 | `extensions/**` vào `SITE_OWNED` (cấm cứng: bản phát hành ghi vào đó bị từ chối) | `app/Support/CoreManifest.php` |
 | Bộ nạp, manifest, trạng thái, autoloader — **nội bộ**, extension không được dùng | `app/Support/Extensions/ExtensionManager.php`, `ExtensionManifest.php`, `ExtensionState.php`, `ExtensionAutoloader.php` |
-| API công khai | `app/Extension/Registries/AdminMenu.php`, `Permissions.php`, `app/Extension/Support/ExtensionContext.php` |
+| API công khai | `app/Extension/Registries/AdminMenu.php` |
 | Provider | `app/Providers/ExtensionServiceProvider.php`, `bootstrap/providers.php` |
 | Lệnh | `app/Console/Commands/Extension{List,Check,Enable,Disable,Make}.php` |
 | Blocker tương thích | `app/Support/CoreUpdate/CoreUpdater.php` (`check()`), `core:health` |
@@ -270,7 +270,7 @@ không có quyền (cùng cổng quyền `Gate` như menu core). Extension khôn
 | Kiểm tra migration extension | `app/Support/MigrationSafety.php` (thêm luật sở hữu bảng) |
 | `deploy.py` bỏ qua `storage/app/core/` khi đóng gói | **sửa lỗi có sẵn**: hiện file mốc, trạng thái cập nhật và (sắp tới) trạng thái extension trên máy dev bị upload đè lên website |
 | `team.py`: chạy `extension:check` khi `extensions/` đổi; CI repo khách thêm bước này | `team.py` |
-| Extension mẫu `extensions/example/` (trang admin, menu, quyền, bảng `ext_example_notes`) | dùng trong test; **không** đưa vào bản phát hành / dự án khách mới |
+| Extension mẫu (trang admin, menu, quyền, bảng `ext_example_notes`) | `tests/Fixtures/extensions/example/` — nằm dưới `tests/` để repo core không tự nạp nó (giữ bất biến "không có `extensions/`"), không vào bản phát hành hay dự án khách |
 | Tài liệu cho dev | `docs/EXTENSIONS.md` (cách viết), cập nhật `UPDATE_SAFETY.md`, `TEAM_WORKFLOW.md` |
 
 ## 7. Test (trước khi phát hành 1.2.0)

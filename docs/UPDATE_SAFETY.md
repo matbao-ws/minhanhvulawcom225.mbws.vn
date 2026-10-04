@@ -29,7 +29,7 @@ Trang **Cập nhật phiên bản** trong admin hiện cảnh báo "N file core 
 | `app/`, `config/`, `database/`, `lang/` | `resources/views/client/` |
 | `routes/admin.php`, `routes/api.php`, `routes/client.php`, `routes/console.php`, `routes/web.php` | `routes/theme.php` |
 | `resources/views/admin/`, `api/`, `auth/`, `components/`, `core/`, `emails/`, `errors/`, `vendor/` | `public/client-assets/` (trừ `vendor/`) |
-| `public/admin-assets/`, `public/client-assets/vendor/`, `public/docs/`, `public/index.php` | `theme/` |
+| `public/admin-assets/`, `public/client-assets/vendor/`, `public/docs/`, `public/index.php` | `theme/`, `extensions/` ([EXTENSIONS.md](EXTENSIONS.md)) |
 | `artisan`, `composer.json`, `composer.lock`, `VERSION` | `.env`, `.htaccess`, `public/.htaccess`, `public/robots.txt` |
 | `bootstrap/app.php`, `bootstrap/providers.php` | `storage/` (dữ liệu của website) |
 | `vendor/` (gói dependencies, cập nhật riêng khi `composer.lock` đổi) | |
@@ -41,7 +41,7 @@ Cần thay đổi ở cột trái: báo trưởng nhóm, hoặc mở Issue trên
 
 | Thứ | Vì sao |
 |---|---|
-| `storage/app/core/` | Mốc file core, trạng thái cập nhật, bản sao lưu để quay về bản cũ. Mất thì website không cập nhật được, cập nhật hỏng thì không khôi phục được |
+| `storage/app/core/` | Mốc file core, trạng thái cập nhật, bản sao lưu để quay về bản cũ, trạng thái bật/tắt extension (`extensions.json`). Mất thì website không cập nhật được, cập nhật hỏng thì không khôi phục được. `deploy.py` không bao giờ upload thư mục này |
 | `MATBAO_AI_URL`, `MATBAO_AI_TOKEN` trong `.env` | Kết nối gateway: hỏi bản mới, tải gói, gửi mail. Do `deploy.py` ghi |
 | `CORE_UPDATE_ENABLED` trong `.env` | `false` thì website không bao giờ cập nhật |
 | File core sửa tay qua FTP / File Manager | Gây lệch như trên |
@@ -71,7 +71,9 @@ Sửa chúng phải qua mục "Quy trình an toàn" ở cuối.
 
 | File / thứ | Vai trò | Sửa sai thì |
 |---|---|---|
-| `app/Console/Commands/CorePoll.php`, `CoreRunRequested.php`, `CoreUpdate.php`, `CoreRollback.php`, `CoreHealth.php`, `CoreStatus.php`, `CoreVerifyRelease.php` | Lệnh cron và updater gọi | Bấm Cập nhật không chạy; `core:health` sai thì mọi lần cài bị coi là hỏng và khôi phục |
+| `app/Console/Commands/CorePoll.php`, `CoreRunRequested.php`, `CoreUpdate.php`, `CoreRollback.php`, `CoreHealth.php`, `CoreStatus.php`, `CoreVerifyRelease.php` | Lệnh cron và updater gọi | Bấm Cập nhật không chạy; `core:health` sai thì mọi lần cài bị coi là hỏng và khôi phục. **`core:health` phải luôn nhận `--extensions=`**: updater của bản cũ gọi `core:health` của bản mới với tuỳ chọn này |
+| `app/Support/Extensions/`, `app/Providers/ExtensionServiceProvider.php`, `config/extensions.php` | Nạp extension, kiểm tra tương thích trước khi cập nhật | Extension không nạp, hoặc cập nhật không chặn được core làm hỏng extension |
+| `app/Extension/**` (API công khai cho extension) | Hợp đồng với code extension trên các website | Đổi tên / chữ ký ở bản patch hay minor làm hỏng extension đang chạy. Chỉ đổi ở bản major, `@deprecated` trước ít nhất một bản minor ([EXTENSIONS_DESIGN.md](EXTENSIONS_DESIGN.md), mục 3) |
 | `routes/console.php`: dòng `core:poll`, `core:run-requested` | Lịch chạy | Xoá: cập nhật không bao giờ được thực hiện |
 | `app/Services/AiGateway/GatewayClient.php`, `config/ai_gateway.php` | Nói chuyện với gateway | Website không hỏi được bản mới, không tải được gói |
 | `app/Support/MigrationSafety.php` và quy tắc migration | Chặn migration phá dữ liệu | Cập nhật hỏng chỉ trả **code** về bản cũ, không rollback database: migration xoá/đổi tên cột làm bản cũ chạy lỗi sau khi khôi phục. Chỉ thêm bảng, cột nullable/có default, index. Bỏ cột cũ làm ở bản **contract** sau (`@contract-migration`) |
