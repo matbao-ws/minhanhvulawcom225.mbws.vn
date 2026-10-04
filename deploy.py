@@ -528,20 +528,6 @@ def resolve_site(args):
         else:
             site.update({k: v for k, v in provision_gateway_token(site['MATBAO_AI_URL'], domain, args).items() if v})
 
-    if not site.get('HOST_CRON') or args.reconfigure:
-        # Queued mail (password reset, order status, owner notifications) is sent by the cron
-        # scheduler. A host without cron sends it inline instead, or it would never leave `jobs`.
-        print('[?] Hosting này có tạo được cron chạy mỗi phút không (Plesk → Scheduled Tasks)?')
-        has_cron = prompt_yes_no('Có cron?', True, args)
-        site['HOST_CRON'] = 'yes' if has_cron else 'no'
-        if has_cron:
-            site.pop('QUEUE_CONNECTION', None)
-            print('    → Nhớ tạo task mỗi phút: php <thư mục code>/artisan schedule:run')
-        else:
-            site['QUEUE_CONNECTION'] = 'sync'
-            print('    → Mail gửi ngay (QUEUE_CONNECTION=sync). Không có cron thì cập nhật core tự động')
-            print('      cũng không chạy: cài bản mới bằng deploy.py.')
-
     # Contact form and order notifications fall back to MAIL_SELLER: the admin's address
     # rather than the template's owner@example.com.
     if not site.get('MAIL_SELLER') and site.get('ADMIN_EMAIL'):
