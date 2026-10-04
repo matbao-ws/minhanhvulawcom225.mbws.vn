@@ -3,7 +3,9 @@
 Start a customer project from the core: one command instead of a page of steps.
 
     python new-project.py khach-abc
+    python new-project.py khach-abc --owner my-org        # repo private under an organisation
     python new-project.py khach-abc --origin https://github.com/DucToanDev/khach-abc.git
+    python new-project.py khach-abc --no-github           # local only
     python new-project.py khach-abc --ref v1.1.0 --db sqlite
 
 What it does, in a new folder next to this repository:
@@ -15,7 +17,8 @@ What it does, in a new folder next to this repository:
      updates off — the code is a checkout, not an installed site);
   4. creates the database, installs dependencies, generates APP_KEY, runs core:install
      (asks for the admin account) and storage:link;
-  5. commits the starting point and, with --origin, pushes it to the project's own repo.
+  5. commits the starting point and pushes it to the project's own repo: with --origin to that
+     URL, otherwise it creates a private GitHub repo <owner>/<name> with the GitHub CLI (gh).
 
 The theme then goes into resources/views/client, public/client-assets and routes/theme.php —
 never into core files (AI_BUILD_PROMPT.md, "Cập nhật phiên bản core: core và theme").
@@ -103,6 +106,24 @@ def set_env(text, values):
     return text
 
 
+def create_github_repo(target, name, owner, public):
+    """Create <owner>/<name> on GitHub with the GitHub CLI and push main. Returns the repo URL or None."""
+    gh = shutil.which('gh')
+    if not gh:
+        say('[!] Chưa có GitHub CLI nên chưa tạo repo. Cài một lần: winget install GitHub.cli, rồi gh auth login')
+        return None
+    if subprocess.run([gh, 'auth', 'status'], capture_output=True).returncode != 0:
+        say('[!] gh chưa đăng nhập nên chưa tạo repo. Chạy một lần: gh auth login')
+        return None
+    repo = f'{owner}/{name}' if owner else name
+    code = run([gh, 'repo', 'create', repo, '--public' if public else '--private',
+                '--source', target, '--remote', 'origin', '--push'], cwd=target, check=False)
+    if code != 0:
+        say('[!] Tạo repo GitHub không được (tên đã tồn tại hoặc không có quyền với owner).')
+        return None
+    return output(['git', 'remote', 'get-url', 'origin'], cwd=target)
+
+
 def parse_args():
     p = argparse.ArgumentParser(description='Tạo dự án khách mới từ core.')
     p.add_argument('name', help='Tên dự án = tên thư mục (chữ thường, số, gạch ngang), vd: khach-abc')
@@ -112,7 +133,11 @@ def parse_args():
                    help='Repo core để clone (mặc định: origin của repo core này).')
     p.add_argument('--ref', default='main', help='Nhánh hoặc tag core để bắt đầu (mặc định: main).')
     p.add_argument('--origin', default=None,
-                   help='URL repo GitHub riêng (trống) của dự án; có thì đẩy code lên.')
+                   help='URL repo GitHub (trống) có sẵn của dự án; bỏ trống thì tự tạo repo bằng gh.')
+    p.add_argument('--owner', default=None,
+                   help='User/organization GitHub chứa repo mới (mặc định: tài khoản đang đăng nhập gh).')
+    p.add_argument('--public', action='store_true', help='Tạo repo public (mặc định private).')
+    p.add_argument('--no-github', action='store_true', help='Không tạo repo GitHub, chỉ git local.')
     p.add_argument('--db', choices=['mysql', 'sqlite'], default='mysql', help='Database local (mặc định: mysql của Laragon).')
     p.add_argument('--db-host', default='127.0.0.1')
     p.add_argument('--db-user', default='root')
@@ -123,6 +148,8 @@ def parse_args():
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding='utf-8')  # Vietnamese messages on a cp1252 Windows console
     args = parse_args()
     name = args.name.strip().lower()
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{1,48}', name):
@@ -197,18 +224,23 @@ def main():
     say('[5/5] Commit điểm bắt đầu')
     run([git, 'add', '-A'], cwd=target)
     run([git, 'commit', '-q', '-m', f'chore: start project {name} from core {core_version}'], cwd=target)
+    repo_url = None
     if args.origin:
         run([git, 'remote', 'add', 'origin', args.origin], cwd=target)
-        answer = input(f'Đẩy lên {args.origin} ngay? [C/k]: ').strip().lower()
-        if answer in ('', 'c', 'co', 'y', 'yes'):
-            run([git, 'push', '-u', 'origin', 'main'], cwd=target)
+        run([git, 'push', '-u', 'origin', 'main'], cwd=target)
+        repo_url = args.origin
+    elif not args.no_github:
+        say('[+] Tạo repo GitHub ' + ('public' if args.public else 'private'))
+        repo_url = create_github_repo(target, name, args.owner, args.public)
 
     say('')
     say(f'[+] Xong: {target} (core {core_version})')
     say(f'    Web local:  http://{name}.test  (Laragon: Menu → Reload để nhận thư mục mới)')
     say(f'    Admin:      http://{name}.test/vi/admin')
     say('    Theme:      resources/views/client, public/client-assets, routes/theme.php — không sửa file core.')
-    if not args.origin:
+    if repo_url:
+        say(f'    GitHub:     {repo_url}')
+    else:
         say('    Repo riêng: tạo repo trống trên GitHub rồi:')
         say(f'                git -C "{target}" remote add origin <url> && git -C "{target}" push -u origin main')
     say('    Deploy:     python deploy.py   (chạy trong thư mục dự án)')
