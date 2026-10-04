@@ -641,6 +641,9 @@
                   "shipping_address": { "type": "string", "example": "123 Đường Lê Lợi, Quận 1, TP. HCM" },
                   "payment_method": { "type": "string", "description": "`method_code` của một phương thức thanh toán đang active. Cổng kết nối được hỗ trợ ở checkout: `vnpay` (trả về `payment_url`) và `sepay` (trả về `payment`).", "enum": ["cod", "bank_transfer", "vnpay", "sepay"], "example": "cod" },
                   "voucher_code": { "type": "string", "example": "DISCOUNT100K", "nullable": true },
+                  "ghn_province_id": { "type": "integer", "nullable": true, "example": 202, "description": "ProvinceID theo master data GHN (tuỳ chọn)" },
+                  "ghn_district_id": { "type": "integer", "nullable": true, "example": 1442, "description": "DistrictID GHN; gửi cùng ghn_ward_code. Lưu vào đơn để tạo vận đơn GHN một chạm hoặc tự động khi xác nhận đơn" },
+                  "ghn_ward_code": { "type": "string", "nullable": true, "example": "20109", "description": "WardCode GHN; gửi cùng ghn_district_id" },
                   "notes": { "type": "string", "example": "Giao hàng giờ hành chính", "nullable": true },
                   "items": {
                     "type": "array",

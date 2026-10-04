@@ -21,3 +21,12 @@ Schedule::command('ai:site-index')->dailyAt('02:30')->withoutOverlapping();
 Schedule::command('core:poll')->hourlyAt(\App\Support\CoreUpdate\CoreUpdateService::pollMinute())->withoutOverlapping(120);
 // An update or rollback clicked in the admin runs here, never in the web request.
 Schedule::command('core:run-requested')->everyMinute()->withoutOverlapping(120);
+
+// Queued mail (password reset, order status, owner notifications) would otherwise wait in `jobs`
+// forever on shared hosting, which has no queue worker: each minute, work the queue for up to
+// 50 s, in the background so the other tasks of the minute are not held up.
+Schedule::command('queue:work', ['--stop-when-empty', '--max-time=50', '--tries=3', '--sleep=1'])
+    ->everyMinute()
+    ->withoutOverlapping(2)
+    ->runInBackground()
+    ->when(fn () => config('queue.scheduler_worker') && config('queue.default') !== 'sync');

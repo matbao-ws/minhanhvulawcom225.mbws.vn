@@ -1,6 +1,7 @@
   @php
       $sidebarUser = auth()->user();
       $sidebarFeatures = app(\App\Support\FeatureGate::class);
+      $sidebarCoreVersion = app(\App\Support\CoreManifest::class)->version();
   @endphp
 
   <style>
@@ -481,6 +482,14 @@
                           @endcan
                       </ul>
                   </nav>
+                  {{-- Which core this website runs: the first thing to look at after an update. --}}
+                  <div class="hide-menu px-4 pt-3 pb-4 fs-2 text-muted" data-core-version="{{ $sidebarCoreVersion }}">
+                      @if($sidebarUser?->isSuperAdmin())
+                      <a href="{{ route('admin.core-update.index') }}" class="text-muted">{{ __('admin.sidebar.core_version', ['version' => $sidebarCoreVersion]) }}</a>
+                      @else
+                      {{ __('admin.sidebar.core_version', ['version' => $sidebarCoreVersion]) }}
+                      @endif
+                  </div>
               </div>
           </div>
       </div>

@@ -425,7 +425,7 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
 
 - `App\Support\CoreManifest` là nguồn sự thật duy nhất, dạng **allowlist**: chỉ đường dẫn trong
   `CoreManifest::CORE` là core (app, config, database, lang, routes của core, views admin/api/auth/
-  components/core/emails/vendor, `public/admin-assets`, `public/client-assets/vendor`, `public/docs`,
+  components/core/emails/errors/vendor, `public/admin-assets`, `public/client-assets/vendor`, `public/docs`,
   `public/index.php`, `artisan`, composer.json/lock, `VERSION`). `vendor/` là gói dependencies riêng,
   chỉ phát hành khi composer.lock đổi. Mọi thứ khác thuộc website và bản cập nhật không bao giờ ghi:
   theme `resources/views/client/**`, `public/client-assets/css`, `routes/theme.php`, `.env`, `storage`,

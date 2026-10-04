@@ -87,6 +87,7 @@ Route::prefix('admin')->group(function () {
 Route::post('/ai/webhook', \App\Http\Controllers\Api\AiWebhookController::class)->middleware('throttle:webhook');
 
 Route::post('/webhooks/ghtk', [WebhookController::class, 'handleGHTK'])->middleware('throttle:webhook');
+Route::post('/webhooks/ghn', [WebhookController::class, 'handleGHN'])->middleware('throttle:webhook');
 Route::post('/webhooks/sepay', [WebhookController::class, 'handleSepay'])
     ->middleware('throttle:webhook')
     ->name('api.webhooks.sepay');

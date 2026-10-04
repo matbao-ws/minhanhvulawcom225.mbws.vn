@@ -9,6 +9,7 @@ use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ShippingIntegrationTest extends TestCase
@@ -222,6 +223,28 @@ class ShippingIntegrationTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['carrier', 'weight', 'province', 'district', 'ward']);
+        $response->assertJsonValidationErrors(['carrier', 'weight']);
+    }
+
+    public function test_admin_can_create_ghn_order_with_ghn_location_codes(): void
+    {
+        \App\Models\ShippingPartner::query()->where('partner_code', 'DTGH000013')->first()->update([
+            'status' => 'active',
+            'settings' => ['api_token' => 'test-token', 'api_url' => 'https://online-gateway.ghn.vn', 'shop_id' => '12345'],
+        ]);
+        Http::fake([
+            'https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/available-services' => Http::response(['data' => [['service_id' => 53321]]]),
+            'https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee' => Http::response(['data' => ['total' => 32000]]),
+            'https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/create' => Http::response(['data' => ['order_code' => 'GHNTEST123']]),
+        ]);
+        $this->actingAs(User::factory()->create(['role_id' => $this->adminRole->id]))
+            ->postJson("/vi/admin/orders/{$this->order->id}/push-shipping", [
+                'carrier' => 'ghn', 'weight' => 500, 'to_district_id' => 1442, 'to_ward_code' => '20308',
+            ])->assertOk()->assertJsonPath('tracking_number', 'GHNTEST123');
+        $this->order->refresh();
+        $this->assertSame('ghn', $this->order->shipping_carrier);
+        $this->assertSame('GHNTEST123', $this->order->tracking_number);
+        $this->assertEquals(32000, $this->order->carrier_shipping_fee);
+        Http::assertSentCount(3);
     }
 }

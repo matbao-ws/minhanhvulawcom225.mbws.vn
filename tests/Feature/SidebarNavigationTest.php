@@ -91,6 +91,21 @@ class SidebarNavigationTest extends TestCase
     }
 
     /** @return list<string> */
+    public function test_the_sidebar_shows_the_core_version(): void
+    {
+        $version = trim((string) file_get_contents(base_path('VERSION')));
+        $editor = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Editor', 'permissions' => ['settings.view']])->id]);
+        $superadmin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_system' => true])->id]);
+
+        // Everyone sees it; only the superadmin gets the link to the update page.
+        $this->actingAs($editor)->get('/vi/admin')->assertOk()
+            ->assertSeeText("Phiên bản core {$version}")
+            ->assertDontSee('href="'.route('admin.core-update.index').'"', false);
+        $this->actingAs($superadmin)->get('/vi/admin')->assertOk()
+            ->assertSeeText("Phiên bản core {$version}")
+            ->assertSee('href="'.route('admin.core-update.index').'"', false);
+    }
+
     private function adminLinks(string $html): array
     {
         $document = new DOMDocument();

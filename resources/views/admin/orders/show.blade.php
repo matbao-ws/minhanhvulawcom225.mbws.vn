@@ -238,9 +238,9 @@
                         </p>
                     @else
                         <p class="text-muted mb-2 fs-3">{{ __('admin.orders.not_shipped') }}</p>
-                        @if($order->status !== 'cancelled' && $isGhtkEnabled)
+                        @if($order->status !== 'cancelled' && ($isGhtkEnabled || $isGhnEnabled))
                             <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 mt-1 fw-semibold py-2 px-3" data-bs-toggle="modal" data-bs-target="#pushShippingModal">
-                                <i class="ti ti-truck fs-4"></i> {{ __('admin.orders.create_ghtk') }}
+                                <i class="ti ti-truck fs-4"></i> Tạo vận đơn
                             </button>
                         @endif
                     @endif
@@ -367,26 +367,26 @@
         </div>
     </div>
 
-    @if($isGhtkEnabled && !$order->tracking_number)
+    @if(($isGhtkEnabled || $isGhnEnabled) && !$order->tracking_number)
     <!-- Push Shipping Modal -->
     <div class="modal fade" id="pushShippingModal" tabindex="-1" aria-labelledby="pushShippingModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-semibold text-dark" id="pushShippingModalLabel">{{ __('admin.orders.create_ghtk') }}</h5>
+                    <h5 class="modal-title fw-semibold text-dark" id="pushShippingModalLabel">Tạo vận đơn</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="pushShippingForm" action="{{ route('admin.orders.push-shipping', $order) }}" method="POST">
                     @csrf
-                    <input type="hidden" name="carrier" value="ghtk">
                     <div class="modal-body text-start">
+                        <div class="mb-3"><label class="form-label fw-semibold text-dark" for="shipping_carrier">Đơn vị vận chuyển</label><select class="form-select" id="shipping_carrier" name="carrier" required>@if($isGhtkEnabled)<option value="ghtk">Giao Hàng Tiết Kiệm (GHTK)</option>@endif @if($isGhnEnabled)<option value="ghn">Giao Hàng Nhanh (GHN)</option>@endif</select></div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-dark">{{ __('admin.orders.fields.shipping_address') }}</label>
                             <input type="text" class="form-control bg-light text-dark" value="{{ $order->shipping_address }}" readonly>
                         </div>
                         
                         <!-- Address details for shipping parsing -->
-                        <div class="row">
+                        <div class="row" id="ghtk-address-fields">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="shipping_province">{{ __('admin.orders.fields.province') }} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control text-dark" id="shipping_province" name="province" value="Hồ Chí Minh" required>
@@ -400,12 +400,33 @@
                                 <input type="text" class="form-control text-dark" id="shipping_ward" name="ward" value="Phường Bến Nghé" required>
                             </div>
                         </div>
+                        <div class="d-none" id="ghn-address-fields"
+                             data-provinces-url="{{ route('admin.shipping.ghn.provinces') }}"
+                             data-districts-url="{{ route('admin.shipping.ghn.districts', ['provinceId' => '__ID__']) }}"
+                             data-wards-url="{{ route('admin.shipping.ghn.wards', ['districtId' => '__ID__']) }}">
+                            <input type="hidden" id="ghn_district_id" name="to_district_id" value="{{ $ghnLocation['district_id'] ?? '' }}">
+                            <input type="hidden" id="ghn_ward_code" name="to_ward_code" value="{{ $ghnLocation['ward_code'] ?? '' }}">
+                            @if($ghnLocation)
+                                <div class="alert alert-success small py-2 mb-3" id="ghn-saved-location">
+                                    <i class="ti ti-map-pin-check me-1" aria-hidden="true"></i>Dùng địa chỉ GHN khách chọn lúc đặt hàng
+                                    (quận/huyện <strong>{{ $ghnLocation['district_id'] }}</strong>, phường/xã <strong>{{ $ghnLocation['ward_code'] }}</strong>).
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="ghn-pick-again">Chọn lại</button>
+                                </div>
+                            @endif
+                            <div class="row" id="ghn-pickers" @if($ghnLocation) hidden @endif>
+                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_province">Tỉnh/Thành <span class="text-danger">*</span></label><select class="form-select" id="ghn_province" disabled><option value="">Đang tải…</option></select></div>
+                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_district">Quận/Huyện <span class="text-danger">*</span></label><select class="form-select" id="ghn_district" disabled><option value="">Chọn tỉnh trước</option></select></div>
+                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_ward">Phường/Xã <span class="text-danger">*</span></label><select class="form-select" id="ghn_ward" disabled><option value="">Chọn quận/huyện trước</option></select></div>
+                                <div class="col-12"><div class="form-text mt-n2 mb-3" id="ghn-lookup-error"></div></div>
+                            </div>
+                        </div>
 
                         <div class="mb-0">
                             <label class="form-label fw-semibold text-dark" for="shipping_weight">{{ __('admin.orders.fields.weight') }} <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control text-dark" id="shipping_weight" name="weight" value="500" min="1" required>
+                            <input type="number" class="form-control text-dark" id="shipping_weight" name="weight" value="{{ $ghnParcel['weight'] }}" min="1" required>
                             <div class="form-text">{{ __('admin.orders.weight_help') }}</div>
                         </div>
+                        <div class="row mt-1 d-none" id="ghn-dimension-fields"><div class="col-4"><label class="form-label small">Dài (cm)</label><input class="form-control" type="number" min="1" max="200" name="length" value="{{ $ghnParcel['length'] }}"></div><div class="col-4"><label class="form-label small">Rộng (cm)</label><input class="form-control" type="number" min="1" max="200" name="width" value="{{ $ghnParcel['width'] }}"></div><div class="col-4"><label class="form-label small">Cao (cm)</label><input class="form-control" type="number" min="1" max="200" name="height" value="{{ $ghnParcel['height'] }}"></div></div>
                     </div>
                     <div class="modal-footer border-top">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('catalog.actions.cancel') }}</button>
@@ -424,6 +445,70 @@
             // Push Shipping Form AJAX handling
             const pushShippingForm = document.getElementById('pushShippingForm');
             if (pushShippingForm) {
+                const carrier = document.getElementById('shipping_carrier');
+                const syncCarrierFields = () => {
+                    const isGhn = carrier?.value === 'ghn';
+                    document.getElementById('ghn-address-fields').classList.toggle('d-none', !isGhn);
+                    document.getElementById('ghn-dimension-fields').classList.toggle('d-none', !isGhn);
+                    document.getElementById('ghtk-address-fields').classList.toggle('d-none', isGhn);
+                    ['shipping_province', 'shipping_district', 'shipping_ward'].forEach(id => document.getElementById(id).required = !isGhn);
+                    if (isGhn) loadGhnProvinces();
+                };
+
+                // GHN address pickers: province → district → ward fill the hidden codes.
+                const ghnBox = document.getElementById('ghn-address-fields');
+                const ghnPickers = document.getElementById('ghn-pickers');
+                const ghnProvince = document.getElementById('ghn_province');
+                const ghnDistrict = document.getElementById('ghn_district');
+                const ghnWard = document.getElementById('ghn_ward');
+                const ghnError = document.getElementById('ghn-lookup-error');
+                const districtInput = document.getElementById('ghn_district_id');
+                const wardInput = document.getElementById('ghn_ward_code');
+                let ghnLoaded = false;
+                const ghnGet = async (url) => {
+                    const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                    const body = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(body.message || 'Không lấy được dữ liệu GHN.');
+                    return body.data;
+                };
+                const ghnFill = (select, rows, placeholder, label, value) => {
+                    select.replaceChildren(new Option(placeholder, ''));
+                    rows.forEach(row => select.append(new Option(row[label], row[value])));
+                    select.disabled = false;
+                };
+                const ghnReset = (select, placeholder) => { select.replaceChildren(new Option(placeholder, '')); select.disabled = true; };
+                const ghnFail = (error) => { ghnError.textContent = error.message; ghnError.classList.add('text-danger'); };
+                function loadGhnProvinces() {
+                    if (ghnLoaded || ghnPickers.hidden) return;
+                    ghnLoaded = true;
+                    ghnGet(ghnBox.dataset.provincesUrl).then(rows => ghnFill(ghnProvince, rows, 'Chọn tỉnh/thành', 'ProvinceName', 'ProvinceID')).catch(ghnFail);
+                }
+                document.getElementById('ghn-pick-again')?.addEventListener('click', () => {
+                    document.getElementById('ghn-saved-location').hidden = true;
+                    ghnPickers.hidden = false;
+                    districtInput.value = '';
+                    wardInput.value = '';
+                    loadGhnProvinces();
+                });
+                ghnProvince.addEventListener('change', () => {
+                    districtInput.value = ''; wardInput.value = '';
+                    ghnReset(ghnWard, 'Chọn quận/huyện trước');
+                    if (!ghnProvince.value) return ghnReset(ghnDistrict, 'Chọn tỉnh trước');
+                    ghnReset(ghnDistrict, 'Đang tải…');
+                    ghnGet(ghnBox.dataset.districtsUrl.replace('__ID__', ghnProvince.value)).then(rows => ghnFill(ghnDistrict, rows, 'Chọn quận/huyện', 'DistrictName', 'DistrictID')).catch(ghnFail);
+                });
+                ghnDistrict.addEventListener('change', () => {
+                    districtInput.value = ''; wardInput.value = '';
+                    if (!ghnDistrict.value) return ghnReset(ghnWard, 'Chọn quận/huyện trước');
+                    ghnReset(ghnWard, 'Đang tải…');
+                    ghnGet(ghnBox.dataset.wardsUrl.replace('__ID__', ghnDistrict.value)).then(rows => ghnFill(ghnWard, rows, 'Chọn phường/xã', 'WardName', 'WardCode')).catch(ghnFail);
+                });
+                ghnWard.addEventListener('change', () => {
+                    districtInput.value = ghnWard.value ? ghnDistrict.value : '';
+                    wardInput.value = ghnWard.value;
+                });
+                carrier?.addEventListener('change', syncCarrierFields);
+                syncCarrierFields();
                 pushShippingForm.addEventListener('submit', function (e) {
                     e.preventDefault();
 
