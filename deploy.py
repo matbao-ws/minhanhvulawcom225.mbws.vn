@@ -743,7 +743,7 @@ def should_exclude(rel_path):
     path_parts = rel_path.replace('\\', '/').split('/')
     
     # Core directories to skip entirely
-    skip_entirely = {'.git', '.github', '.idea', '.vscode', 'node_modules', 'tests', BACKUP_DIR, SITES_DIR}
+    skip_entirely = {'.git', '.github', '.idea', '.vscode', 'node_modules', 'tests', 'infra', BACKUP_DIR, SITES_DIR}
     for p in path_parts:
         if p in skip_entirely:
             return 'entirely'

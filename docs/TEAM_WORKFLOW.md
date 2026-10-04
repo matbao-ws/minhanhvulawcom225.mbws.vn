@@ -209,6 +209,10 @@ chạy** hoặc ngồi cùng. Không có kết nối này thì website không g�
 
 Cuối quá trình deploy, script tự kiểm tra kết nối: dòng `Kết nối gateway OK` là đạt.
 
+Website trên máy chủ Plesk 252 **không cần tạo cron riêng**: cron chung của máy chủ (phụ lục A) tự
+nhận website mới trong vòng 10 phút. Website ở hosting khác thì phải có cron chạy
+`php artisan schedule:run` mỗi phút, nếu không, bấm "Cập nhật" trong admin sẽ không chạy.
+
 ### Các lần sau
 
 `python deploy.py`, chọn domain đã lưu và Enter.
@@ -304,3 +308,43 @@ git switch main;  git pull
 # (VERSION cũ hơn website? → git fetch core --tags; git merge vX.Y.Z)
 python deploy.py
 ```
+
+---
+
+## Phụ lục A. Cron chung trên máy chủ Plesk 252 (trưởng nhóm làm 1 lần)
+
+Website cần cron chạy mỗi phút để: thực hiện bản cập nhật core khi admin bấm "Cập nhật", kiểm tra
+bản mới, đồng bộ gói, hết hạn voucher. Thay vì tạo cron cho từng website, máy chủ có **một** cron
+chung: `infra/plesk-cron.sh`.
+
+- **Chỉ chạy website do hệ thống cập nhật quản lý**: có `artisan`, `app/Support/CoreManifest.php`
+  **và** `storage/app/core/installed.json` (file mốc do `deploy.py` và mỗi lần cập nhật core ghi ra).
+  Dự án cũ không có file mốc nên **không bao giờ bị đụng tới**; WordPress, Laravel khác cũng vậy.
+- Bỏ qua website đã có cron riêng chạy `schedule:run` (không chạy hai lần), và website có file
+  `storage/app/core/no-shared-cron` (muốn loại một website: tạo file này).
+- Chạy `php artisan schedule:run` **bằng tài khoản sở hữu website**, không bằng root.
+- Chống quá tải: tối đa 4 website cùng lúc, độ ưu tiên CPU/ổ đĩa thấp (truy cập web của khách được
+  ưu tiên); lượt phút trước chưa xong thì phút này bỏ qua; máy chủ tải cao (load > số CPU × 2) thì
+  hoãn; danh sách website quét lại 10 phút một lần.
+- Chỉ ghi lỗi và các phút bị bỏ qua vào `/var/log/matbaows-cron.log`.
+
+Cài (SSH vào máy chủ 252 bằng root):
+
+```bash
+curl -fsSL -H "Authorization: token <github token đọc repo core>"   https://raw.githubusercontent.com/M-t-Bao-WS/matbaows-core-admin/main/infra/plesk-cron.sh -o /tmp/plesk-cron.sh
+# hoặc: chép file infra/plesk-cron.sh lên máy chủ bằng SFTP
+sudo bash /tmp/plesk-cron.sh --install
+```
+
+Kiểm tra và gỡ:
+
+```bash
+sudo matbaows-cron --list          # mọi website core tìm thấy, và website nào được chạy (cột CHẠY?)
+sudo tail -f /var/log/matbaows-cron.log
+sudo matbaows-cron --uninstall
+```
+
+Cấu hình thêm (không bắt buộc) trong `/etc/matbaows-cron.conf`: `PHP=/opt/plesk/php/8.3/bin/php`
+(mặc định: bản PHP 8.2+ mới nhất của Plesk), `JOBS=4`, `LOAD_MAX=16`.
+
+Không tạo thêm cron từng website trong Plesk cho các website này: hai cron cùng chạy là thừa.
