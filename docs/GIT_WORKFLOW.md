@@ -169,6 +169,8 @@ kèm 4 file (`release.json`, `release.json.sig`, `core-1.0.2.zip`, `dependencies
 
 ## 5. Cho website khách nhận bản mới (trên server gateway)
 
+> Hướng dẫn đầy đủ (ghim, mở dần, dừng, xử lý khi không thấy bản mới): [CORE_ROLLOUT.md](CORE_ROLLOUT.md).
+
 Gateway tự nạp bản mới: ngay lập tức nếu đã bật webhook, chậm nhất trong vòng 1 giờ nếu chưa.
 Bản mới bắt đầu ở **0%**, tức chưa site nào nhận.
 
