@@ -1,7 +1,8 @@
 # Đưa bản core mới tới website khách (ghim, mở dần, dừng)
 
 Dành cho người phát hành core. Đọc sau khi đã gắn tag và CI tạo xong GitHub Release
-([GIT_WORKFLOW.md](GIT_WORKFLOW.md), mục 4).
+([GIT_WORKFLOW.md](GIT_WORKFLOW.md), mục 4). File nào là chính hệ thống cập nhật, sửa phải cẩn thận:
+[UPDATE_SAFETY.md](UPDATE_SAFETY.md).
 
 ---
 

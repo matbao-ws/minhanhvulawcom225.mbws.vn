@@ -26,11 +26,13 @@ Các lệnh dưới đây gõ trong PowerShell hoặc terminal của VS Code, t�
 | `feat/...` | Không có gì |
 | `main` | CI build và **tự deploy** lên `aimbw.webwow.vn` |
 
-### Ba quy tắc vàng
+### Bốn quy tắc vàng
 
 1. **Không code thẳng trên `main` hoặc `dev`.** Luôn tạo nhánh `feat/...` hoặc `fix/...`.
 2. **Luôn chạy `git pull` trước khi tạo nhánh mới hoặc gắn tag.**
-3. **Không commit secret**: `.env`, file `.pem`, file key JSON, token. Đừng mở hay bôi đen chúng trong
+3. **Sửa file của hệ thống cập nhật** (`config/core_update.php`, `app/Support/CoreUpdate/`,
+   `CoreManifest.php`...) thì theo quy trình trong [UPDATE_SAFETY.md](UPDATE_SAFETY.md), phần B.
+4. **Không commit secret**: `.env`, file `.pem`, file key JSON, token. Đừng mở hay bôi đen chúng trong
    VS Code khi đang chat với AI.
 
 ---

@@ -136,7 +136,7 @@ Danh sách đầy đủ là hằng `CORE` trong `app/Support/CoreManifest.php`, 
 `database/migrations/`, `config/`, `lang/`, `composer.json`, `public/admin-assets/`,
 `public/client-assets/vendor/`. `team.py` đọc đúng danh sách này khi kiểm tra trước lúc lưu.
 
-Cần thay đổi ở đó thì xem mục 3.2.
+Cần thay đổi ở đó thì xem mục 3.2. Danh sách chi tiết và hậu quả khi sửa nhầm: [UPDATE_SAFETY.md](UPDATE_SAFETY.md).
 
 ### 3.1. Cách làm giao diện
 
