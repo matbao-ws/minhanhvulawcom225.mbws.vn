@@ -3,7 +3,8 @@
 @section('title', 'Checkout test')
 
 @section('content')
-<main class="client-shell checkout-test">
+{{-- Admin-only development tool, not storefront copy: kept out of inline editing. --}}
+<main class="client-shell checkout-test" data-editable-ignore>
     <div class="checkout-test__intro"><p class="checkout-test__eyebrow">Development utility</p><h1>Checkout test</h1><p>Tạo đơn qua API public. Giá, khuyến mãi, tồn kho và phí giao hàng đều do server quyết định.</p></div>
     <form id="checkout-test-form" class="checkout-test__card" novalidate>
         <div id="checkout-test-status" class="checkout-test__status" hidden role="status"></div>
