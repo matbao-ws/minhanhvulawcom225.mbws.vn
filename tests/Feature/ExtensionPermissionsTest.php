@@ -76,6 +76,22 @@ class ExtensionPermissionsTest extends TestCase
         $this->actingAs($other)->get("/vi/admin/ext/{$this->id}/list")->assertForbidden();
     }
 
+    public function test_only_declared_permissions_are_ever_created(): void
+    {
+        $superadmin = $this->userWith(['*'], system: true);
+
+        // Through the role form: an invented code is rejected before anything is written.
+        $this->actingAs($superadmin)->post(route('admin.roles.store', ['locale' => 'vi']), [
+            'name' => 'Hacker', 'permissions' => ['hack.everything', "{$this->id}.view"],
+        ])->assertSessionHasErrors();
+        // Through the model and the override path: unknown codes are dropped, never inserted.
+        Role::query()->create(['name' => 'Direct', 'permissions' => ['hack.everything', "{$this->id}.sync"]]);
+        Permission::ensureRegistered(['hack.everything']);
+
+        $this->assertFalse(Permission::query()->where('code', 'hack.everything')->exists());
+        $this->assertTrue(Permission::query()->where('code', "{$this->id}.sync")->exists());
+    }
+
     public function test_prune_keeps_the_permissions_of_an_extension_that_is_only_switched_off(): void
     {
         Role::query()->create(['name' => 'Đại lý viên', 'permissions' => ["{$this->id}.view"]]);

@@ -8,6 +8,7 @@ use App\Support\Extensions\ExtensionAutoloader;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Tests\Support\BuildsExtensions;
 use Tests\TestCase;
@@ -81,6 +82,33 @@ class ExtensionLifecycleTest extends TestCase
         // Pages that have nothing to do with the broken extensions keep working.
         $this->actingAs($this->superadmin())->get('/vi/admin')->assertOk();
         $this->artisan('core:health')->assertExitCode(0);
+    }
+
+    public function test_a_failure_is_logged_with_id_version_phase_and_class_but_no_secret(): void
+    {
+        $inBoot = $this->uniqueExtensionId('b');
+        $inRegister = $this->uniqueExtensionId('r');
+        $this->makeExtension($inBoot, ['version' => '2.3.4'], files: [
+            'config.php' => "<?php return ['api_key' => 'SECRET-MISA-KEY-123'];",
+        ], boot: "(function (string \$key) { throw new \\RuntimeException('MISA unreachable'); })(config('extensions.{$inBoot}.api_key'));");
+        $this->makeExtension($inRegister, register: "throw new \\LogicException('bad wiring');");
+        $logged = [];
+        Log::listen(function ($event) use (&$logged) {
+            $logged[] = ['message' => $event->message, 'context' => $event->context];
+        });
+
+        $all = $this->loadExtensions()->all();
+
+        $boot = collect($logged)->firstWhere('context.extension', $inBoot);
+        $this->assertSame("Extension {$inBoot} failed to load (boot)", $boot['message']);
+        $this->assertSame(['extension' => $inBoot, 'version' => '2.3.4', 'phase' => 'boot', 'exception' => 'RuntimeException', 'message' => 'MISA unreachable'],
+            array_intersect_key($boot['context'], array_flip(['extension', 'version', 'phase', 'exception', 'message'])));
+        $this->assertStringStartsWith("extensions/{$inBoot}/src/", $boot['context']['at']);
+        $this->assertSame('register', collect($logged)->firstWhere('context.extension', $inRegister)['context']['phase']);
+        $this->assertSame('boot: RuntimeException: MISA unreachable', $all[$inBoot]['error']);
+
+        $everything = json_encode($logged).json_encode($all);
+        $this->assertStringNotContainsString('SECRET-MISA-KEY-123', $everything, 'no trace arguments, no config in the log or the admin');
     }
 
     public function test_extensions_enabled_false_boots_past_a_badly_broken_extension(): void

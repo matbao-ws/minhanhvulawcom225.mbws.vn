@@ -171,6 +171,8 @@ Quét `extensions/*/src/**`, `routes/**`, `database/**` (phân tích tĩnh, toke
 - `use App\...` / `\App\...` ngoài danh sách được dùng → **lỗi**;
 - `->bind(`, `->singleton(`, `->extend(`, `->instance(`, `->alias(` với tham số là class `App\...` → **lỗi**
   (extension chỉ ADD / LISTEN / REGISTER, không REPLACE);
+- trong `src/`, `database/`: đăng ký route (`Route::...`) hoặc tự gọi `loadRoutesFrom`/`loadViewsFrom`/
+  `loadMigrationsFrom`/`mergeConfigFrom` → **lỗi** (lách khỏi tiền tố và vòng đời do core sở hữu);
 - migration vi phạm quyền sở hữu bảng (mục 5) → **lỗi**.
 
 `team.py` ("Lưu & đẩy") chạy lệnh này khi có thay đổi trong `extensions/`; CI của repo khách chạy nó
@@ -299,7 +301,36 @@ Thứ tự commit (để review và rollback từng bước): deploy.py bỏ `st
 manager → autoloader + vòng đời provider → blocker của updater → quyền → menu → lệnh →
 MigrationSafety + `extension:check` → trang admin Extensions → extension mẫu + test + tài liệu.
 
-## 8. Ngoài phạm vi Giai đoạn 1
+## 8. Thử trên site thật trước khi phát hành 1.2.0
+
+Test tự động không thay được hosting thật. Trình tự (đã thống nhất khi duyệt):
+
+1. Merge vào `dev`, **chưa** tăng `VERSION`. Staging chạy extension layer mà **không có** `extensions/`:
+   hành vi phải y như trước.
+2. Trên một site thử (`core-admin.mbws.vn`), tạo extension nhỏ thật `extensions/testnote/`
+   (`extension:make testnote`): 1 menu, 1 trang, 1 quyền, bảng `ext_testnote_notes`. Kiểm: đăng nhập
+   admin, quyền, menu, route, migration, `extension:disable`/`enable`, `EXTENSIONS_ENABLED=false`.
+3. Phát hành **`1.2.0-beta.1`** (kênh beta), ghim site thử, cập nhật bằng **đúng updater thật**
+   (gateway → poll → admin bấm → cron → preflight → cài → health). Không `git pull` đi đường tắt.
+4. Cố tình làm hỏng trên site thử:
+
+| Case | Làm | Phải thấy |
+|---|---|---|
+| A — không tương thích | `requires_core` của testnote `<1.2.0`, cập nhật | Bị chặn, trang cập nhật ghi tên extension, site vẫn sống. `extension:disable testnote` rồi cập nhật lại: thành công |
+| B — provider ném lỗi | `throw new RuntimeException('test')` trong `boot()` | Core vẫn chạy; `extension:list` và trang Tiện ích mở rộng báo "Lỗi khi nạp" kèm lý do; log có id, phiên bản, giai đoạn |
+| C — manifest hỏng | JSON sai trong `extension.json` | Extension "không hợp lệ", site vẫn chạy; `EXTENSIONS_ENABLED=false` vẫn boot |
+| D — core bị sửa tay | Sửa một file core trên hosting | Cập nhật bị chặn (drift), không đụng extension hay site |
+| E — cập nhật bị ngắt | Kill tiến trình đang cập nhật | Trạng thái "bị gián đoạn", lần sau không tự cập nhật bừa; `core:rollback` khôi phục được |
+
+5. Qua hết thì mới tăng `VERSION` lên `1.2.0`, merge `main`, tag `v1.2.0`, mở rollout.
+
+Dự án khách cũ chưa có bước `extension:check` trong CI: không ảnh hưởng khi chưa có `extensions/`;
+lần đầu thêm extension vào dự án nào thì thêm bước đó vào CI của dự án ấy.
+
+Sau 1.2.0: ghi lại mỗi lần dev phải sửa core vì "chưa có hook ở đây" — đó là đầu vào cho sự kiện, slot
+của Giai đoạn 2 (1.3.0), thay vì đoán trước.
+
+## 9. Ngoài phạm vi Giai đoạn 1
 
 Sự kiện nghiệp vụ, slot trong màn hình core, `extension_data` (Giai đoạn 2 — core 1.3.0); hợp đồng
 phí ship/thanh toán, lịch chạy của extension, trang cấu hình riêng (Giai đoạn 3, khi có nhu cầu thật);

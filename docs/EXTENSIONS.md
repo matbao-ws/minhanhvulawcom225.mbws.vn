@@ -96,8 +96,10 @@ class DealersServiceProvider extends ServiceProvider
 }
 ```
 
-**Không** gọi `loadRoutesFrom`, `loadViewsFrom`, `loadMigrationsFrom`: core tự nạp theo cùng thứ tự,
-tiền tố và middleware cho mọi extension.
+**Không** gọi `loadRoutesFrom`, `loadViewsFrom`, `loadMigrationsFrom`, `mergeConfigFrom`, và **không**
+đăng ký route trong `src/` (`Route::get(...)` trong provider sẽ lách khỏi tiền tố `/ext/<id>` và
+middleware admin): route chỉ nằm trong `routes/*.php`. Core tự nạp theo cùng thứ tự, tiền tố và
+middleware cho mọi extension; `extension:check` báo lỗi nếu làm khác.
 
 ## 5. Quyền, menu, trang admin
 
@@ -153,7 +155,9 @@ code chạy chung tiến trình với core, phải được review như code cor
 
 - Các lệnh `extension:*` không nạp extension nào, nên chạy được cả khi extension đang làm hỏng website.
 - Extension lỗi (exception khi nạp, lỗi cú pháp...) chỉ **tự nó** bị bỏ qua, website vẫn chạy; lỗi hiện
-  ở trang Tiện ích mở rộng và `extension:list`.
+  ở trang Tiện ích mở rộng và `extension:list`. Log (`storage/logs`) ghi id, phiên bản, giai đoạn
+  (`register`/`resources`/`boot`/`routes`), class và thông báo lỗi — không ghi stack trace hay config,
+  để không lộ khoá API.
 - Trạng thái bật/tắt nằm trong `storage/app/core/extensions.json` của website — deploy và cập nhật core
   không ghi đè.
 

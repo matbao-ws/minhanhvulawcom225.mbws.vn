@@ -43,6 +43,7 @@ class ExtensionServiceProvider extends ServiceProvider
 
         $manager = $this->app->make(ExtensionManager::class);
         foreach ($manager->ready() as $manifest) {
+            $phase = 'register';
             try {
                 ExtensionAutoloader::add($manifest);
                 if (is_file($manifest->path('config.php'))) {
@@ -56,7 +57,7 @@ class ExtensionServiceProvider extends ServiceProvider
                 $provider->register();
                 $this->extensions[$manifest->id] = ['manifest' => $manifest, 'provider' => $provider];
             } catch (Throwable $e) {
-                $this->fail($manager, $manifest, $e);
+                $this->fail($manager, $manifest, $e, $phase);
             }
         }
     }
@@ -66,15 +67,18 @@ class ExtensionServiceProvider extends ServiceProvider
         $manager = $this->app->make(ExtensionManager::class);
 
         foreach ($this->extensions as $id => ['manifest' => $manifest, 'provider' => $provider]) {
+            $phase = 'resources';
             try {
                 $this->loadResources($manifest);
+                $phase = 'boot';
                 if (method_exists($provider, 'boot')) {
                     $this->app->call([$provider, 'boot']);
                 }
+                $phase = 'routes';
                 $this->loadRoutes($manifest);
                 $manager->markLoaded($id);
             } catch (Throwable $e) {
-                $this->fail($manager, $manifest, $e);
+                $this->fail($manager, $manifest, $e, $phase);
             }
         }
         $this->extensions = [];
@@ -123,12 +127,26 @@ class ExtensionServiceProvider extends ServiceProvider
         }
     }
 
-    private function fail(ExtensionManager $manager, ExtensionManifest $manifest, Throwable $e): void
+    /**
+     * Logged as fields, without the exception object: a stack trace can carry call arguments
+     * (passwords, API keys, the extension's config), so neither trace nor config is written.
+     */
+    private function fail(ExtensionManager $manager, ExtensionManifest $manifest, Throwable $e, string $phase): void
     {
-        $manager->markFailed($manifest->id, $e);
+        $message = mb_strimwidth($e->getMessage(), 0, 500, '…');
+        $manager->markFailed($manifest->id, "{$phase}: ".$e::class.": {$message}");
         $this->app->make(AdminMenu::class)->forget($manifest->id);
         unset($this->extensions[$manifest->id]);
-        Log::error("Extension {$manifest->id} failed to load: ".$e->getMessage(), ['exception' => $e]);
+
+        $file = str_replace('\\', '/', $e->getFile());
+        Log::error("Extension {$manifest->id} failed to load ({$phase})", [
+            'extension' => $manifest->id,
+            'version' => $manifest->version,
+            'phase' => $phase,
+            'exception' => $e::class,
+            'message' => $message,
+            'at' => (str_starts_with($file, $manifest->path().'/') ? 'extensions/'.$manifest->id.substr($file, strlen($manifest->path())) : basename($file)).':'.$e->getLine(),
+        ]);
     }
 
     /** `php artisan extension:*` runs without extensions: it is how a broken one gets switched off. */
