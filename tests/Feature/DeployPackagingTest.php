@@ -62,7 +62,8 @@ class DeployPackagingTest extends TestCase
         file_put_contents($out.'/check.py', $script);
 
         try {
-            $process = new Process([$python, $out.'/check.py', base_path('deploy.py'), $this->project, $out]);
+            // No __pycache__ left in the repository by importing deploy.py.
+            $process = new Process([$python, $out.'/check.py', base_path('deploy.py'), $this->project, $out], null, ['PYTHONDONTWRITEBYTECODE' => '1']);
             $process->setTimeout(60)->run();
             $this->assertTrue($process->isSuccessful(), $process->getErrorOutput().$process->getOutput());
             preg_match('/RESULT=(.*)$/m', $process->getOutput(), $m);
