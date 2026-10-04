@@ -295,7 +295,7 @@ def main():
     say(f'    Web local:  http://{name}.test  (Laragon: Menu → Reload để nhận thư mục mới)')
     say(f'    Admin:      http://{name}.test/vi/admin')
     say('    Theme:      resources/views/client, public/client-assets (trừ vendor/), routes/theme.php — không sửa file core.')
-    say(f'    Làm việc:   cd "{target}" && python team.py')
+    say(f'    Làm việc:   cd "{target}"; python team.py')
     if repo_url:
         say(f'    GitHub:     {repo_url}')
     else:
