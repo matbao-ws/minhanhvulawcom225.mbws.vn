@@ -13,6 +13,7 @@ import base64
 import secrets
 import getpass
 import argparse
+import json
 
 EXCLUDE_FILES = {
     'deploy.py',
@@ -45,6 +46,11 @@ SITES_DIR = '.deploy-sites'
 # The server's .env is built from this template — the core's documented settings — plus the
 # site's profile, never from the developer's own .env.
 ENV_TEMPLATE = '.env.example'
+
+# The gateway's internal key lets deploy.py register a site and fetch its token by itself. It can
+# create and close any project, so it lives in the user's home — never in a checkout, never
+# uploaded — and is asked only once. GATEWAY_INTERNAL_KEY in the environment works too.
+DEPLOYER_SECRETS = os.path.join(os.path.expanduser('~'), '.matbaows', 'deploy.env')
 
 # The hosting panel writes its own key names into backend/.env; Laravel reads
 # different ones. Translate instead of asking for credentials already on the server.
@@ -126,6 +132,8 @@ def parse_args(argv=None):
                    help="Dùng deploy.zip đã có sẵn trên server thay vì nén và upload lại.")
     p.add_argument('--domain', default=None,
                    help="Domain website cần deploy (bỏ qua câu hỏi chọn site).")
+    p.add_argument('--gateway-token', action='store_true',
+                   help="Lấy lại token gateway cho site này (token cũ ngừng hoạt động).")
     p.add_argument('--reconfigure', action='store_true',
                    help="Nhập lại FTP / database / admin của site này (APP_KEY được giữ nguyên).")
     p.add_argument('--keep-default-index', action='store_true',
@@ -393,6 +401,72 @@ def legacy_profile(domain):
     return site
 
 
+def gateway_internal_key(args):
+    key = os.environ.get('GATEWAY_INTERNAL_KEY') or read_env_file(DEPLOYER_SECRETS).get('GATEWAY_INTERNAL_KEY')
+    if key or args.yes:
+        return key
+    print('[?] Để tự lấy token, deploy.py cần khoá nội bộ của gateway (chỉ hỏi một lần cho máy này).')
+    print("    Lấy trên VPS: grep '^GATEWAY_INTERNAL_KEY=' /opt/matbaows/env/gateway.env | cut -d= -f2-")
+    key = ask('GATEWAY_INTERNAL_KEY (Enter = bỏ qua)', secret=True, required=False)
+    if key:
+        os.makedirs(os.path.dirname(DEPLOYER_SECRETS), exist_ok=True)
+        with open(DEPLOYER_SECRETS, 'w', encoding='utf-8') as f:
+            f.write('# deploy.py: MatBao gateway internal key. Never commit or share.' + chr(10))
+            f.write(f'GATEWAY_INTERNAL_KEY={env_value_literal(key)}' + chr(10))
+        os.chmod(DEPLOYER_SECRETS, 0o600)
+        print(f'[+] Đã lưu khoá vào {DEPLOYER_SECRETS} (ngoài repo).')
+    return key
+
+
+def gateway_call(url, key, payload=None):
+    """POST to the gateway's internal API. Returns (status, json body)."""
+    request = urllib.request.Request(
+        url, data=json.dumps(payload or {}).encode(), method='POST',
+        headers={'Authorization': f'Bearer {key}', 'Content-Type': 'application/json', 'Accept': 'application/json'},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return response.status, json.loads(response.read() or b'{}')
+    except urllib.error.HTTPError as e:
+        try:
+            return e.code, json.loads(e.read() or b'{}')
+        except ValueError:
+            return e.code, {}
+
+
+def provision_gateway_token(gateway_url, domain, args):
+    """
+    Register the site on the gateway (or, when it is already there and the user agrees, issue it
+    a new token) and return {MATBAO_AI_TOKEN, MATBAO_AI_WEBHOOK_SECRET}, or {} when skipped.
+    """
+    key = gateway_internal_key(args)
+    if not key:
+        return {}
+    host = host_of(domain)
+    base = gateway_url.rstrip('/')
+    try:
+        status, body = gateway_call(f'{base}/internal/projects', key,
+                                    {'tool_domain': host, 'verified_origins': [f'https://{host}']})
+        if status == 409 and body.get('reason') == 'already_exists':
+            print(f'[!] {host} đã có trên gateway. Cấp token mới thì token đang dùng (nếu có) ngừng hoạt động.')
+            if args.yes or not prompt_yes_no('Cấp token mới cho site này?', True, args):
+                return {}
+            status, body = gateway_call(f'{base}/internal/projects/{host}/token', key)
+    except OSError as e:
+        print(f'[-] Không gọi được gateway: {e}')
+        return {}
+
+    if status == 401:
+        print(f'[-] Gateway từ chối GATEWAY_INTERNAL_KEY. Sửa hoặc xoá {DEPLOYER_SECRETS} rồi chạy lại.')
+        return {}
+    if status not in (200, 201) or not body.get('token'):
+        print(f'[-] Gateway trả lỗi {status}: {body.get("reason", "?")}')
+        return {}
+
+    print(f'[+] Đã lấy token gateway cho {host}.')
+    return {'MATBAO_AI_TOKEN': body['token'], 'MATBAO_AI_WEBHOOK_SECRET': body.get('webhook_secret', '')}
+
+
 def resolve_site(args):
     """
     Which website, and everything needed to reach and configure it — asked here, once per
@@ -442,14 +516,17 @@ def resolve_site(args):
         site['ADMIN_PASSWORD'] = ask('Mật khẩu admin' + (' (CMS_ADMIN_PASS của panel)' if default_pass else ''),
                                      default_pass, secret=True)
 
-    if 'MATBAO_AI_URL' not in site or args.reconfigure:
+    if 'MATBAO_AI_URL' not in site or args.reconfigure or args.gateway_token:
         # Mail goes through the MatBao relay when the site has a gateway token; without one, and
         # without SMTP in Admin → Cài đặt thông báo, the server's MAIL_MAILER=log only logs it.
-        print('[?] Kết nối gateway Mắt Bão: gửi email, AI SEO, cập nhật core (Enter ở token để bỏ qua):')
+        print('[?] Kết nối gateway Mắt Bão: gửi email, AI SEO, cập nhật core.')
         site['MATBAO_AI_URL'] = ask('Gateway URL', site.get('MATBAO_AI_URL') or 'https://aimbw.webwow.vn')
-        token = ask('MATBAO_AI_TOKEN', site.get('MATBAO_AI_TOKEN', ''), secret=True, required=False)
+        token = '' if args.gateway_token else ask(
+            'MATBAO_AI_TOKEN (Enter = tự lấy từ gateway)', site.get('MATBAO_AI_TOKEN', ''), secret=True, required=False)
         if token:
             site['MATBAO_AI_TOKEN'] = token
+        else:
+            site.update({k: v for k, v in provision_gateway_token(site['MATBAO_AI_URL'], domain, args).items() if v})
 
     # Contact form and order notifications fall back to MAIL_SELLER: the admin's address
     # rather than the template's owner@example.com.
