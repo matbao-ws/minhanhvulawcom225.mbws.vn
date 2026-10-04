@@ -1,6 +1,9 @@
 # Extension layer — thiết kế Giai đoạn 1 (core 1.2.0)
 
-Trạng thái: **bản thiết kế chờ duyệt**. Chưa có code. Duyệt xong mới làm trên nhánh `feat/extensions`.
+Trạng thái: **đã duyệt**, đang làm trên nhánh `feat/extensions`.
+
+**Bất biến bắt buộc của 1.2.0:** bỏ toàn bộ thư mục `extensions/` thì hệ thống chạy **y như core trước khi
+có extension layer**.
 
 Mục tiêu: website khách có **logic riêng** (trang admin, bảng dữ liệu, tích hợp MISA/ERP...) mà
 **không sửa file core**, nên core vẫn cập nhật được. Ba vùng sở hữu độc lập:
@@ -97,11 +100,16 @@ compat      requires_core thoả VERSION hiện tại? không → dừng, trạn
 register    autoloader cho đúng Extensions\<Studly>\ → src/ (chặn ".." và ký tự lạ trong tên class);
             provider->register() trong try/catch
    ↓
-boot        provider->boot(); nạp routes, views, lang, config, migrations; trong try/catch
+boot        provider->boot() trong try/catch; rồi ExtensionManager nạp routes, views, lang, config,
+            migrations của extension (provider không tự nạp)
    ↓
 loaded      | lỗi ở bất kỳ bước nào → trạng thái "failed" + ghi log, extension đó bị bỏ qua
 ```
 
+- **ExtensionManager sở hữu vòng đời**: thứ tự, tiền tố, middleware và namespace của route, view, lang,
+  config, migration giống hệt nhau cho mọi extension. Provider của extension chỉ đăng ký logic riêng
+  (listener, menu, binding *của chính nó*), không tự gọi `loadRoutesFrom`/`loadViewsFrom`/
+  `loadMigrationsFrom`.
 - Extension **không hợp lệ / tắt / không tương thích / lỗi** không làm sập website: core vẫn chạy,
   chỉ extension đó vắng mặt. Lỗi hiện ở trang **Extensions** trong admin và `extension:list`.
 - Không bắt được lỗi "chết hẳn" (hết bộ nhớ, segfault) — khi đó dùng chế độ an toàn (mục 4).
@@ -138,7 +146,7 @@ Cập nhật extension, hoặc tắt nó (php artisan extension:disable dealers)
 | Namespace / class | Ghi chú |
 |---|---|
 | `App\Extension\**` | **API ổn định.** Giai đoạn 1: `Registries\AdminMenu`, `Registries\Permissions`, `Support\ExtensionContext`. Giai đoạn 2 thêm `Events\*`, `Slots\*` |
-| `App\Models\Order`, `OrderItem`, `Product`, `ProductVariant`, `Category`, `Brand`, `Post`, `User` | Được **đọc** và tạo quan hệ (khoá ngoại). **Không** tự đổi trạng thái đơn, tiền, tồn kho bằng `->save()` — các thay đổi nghiệp vụ sẽ có hợp đồng riêng ở giai đoạn sau |
+| `App\Models\Order`, `OrderItem`, `Product`, `ProductVariant`, `Category`, `Brand`, `Post`, `User` | **Bề mặt tạm thời** cho 1.2.0, không phải API vĩnh viễn. Được **đọc** và tạo quan hệ (khoá ngoại). **Không** tự đổi trạng thái đơn, tiền, tồn kho bằng `->save()` — các thay đổi nghiệp vụ sẽ đi qua Contract riêng ở giai đoạn sau |
 | `Illuminate\*`, `Symfony\*`, `Psr\*`, `Carbon\*` | Framework |
 | `Extensions\<Studly(id)>\*` | Code của chính nó. **Không** gọi sang extension khác |
 | View `admin.layouts.app` và các component `<x-admin.*>` hiện có (`resources/views/components/admin`) | Để trang extension giống admin |
@@ -210,7 +218,7 @@ bao giờ âm thầm ghi đè.
 
 | Thứ | Extension `dealers` được | Va chạm / vi phạm |
 |---|---|---|
-| Bảng | Tạo, sửa, xoá bảng `ext_dealers_*`; index; khoá ngoại **trỏ tới** bảng core | `Schema::table/drop/rename` trên bảng core hoặc `ext_<id khác>_*` → `extension:check` báo lỗi. Migration của extension cũng theo luật expand/contract như core (`MigrationSafety`) |
+| Bảng | Tạo, sửa, xoá bảng `ext_dealers_*`; index; khoá ngoại **trỏ tới** bảng core, ưu tiên `restrictOnDelete()` hoặc `nullOnDelete()` theo nghiệp vụ — tránh `cascade` để xoá dữ liệu core không vô tình xoá hàng loạt dữ liệu extension | `Schema::table/drop/rename` trên bảng core hoặc `ext_<id khác>_*` → `extension:check` báo lỗi. Migration của extension cũng theo luật expand/contract như core (`MigrationSafety`) |
 | Dữ liệu bảng core | Đọc; thêm dòng qua model được phép | Không thêm cột vào bảng core. Metadata nhỏ cho đối tượng core dùng `extension_data` (Giai đoạn 2) |
 | Quyền | `dealers.*`, khai báo trong `extension.json` | Code không có tiền tố `<id>.` → manifest không hợp lệ. Hiện trong form vai trò ở nhóm "Extensions" |
 | Menu admin | `AdminMenu::register('dealers', key: 'dealers.index', ...)` | Key trùng, hoặc không có tiền tố `<id>.` → exception khi đăng ký → extension "failed" |
@@ -279,6 +287,17 @@ không có quyền (cùng cổng quyền `Gate` như menu core). Extension khôn
 - Migration: tạo `ext_example_*` chạy; `Schema::table('orders', ...)` → `extension:check` lỗi.
 - `extension:check`: `use App\Services\X` → lỗi; `app()->bind(App\...)` → lỗi.
 - Không có thư mục `extensions/` → mọi thứ như trước (toàn bộ test hiện có vẫn xanh).
+
+Bốn case bắt buộc trước khi phát hành 1.2.0:
+
+1. Cập nhật core A → B → C trên website có extension đang bật: bộ cập nhật mới vẫn tự cập nhật được.
+2. Provider extension ném exception: `core:health` và các trang không liên quan vẫn chạy đúng.
+3. `EXTENSIONS_ENABLED=false` boot được kể cả khi `extension.json` hoặc file PHP của extension hỏng nặng.
+4. Cập nhật bị chặn vì `requires_core`; sau `extension:disable`, **cùng bản phát hành đó** cập nhật được.
+
+Thứ tự commit (để review và rollback từng bước): deploy.py bỏ `storage/app/core` → manifest + state +
+manager → autoloader + vòng đời provider → blocker của updater → quyền → menu → lệnh →
+MigrationSafety + `extension:check` → trang admin Extensions → extension mẫu + test + tài liệu.
 
 ## 8. Ngoài phạm vi Giai đoạn 1
 
