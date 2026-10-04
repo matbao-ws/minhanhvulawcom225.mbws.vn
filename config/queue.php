@@ -16,6 +16,13 @@ return [
     'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
+    | Shared hosting (Plesk/cPanel) has no supervised worker, so the scheduler (cron, every minute)
+    | drains the queue itself — see routes/console.php. Turn off where a real worker runs
+    | (the staging Docker stack has its core-worker container).
+    */
+    'scheduler_worker' => (bool) env('QUEUE_SCHEDULER_WORKER', true),
+
+    /*
     |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
