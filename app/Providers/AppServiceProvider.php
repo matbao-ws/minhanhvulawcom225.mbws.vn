@@ -126,7 +126,11 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by($request->ip()),
             Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
         ]);
-        RateLimiter::for('public-contact', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
+        // Contact form: a burst per minute and a ceiling per day, per IP (config/contact.php).
+        RateLimiter::for('public-contact', fn (Request $request) => [
+            Limit::perMinute((int) config('contact.per_minute', 5))->by('contact-minute:'.$request->ip()),
+            Limit::perDay((int) config('contact.per_day', 20))->by('contact-day:'.$request->ip()),
+        ]);
         RateLimiter::for('public-checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
         RateLimiter::for('public-review', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
@@ -159,6 +163,9 @@ class AppServiceProvider extends ServiceProvider
         if (is_dir(resource_path('views/client/components'))) {
             \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/client/components'), 'client');
         }
+        // Themes written before the editor moved to views/core still include
+        // client.partials.admin-bar & co. Searched after views/, so a theme's own file wins.
+        \Illuminate\Support\Facades\View::addLocation(resource_path('views/core/legacy'));
 
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {

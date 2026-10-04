@@ -81,6 +81,52 @@
         }
       }
     },
+    "/public/contact": {
+      "post": {
+        "tags": ["Public"],
+        "summary": "Gửi form liên hệ / báo giá",
+        "description": "Lưu liên hệ và gửi email cho người bán. Các trường ngoài name/phone/email/message được lưu vào thông tin thêm. Chống spam: giới hạn theo IP (mặc định 5/phút, 20/ngày → 429), SĐT 8–15 chữ số, và bộ lọc nội dung (link trong tên, thẻ link, nhiều link, từ khoá spam, gửi trùng trong 24 giờ). Liên hệ bị nghi spam nhận đúng câu trả lời thành công nhưng không gửi email và nằm ở tab Spam trong admin. Hai trường tuỳ chọn giúp chặn bot tốt hơn: `_hp` (ô ẩn, người thật để trống) và `_ts` (thời điểm hiển thị form, unix giây hoặc mili giây; gửi trước 3 giây bị coi là bot).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "phone", "message"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 255, "example": "Nguyễn Văn A" },
+                  "phone": { "type": "string", "maxLength": 20, "pattern": "^\\+?[0-9 .()\\-]+$", "description": "8–15 chữ số", "example": "0901234567" },
+                  "email": { "type": "string", "format": "email", "nullable": true, "example": "a@example.com" },
+                  "message": { "type": "string", "maxLength": 5000, "example": "Tôi cần báo giá." },
+                  "_hp": { "type": "string", "description": "Honeypot: input ẩn, luôn để trống", "example": "" },
+                  "_ts": { "type": "integer", "description": "Unix time (giây hoặc mili giây) lúc form được hiển thị", "example": 1790000000 }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã nhận (kể cả khi bị lọc là spam)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Yêu cầu báo giá của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "description": "Dữ liệu không hợp lệ (thiếu trường, SĐT sai định dạng…)" },
+          "429": { "description": "Gửi quá nhiều lần từ cùng IP" },
+          "500": { "description": "Không gửi được email cho người bán" }
+        }
+      }
+    },
     "/public/auth/register": {
       "post": {
         "tags": ["Customer Authentication"],

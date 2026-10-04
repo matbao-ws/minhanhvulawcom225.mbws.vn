@@ -188,6 +188,20 @@ class CoreManifestTest extends TestCase
         $this->assertSame([], $offenders, "Expand/contract rule (AI_BUILD_PROMPT.md, \"Cập nhật phiên bản core\"): split into an expand release now and a contract release (marked @contract-migration) later.\n".implode("\n", $offenders));
     }
 
+    /** Themes written before 1.0.0 include the editor partials by their old client.* names. */
+    public function test_old_theme_includes_still_resolve_to_the_core_editor(): void
+    {
+        foreach (['admin-bar', 'google-analytics', 'inline-blocks', 'inline-history-panel', 'inline-outline',
+            'inline-section-panel', 'inline-viewport', 'media-picker'] as $partial) {
+            $this->assertTrue(view()->exists("client.partials.{$partial}"), $partial);
+            $this->assertTrue(view()->exists("core.partials.{$partial}"), $partial);
+        }
+
+        config(['analytics.measurement_id' => null]);
+        $this->assertSame(trim(view('core.partials.google-analytics')->render()), trim(view('client.partials.google-analytics')->render()));
+        $this->assertSame('core', (new CoreManifest($this->site))->owner('resources/views/core/legacy/client/partials/admin-bar.blade.php'));
+    }
+
     public function test_a_theme_routes_file_is_loaded_under_the_locale_prefix(): void
     {
         $file = base_path('routes/theme.php');
