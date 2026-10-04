@@ -127,6 +127,7 @@ class OrderCreationService
             'grand_total' => max(0.0, $subtotal - $promotionDiscount - $draft->extraDiscount) + $draft->shippingFee,
             'notes' => $draft->notes,
             'user_id' => $draft->userId,
+            'shipping_location' => $draft->shippingLocation,
         ]);
 
         foreach ($draft->lines as $line) {

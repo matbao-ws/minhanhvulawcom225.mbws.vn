@@ -156,6 +156,84 @@ class WebhookController extends Controller
         ]);
     }
 
+    /** GHN callback endpoint. Configure the full URL with its generated token in GHN. */
+    public function handleGHN(Request $request)
+    {
+        $ghn = ShippingPartner::query()->where('partner_code', 'DTGH000013')->first();
+        $token = (string) data_get($ghn?->settings, 'webhook_token', '');
+        if (! data_get($ghn?->settings, 'realtime_tracking_enabled', false) || $token === '' || ! hash_equals($token, (string) $request->query('token', ''))) {
+            Log::warning('GHN webhook rejected due to invalid credentials.');
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $payload = $request->validate([
+            'OrderCode' => ['required', 'string', 'max:100'],
+            'ClientOrderCode' => ['nullable', 'string', 'max:100'],
+            'Status' => ['required', 'string', 'max:64'],
+            'Code' => ['nullable', 'string', 'max:64'],
+            'Reason' => ['nullable', 'string', 'max:1000'],
+            'CODAmount' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+        ]);
+        $order = Order::query()
+            ->where('tracking_number', $payload['OrderCode'])
+            ->orWhere('order_number', $payload['ClientOrderCode'] ?? '__missing__')
+            ->first();
+        if (! $order) {
+            return response()->json(['success' => true]);
+        }
+        $fingerprint = hash('sha256', implode('|', ['ghn', $payload['OrderCode'], $payload['Status'], $payload['Code'] ?? '', $payload['Reason'] ?? '']));
+
+        try {
+            $result = DB::transaction(function () use ($order, $payload, $fingerprint): array {
+                $locked = Order::query()->with('items')->lockForUpdate()->findOrFail($order->id);
+                if (DB::table('shipping_webhook_events')->where('fingerprint', $fingerprint)->exists()) {
+                    return ['order' => $locked, 'duplicate' => true, 'status_changed' => false];
+                }
+                DB::table('shipping_webhook_events')->insert(['order_id' => $locked->id, 'provider' => 'ghn', 'fingerprint' => $fingerprint, 'payload' => json_encode($payload, JSON_THROW_ON_ERROR), 'received_at' => now()]);
+                $oldStatus = $locked->status;
+                $oldPayment = $locked->payment_status;
+                $oldShipping = $locked->shipping_status ?: 'not_shipped';
+                $shipping = $this->shippingStatusForGhn($payload['Status']);
+                $updates = ['shipping_carrier' => 'ghn', 'tracking_number' => $payload['OrderCode']];
+                $changed = false;
+                if ($shipping && Order::canTransitionShippingStatus($oldShipping, $shipping)) {
+                    $updates['shipping_status'] = $shipping;
+                    $updates['shipping_status_updated_at'] = now();
+                    $changed = $shipping !== $oldShipping;
+                }
+                if ($shipping === 'delivered' && $locked->payment_method === 'cod' && $oldPayment !== 'paid' && $this->orderStateTransitionService->canTransitionPaymentStatus($oldPayment, 'paid')) {
+                    $updates['payment_status'] = 'paid';
+                }
+                $newOrderStatus = $shipping === 'delivered' ? 'completed' : ($shipping === 'cancelled' ? 'cancelled' : $oldStatus);
+                if ($newOrderStatus !== $oldStatus && $this->orderStateTransitionService->canTransitionOrderStatus($oldStatus, $newOrderStatus)) {
+                    $updates['status'] = $newOrderStatus;
+                }
+                $locked->update($updates);
+                if (in_array($locked->shipping_status, ['returned', 'cancelled'], true)) {
+                    $this->orderStockService->restore($locked, 'Hoàn kho theo trạng thái từ GHN');
+                }
+                $this->paymentTransactionService->syncInitialTransaction($locked);
+                if ($changed || $oldStatus !== $locked->status || $oldPayment !== $locked->payment_status) {
+                    OrderStatusHistory::query()->create(['order_id' => $locked->id, 'from_status' => $oldStatus, 'to_status' => $locked->status, 'from_payment_status' => $oldPayment, 'to_payment_status' => $locked->payment_status, 'note' => 'Cập nhật GHN: '.$payload['Status'].(! empty($payload['Reason']) ? ' - '.$payload['Reason'] : ''), 'created_at' => now()]);
+                }
+                return ['order' => $locked->fresh(), 'duplicate' => false, 'status_changed' => $changed];
+            }, 3);
+        } catch (QueryException $exception) {
+            if (! in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
+                Log::error('Failed to process GHN webhook.', ['order_id' => $order->id, 'message' => $exception->getMessage()]);
+                return response()->json(['success' => false], 500);
+            }
+            $result = ['order' => $order->fresh(), 'duplicate' => true, 'status_changed' => false];
+        } catch (\Throwable $exception) {
+            Log::error('Failed to process GHN webhook.', ['order_id' => $order->id, 'message' => $exception->getMessage()]);
+            return response()->json(['success' => false], 500);
+        }
+        if ($result['status_changed']) {
+            SendOrderStatusEmail::dispatch($result['order']->id, $result['order']->customer_email)->afterCommit();
+        }
+        return response()->json(['success' => true, 'duplicate' => $result['duplicate']]);
+    }
+
     /**
      * Handle an incoming bank transfer pushed by SePay.
      *
@@ -311,6 +389,23 @@ class WebhookController extends Controller
             5, 6 => 'completed',
             11, 20, 21 => $currentStatus === 'completed' ? 'completed' : 'cancelled',
             default => $currentStatus,
+        };
+    }
+
+    private function shippingStatusForGhn(string $status): ?string
+    {
+        return match (strtolower($status)) {
+            'ready_to_pick', 'picking' => 'waiting_pickup',
+            'money_collect_picking', 'picked' => 'picked_up',
+            'storing', 'transporting', 'sorting', 'delivering', 'money_collect_delivering' => 'in_transit',
+            'delivered' => 'delivered',
+            'delivery_fail' => 'delivery_failed',
+            'waiting_to_return', 'return', 'return_transporting', 'return_sorting', 'returning' => 'returning',
+            'returned', 'return_fail' => 'returned',
+            'cancel' => 'cancelled',
+            'damage', 'lost' => 'compensated',
+            'exception' => 'delayed',
+            default => null,
         };
     }
 }

@@ -97,6 +97,7 @@ class Order extends Model
         'promotion_discount',
         'grand_total',
         'notes',
+        'shipping_location',
     ];
 
     protected $casts = [
@@ -107,7 +108,16 @@ class Order extends Model
         'shipping_fee' => 'decimal:2',
         'carrier_shipping_fee' => 'decimal:2',
         'shipping_status_updated_at' => 'datetime',
+        'shipping_location' => 'array',
     ];
+
+    /** @return array{province_id?: int, district_id: int, ward_code: string}|null the GHN address codes chosen at checkout */
+    public function ghnLocation(): ?array
+    {
+        $ghn = data_get($this->shipping_location, 'ghn');
+
+        return is_array($ghn) && filled($ghn['district_id'] ?? null) && filled($ghn['ward_code'] ?? null) ? $ghn : null;
+    }
 
     public static function shippingStatusKeys(): array
     {

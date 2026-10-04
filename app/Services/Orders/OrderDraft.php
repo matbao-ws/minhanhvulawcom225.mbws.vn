@@ -30,5 +30,7 @@ class OrderDraft
         public readonly string $historyNote = '',
         public readonly string $stockNote = '',
         public readonly ?int $changedBy = null,
+        /** Carrier address codes, e.g. ['ghn' => ['district_id' => 1442, 'ward_code' => '20109']]. */
+        public readonly ?array $shippingLocation = null,
     ) {}
 }

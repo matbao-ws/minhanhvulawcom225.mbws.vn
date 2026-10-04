@@ -5,6 +5,7 @@ use App\Http\Controllers\Client\PageController;
 use App\Http\Controllers\Client\PostCategoryController;
 use Illuminate\Support\Facades\Route;
 
+
 Route::get('chinh-sach/{slug}', [PageController::class, 'show'])
     ->where('slug', '[A-Za-z0-9\-_]+')
     ->name('pages.show');

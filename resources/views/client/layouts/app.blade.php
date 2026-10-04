@@ -36,5 +36,6 @@
 
     {{-- The inline editor (core): one line, whatever panels core adds in an update. --}}
     @include('core.editor')
+    @stack('scripts')
 </body>
 </html>
