@@ -10,9 +10,35 @@
         </x-slot:breadcrumbs>
     </x-admin.page-header>
 
+    @php
+        $spamReasons = [
+            'honeypot' => 'Bot điền ô ẩn',
+            'too_fast' => 'Gửi quá nhanh',
+            'link_in_name' => 'Có link trong tên',
+            'html_link' => 'Có thẻ link',
+            'too_many_links' => 'Quá nhiều link',
+            'blocked_word' => 'Từ khoá spam',
+        ];
+    @endphp
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a @class(['nav-link', 'active' => ! $spamBox]) href="{{ route('admin.contact-submissions.index') }}">Hộp thư</a>
+        </li>
+        <li class="nav-item">
+            <a @class(['nav-link', 'active' => $spamBox]) href="{{ route('admin.contact-submissions.index', ['box' => 'spam']) }}">
+                Spam @if($spamCount > 0)<span class="badge bg-secondary-subtle text-secondary ms-1">{{ $spamCount }}</span>@endif
+            </a>
+        </li>
+    </ul>
+
     <div class="card">
         <div class="card-body">
+            @if($spamBox)
+                <p class="small text-muted mb-3">Liên hệ bị bộ lọc giữ lại: không gửi email, không vào hộp thư. Nếu là khách thật, bấm "Không phải spam".</p>
+            @endif
             <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+                @if($spamBox)<input type="hidden" name="box" value="spam">@endif
                 <div class="col-md-6 col-lg-4">
                     <label class="form-label small fw-bold text-dark mb-1">Tìm kiếm</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="Tên, SĐT, email, nội dung...">
@@ -56,6 +82,10 @@
                                 </td>
                                 <td>
                                     <div class="text-dark text-wrap" style="max-width: 450px;">{{ \Illuminate\Support\Str::limit($submission->message, 200) }}</div>
+                                    @if($submission->is_spam)
+                                        <span class="badge bg-warning-subtle text-warning">{{ $spamReasons[$submission->spam_reason] ?? $submission->spam_reason }}</span>
+                                        @if($submission->ip)<span class="text-muted small ms-1">IP {{ $submission->ip }}</span>@endif
+                                    @endif
                                     @if(!empty($submission->meta))
                                         <button type="button" class="btn btn-sm btn-link p-0 js-view-meta" data-bs-toggle="modal" data-bs-target="#contactMetaModal" data-meta="{{ json_encode($submission->meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}">
                                             Xem thông tin thêm
@@ -73,6 +103,17 @@
                                     </div>
                                 </td>
                                 <td class="text-end pe-4 text-nowrap">
+                                    @if($submission->is_spam)
+                                        @can('contacts.update')
+                                            <form action="{{ route('admin.contact-submissions.not-spam', $submission) }}" method="POST" style="display:inline-block;">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Không phải spam">
+                                                    <i class="ti ti-mail-forward fs-4"></i> Không phải spam
+                                                </button>
+                                            </form>
+                                        @endcan
+                                    @endif
                                     <form action="{{ route('admin.contact-submissions.destroy', $submission) }}" method="POST" class="js-delete-form" style="display:inline-block;">
                                         @csrf
                                         @method('DELETE')

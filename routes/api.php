@@ -1,63 +1,19 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\PublicAuthController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\UserAddressController;
 use App\Http\Controllers\Api\WebhookController;
-use App\Mail\ContactInquiryMail;
-use App\Models\ContactSubmission;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Validator;
 
 Route::prefix('public')->middleware('apiLocale')->group(function () {
     Route::get('/health', [PublicController::class, 'health']);
     Route::get('/settings', [PublicController::class, 'settings']);
     Route::get('/languages', [PublicController::class, 'languages']);
 
-    Route::post('/contact', function (Request $request) {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'message' => 'required|string|max:5000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dữ liệu không hợp lệ.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $inquiry = $request->only(['name', 'phone', 'email', 'message']);
-        $meta = $request->except(['name', 'phone', 'email', 'message']);
-
-        ContactSubmission::query()->create([
-            ...$inquiry,
-            'meta' => $meta !== [] ? $meta : null,
-        ]);
-
-        try {
-            Mail::to(config('mail.seller'))->send(new ContactInquiryMail($inquiry));
-        } catch (Exception $e) {
-            Log::error('Contact form email failed: '.$e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể gửi yêu cầu vào lúc này. Vui lòng thử lại sau.',
-            ], 500);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Yêu cầu báo giá của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!',
-        ]);
-    })->middleware('throttle:public-contact');
+    Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:public-contact');
 
     Route::middleware('feature:catalog')->group(function () {
         Route::get('/categories', [PublicController::class, 'categories']);
