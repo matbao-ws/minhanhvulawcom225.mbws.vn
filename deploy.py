@@ -1065,6 +1065,9 @@ if ({migrate_val}) {{
 
 {seed_block}
 
+echo "Checking MatBao gateway...\\n";
+echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan gateway:check 2>&1") . "\\n";
+
 echo "Deployment complete!\\n";
 // Self-destruct
 @unlink(__FILE__);
@@ -1184,6 +1187,9 @@ if ({migrate_val}) {{
 }}
 
 {seed_block}
+
+echo "Checking MatBao gateway...\\n";
+echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan gateway:check 2>&1") . "\\n";
 
 echo "Artisan tasks completed.\\n";
 // Self-destruct
