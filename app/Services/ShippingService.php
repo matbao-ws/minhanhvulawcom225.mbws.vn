@@ -141,14 +141,80 @@ class ShippingService
         if (! data_get($settings, 'enabled') || blank(data_get($settings, 'api_token')) || blank(data_get($settings, 'shop_id')) || ! in_array($baseUrl, [self::GHN_PRODUCTION_URL, self::GHN_DEVELOPMENT_URL], true)) {
             throw new \DomainException('GHN chưa được cấu hình hoặc kích hoạt.');
         }
-        $response = Http::timeout(15)->retry(2, 300)->acceptJson()->withHeaders([
-            'Token' => data_get($settings, 'api_token'), 'ShopId' => data_get($settings, 'shop_id'),
-        ])->post($baseUrl.'/shiip/public-api/master-data/'.$resource, $payload);
+        try {
+            $response = $this->ghnRequest($baseUrl, (string) data_get($settings, 'api_token'), (string) data_get($settings, 'shop_id'))
+                ->post($baseUrl.'/shiip/public-api/master-data/'.$resource, $payload);
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            throw new \DomainException('Không kết nối được GHN. Vui lòng thử lại sau.');
+        }
+        if ($response->status() === 401) {
+            // Say which setting is wrong instead of a generic failure.
+            throw new \DomainException($this->ghnVerify()['message']);
+        }
         if ($response->failed() || ! is_array($response->json('data'))) {
             Log::warning('GHN master-data request failed.', ['resource' => $resource, 'status' => $response->status()]);
             throw new \DomainException('Không thể lấy dữ liệu địa chỉ từ GHN.');
         }
         return $response->json('data');
+    }
+
+    /**
+     * Check the saved GHN settings against GHN itself: the token is valid in the chosen environment,
+     * and the Shop ID belongs to that account. Production and sandbox are separate GHN systems — a
+     * token from one is rejected by the other, the most common setup mistake — so on a rejected
+     * token the other environment is tried to say so.
+     *
+     * @return array{ok: bool, status: string, message: string, shop_name?: string}
+     *   status: ok | not_configured | wrong_environment | invalid_token | shop_not_found | unreachable
+     */
+    public function ghnVerify(): array
+    {
+        $settings = data_get($this->getSettings(), 'ghn', []);
+        $token = trim((string) data_get($settings, 'api_token'));
+        $shopId = trim((string) data_get($settings, 'shop_id'));
+        $baseUrl = rtrim((string) data_get($settings, 'api_url'), '/');
+        $environments = [self::GHN_PRODUCTION_URL => 'Production', self::GHN_DEVELOPMENT_URL => 'Sandbox'];
+
+        if ($token === '' || $shopId === '' || ! isset($environments[$baseUrl])) {
+            return ['ok' => false, 'status' => 'not_configured', 'message' => 'GHN chưa nhập đủ Token, Shop ID và môi trường.'];
+        }
+
+        $shops = function (string $url) use ($token) {
+            return $this->ghnRequest($url, $token)->post($url.'/shiip/public-api/v2/shop/all', ['offset' => 0, 'limit' => 200]);
+        };
+
+        try {
+            $response = $shops($baseUrl);
+            if ($response->status() === 401) {
+                $otherUrl = $baseUrl === self::GHN_PRODUCTION_URL ? self::GHN_DEVELOPMENT_URL : self::GHN_PRODUCTION_URL;
+                if ($shops($otherUrl)->successful()) {
+                    return ['ok' => false, 'status' => 'wrong_environment', 'message' => sprintf(
+                        'Token GHN thuộc môi trường %s nhưng cài đặt đang chọn %s. Vào Đối tác vận chuyển → GHN và đổi "Môi trường API" sang %s.',
+                        $environments[$otherUrl], $environments[$baseUrl], $environments[$otherUrl],
+                    )];
+                }
+
+                return ['ok' => false, 'status' => 'invalid_token', 'message' => 'GHN từ chối Token (cả Production lẫn Sandbox). Kiểm tra lại Token trong trang quản lý của GHN.'];
+            }
+            if (! $response->successful()) {
+                return ['ok' => false, 'status' => 'unreachable', 'message' => 'GHN trả lỗi '.$response->status().'. Vui lòng thử lại sau.'];
+            }
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            return ['ok' => false, 'status' => 'unreachable', 'message' => 'Không kết nối được GHN. Vui lòng thử lại sau.'];
+        }
+
+        $shop = collect((array) $response->json('data.shops'))->first(fn ($shop) => (string) data_get($shop, '_id') === $shopId);
+        if ($shop === null) {
+            return ['ok' => false, 'status' => 'shop_not_found', 'message' => "Token hợp lệ nhưng Shop ID {$shopId} không thuộc tài khoản GHN này (môi trường {$environments[$baseUrl]})."];
+        }
+
+        return ['ok' => true, 'status' => 'ok', 'message' => 'Kết nối GHN '.$environments[$baseUrl].' hợp lệ.', 'shop_name' => (string) data_get($shop, 'name')];
+    }
+
+    private function ghnRequest(string $baseUrl, string $token, ?string $shopId = null): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::timeout(15)->connectTimeout(5)->acceptJson()
+            ->withHeaders(array_filter(['Token' => trim($token), 'ShopId' => $shopId !== null ? trim($shopId) : null]));
     }
 
     /**

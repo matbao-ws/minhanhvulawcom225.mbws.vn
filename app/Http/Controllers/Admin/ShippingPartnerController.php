@@ -264,6 +264,8 @@ class ShippingPartnerController extends Controller
                     'webhook_token' => $webhookToken,
                 ],
             ]);
+            // Saved either way (GHN may be briefly down), but say at once what GHN thinks of it.
+            $ghnCheck = app(\App\Services\ShippingService::class)->ghnVerify();
         } elseif ($shipping_partner->partner_code === 'DTGH000014') { // J&T
             $validated = $request->validate([
                 'customerid' => 'required|string|max:255',
@@ -319,6 +321,12 @@ class ShippingPartnerController extends Controller
                     'fee' => (float) $validated['fee'],
                 ],
             ]);
+        }
+
+        if (isset($ghnCheck) && ! $ghnCheck['ok']) {
+            return redirect()
+                ->route('admin.shipping-partners.index')
+                ->with('warning', __('admin.shipping_partners.save_success').' '.$ghnCheck['message']);
         }
 
         return redirect()

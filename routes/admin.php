@@ -56,12 +56,16 @@ Route::post('/impersonate/leave', [UserController::class, 'leaveImpersonate'])
 Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::get('checkout-test', \App\Http\Controllers\Client\CheckoutTestController::class)
+    // Place a test order through the public checkout API; look up GHN address codes.
+    Route::get('checkout-test', \App\Http\Controllers\Admin\CheckoutTestController::class)
         ->middleware('can:orders.create')
         ->name('checkout.test');
-    Route::get('checkout-test/ghn/provinces', [\App\Http\Controllers\Client\CheckoutTestController::class, 'provinces'])->middleware(['can:orders.create', 'feature:shipping'])->name('checkout.test.ghn.provinces');
-    Route::get('checkout-test/ghn/provinces/{provinceId}/districts', [\App\Http\Controllers\Client\CheckoutTestController::class, 'districts'])->middleware(['can:orders.create', 'feature:shipping'])->name('checkout.test.ghn.districts');
-    Route::get('checkout-test/ghn/districts/{districtId}/wards', [\App\Http\Controllers\Client\CheckoutTestController::class, 'wards'])->middleware(['can:orders.create', 'feature:shipping'])->name('checkout.test.ghn.wards');
+    Route::middleware(['can:orders.create', 'feature:shipping', 'throttle:60,1'])->prefix('checkout-test/ghn')->name('checkout.test.ghn.')->group(function () {
+        Route::get('status', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'ghnStatus'])->name('status');
+        Route::get('provinces', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'provinces'])->name('provinces');
+        Route::get('provinces/{provinceId}/districts', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'districts'])->whereNumber('provinceId')->name('districts');
+        Route::get('districts/{districtId}/wards', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'wards'])->whereNumber('districtId')->name('wards');
+    });
     // Each click may call the internal tool; keep it to a handful per minute.
     Route::post('dashboard/package-usage/refresh', [DashboardController::class, 'refreshPackageUsage'])
         ->middleware('throttle:6,1')
