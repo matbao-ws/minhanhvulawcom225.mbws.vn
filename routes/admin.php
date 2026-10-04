@@ -60,11 +60,12 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::get('checkout-test', \App\Http\Controllers\Admin\CheckoutTestController::class)
         ->middleware('can:orders.create')
         ->name('checkout.test');
-    Route::middleware(['can:orders.create', 'feature:shipping', 'throttle:60,1'])->prefix('checkout-test/ghn')->name('checkout.test.ghn.')->group(function () {
-        Route::get('status', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'ghnStatus'])->name('status');
-        Route::get('provinces', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'provinces'])->name('provinces');
-        Route::get('provinces/{provinceId}/districts', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'districts'])->whereNumber('provinceId')->name('districts');
-        Route::get('districts/{districtId}/wards', [\App\Http\Controllers\Admin\CheckoutTestController::class, 'wards'])->whereNumber('districtId')->name('wards');
+    // GHN connection check and address lookups (order "Tạo vận đơn" dialog, checkout test page).
+    Route::middleware(['can:orders.view', 'feature:shipping', 'throttle:60,1'])->prefix('shipping/ghn')->name('shipping.ghn.')->group(function () {
+        Route::get('status', [\App\Http\Controllers\Admin\GhnLookupController::class, 'status'])->name('status');
+        Route::get('provinces', [\App\Http\Controllers\Admin\GhnLookupController::class, 'provinces'])->name('provinces');
+        Route::get('provinces/{provinceId}/districts', [\App\Http\Controllers\Admin\GhnLookupController::class, 'districts'])->whereNumber('provinceId')->name('districts');
+        Route::get('districts/{districtId}/wards', [\App\Http\Controllers\Admin\GhnLookupController::class, 'wards'])->whereNumber('districtId')->name('wards');
     });
     // Each click may call the internal tool; keep it to a handful per minute.
     Route::post('dashboard/package-usage/refresh', [DashboardController::class, 'refreshPackageUsage'])

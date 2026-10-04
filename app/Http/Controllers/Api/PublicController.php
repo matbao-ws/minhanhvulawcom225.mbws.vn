@@ -366,6 +366,11 @@ class PublicController extends Controller
             'items.*.option_value_ids.*' => 'integer|distinct|exists:product_option_values,id',
             'items.*.quantity' => 'required|integer|min:1',
             'voucher_code' => 'nullable|string',
+            // GHN master-data codes of the address, when the form offers GHN's province/district/ward
+            // pickers: an admin then ships the order with one click (or automatically on confirm).
+            'ghn_province_id' => 'nullable|integer|min:1|max:2147483647',
+            'ghn_district_id' => 'nullable|required_with:ghn_ward_code|integer|min:1|max:2147483647',
+            'ghn_ward_code' => 'nullable|required_with:ghn_district_id|string|max:20|regex:/^[0-9A-Za-z]+$/',
         ]);
 
         if ($validator->fails()) {
@@ -458,6 +463,11 @@ class PublicController extends Controller
                     extraDiscount: $voucherDiscount,
                     shippingFee: $shippingFee,
                     notes: $request->notes,
+                    shippingLocation: $request->filled('ghn_district_id') ? ['ghn' => array_filter([
+                        'province_id' => $request->filled('ghn_province_id') ? (int) $request->input('ghn_province_id') : null,
+                        'district_id' => (int) $request->input('ghn_district_id'),
+                        'ward_code' => (string) $request->input('ghn_ward_code'),
+                    ], fn ($v) => $v !== null)] : null,
                     userId: $customerId,
                     locale: $request->attributes->get('content_locale', app()->getLocale()),
                     paymentSource: 'public_checkout',

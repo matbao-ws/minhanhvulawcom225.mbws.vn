@@ -20,6 +20,7 @@ use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\ShippingService;
+use App\Services\Shipping\ShipmentDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -82,7 +83,16 @@ class OrderController extends Controller
         $isGhtkEnabled = (bool) data_get($shippingSettings, 'ghtk.enabled', false);
         $isGhnEnabled = (bool) data_get($shippingSettings, 'ghn.enabled', false);
 
-        return view('admin.orders.show', compact('order', 'isGhtkEnabled', 'isGhnEnabled'));
+        // The GHN dialog opens filled in: the codes chosen at checkout, the parcel from the GHN settings.
+        $ghnParcel = [
+            'weight' => app(ShipmentDispatcher::class)->weight($order, (int) data_get($shippingSettings, 'ghn.default_weight', 500)),
+            'length' => (int) data_get($shippingSettings, 'ghn.default_length', 20),
+            'width' => (int) data_get($shippingSettings, 'ghn.default_width', 15),
+            'height' => (int) data_get($shippingSettings, 'ghn.default_height', 10),
+        ];
+        $ghnLocation = $order->ghnLocation();
+
+        return view('admin.orders.show', compact('order', 'isGhtkEnabled', 'isGhnEnabled', 'ghnParcel', 'ghnLocation'));
     }
 
     /**
@@ -144,7 +154,7 @@ class OrderController extends Controller
                     'new' => ['status' => $lockedOrder->status, 'payment_status' => $lockedOrder->payment_status],
                 ]);
 
-                return ['status_changed' => $statusChanged];
+                return ['status_changed' => $statusChanged, 'confirmed' => $oldStatus === 'pending' && $lockedOrder->status === 'processing'];
             });
         } catch (\DomainException $exception) {
             return back()->withInput()->withErrors(['status' => $exception->getMessage()]);
@@ -155,9 +165,17 @@ class OrderController extends Controller
             SendOrderStatusEmail::dispatch($order->id, $order->customer_email)->afterCommit();
         }
 
-        return redirect()
-            ->route('admin.orders.show', $order)
-            ->with('success', __('admin.orders.updated_status_success'));
+        // Confirmed: the shop may have GHN create the shipment right away. A failure never undoes
+        // the confirmation — the shipment can still be created from the order page.
+        $shipment = ($transition['confirmed'] ?? false) ? app(ShipmentDispatcher::class)->autoPushOnConfirm($order->fresh(), auth()->id()) : null;
+        $redirect = redirect()->route('admin.orders.show', $order);
+
+        if ($shipment !== null && ! $shipment['success']) {
+            return $redirect->with('warning', __('admin.orders.updated_status_success').' Chưa tạo được vận đơn GHN: '.$shipment['message']);
+        }
+
+        return $redirect->with('success', __('admin.orders.updated_status_success')
+            .($shipment !== null ? ' Đã tạo vận đơn GHN '.$shipment['tracking_number'].'.' : ''));
     }
 
     public function create()
@@ -451,97 +469,17 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'GHN yêu cầu mã quận/huyện và mã phường/xã theo dữ liệu GHN.'], 422);
         }
 
-        try {
-            $claimedOrder = DB::transaction(function () use ($order): Order {
-                $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->id);
-                if ($lockedOrder->tracking_number || $lockedOrder->shipping_status === 'shipping_pending') {
-                    throw new \DomainException('Đơn hàng đang hoặc đã được đẩy sang đơn vị vận chuyển.');
-                }
-                if (! Order::canTransitionShippingStatus($lockedOrder->shipping_status ?: 'not_shipped', 'shipping_pending')) {
-                    throw new \DomainException('Trạng thái giao hàng hiện tại không thể đẩy đơn.');
-                }
-                if (! $this->orderStateTransitionService->canTransitionOrderStatus($lockedOrder->status, 'processing')) {
-                    throw new \DomainException('Trạng thái đơn hàng hiện tại không thể đẩy sang giao hàng.');
-                }
-                $lockedOrder->update([
-                    'shipping_status' => 'shipping_pending',
-                    'shipping_status_updated_at' => now(),
-                ]);
+        $result = app(ShipmentDispatcher::class)->push($order, $validated['carrier'], $validated, auth()->id());
 
-                return $lockedOrder->fresh(['items']);
-            }, 3);
-        } catch (\DomainException $exception) {
-            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
+        if (! $result['success']) {
+            return response()->json(['success' => false, 'message' => $result['message']], 422);
         }
-
-        $result = $validated['carrier'] === 'ghn'
-            ? $this->shippingService->pushToGHN($claimedOrder, $validated)
-            : $this->shippingService->pushToGHTK($claimedOrder, $validated);
-
-        if ($result['success']) {
-            try {
-                $order = DB::transaction(function () use ($order, $validated, $result): Order {
-                    $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-                    $oldStatus = $lockedOrder->status;
-                    $this->orderStateTransitionService->assertCanTransition(
-                        $oldStatus,
-                        'processing',
-                        $lockedOrder->payment_status,
-                        $lockedOrder->payment_status,
-                    );
-                    $lockedOrder->update([
-                        'shipping_carrier' => $validated['carrier'],
-                        'carrier_shipping_fee' => $result['fee'],
-                        'tracking_number' => $result['tracking_number'],
-                        'shipping_status' => 'shipping_created',
-                        'shipping_status_updated_at' => now(),
-                        'status' => 'processing',
-                    ]);
-
-                    if ($oldStatus !== 'processing') {
-                        OrderStatusHistory::query()->create([
-                            'order_id' => $lockedOrder->id,
-                            'from_status' => $oldStatus,
-                            'to_status' => 'processing',
-                            'from_payment_status' => $lockedOrder->payment_status,
-                            'to_payment_status' => $lockedOrder->payment_status,
-                            'note' => 'Đẩy đơn sang '.strtoupper($validated['carrier']),
-                            'changed_by' => auth()->id(),
-                            'created_at' => now(),
-                        ]);
-                    }
-                    ActivityLogger::log('shipping_pushed', $lockedOrder, "Đẩy đơn hàng {$lockedOrder->order_number} sang ".strtoupper($validated['carrier']), [
-                        'tracking_number' => $result['tracking_number'],
-                        'carrier_shipping_fee' => $result['fee'],
-                    ]);
-
-                    return $lockedOrder->fresh();
-                });
-            } catch (\DomainException $exception) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $exception->getMessage(),
-                ], 422);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $result['message'],
-                'tracking_number' => $result['tracking_number'],
-                'fee' => $result['fee'],
-            ]);
-        }
-
-        DB::transaction(function () use ($order): void {
-            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-            if ($lockedOrder->shipping_status === 'shipping_pending' && ! $lockedOrder->tracking_number) {
-                $lockedOrder->update(['shipping_status' => 'not_shipped', 'shipping_status_updated_at' => now()]);
-            }
-        });
 
         return response()->json([
-            'success' => false,
+            'success' => true,
             'message' => $result['message'],
-        ], 422);
+            'tracking_number' => $result['tracking_number'],
+            'fee' => $result['fee'],
+        ]);
     }
 }

@@ -56,10 +56,10 @@
                     <div class="card-body">
                         @if($ghnEnabled)
                             <div class="row g-3 mb-3" id="ghn-address"
-                                 data-status-url="{{ route('admin.checkout.test.ghn.status') }}"
-                                 data-provinces-url="{{ route('admin.checkout.test.ghn.provinces') }}"
-                                 data-districts-url="{{ route('admin.checkout.test.ghn.districts', ['provinceId' => '__ID__']) }}"
-                                 data-wards-url="{{ route('admin.checkout.test.ghn.wards', ['districtId' => '__ID__']) }}">
+                                 data-status-url="{{ route('admin.shipping.ghn.status') }}"
+                                 data-provinces-url="{{ route('admin.shipping.ghn.provinces') }}"
+                                 data-districts-url="{{ route('admin.shipping.ghn.districts', ['provinceId' => '__ID__']) }}"
+                                 data-wards-url="{{ route('admin.shipping.ghn.wards', ['districtId' => '__ID__']) }}">
                                 <div class="col-md-4">
                                     <label class="form-label" for="ghn-province">Tỉnh/Thành</label>
                                     <select id="ghn-province" class="form-select" disabled><option value="">Đang tải…</option></select>

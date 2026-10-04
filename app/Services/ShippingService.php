@@ -43,6 +43,13 @@ class ShippingService
                 'api_url' => data_get($ghn?->settings, 'api_url', self::GHN_DEVELOPMENT_URL),
                 'shop_id' => data_get($ghn?->settings, 'shop_id', ''),
                 'webhook_token' => data_get($ghn?->settings, 'webhook_token', ''),
+                // Create the GHN shipment when an admin confirms the order (pending → processing).
+                'auto_push_on_confirm' => (bool) data_get($ghn?->settings, 'auto_push_on_confirm', false),
+                // Used when the products carry no weight / for the parcel size.
+                'default_weight' => (int) data_get($ghn?->settings, 'default_weight', 500),
+                'default_length' => (int) data_get($ghn?->settings, 'default_length', 20),
+                'default_width' => (int) data_get($ghn?->settings, 'default_width', 15),
+                'default_height' => (int) data_get($ghn?->settings, 'default_height', 10),
             ],
         ];
     }

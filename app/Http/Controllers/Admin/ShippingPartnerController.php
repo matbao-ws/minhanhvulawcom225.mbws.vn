@@ -248,6 +248,11 @@ class ShippingPartnerController extends Controller
                 'shop_id' => 'required|integer|min:1|max:2147483647',
                 'realtime_tracking_enabled' => 'nullable|boolean',
                 'webhook_token' => 'nullable|string|max:255',
+                'auto_push_on_confirm' => 'nullable|boolean',
+                'default_weight' => 'nullable|integer|min:1|max:50000',
+                'default_length' => 'nullable|integer|min:1|max:200',
+                'default_width' => 'nullable|integer|min:1|max:200',
+                'default_height' => 'nullable|integer|min:1|max:200',
             ]);
             $trackingEnabled = (bool) ($validated['realtime_tracking_enabled'] ?? false);
             $webhookToken = $trackingEnabled
@@ -262,6 +267,11 @@ class ShippingPartnerController extends Controller
                     'shop_id' => (string) $validated['shop_id'],
                     'realtime_tracking_enabled' => $trackingEnabled,
                     'webhook_token' => $webhookToken,
+                    'auto_push_on_confirm' => (bool) ($validated['auto_push_on_confirm'] ?? false),
+                    'default_weight' => (int) ($validated['default_weight'] ?? 500),
+                    'default_length' => (int) ($validated['default_length'] ?? 20),
+                    'default_width' => (int) ($validated['default_width'] ?? 15),
+                    'default_height' => (int) ($validated['default_height'] ?? 10),
                 ],
             ]);
             // Saved either way (GHN may be briefly down), but say at once what GHN thinks of it.

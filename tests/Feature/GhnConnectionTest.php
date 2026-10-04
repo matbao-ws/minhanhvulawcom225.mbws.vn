@@ -72,7 +72,7 @@ class GhnConnectionTest extends TestCase
             self::PROD.'/*' => Http::response(['data' => ['shops' => [['_id' => 5300247]]]]),
         ]);
 
-        $this->actingAs($this->admin())->getJson('/vi/admin/checkout-test/ghn/provinces')
+        $this->actingAs($this->admin())->getJson('/vi/admin/shipping/ghn/provinces')
             ->assertStatus(422)
             ->assertJsonPath('message', fn ($m) => str_contains($m, 'đổi "Môi trường API" sang Production'));
     }
@@ -87,9 +87,9 @@ class GhnConnectionTest extends TestCase
         ]);
         $admin = $this->admin();
 
-        $this->actingAs($admin)->getJson('/vi/admin/checkout-test/ghn/provinces')->assertOk()->assertJsonPath('data.0.ProvinceID', 202);
-        $this->actingAs($admin)->getJson('/vi/admin/checkout-test/ghn/provinces/202/districts')->assertOk()->assertJsonPath('data.0.DistrictID', 1442);
-        $this->actingAs($admin)->getJson('/vi/admin/checkout-test/ghn/districts/1442/wards')->assertOk()->assertJsonPath('data.0.WardCode', '20109');
+        $this->actingAs($admin)->getJson('/vi/admin/shipping/ghn/provinces')->assertOk()->assertJsonPath('data.0.ProvinceID', 202);
+        $this->actingAs($admin)->getJson('/vi/admin/shipping/ghn/provinces/202/districts')->assertOk()->assertJsonPath('data.0.DistrictID', 1442);
+        $this->actingAs($admin)->getJson('/vi/admin/shipping/ghn/districts/1442/wards')->assertOk()->assertJsonPath('data.0.WardCode', '20109');
 
         Http::assertSent(fn ($r) => str_ends_with($r->url(), '/district') && $r['province_id'] === 202);
         Http::assertSent(fn ($r) => str_ends_with($r->url(), '/ward') && $r['district_id'] === 1442);
@@ -122,7 +122,7 @@ class GhnConnectionTest extends TestCase
             ->assertOk()
             ->assertSee('Thử đặt hàng')
             ->assertSee('admin-assets/js/checkout-test.js', false)
-            ->assertSee('/vi/admin/checkout-test/ghn/status', false)
+            ->assertSee('/vi/admin/shipping/ghn/status', false)
             ->assertDontSee('client-assets/js/checkout-test.js', false);
 
         $role = Role::query()->create(['name' => 'Viewer', 'permissions' => ['orders.view']]);

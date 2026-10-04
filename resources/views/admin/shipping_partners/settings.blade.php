@@ -129,6 +129,34 @@
                             <input type="text" class="form-control text-dark" id="ghn_webhook_token" name="webhook_token" value="{{ old('webhook_token', $webhookToken) }}">
                             <div class="form-text">URL trên GHN: <code>{{ url('/api/webhooks/ghn') }}?token=&lt;token&gt;</code>. Token để trống sẽ được sinh tự động.</div>
                         </div>
+
+                        <div class="col-12"><hr class="my-2"></div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label fw-semibold text-dark d-block">Tạo vận đơn</label>
+                            <input type="hidden" name="auto_push_on_confirm" value="0">
+                            <div class="form-check form-switch pt-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="ghn_auto_push" name="auto_push_on_confirm" value="1" @checked(old('auto_push_on_confirm', data_get($partner->settings, 'auto_push_on_confirm', false)))>
+                                <label class="form-check-label" for="ghn_auto_push">Tự tạo vận đơn GHN khi xác nhận đơn hàng (Chờ xử lý → Đang xử lý)</label>
+                            </div>
+                            <div class="form-text">Chỉ áp dụng cho đơn có chọn Tỉnh/Quận/Phường theo GHN lúc đặt hàng. Đơn khác vẫn tạo vận đơn bằng tay trong chi tiết đơn.</div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_weight">Khối lượng mặc định (gram)</label>
+                            <input type="number" min="1" max="50000" class="form-control text-dark" id="ghn_default_weight" name="default_weight" value="{{ old('default_weight', data_get($partner->settings, 'default_weight', 500)) }}">
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_length">Dài (cm)</label>
+                            <input type="number" min="1" max="200" class="form-control text-dark" id="ghn_default_length" name="default_length" value="{{ old('default_length', data_get($partner->settings, 'default_length', 20)) }}">
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_width">Rộng (cm)</label>
+                            <input type="number" min="1" max="200" class="form-control text-dark" id="ghn_default_width" name="default_width" value="{{ old('default_width', data_get($partner->settings, 'default_width', 15)) }}">
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_height">Cao (cm)</label>
+                            <input type="number" min="1" max="200" class="form-control text-dark" id="ghn_default_height" name="default_height" value="{{ old('default_height', data_get($partner->settings, 'default_height', 10)) }}">
+                        </div>
+                        <div class="col-12"><div class="form-text mt-n2 mb-2">Khối lượng đơn = tổng khối lượng các biến thể (nếu sản phẩm có nhập), nếu không thì dùng khối lượng mặc định. Kích thước dùng cho mọi kiện.</div></div>
                     </div>
                 @elseif($partner->partner_code === 'DTGH000014') {{-- J&T --}}
                     @php

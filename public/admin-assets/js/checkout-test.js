@@ -165,6 +165,17 @@
 
   // ---- Submit -------------------------------------------------------------
 
+  // Sent only once the ward is chosen: a district without its ward cannot ship.
+  const ghnCodes = () => {
+    const ward = document.getElementById('ghn-ward')?.value;
+    if (!ward) return {};
+    return {
+      ghn_province_id: Number(document.getElementById('ghn-province').value) || null,
+      ghn_district_id: Number(document.getElementById('ghn-district').value),
+      ghn_ward_code: ward,
+    };
+  };
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     result.replaceChildren();
@@ -186,6 +197,8 @@
       payment_method: data.get('payment_method'),
       shipping_address: data.get('shipping_address'),
       notes: data.get('notes') || null,
+      // GHN codes go with the order: the shipment is then one click, or automatic on confirm.
+      ...ghnCodes(),
       items: [...items.querySelectorAll('[data-role=item]')].map((row) => ({
         product_id: Number(row.querySelector('[name=product_id]').value),
         quantity: Number(row.querySelector('[name=quantity]').value),
