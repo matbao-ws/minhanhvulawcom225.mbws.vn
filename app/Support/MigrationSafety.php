@@ -52,6 +52,47 @@ class MigrationSafety
         return array_values(array_unique($found));
     }
 
+    /**
+     * An extension's migration may only touch its own tables, named "<prefix>..." (ext_<id>_):
+     * never a core table or another extension's. Foreign keys pointing at core tables are fine.
+     *
+     * @return list<string> why not (empty when every table it names is its own)
+     */
+    public static function foreignTables(string $file, string $prefix): array
+    {
+        $code = (string) file_get_contents($file);
+        $found = [];
+
+        $calls = '/(Schema::(?:connection\([^)]*\)->)?(create|table|drop|dropIfExists|rename|dropColumns)|DB::table)\s*\(\s*([^,)]*)(?:,\s*([^,)]*))?/i';
+        preg_match_all($calls, $code, $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            $call = preg_replace('/\s+/', '', $match[1]);
+            $tables = [$match[3]];
+            if (strcasecmp($match[2] ?? '', 'rename') === 0 && isset($match[4])) {
+                $tables[] = $match[4];
+            }
+            foreach ($tables as $argument) {
+                $argument = trim($argument);
+                if (! preg_match('/^([\'"])([A-Za-z0-9_]+)\1$/', $argument, $literal)) {
+                    $found[] = "{$call}({$argument}): the table name must be a literal string";
+                } elseif (! str_starts_with($literal[2], $prefix)) {
+                    $found[] = "{$call}('{$literal[2]}'): not its own table (must start with {$prefix})";
+                }
+            }
+        }
+        if (preg_match('/DB::(statement|unprepared|insert|update|delete|select)\s*\(/i', $code)) {
+            $found[] = 'raw SQL (DB::statement & co.) cannot be checked for table ownership';
+        }
+
+        return array_values(array_unique($found));
+    }
+
+    /** Foreign keys deleting rows in cascade: prefer restrictOnDelete() / nullOnDelete() towards core tables. */
+    public static function cascades(string $file): bool
+    {
+        return (bool) preg_match('/cascadeOnDelete\s*\(|onDelete\s*\(\s*[\'"]cascade/i', (string) file_get_contents($file));
+    }
+
     public static function isContract(string $file): bool
     {
         return str_contains((string) file_get_contents($file), self::CONTRACT_MARKER);

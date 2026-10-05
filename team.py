@@ -375,6 +375,9 @@ jobs:
       - name: Prepare environment
         run: cp .env.example .env && php artisan key:generate
 
+      - name: Check extensions
+        run: php artisan extension:check
+
       - name: Run tests
         run: php artisan test --compact
 """
@@ -628,6 +631,10 @@ def save_and_push():
             say('    Sửa core không làm trong dự án khách: báo trưởng nhóm hoặc mở Issue trên repo core.')
             if not yes('Vẫn lưu các file này? (chỉ khi trưởng nhóm đồng ý)', default=False):
                 raise Stop('Đã dừng. Bỏ thay đổi một file core: git restore <file>')
+        if any(f.replace('\\', '/').startswith('extensions/') for f in files):
+            say('Kiểm tra extension (php artisan extension:check):')
+            if run(['php', 'artisan', 'extension:check'], check=False) != 0:
+                raise Stop('Extension chưa đạt quy tắc (lỗi ở trên). Sửa rồi chạy lại "Lưu & đẩy". Hướng dẫn: docs/EXTENSIONS.md')
         message = ask('Mô tả ngắn việc đã làm (vd: trang chủ theo thiết kế)')
         if not message:
             raise Stop('Cần mô tả.')

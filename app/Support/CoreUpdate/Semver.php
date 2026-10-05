@@ -26,6 +26,25 @@ class Semver
         return false;
     }
 
+    /** Whether every part of a constraint is syntax satisfies() understands (an extension's requires_core). */
+    public static function isConstraint(string $constraint): bool
+    {
+        $alternatives = preg_split('/\s*\|\|?\s*/', trim($constraint));
+        foreach ($alternatives as $alternative) {
+            $parts = array_filter(preg_split('/[\s,]+/', trim($alternative)), fn ($p) => $p !== '');
+            if ($parts === []) {
+                return false;
+            }
+            foreach ($parts as $part) {
+                if ($part !== '*' && ! preg_match('/^(\^\d+(\.\d+){0,2}|~\d+\.\d+(\.\d+)?|\d+(\.\d+)*\.\*|(>=|<=|>|<|==|=|!=)?v?\d+(\.\d+){0,2}(-[0-9A-Za-z.-]+)?)$/', $part)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private static function one(string $version, string $constraint): bool
     {
         if ($constraint === '*') {

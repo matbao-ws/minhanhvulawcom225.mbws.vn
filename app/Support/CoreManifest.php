@@ -66,6 +66,7 @@ class CoreManifest
         'public/client-assets/css/**',
         'routes/theme.php',
         'theme/**',
+        'extensions/**',
         '.env',
         '.htaccess',
         'public/.htaccess',

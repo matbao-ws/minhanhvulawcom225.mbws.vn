@@ -3,6 +3,8 @@
 namespace App\Support\CoreUpdate;
 
 use App\Support\CoreManifest;
+use App\Support\Extensions\ExtensionManager;
+use App\Support\Extensions\ExtensionState;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Throwable;
@@ -78,6 +80,12 @@ class CoreUpdater
                 count($edited), implode(', ', array_slice($edited, 0, 5)));
         }
 
+        // Read from the extensions' manifests, before any new code is in place.
+        foreach ($this->extensions()->incompatibleWith($release['version']) as $extension) {
+            $blockers[] = sprintf('extensions: %s (%s) %s needs core %s, this update is %s — update the extension or run `php artisan extension:disable %s`',
+                $extension['name'], $extension['id'], $extension['version'], $extension['requires_core'], $release['version'], $extension['id']);
+        }
+
         $db = $release['database'] ?? [];
         if ((($db['backup_required'] ?? false) || ! ($db['rollback_safe'] ?? true)) && ! ($options['backup_done'] ?? false)) {
             $blockers[] = 'backup_required: back up the database (Plesk/cPanel backup), then run again with --backup-done';
@@ -123,6 +131,9 @@ class CoreUpdater
         try {
             ['release' => $release, 'blockers' => $blockers] = $this->check($dir, $options);
             if ($blockers !== []) {
+                // Shown on the admin's update page: why the click did not install anything.
+                $this->writeState(['status' => 'blocked', 'from' => $from, 'to' => $release['version'] ?? null, 'step' => 'check', 'error' => implode(' | ', $blockers)]);
+
                 return ['ok' => false, 'from' => $from, 'to' => $release['version'] ?? null, 'blockers' => $blockers];
             }
 
@@ -264,7 +275,8 @@ class CoreUpdater
                 $this->artisan->run(['optimize']);
             }
             $step = 'health';
-            $this->artisan->run(['core:health']);
+            $healthy = $this->workingExtensions();
+            $this->artisan->run($healthy === [] ? ['core:health'] : ['core:health', '--extensions='.implode(',', $healthy)]);
 
             // 5. Done.
             $this->manifest->writeInstalled(['version' => $to, 'files' => $release['files']]);
@@ -440,6 +452,31 @@ class CoreUpdater
     {
         unset($meta['dir']);
         file_put_contents($backup.'/meta.json', json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function extensions(): ExtensionManager
+    {
+        return new ExtensionManager($this->base(), new ExtensionState($this->base()));
+    }
+
+    /**
+     * Extensions that work before the update and must still load after it (core:health checks
+     * them). One already failing in this process is left out: it would block every update.
+     *
+     * @return list<string>
+     */
+    private function workingExtensions(): array
+    {
+        $fresh = $this->extensions();
+        $ids = array_map(fn ($manifest) => $manifest->id, $fresh->ready());
+
+        $running = app()->bound(ExtensionManager::class) ? app(ExtensionManager::class) : null;
+        if ($running !== null && $running->root() === $fresh->root()) {
+            $failed = array_keys(array_filter($running->all(), fn ($record) => $record['status'] === ExtensionManager::FAILED));
+            $ids = array_diff($ids, $failed);
+        }
+
+        return array_values($ids);
     }
 
     private function writeState(array $state): void
