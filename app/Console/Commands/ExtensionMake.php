@@ -124,6 +124,7 @@ class ExtensionMake extends Command
                 use Illuminate\\Support\\Facades\\Route;
 
                 // Served at /{locale}/admin/ext/{$id}/..., behind the admin login. Names become ext.{$id}.*
+                // Controllers get only their own parameters (no \$locale), e.g. show(Note \$note).
                 Route::get('/', [{$studly}Controller::class, 'index'])->middleware('can:{$id}.view')->name('index');
 
                 PHP,

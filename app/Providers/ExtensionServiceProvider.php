@@ -107,7 +107,8 @@ class ExtensionServiceProvider extends ServiceProvider
         }
         $groups = [
             // Inside the admin: same locale prefix and guards as routes/admin.php.
-            'admin.php' => fn () => Route::middleware(['web', 'setLocale', 'auth', 'admin', 'package.sync'])
+            // {locale} is dropped once used, so controllers take only their own parameters.
+            'admin.php' => fn () => Route::middleware(['web', 'setLocale', 'auth', 'admin', 'package.sync', \App\Http\Middleware\ForgetRouteLocale::class])
                 ->prefix('{locale}/admin/ext/'.$id)->where(['locale' => '[a-z]{2,3}'])->name("ext.{$id}."),
             // Public endpoints (webhooks, an app's API): the extension adds its own auth.
             'api.php' => fn () => Route::middleware('api')->prefix('api/ext/'.$id)->name("ext.{$id}.api."),
