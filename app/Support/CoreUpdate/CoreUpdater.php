@@ -479,6 +479,16 @@ class CoreUpdater
         return array_values($ids);
     }
 
+    /**
+     * A run that failed before the updater took over (gateway unreachable, release withdrawn,
+     * download refused): recorded like any other failure, so the update page says why.
+     */
+    public function recordFailure(string $from, ?string $to, string $step, string $error): void
+    {
+        $this->writeState(['status' => 'failed', 'from' => $from, 'to' => $to, 'step' => $step, 'error' => $error]);
+        $this->history(['event' => 'failed', 'from' => $from, 'to' => $to, 'step' => $step, 'error' => $error, 'rolled_back' => false]);
+    }
+
     private function writeState(array $state): void
     {
         File::ensureDirectoryExists($this->coreDir());

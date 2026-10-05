@@ -7,6 +7,7 @@ use App\Services\AiGateway\GatewayUnavailable;
 use App\Support\CoreManifest;
 use App\Support\CoreUpdate\CoreUpdater;
 use App\Support\CoreUpdate\CoreUpdateService;
+use App\Support\CoreUpdate\UpdateProblems;
 use Illuminate\Http\Request;
 
 /**
@@ -29,7 +30,11 @@ class CoreUpdateController extends Controller
             ? array_reverse(array_map(fn ($l) => (array) json_decode($l, true), array_slice(file($historyFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES), -10)))
             : [];
 
+        $progress = $this->service->progress();
+
         return view('admin.core-update.index', [
+            'progress' => $progress,
+            'problems' => UpdateProblems::explain($progress['last']['error'] ?? null),
             'version' => $this->manifest->version(),
             'enabled' => $this->service->enabled(),
             'drift' => $this->manifest->drift(),
@@ -39,6 +44,29 @@ class CoreUpdateController extends Controller
             'history' => $history,
             'canRollback' => glob($this->manifest->base().'/storage/app/core/backups/*/meta.json') !== [],
         ]);
+    }
+
+    /** Polled by the update page while a request is queued or running. */
+    public function status()
+    {
+        $progress = $this->service->progress();
+
+        return response()->json($progress + ['problems' => UpdateProblems::explain($progress['last']['error'] ?? null)])
+            ->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Record the core files as installed when the website has no record at all (a site set up
+     * before deploy.py recorded it) — never over an existing record, which would hide edits.
+     */
+    public function baseline()
+    {
+        if ($this->manifest->installed() !== null) {
+            return back()->with('error', __('admin.core_update.baseline_exists'));
+        }
+        $this->manifest->recordInstalled();
+
+        return back()->with('success', __('admin.core_update.baseline_done'));
     }
 
     public function check()

@@ -169,6 +169,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
         Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
         Route::post('core-update/rollback', [CoreUpdateController::class, 'rollback'])->name('core-update.rollback');
+        Route::get('core-update/status', [CoreUpdateController::class, 'status'])->name('core-update.status');
+        Route::post('core-update/baseline', [CoreUpdateController::class, 'baseline'])->name('core-update.baseline');
 
         // The website's extensions/ and what became of each (read-only: extension:enable|disable).
         Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');

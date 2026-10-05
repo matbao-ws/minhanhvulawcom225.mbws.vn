@@ -78,7 +78,57 @@ class CoreUpdateService
             return null;
         }
         @unlink($this->path('requested.json'));
+        // From now until it ends — download included — the update page shows the run as going on.
+        $this->write('running.json', $request + ['started_at' => now()->toIso8601String()]);
 
+        try {
+            return $this->carryOut($request);
+        } finally {
+            @unlink($this->path('running.json'));
+        }
+    }
+
+    /**
+     * Where the admin's request stands, for the update page (which polls it): queued for cron,
+     * running (and at which step), or idle with the last run's outcome. Times come from the server,
+     * so a reload or another browser shows the same progress.
+     *
+     * @return array<string, mixed>
+     */
+    public function progress(): array
+    {
+        $requested = $this->requested();
+        $running = $this->read('running.json') ?: null;
+        $state = $this->updater->state();
+
+        $phase = match (true) {
+            $running !== null => 'running',
+            $requested !== null => 'queued',
+            default => 'idle',
+        };
+        $since = $running['started_at'] ?? $requested['requested_at'] ?? null;
+        $step = $phase !== 'running' ? null
+            : (($state['status'] ?? null) === 'running' ? (string) ($state['step'] ?? '') : 'download');
+
+        return [
+            'phase' => $phase,
+            'action' => ($running ?? $requested)['action'] ?? null,
+            'target' => ($running ?? $requested)['version'] ?? null,
+            'requested_at' => $running['requested_at'] ?? $requested['requested_at'] ?? null,
+            'started_at' => $running['started_at'] ?? null,
+            'step' => $step,
+            'step_group' => $step === null ? null : UpdateProblems::stepGroup($step),
+            // Cron runs at the top of each minute: past a few minutes something is wrong with it.
+            'stale' => $since !== null && now()->diffInMinutes($since, true) >= ($phase === 'running' ? 30 : 5),
+            'version' => $this->manifest->version(),
+            'last' => array_intersect_key($state, array_flip(['status', 'from', 'to', 'step', 'error', 'updated_at'])),
+            'now' => now()->toIso8601String(),
+        ];
+    }
+
+    /** @param  array<string, mixed>  $request */
+    private function carryOut(array $request): array
+    {
         if (($request['action'] ?? null) === 'rollback') {
             $from = $this->manifest->version();
             $result = $this->updater->rollback();
@@ -90,13 +140,19 @@ class CoreUpdateService
         }
 
         // Ask again: the release may have been paused since the click.
+        $from = $this->manifest->version();
         try {
             $offer = $this->offer();
         } catch (GatewayUnavailable $e) {
+            $this->updater->recordFailure($from, $request['version'] ?? null, 'gateway', 'gateway: '.$e->reason);
+
             return ['ok' => false, 'error' => 'gateway: '.$e->reason];
         }
         if ($offer === null || $offer['version'] !== ($request['version'] ?? null)) {
-            return ['ok' => false, 'error' => 'Release '.($request['version'] ?? '?').' is no longer offered to this website.'];
+            $error = 'not_offered: release '.($request['version'] ?? '?').' is no longer offered to this website';
+            $this->updater->recordFailure($from, $request['version'] ?? null, 'offer', $error);
+
+            return ['ok' => false, 'error' => $error];
         }
 
         return $this->run($offer, (bool) ($request['backup_done'] ?? false));
@@ -121,6 +177,7 @@ class CoreUpdateService
             $result = $this->updater->apply($dir, ['backup_done' => $backupDone]);
         } catch (Throwable $e) {
             $result = ['ok' => false, 'from' => $from, 'to' => $offer['version'], 'error' => 'download: '.$e->getMessage()];
+            $this->updater->recordFailure($from, (string) $offer['version'], 'download', $result['error']);
         } finally {
             File::deleteDirectory($dir);
         }
