@@ -1289,6 +1289,8 @@ return [
         'last_checked' => 'Last checked: :time',
         'never_checked' => 'Not checked yet.',
         'up_to_date' => 'This website runs the latest release published for it.',
+        'whats_new' => "What's new in :version",
+        'no_notes' => 'This release has no release notes. Ask Mat Bao for details before updating.',
         'found' => 'Release :version is available.',
         'available' => 'New release: :version',
         'level' => ['patch' => 'Bug fixes', 'minor' => 'New features', 'major' => 'Major change'],

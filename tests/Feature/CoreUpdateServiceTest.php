@@ -187,6 +187,26 @@ class CoreUpdateServiceTest extends TestCase
         Http::assertNotSent(fn ($r) => str_starts_with($r->url(), 'http://gw.test/v1/core/releases'));
     }
 
+    public function test_the_page_shows_what_is_new_and_escapes_html_in_the_notes(): void
+    {
+        $admin = $this->superadmin();
+        $this->offer['notes'] = "## Tính năng mới\n- **GHN** tạo vận đơn tự động.\n- <script>alert(1)</script> [x](javascript:alert(2))";
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']));
+
+        $page = $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk();
+        $page->assertSee('Có gì mới trong bản 1.0.1')->assertSee('<strong>GHN</strong>', false)->assertSee('Tính năng mới');
+        // Raw HTML stays text; an unsafe link never becomes an <a> (the sidebar has its own javascript: links).
+        preg_match('/<div class="release-notes[^"]*"[^>]*>(.*?)<\/div>/s', $page->getContent(), $notes);
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $notes[1]);
+        $this->assertStringNotContainsString('<script>', $notes[1]);
+        $this->assertStringNotContainsString('<a ', $notes[1]);
+
+        unset($this->offer['notes']);
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']));
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))
+            ->assertSee('Bản này chưa có ghi chú phát hành.');
+    }
+
     public function test_disabled_websites_neither_poll_nor_run_requests(): void
     {
         config(['core_update.enabled' => false]);

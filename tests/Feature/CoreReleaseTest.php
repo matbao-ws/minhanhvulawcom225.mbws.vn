@@ -81,6 +81,27 @@ class CoreReleaseTest extends TestCase
         $this->assertSame('1.4.0', $this->verifier()->verify($this->out)['version']);
     }
 
+    public function test_release_notes_are_signed_into_release_json(): void
+    {
+        $builder = new ReleaseBuilder($this->site);
+        $this->assertNull($builder->notes('1.4.0'), 'no notes file: null');
+
+        $this->putFile('docs/release-notes/1.4.0.md', "\n## Tính năng mới\n- Tạo vận đơn GHN.\n");
+        $release = $builder->build($this->out, ['channel' => 'stable', 'private_pem' => $this->key['private_pem']]);
+
+        $this->assertSame("## Tính năng mới\n- Tạo vận đơn GHN.", $release['notes']);
+        $this->assertSame($release['notes'], app(ReleaseVerifier::class)->verify($this->out)['notes'], 'part of the signed manifest');
+
+        // A beta falls back to the notes of its final version, its own file wins.
+        $this->assertSame("## Tính năng mới\n- Tạo vận đơn GHN.", $builder->notes('1.4.0-beta.1'));
+        $this->putFile('docs/release-notes/1.4.0-beta.1.md', 'Chỉ dành cho bản thử.');
+        $this->assertSame('Chỉ dành cho bản thử.', $builder->notes('1.4.0-beta.1'));
+
+        $this->putFile('docs/release-notes/1.4.0.md', str_repeat('a', ReleaseBuilder::NOTES_MAX + 1));
+        $this->expectExceptionMessage('longer than');
+        $builder->notes('1.4.0');
+    }
+
     public function test_database_impact_comes_from_new_and_contract_migrations(): void
     {
         $first = $this->build();

@@ -1292,6 +1292,8 @@ return [
         'last_checked' => 'Kiểm tra lần cuối: :time',
         'never_checked' => 'Chưa kiểm tra.',
         'up_to_date' => 'Website đang ở phiên bản mới nhất được phát hành cho nó.',
+        'whats_new' => 'Có gì mới trong bản :version',
+        'no_notes' => 'Bản này chưa có ghi chú phát hành. Liên hệ Mắt Bão nếu cần biết chi tiết trước khi cập nhật.',
         'found' => 'Có bản :version.',
         'available' => 'Bản mới: :version',
         'level' => ['patch' => 'Sửa lỗi', 'minor' => 'Tính năng mới', 'major' => 'Thay đổi lớn'],

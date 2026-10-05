@@ -2,6 +2,16 @@
 
 @section('title', __('admin.core_update.title'))
 
+@push('styles')
+    <style>
+        .release-notes h2, .release-notes h3 { font-size: .9rem; font-weight: 600; margin: .75rem 0 .35rem; }
+        .release-notes h2:first-child, .release-notes h3:first-child { margin-top: 0; }
+        .release-notes ul { padding-left: 1.1rem; margin-bottom: .5rem; }
+        .release-notes li { margin-bottom: .25rem; }
+        .release-notes p:last-child, .release-notes ul:last-child { margin-bottom: 0; }
+    </style>
+@endpush
+
 @section('content')
     @php
         $update = $available['update'] ?? null;
@@ -76,6 +86,17 @@
                         <div class="mb-3">
                             <span class="badge bg-primary-subtle text-primary">{{ __('admin.core_update.level.'.$update['level']) }}</span>
                             <span class="badge bg-light text-dark">{{ $update['channel'] }}</span>
+                        </div>
+                        <div class="border rounded bg-light-subtle p-3 mb-3" data-release-notes>
+                            <div class="fw-semibold text-dark mb-2"><i class="ti ti-sparkles text-primary me-1" aria-hidden="true"></i>{{ __('admin.core_update.whats_new', ['version' => $update['version']]) }}</div>
+                            @if(filled($update['notes'] ?? null))
+                                {{-- Markdown from the signed release (or set on the gateway): raw HTML escaped, unsafe links dropped. --}}
+                                <div class="release-notes small" style="max-height: 320px; overflow-y: auto;">
+                                    {!! \Illuminate\Support\Str::markdown((string) $update['notes'], ['html_input' => 'escape', 'allow_unsafe_links' => false]) !!}
+                                </div>
+                            @else
+                                <div class="small text-muted">{{ __('admin.core_update.no_notes') }}</div>
+                            @endif
                         </div>
                         @if($update['database']['migration'] ?? false)
                             <p class="small text-muted mb-2">{{ __('admin.core_update.migration') }}</p>

@@ -25,6 +25,9 @@ class ReleaseBuilder
 
     public const CHANNELS = ['dev', 'beta', 'stable'];
 
+    /** Release notes are read on the update page, not a changelog dump. */
+    public const NOTES_MAX = 10000;
+
     public function __construct(private readonly string $base) {}
 
     /**
@@ -79,6 +82,8 @@ class ReleaseBuilder
                 'min_from' => $options['min_from'] ?? config('core_update.min_from'),
             ],
             'database' => $database,
+            // What changed, for the shop owner on the update page (docs/release-notes); signed with the rest.
+            'notes' => $this->notes($version),
             'artifacts' => $artifacts,
             // This version's allowlist: a release may add a core directory older websites don't know.
             'core_paths' => CoreManifest::CORE,
@@ -90,6 +95,27 @@ class ReleaseBuilder
         file_put_contents($outDir.'/release.json.sig', ReleaseSigner::sign($json, $options['private_pem']));
 
         return $release;
+    }
+
+    /**
+     * docs/release-notes/<version>.md, else the file of the version without its pre-release suffix
+     * (1.2.0-beta.1 → 1.2.0.md); null when there is none.
+     */
+    public function notes(string $version): ?string
+    {
+        foreach (array_unique([$version, explode('-', $version, 2)[0]]) as $candidate) {
+            $file = $this->base.'/docs/release-notes/'.$candidate.'.md';
+            if (is_file($file)) {
+                $notes = trim((string) file_get_contents($file));
+                if (mb_strlen($notes) > self::NOTES_MAX) {
+                    throw new RuntimeException("docs/release-notes/{$candidate}.md is longer than ".self::NOTES_MAX.' characters.');
+                }
+
+                return $notes === '' ? null : $notes;
+            }
+        }
+
+        return null;
     }
 
     /**

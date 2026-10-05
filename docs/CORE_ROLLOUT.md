@@ -135,3 +135,23 @@ Mỗi lệnh đều dạng `docker compose exec gateway php artisan <lệnh>`.
   `storage/app/core/installed.json`).
 - **"N file core đã bị sửa trực tiếp trên website"**: có người sửa file core trên hosting. Đưa thay đổi
   đó vào theme hoặc vào core, rồi chạy `php artisan core:status --baseline` trên website.
+
+## 9. Ghi chú phát hành ("Có gì mới")
+
+Trang **Cập nhật phiên bản** của website hiện mục "Có gì mới trong bản X" lấy từ ghi chú phát hành:
+
+1. Bình thường: file `docs/release-notes/<phiên bản>.md` trong repo core, đóng vào `release.json` lúc
+   phát hành (có chữ ký). Bản stable thiếu file này thì workflow dừng.
+2. Bản **đã phát hành** mà thiếu hoặc cần sửa ghi chú (vd 1.1.0): đặt trên gateway, không phát hành lại.
+   Trên VPS gateway:
+
+   ```bash
+   cd /opt/matbaows
+   nano /tmp/notes.md        # dán nội dung, vd từ docs/release-notes/1.1.0.md
+   docker compose cp /tmp/notes.md gateway:/tmp/notes.md
+   docker compose exec gateway php artisan core:release 1.1.0 --notes-file=/tmp/notes.md
+   ```
+
+   Ghi chú đặt trên gateway được ưu tiên hơn ghi chú trong `release.json`. Gỡ: `--clear-notes`.
+   Website thấy nội dung mới ở lần bấm **Kiểm tra** tiếp theo.
+
