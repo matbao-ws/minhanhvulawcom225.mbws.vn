@@ -172,6 +172,21 @@ class CoreUpdateServiceTest extends TestCase
         $this->assertTrue(app(CoreUpdateService::class)->requested()['backup_done']);
     }
 
+    public function test_an_http_package_url_on_the_gateway_host_is_downloaded_over_https(): void
+    {
+        // A gateway behind a TLS proxy once sent http:// URLs: following the redirect to https://
+        // the HTTP client dropped the token and every download got a 401.
+        $this->offer['base_url'] = 'http://gw.test/v1/core/releases/1.0.1';
+        $service = app(CoreUpdateService::class);
+        $this->assertSame('https://gw.test/v1/core/releases/1.0.1', $service->packageUrl($this->offer['base_url']));
+        $this->assertSame('http://cdn.other/x', $service->packageUrl('http://cdn.other/x'), 'another host is left alone');
+
+        $this->assertTrue($service->run($this->offer)['ok']);
+        Http::assertSent(fn ($r) => $r->url() === 'https://gw.test/v1/core/releases/1.0.1/release.json'
+            && $r->hasHeader('Authorization', 'Bearer mbp_project_token'));
+        Http::assertNotSent(fn ($r) => str_starts_with($r->url(), 'http://gw.test/v1/core/releases'));
+    }
+
     public function test_disabled_websites_neither_poll_nor_run_requests(): void
     {
         config(['core_update.enabled' => false]);

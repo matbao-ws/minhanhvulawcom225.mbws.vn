@@ -60,6 +60,21 @@ class ExtensionLifecycleTest extends TestCase
         $this->get("/ext/{$id}/callback")->assertOk()->assertSee('callback');
     }
 
+    public function test_admin_controllers_get_their_own_parameters_without_the_locale(): void
+    {
+        $id = $this->uniqueExtensionId();
+        $studly = ucfirst($id);
+        $this->makeExtension($id, files: [
+            'src/ItemController.php' => "<?php namespace Extensions\\{$studly}; class ItemController extends \\Illuminate\\Routing\\Controller {
+                public function show(int \$item) { return 'item:'.\$item.' locale:'.app()->getLocale(); } }",
+            'routes/admin.php' => "<?php use Illuminate\\Support\\Facades\\Route; Route::get('items/{item}', [Extensions\\{$studly}\\ItemController::class, 'show'])->name('item');",
+        ]);
+        $this->loadExtensions();
+
+        $this->actingAs($this->superadmin())->get("/en/admin/ext/{$id}/items/7")->assertOk()->assertSee('item:7 locale:en');
+        $this->assertSame("/vi/admin/ext/{$id}/items/7", route("ext.{$id}.item", ['locale' => 'vi', 'item' => 7], false));
+    }
+
     public function test_a_provider_that_throws_in_register_or_boot_fails_alone(): void
     {
         $inRegister = $this->uniqueExtensionId('r');

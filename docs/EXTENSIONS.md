@@ -107,6 +107,9 @@ middleware cho mọi extension; `extension:check` báo lỗi nếu làm khác.
   riêng của tài khoản. Không insert quyền bằng migration.
 - Chặn route bằng `->middleware('can:dealers.view')`, trong view dùng `@can('dealers.manage')`.
 - Trang admin `@extends('admin.layouts.app')` và dùng component có sẵn (`<x-admin.page-header>`...).
+- Controller của route admin **không** nhận `$locale` (khác controller core): core đã đặt ngôn ngữ và
+  gỡ `{locale}` khỏi tham số, nên viết thẳng `public function destroy(Note $note)`. `route()` vẫn tự
+  điền ngôn ngữ hiện tại.
 - Menu: `AdminMenu::register` (mục 4). Key trùng → extension bị đánh dấu lỗi, không ghi đè.
 
 ## 6. Được và không được dùng gì của core

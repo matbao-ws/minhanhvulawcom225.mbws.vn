@@ -115,7 +115,7 @@ class CoreUpdateService
 
         try {
             $lock = $this->manifest->base().'/composer.lock';
-            $this->downloader->download((string) $offer['base_url'], $dir, (string) config('ai_gateway.token'),
+            $this->downloader->download($this->packageUrl((string) $offer['base_url']), $dir, (string) config('ai_gateway.token'),
                 is_file($lock) ? hash_file('sha256', $lock) : null);
 
             $result = $this->updater->apply($dir, ['backup_done' => $backupDone]);
@@ -132,6 +132,24 @@ class CoreUpdateService
         });
 
         return $result;
+    }
+
+    /**
+     * The gateway's package URL, upgraded to https when it names the gateway's own host over plain
+     * http. Following an http → https redirect, the HTTP client drops the token on the port change
+     * and the gateway answers 401 — which is how 1.1.0 first failed to download.
+     */
+    public function packageUrl(string $url): string
+    {
+        $gateway = parse_url((string) config('ai_gateway.url'));
+        $package = parse_url($url);
+
+        if (($package['scheme'] ?? null) === 'http' && ($gateway['scheme'] ?? null) === 'https'
+            && isset($package['host'], $gateway['host']) && strcasecmp($package['host'], $gateway['host']) === 0) {
+            return 'https'.substr($url, 4);
+        }
+
+        return $url;
     }
 
     /** Best effort: an unreachable gateway never fails an update. */
