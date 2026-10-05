@@ -500,13 +500,13 @@
         <h3 class="text-lg font-bold uppercase text-navy-900 border-l-4 border-brand-red pl-3 mb-5">Đặt Lịch Tư Vấn</h3>
         <form class="consultation-form space-y-3.5" data-ajax-form="true">
           <div>
-            <input type="text" required placeholder="Họ và tên của bạn *" class="w-full px-4 py-3 rounded-lg border border-slate-300 text-sm focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none" />
+            <input type="text" name="fullname" required placeholder="Họ và tên của bạn *" class="w-full px-4 py-3 rounded-lg border border-slate-300 text-sm focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none" />
           </div>
           <div>
-            <input type="tel" required placeholder="Số điện thoại liên hệ *" class="w-full px-4 py-3 rounded-lg border border-slate-300 text-sm focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none" />
+            <input type="tel" name="phone" required placeholder="Số điện thoại liên hệ *" class="w-full px-4 py-3 rounded-lg border border-slate-300 text-sm focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none" />
           </div>
           <div>
-            <textarea rows="3" placeholder="Tóm tắt yêu cầu cần hỗ trợ..." class="w-full px-4 py-3 rounded-lg border border-slate-300 text-sm focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none"></textarea>
+            <textarea rows="3" name="message" placeholder="Tóm tắt yêu cầu cần hỗ trợ..." class="w-full px-4 py-3 rounded-lg border border-slate-300 text-sm focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none"></textarea>
           </div>
           <button type="submit" class="w-full py-3.5 rounded-lg bg-brand-red hover:bg-brand-redDark text-white font-bold text-sm uppercase tracking-wider transition shadow-md shadow-red-600/20">
             Gửi Yêu Cầu

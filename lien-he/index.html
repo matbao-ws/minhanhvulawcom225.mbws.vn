@@ -432,36 +432,36 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-semibold text-navy-900 uppercase mb-1">Họ và tên của bạn *</label>
-                <input type="text" required placeholder="Nguyễn Văn A" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm" />
+                <input type="text" name="fullname" required placeholder="Nguyễn Văn A" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-navy-900 uppercase mb-1">Số điện thoại *</label>
-                <input type="tel" required placeholder="0901 234 567" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm" />
+                <input type="tel" name="phone" required placeholder="0901 234 567" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm" />
               </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-semibold text-navy-900 uppercase mb-1">Địa chỉ Email</label>
-                <input type="email" placeholder="example@email.com" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm" />
+                <input type="email" name="email" placeholder="example@email.com" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm" />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-navy-900 uppercase mb-1">Lĩnh vực cần tư vấn</label>
-                <select class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-700 shadow-sm">
-                  <option>Luật sư Tranh tụng</option>
-                  <option>Tư vấn pháp lý thường xuyên</option>
-                  <option>Dịch vụ Luật sư riêng</option>
-                  <option>Phòng pháp chế thuê ngoài</option>
-                  <option>Dịch vụ Thủ tục – Giấy phép</option>
-                  <option>Đào tạo pháp lý nội bộ</option>
-                  <option>Vấn đề pháp lý khác</option>
+                <select name="service" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-700 shadow-sm">
+                  <option value="Luật sư Tranh tụng">Luật sư Tranh tụng</option>
+                  <option value="Tư vấn pháp lý thường xuyên">Tư vấn pháp lý thường xuyên</option>
+                  <option value="Dịch vụ Luật sư riêng">Dịch vụ Luật sư riêng</option>
+                  <option value="Phòng pháp chế thuê ngoài">Phòng pháp chế thuê ngoài</option>
+                  <option value="Dịch vụ Thủ tục – Giấy phép">Dịch vụ Thủ tục – Giấy phép</option>
+                  <option value="Đào tạo pháp lý nội bộ">Đào tạo pháp lý nội bộ</option>
+                  <option value="Vấn đề pháp lý khác">Vấn đề pháp lý khác</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label class="block text-sm font-semibold text-navy-900 uppercase mb-1">Chi tiết yêu cầu hoặc câu hỏi</label>
-              <textarea rows="4" placeholder="Mô tả cụ thể vụ việc để luật sư chuẩn bị tài liệu nghiên cứu trước..." class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm"></textarea>
+              <textarea rows="4" name="message" placeholder="Mô tả cụ thể vụ việc để luật sư chuẩn bị tài liệu nghiên cứu trước..." class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none font-normal shadow-sm"></textarea>
             </div>
 
             <button type="submit" class="w-full py-4 rounded-lg bg-brand-red hover:bg-brand-redDark text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-red-600/30 transition">

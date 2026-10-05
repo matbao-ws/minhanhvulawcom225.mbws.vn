@@ -802,18 +802,18 @@
         <form class="consultation-form space-y-4" data-ajax-form="true">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <input type="text" required placeholder="Họ & tên của bạn *" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm" />
+              <input type="text" name="fullname" required placeholder="Họ & tên của bạn *" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm" />
             </div>
             <div>
-              <input type="email" required placeholder="Địa chỉ email *" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm" />
+              <input type="email" name="email" required placeholder="Địa chỉ email *" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm" />
             </div>
             <div>
-              <input type="tel" required placeholder="Số điện thoại liên hệ *" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm" />
+              <input type="tel" name="phone" required placeholder="Số điện thoại liên hệ *" class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm" />
             </div>
           </div>
 
           <div>
-            <textarea rows="4" required placeholder="Nội dung vướng mắc cần luật sư tư vấn chi tiết..." class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm"></textarea>
+            <textarea rows="4" name="message" required placeholder="Nội dung vướng mắc cần luật sư tư vấn chi tiết..." class="w-full px-4 py-3.5 rounded-lg border border-slate-300 text-base focus:ring-1 focus:ring-brand-red focus:border-brand-red outline-none bg-white font-normal text-slate-800 shadow-sm"></textarea>
           </div>
 
           <div class="text-center pt-2">

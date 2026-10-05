@@ -205,6 +205,8 @@ function initConsultationForms() {
       }
 
       const formData = new FormData(form);
+      let isSuccess = true;
+      let respMessage = 'Luật sư của Văn phòng Luật Minh Anh Vũ sẽ liên hệ với bạn qua số điện thoại đã cung cấp trong vòng 30 phút.';
 
       try {
         const res = await fetch('/api/contact.php', {
@@ -212,6 +214,12 @@ function initConsultationForms() {
           body: formData
         });
         const result = await res.json().catch(() => ({ success: true }));
+        if (result && result.message) {
+          respMessage = result.message;
+        }
+        if (result && result.success === false) {
+          isSuccess = false;
+        }
       } catch (err) {
         console.log('Form submit info:', err);
       } finally {
@@ -223,19 +231,29 @@ function initConsultationForms() {
         let alertBox = form.querySelector('.form-alert');
         if (!alertBox) {
           alertBox = document.createElement('div');
-          alertBox.className = 'form-alert mt-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm flex items-start gap-3 animate-fade-in';
           form.appendChild(alertBox);
         }
 
-        alertBox.innerHTML = `
-          <i class="fa-solid fa-circle-check text-green-600 text-lg mt-0.5 flex-shrink-0"></i>
-          <div>
-            <strong class="block font-semibold">Gửi yêu cầu tư vấn thành công!</strong>
-            <span>Luật sư của Văn phòng Luật Minh Anh Vũ sẽ liên hệ với bạn qua số điện thoại đã cung cấp trong vòng 30 phút.</span>
-          </div>
-        `;
-
-        form.reset();
+        if (isSuccess) {
+          alertBox.className = 'form-alert mt-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm flex items-start gap-3 animate-fade-in';
+          alertBox.innerHTML = `
+            <i class="fa-solid fa-circle-check text-green-600 text-lg mt-0.5 flex-shrink-0"></i>
+            <div>
+              <strong class="block font-semibold">Gửi yêu cầu tư vấn thành công!</strong>
+              <span>${respMessage}</span>
+            </div>
+          `;
+          form.reset();
+        } else {
+          alertBox.className = 'form-alert mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-3 animate-fade-in';
+          alertBox.innerHTML = `
+            <i class="fa-solid fa-circle-exclamation text-brand-red text-lg mt-0.5 flex-shrink-0"></i>
+            <div>
+              <strong class="block font-semibold">Thông báo</strong>
+              <span>${respMessage}</span>
+            </div>
+          `;
+        }
       }
     });
   });
