@@ -107,11 +107,19 @@
                                         <i class="ti ti-{{ $icon }}" aria-hidden="true"></i>{{ __('admin.extensions.status.'.$record['status']) }}
                                     </span>
                                 </div>
-                                @if($record['error'])
-                                    <div class="alert {{ $record['status'] === 'disabled' ? 'alert-secondary' : 'alert-danger' }} fs-2 py-2 px-3 mt-3 mb-0 text-break">
-                                        {{ $record['status'] === 'disabled' ? __('admin.extensions.reason') : __('admin.extensions.error') }}:
-                                        {{ \Illuminate\Support\Str::limit($record['error'], 300) }}
+                                {{-- Never the error itself: a plain sentence, and for a failure the reference
+                                     its detail was logged under (storage/logs/core.log). --}}
+                                @if($record['status'] === 'disabled' && $record['error'])
+                                    <div class="alert alert-secondary fs-2 py-2 px-3 mt-3 mb-0 text-break">{{ __('admin.extensions.reason') }}: {{ \Illuminate\Support\Str::limit($record['error'], 200) }}</div>
+                                @elseif($record['status'] === 'failed')
+                                    <div class="alert alert-danger fs-2 py-2 px-3 mt-3 mb-0">
+                                        {{ __('admin.extensions.problem.failed') }}
+                                        @if(! empty($record['ref']))<div class="text-muted mt-1">{{ __('admin.extensions.reference', ['ref' => $record['ref']]) }}</div>@endif
                                     </div>
+                                @elseif($record['status'] === 'invalid')
+                                    <div class="alert alert-danger fs-2 py-2 px-3 mt-3 mb-0">{{ __('admin.extensions.problem.invalid') }}</div>
+                                @elseif($record['status'] === 'incompatible')
+                                    <div class="alert alert-warning fs-2 py-2 px-3 mt-3 mb-0">{{ __('admin.extensions.problem.incompatible', ['constraint' => $record['manifest']?->requiresCore, 'version' => $coreVersion]) }}</div>
                                 @endif
                             </div>
                         @endforeach

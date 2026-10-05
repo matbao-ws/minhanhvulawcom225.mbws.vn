@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Extension\Registries\AdminMenu;
+use App\Support\ErrorReference;
 use App\Support\Extensions\ExtensionAutoloader;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionManifest;
@@ -135,12 +136,15 @@ class ExtensionServiceProvider extends ServiceProvider
     private function fail(ExtensionManager $manager, ExtensionManifest $manifest, Throwable $e, string $phase): void
     {
         $message = mb_strimwidth($e->getMessage(), 0, 500, '…');
-        $manager->markFailed($manifest->id, "{$phase}: ".$e::class.": {$message}");
+        // The admin page shows only this reference; the detail is in storage/logs/core.log.
+        $ref = ErrorReference::make('EXT');
+        $manager->markFailed($manifest->id, "{$phase}: ".$e::class.": {$message}", $ref);
         $this->app->make(AdminMenu::class)->forget($manifest->id);
         unset($this->extensions[$manifest->id]);
 
         $file = str_replace('\\', '/', $e->getFile());
-        Log::error("Extension {$manifest->id} failed to load ({$phase})", [
+        Log::channel('core')->error("Extension {$manifest->id} failed to load ({$phase}) [{$ref}]", [
+            'ref' => $ref,
             'extension' => $manifest->id,
             'version' => $manifest->version,
             'phase' => $phase,

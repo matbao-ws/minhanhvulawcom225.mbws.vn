@@ -121,7 +121,8 @@ class CoreUpdateService
             // Cron runs at the top of each minute: past a few minutes something is wrong with it.
             'stale' => $since !== null && now()->diffInMinutes($since, true) >= ($phase === 'running' ? 30 : 5),
             'version' => $this->manifest->version(),
-            'last' => array_intersect_key($state, array_flip(['status', 'from', 'to', 'step', 'error', 'updated_at'])),
+            // No error text: pages (and this JSON) show the reference, the log holds the detail.
+            'last' => array_intersect_key($state, array_flip(['status', 'from', 'to', 'ref', 'updated_at'])),
             'now' => now()->toIso8601String(),
         ];
     }

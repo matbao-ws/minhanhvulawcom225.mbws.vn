@@ -5,7 +5,8 @@ namespace App\Support\CoreUpdate;
 /**
  * Turns the updater's technical reasons ("drift: 3 core file(s) …", "migrate: artisan migrate
  * failed …", "download: …") into what the update page tells an admin: a plain sentence and a short
- * code to give Mat Bao. The original text stays available as the technical detail.
+ * code. The technical text never reaches the page: it is in storage/logs/core.log under the run's
+ * reference (CoreUpdater::writeState()).
  */
 class UpdateProblems
 {
@@ -20,7 +21,7 @@ class UpdateProblems
     private const INSTALL_STEPS = ['prepare', 'backup', 'stage', 'maintenance', 'swap', 'package:discover', 'migrate', 'optimize:clear', 'optimize', 'health', 'rollback'];
 
     /**
-     * @return list<array{code: string, message: string, detail: string}>
+     * @return list<array{code: string, message: string}>
      */
     public static function explain(?string $error): array
     {
@@ -40,7 +41,6 @@ class UpdateProblems
             $problems[] = [
                 'code' => strtoupper($code),
                 'message' => __('admin.core_update.problems.'.$code, ['step' => __('admin.core_update.steps.'.self::stepGroup($prefix))]),
-                'detail' => $part,
             ];
         }
 

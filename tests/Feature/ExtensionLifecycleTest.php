@@ -115,7 +115,8 @@ class ExtensionLifecycleTest extends TestCase
         $all = $this->loadExtensions()->all();
 
         $boot = collect($logged)->firstWhere('context.extension', $inBoot);
-        $this->assertSame("Extension {$inBoot} failed to load (boot)", $boot['message']);
+        $this->assertStringStartsWith("Extension {$inBoot} failed to load (boot) [EXT-", $boot['message']);
+        $this->assertSame($all[$inBoot]['ref'], $boot['context']['ref'], 'the admin page shows the reference the log carries');
         $this->assertSame(['extension' => $inBoot, 'version' => '2.3.4', 'phase' => 'boot', 'exception' => 'RuntimeException', 'message' => 'MISA unreachable'],
             array_intersect_key($boot['context'], array_flip(['extension', 'version', 'phase', 'exception', 'message'])));
         $this->assertStringStartsWith("extensions/{$inBoot}/src/", $boot['context']['at']);

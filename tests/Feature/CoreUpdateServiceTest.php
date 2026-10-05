@@ -271,9 +271,14 @@ class CoreUpdateServiceTest extends TestCase
 
         $state = app(CoreUpdater::class)->state();
         $this->assertSame(['failed', 'download'], [$state['status'], $state['step']]);
+        $this->assertMatchesRegularExpression('/^UPD-\d{14}-[A-Z0-9]{4}$/', $state['ref']);
         $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
             ->assertSee('Không tải được bản cập nhật. Thử lại sau ít phút.')->assertSee('Mã: DOWNLOAD')
-            ->assertSee('Chi tiết cho kỹ thuật viên');
+            ->assertSee('Mã tra cứu: '.$state['ref'])->assertDontSee('Download failed');
+        // Nor in the JSON the page polls.
+        $status = $this->actingAs($admin)->getJson(route('admin.core-update.status', ['locale' => 'vi']))->json();
+        $this->assertStringNotContainsString('Download failed', json_encode($status));
+        $this->assertSame($state['ref'], $status['last']['ref']);
     }
 
     public function test_reasons_become_plain_sentences_with_a_code(): void

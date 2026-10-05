@@ -697,18 +697,14 @@
                         </div>
                     </div>
 
-                    @if($isAdminContext)
-                        @hasSection('details')
-                            <div class="tech-details-box">
-                                <button type="button" class="tech-details-toggle" onclick="toggleDetails()">
-                                    <span>{{ __('errors.common.technical_details') }}</span>
-                                    <span id="toggle-arrow">▾</span>
-                                </button>
-                                <div class="tech-details-content" id="tech-details-body">
-                                    @yield('details')
-                                </div>
+                    {{-- An error code to quote to support, for shoppers and admins alike. Nothing technical
+                         is shown here (the detail is in the log under that code), so nothing to fold away. --}}
+                    @hasSection('details')
+                        <div class="tech-details-box">
+                            <div class="tech-details-content show" id="tech-details-body">
+                                @yield('details')
                             </div>
-                        @endif
+                        </div>
                     @endif
                 </div>
             </div>
@@ -726,15 +722,6 @@
     </div>
 
     <script>
-        function toggleDetails() {
-            var body = document.getElementById('tech-details-body');
-            var arrow = document.getElementById('toggle-arrow');
-            if (body) {
-                var isShown = body.classList.toggle('show');
-                if (arrow) arrow.textContent = isShown ? '▴' : '▾';
-            }
-        }
-
         function safeGoBack() {
             if (window.history.length > 1) {
                 window.history.back();

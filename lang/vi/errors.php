@@ -2,6 +2,8 @@
 
 return [
     'common' => [
+        'reference' => 'Mã lỗi',
+        'reference_hint' => 'Gửi mã này cho quản trị viên website để tra cứu nhanh.',
         'back_to_home' => 'Về trang chủ',
         'go_to_dashboard' => 'Vào bảng điều khiển',
         'go_back' => 'Quay lại trang trước',

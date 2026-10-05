@@ -41,7 +41,9 @@ class ExtensionAdminPageTest extends TestCase
         $page = $this->actingAs($this->user(['*'], true))->get(route('admin.extensions.index', ['locale' => 'vi']))->assertOk();
 
         $page->assertSee('Quản lý đại lý')->assertSee('1.4.0')->assertSee('Đang chạy')
-            ->assertSee('Lỗi khi nạp')->assertSee('MISA API key missing')
+            // The error itself never reaches the page: a sentence and the reference it was logged under.
+            ->assertSee('Lỗi khi nạp')->assertDontSee('MISA API key missing')
+            ->assertSee('Tiện ích gặp lỗi khi khởi động')->assertSee('Mã tra cứu: EXT-')
             ->assertSee('Đã tắt')->assertSee('chờ bản mới')
             ->assertSee('php artisan extension:disable');
     }

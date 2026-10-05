@@ -34,7 +34,7 @@ class CoreUpdateController extends Controller
 
         return view('admin.core-update.index', [
             'progress' => $progress,
-            'problems' => UpdateProblems::explain($progress['last']['error'] ?? null),
+            'problems' => UpdateProblems::explain($this->updater->state()['error'] ?? null),
             'version' => $this->manifest->version(),
             'enabled' => $this->service->enabled(),
             'drift' => $this->manifest->drift(),
@@ -51,7 +51,7 @@ class CoreUpdateController extends Controller
     {
         $progress = $this->service->progress();
 
-        return response()->json($progress + ['problems' => UpdateProblems::explain($progress['last']['error'] ?? null)])
+        return response()->json($progress + ['problems' => UpdateProblems::explain($this->updater->state()['error'] ?? null)])
             ->header('Cache-Control', 'no-store');
     }
 

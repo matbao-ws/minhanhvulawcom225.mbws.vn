@@ -106,10 +106,6 @@
                             <div class="fw-semibold mb-1">{{ __('admin.core_update.not_ready') }}</div>
                             {{ __('admin.core_update.drift_found', ['count' => $driftCount]) }}
                             <span class="text-nowrap">({{ __('admin.core_update.code', ['code' => 'DRIFT']) }})</span>
-                            <details class="mt-2">
-                                <summary class="text-muted">{{ __('admin.core_update.technical') }}</summary>
-                                <div class="mt-1 text-break font-monospace">{{ implode(', ', array_slice(array_merge($drift['modified'], $drift['missing'], $drift['added']), 0, 20)) }}</div>
-                            </details>
                         </div>
                     @else
                         <div class="small text-success mb-2"><i class="ti ti-circle-check me-1" aria-hidden="true"></i>{{ __('admin.core_update.drift_none') }}</div>
@@ -136,11 +132,8 @@
                                 <span class="text-muted text-nowrap">({{ __('admin.core_update.code', ['code' => $problem['code']]) }})</span>
                             </div>
                         @endforeach
-                        @if($problems !== [])
-                            <details class="small mt-2">
-                                <summary class="text-muted">{{ __('admin.core_update.technical') }}</summary>
-                                <div class="mt-1 text-break font-monospace text-muted">{{ \Illuminate\Support\Str::limit($last['error'], 600) }}</div>
-                            </details>
+                        @if(! empty($last['ref']))
+                            <div class="small text-muted mt-2">{{ __('admin.core_update.reference', ['ref' => $last['ref']]) }}</div>
                         @endif
                     @endif
                 </div>
@@ -225,9 +218,10 @@
                                     <td class="small text-nowrap">{{ $entry['from'] ?? '' }} → {{ $entry['to'] ?? '' }}</td>
                                     <td class="small">
                                         @foreach($entryProblems as $problem)
-                                            <span title="{{ $problem['detail'] }}">{{ $problem['message'] }}</span>
+                                            {{ $problem['message'] }}
                                             <span class="text-muted text-nowrap">({{ $problem['code'] }})</span>
                                         @endforeach
+                                        @if(! empty($entry['ref']))<span class="text-muted text-nowrap">· {{ $entry['ref'] }}</span>@endif
                                         @if($entry['rolled_back'] ?? false) <span class="text-muted">· {{ __('admin.core_update.restored') }}</span>@endif
                                     </td>
                                 </tr>

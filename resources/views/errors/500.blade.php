@@ -58,21 +58,16 @@
     </button>
 @endsection
 
-@if(config('app.debug') || (isset($exception) && $exception && $exception->getMessage()))
-    @section('details')
-        <div>
-            <strong>Error Reference:</strong> ERR-500-{{ date('YmdHis') }}<br>
-            @if(isset($exception) && $exception)
-                <strong>Exception:</strong> {{ get_class($exception) }}<br>
-                @if($exception->getMessage())
-                    <strong>Message:</strong> {{ $exception->getMessage() }}<br>
-                @endif
-                @if(config('app.debug') && method_exists($exception, 'getFile'))
-                    <strong>File:</strong> {{ $exception->getFile() }}:{{ $exception->getLine() }}<br>
-                @endif
-            @else
-                <strong>Details:</strong> An internal server error occurred.
-            @endif
-        </div>
-    @endsection
-@endif
+{{-- Only a reference code on the page: the message (SQL, paths, hosts) is in the log under the same code.
+     The detail shows on a developer machine (APP_DEBUG=true) only. --}}
+@section('details')
+    <div>
+        <strong>{{ __('errors.common.reference') }}:</strong> {{ \App\Support\ErrorReference::current() }}<br>
+        {{ __('errors.common.reference_hint') }}
+        @if(config('app.debug') && isset($exception) && $exception)
+            <br><strong>Exception:</strong> {{ get_class($exception) }}
+            <br><strong>Message:</strong> {{ $exception->getMessage() }}
+            <br><strong>File:</strong> {{ $exception->getFile() }}:{{ $exception->getLine() }}
+        @endif
+    </div>
+@endsection

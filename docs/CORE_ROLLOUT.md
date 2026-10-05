@@ -155,3 +155,19 @@ Trang **Cập nhật phiên bản** của website hiện mục "Có gì mới tr
    Ghi chú đặt trên gateway được ưu tiên hơn ghi chú trong `release.json`. Gỡ: `--clear-notes`.
    Website thấy nội dung mới ở lần bấm **Kiểm tra** tiếp theo.
 
+## 10. Tra một mã lỗi
+
+Trang admin và trang lỗi **không bao giờ** hiện chi tiết kỹ thuật, chỉ một mã. Chi tiết nằm trong log
+của website (máy chủ chứa website, thư mục website):
+
+| Mã | Từ đâu | File log |
+|---|---|---|
+| `UPD-…` | Cập nhật core bị chặn hoặc lỗi (trang Cập nhật phiên bản) | `storage/logs/core-YYYY-MM-DD.log` |
+| `EXT-…` | Tiện ích mở rộng lỗi khi khởi động (trang Tiện ích mở rộng) | `storage/logs/core-YYYY-MM-DD.log` |
+| `ERR-…` | Lỗi 500 (trang lỗi, khách hoặc admin gặp) | `storage/logs/laravel*.log` |
+
+```bash
+cd <thư mục website>
+grep -r "UPD-20261005103012-K7QD" storage/logs/ | tail -5
+```
+
