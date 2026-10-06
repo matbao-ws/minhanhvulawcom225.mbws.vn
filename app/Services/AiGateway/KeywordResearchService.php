@@ -24,19 +24,21 @@ class KeywordResearchService
     public function __construct(private readonly GatewayClient $gateway) {}
 
     /**
-     * @return array{domain: string|null, limits: array<string, int>, competitors: list<array<string, mixed>>, gaps: list<array<string, mixed>>, tracked: list<array<string, mixed>>}
+     * @param  bool  $fresh  skip the cache (the page polling for a fetch to finish)
+     * @return array{now: string|null, domain: string|null, limits: array<string, int>, competitors: list<array<string, mixed>>, gaps: list<array<string, mixed>>, tracked: list<array<string, mixed>>}
      *
      * @throws GatewayUnavailable
      */
-    public function overview(): array
+    public function overview(bool $fresh = false): array
     {
-        $cached = Cache::get(self::CACHE_KEY);
+        $cached = $fresh ? null : Cache::get(self::CACHE_KEY);
         if (is_array($cached)) {
             return $cached;
         }
 
         $research = (array) ($this->gateway->get('v1/research')['research'] ?? []);
         $result = [
+            'now' => is_string($research['now'] ?? null) ? $research['now'] : null,
             'domain' => is_string($research['domain'] ?? null) ? $research['domain'] : null,
             'limits' => array_map('intval', (array) ($research['limits'] ?? [])),
             'competitors' => $this->rows($research['competitors'] ?? []),
@@ -44,12 +46,33 @@ class KeywordResearchService
             'tracked' => $this->rows($research['tracked'] ?? []),
         ];
 
-        // Short: keyword lists arrive from the gateway's background jobs a minute after a change.
-        $fetching = collect($result['competitors'])->contains('status', 'queued')
-            || collect($result['tracked'])->contains(fn (array $row) => ($row['checked_at'] ?? null) === null && ($row['error'] ?? null) === null);
-        Cache::put(self::CACHE_KEY, $result, $fetching ? 15 : 600);
+        // Short while the gateway's background jobs are still fetching.
+        Cache::put(self::CACHE_KEY, $result, self::pending($result) !== [] ? 15 : 600);
 
         return $result;
+    }
+
+    /**
+     * What is still being fetched: competitors waiting for their keywords and keywords waiting for
+     * their first position, each with when it was asked for (the gateway's clock).
+     *
+     * @return list<array{kind: string, label: string, since: string|null}>
+     */
+    public static function pending(array $overview): array
+    {
+        $pending = [];
+        foreach ($overview['competitors'] ?? [] as $row) {
+            if (($row['status'] ?? null) === 'queued') {
+                $pending[] = ['kind' => 'competitor', 'label' => (string) ($row['domain'] ?? ''), 'since' => $row['queued_at'] ?? null];
+            }
+        }
+        foreach ($overview['tracked'] ?? [] as $row) {
+            if (($row['checked_at'] ?? null) === null && ($row['error'] ?? null) === null) {
+                $pending[] = ['kind' => 'keyword', 'label' => (string) ($row['keyword'] ?? ''), 'since' => $row['added_at'] ?? null];
+            }
+        }
+
+        return $pending;
     }
 
     /** @throws GatewayUnavailable */

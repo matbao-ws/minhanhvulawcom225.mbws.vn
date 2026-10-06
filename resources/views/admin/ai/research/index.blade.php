@@ -27,6 +27,32 @@
         .research-chip { display: inline-block; margin: 0 .25rem .25rem 0; padding: .15rem .5rem; border-radius: 999px; color: #4b3a8f; background: #eee8ff; font-size: .72rem; }
         .research-position { font-size: 1.05rem; font-weight: 800; }
         [data-bs-theme="dark"] .research-page, [data-bs-theme="dark"] .research-card__title, [data-bs-theme="dark"] .research-topic__title { color: #edf2f8; }
+        .research-progress { overflow: hidden; border: 1px solid #cfe0fb; border-radius: 1rem; background: linear-gradient(115deg, #f5f9ff, #eef4ff); }
+        .research-progress__body { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; padding: 1.25rem 1.5rem; }
+        .research-progress__icon { display: inline-flex; width: 3rem; height: 3rem; flex: 0 0 3rem; align-items: center; justify-content: center; border-radius: .9rem; color: #2457a6; background: #dce9ff; font-size: 1.4rem; }
+        .research-progress__icon i { animation: research-spin 1.4s linear infinite; }
+        .research-progress__title { margin: 0 0 .2rem; color: #1f3558; font-size: 1.05rem; font-weight: 800; }
+        .research-progress__hint { margin: 0; color: #4f6182; font-size: .85rem; }
+        .research-progress__clock { min-width: 8.5rem; margin-left: auto; text-align: right; }
+        .research-progress__label { color: #5a6a85; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+        .research-progress__time { color: #1f3558; font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+        .research-progress__note { color: #4f6182; font-size: .85rem; }
+        .research-progress .progress { height: .4rem; border-radius: 0; background: #dce9ff; }
+        .research-progress .progress-bar { background: #2f6fd0; transition: width 1s linear; }
+        .research-progress__items { margin: 0; padding: 0 1.5rem 1rem 5.75rem; color: #4f6182; font-size: .8rem; list-style: none; }
+        .research-progress__items li { display: inline-block; margin: 0 .35rem .35rem 0; padding: .15rem .55rem; border-radius: 999px; background: #fff; }
+        @keyframes research-spin { to { transform: rotate(360deg); } }
+        .research-spin { display: inline-block; animation: research-spin 1.2s linear infinite; }
+        .research-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+        .research-steps li { position: relative; padding: .55rem 0 .55rem 2.6rem; color: #42526b; counter-increment: step; }
+        .research-steps li::before { content: counter(step); position: absolute; left: 0; top: .4rem; display: inline-flex; width: 1.8rem; height: 1.8rem; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: #c01e25; font-size: .85rem; font-weight: 800; }
+        .research-competitor--failed { border-color: #f1c9cc; background: #fff7f7; }
+        [data-bs-theme="dark"] .research-progress { border-color: #3b5378; background: linear-gradient(115deg, #1f324d, #233a5a); }
+        [data-bs-theme="dark"] .research-progress__title, [data-bs-theme="dark"] .research-progress__time { color: #edf2f8; }
+        [data-bs-theme="dark"] .research-progress__hint, [data-bs-theme="dark"] .research-progress__note, [data-bs-theme="dark"] .research-progress__label, [data-bs-theme="dark"] .research-progress__items { color: #c4cfde; }
+        [data-bs-theme="dark"] .research-progress__items li { background: #2b3f5c; }
+        [data-bs-theme="dark"] .research-steps li { color: #dce7f6; }
+        [data-bs-theme="dark"] .research-competitor--failed { border-color: #70434a; background: #3a2a33; }
         [data-bs-theme="dark"] .research-card { border-color: #3b4c64; background: #203046; }
         [data-bs-theme="dark"] .research-card .card-header { border-color: #3b4c64; }
         [data-bs-theme="dark"] .research-competitor { border-color: #40536d; background: #293a51; }
@@ -80,6 +106,38 @@
                 <div class="alert alert-warning" role="alert">{{ __('ai.research.no_domain') }}</div>
             @endif
 
+            @php
+                $pending = \App\Services\AiGateway\KeywordResearchService::pending($research);
+                // Rough time per item: a competitor's keyword list, a keyword's first Google check.
+                $estimate = max(30, collect($pending)->sum(fn ($item) => $item['kind'] === 'competitor' ? 45 : 10));
+                $serverNow = $research['now'] ?? now()->toIso8601String();
+                $started = collect($pending)->pluck('since')->filter()->min() ?? $serverNow;
+            @endphp
+            @if($pending !== [])
+                <div class="card research-progress mb-4" role="status" aria-live="polite"
+                     data-research-progress="{{ route('admin.ai.research.status') }}"
+                     data-now="{{ $serverNow }}" data-start="{{ $started }}" data-estimate="{{ $estimate }}">
+                    <div class="research-progress__body">
+                        <span class="research-progress__icon"><i class="ti ti-loader-2" aria-hidden="true"></i></span>
+                        <div class="me-auto">
+                            <h2 class="research-progress__title" data-research-title>{{ __('ai.research.progress_title') }}</h2>
+                            <p class="research-progress__hint">{{ __('ai.research.progress_hint') }}</p>
+                        </div>
+                        <div class="research-progress__clock">
+                            <div class="research-progress__label" data-research-label>{{ __('ai.research.remaining') }}</div>
+                            <div class="research-progress__time" data-research-countdown>–:–</div>
+                        </div>
+                    </div>
+                    <div class="research-progress__note px-4 pb-2 d-none" data-research-note></div>
+                    <ul class="research-progress__items">
+                        @foreach($pending as $item)
+                            <li>{{ __('ai.research.pending_'.$item['kind'], ['name' => \Illuminate\Support\Str::limit($item['label'], 60)]) }}</li>
+                        @endforeach
+                    </ul>
+                    <div class="progress" aria-hidden="true"><div class="progress-bar" data-research-bar style="width: 3%"></div></div>
+                </div>
+            @endif
+
             {{-- Competitors --}}
             <div class="card research-card mb-4">
                 <div class="card-header">
@@ -104,7 +162,7 @@
                 </div>
                 <div class="card-body">
                     @forelse($research['competitors'] as $competitor)
-                        <div class="research-competitor">
+                        <div class="research-competitor @if(($competitor['status'] ?? null) === 'failed') research-competitor--failed @endif">
                             <i class="ti ti-world fs-5 text-muted" aria-hidden="true"></i>
                             <div class="me-auto">
                                 <div class="research-competitor__domain">{{ $competitor['domain'] }}</div>
@@ -112,12 +170,18 @@
                                     @if(($competitor['status'] ?? null) === 'ok')
                                         {{ __('ai.research.status.ok', ['count' => number_format((int) ($competitor['keywords'] ?? 0)), 'date' => $date($competitor['refreshed_at'] ?? null)]) }}
                                     @elseif(($competitor['status'] ?? null) === 'failed')
-                                        <span class="text-danger">{{ __('ai.research.status.failed') }}</span>
+                                        <span class="text-danger">{{ __('ai.research.failed_reason', ['reason' => \App\Http\Controllers\Admin\AiResearchController::reasonMessage((string) ($competitor['error'] ?? 'provider_unavailable'))]) }}</span>
                                     @else
-                                        <i class="ti ti-loader-2" aria-hidden="true"></i> {{ __('ai.research.status.queued') }}
+                                        <i class="ti ti-loader-2 research-spin" aria-hidden="true"></i> {{ __('ai.research.status.queued') }}
                                     @endif
                                 </div>
                             </div>
+                            @if(($competitor['status'] ?? null) === 'failed')
+                                <form method="POST" action="{{ route('admin.ai.research.refresh') }}">
+                                    @csrf
+                                    <button class="btn btn-sm btn-primary" type="submit"><i class="ti ti-refresh me-1" aria-hidden="true"></i>{{ __('ai.research.retry') }}</button>
+                                </form>
+                            @endif
                             <form method="POST" action="{{ route('admin.ai.research.competitors.destroy', ['domain' => $competitor['domain']]) }}" onsubmit="return confirm(@js(__('ai.research.remove_confirm')))">
                                 @csrf
                                 @method('DELETE')
@@ -125,7 +189,12 @@
                             </form>
                         </div>
                     @empty
-                        <p class="text-muted mb-0">{{ __('ai.research.no_competitors') }}</p>
+                        <h3 class="h6 fw-bold mb-2">{{ __('ai.research.how_title') }}</h3>
+                        <ol class="research-steps">
+                            @foreach(__('ai.research.how') as $step)
+                                <li>{{ $step }}</li>
+                            @endforeach
+                        </ol>
                     @endforelse
 
                     @if(count($research['competitors']) < $maxCompetitors)
@@ -360,3 +429,93 @@
         </div>
     @endif
 @endsection
+
+@push('scripts')
+    @php
+        $researchText = [
+            'almost' => __('ai.research.almost'),
+            'overdue' => __('ai.research.overdue'),
+            'stalled' => __('ai.research.stalled'),
+            'done' => __('ai.research.done'),
+            'processing' => __('ai.research.processing'),
+        ];
+    @endphp
+    <script>
+        (function () {
+            const text = @json($researchText);
+
+            // A button pressed once: disabled with a spinner, so a slow answer is not sent twice.
+            document.querySelectorAll('.research-page form, form[action*="/ai/research"]').forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (event.defaultPrevented) return;
+                    const button = form.querySelector('button[type="submit"]');
+                    if (!button) return;
+                    setTimeout(function () {
+                        button.disabled = true;
+                        button.innerHTML = '<i class="ti ti-loader-2 research-spin me-1" aria-hidden="true"></i>' + text.processing;
+                    }, 0);
+                });
+            });
+
+            const box = document.querySelector('[data-research-progress]');
+            if (!box) return;
+
+            // The gateway's clock, so a reload or a wrong computer clock keeps the same countdown.
+            let offset = Date.parse(box.dataset.now) - Date.now();
+            const start = Date.parse(box.dataset.start);
+            const deadline = start + Number(box.dataset.estimate) * 1000;
+            const clock = box.querySelector('[data-research-countdown]');
+            const label = box.querySelector('[data-research-label]');
+            const note = box.querySelector('[data-research-note]');
+            const bar = box.querySelector('[data-research-bar]');
+            let finished = false;
+
+            const pad = (n) => String(n).padStart(2, '0');
+            const tick = function () {
+                if (finished) return;
+                const now = Date.now() + offset;
+                const left = Math.ceil((deadline - now) / 1000);
+                const share = (now - start) / (deadline - start);
+                bar.style.width = Math.max(3, Math.min(95, share * 100)) + '%';
+
+                if (left > 0) {
+                    clock.textContent = Math.floor(left / 60) + ':' + pad(left % 60);
+                    note.classList.add('d-none');
+                } else {
+                    label.classList.add('invisible');
+                    clock.textContent = text.almost;
+                    clock.style.fontSize = '1.1rem';
+                    // Past the estimate: say so plainly, never a technical reason.
+                    note.textContent = -left > 240 ? text.stalled : (-left > 30 ? text.overdue : '');
+                    note.classList.toggle('d-none', note.textContent === '');
+                }
+            };
+
+            const poll = async function () {
+                try {
+                    const response = await fetch(box.dataset.researchProgress, {headers: {'Accept': 'application/json'}});
+                    const json = await response.json();
+                    if (json.success) {
+                        offset = Date.parse(json.data.now) - Date.now();
+                        if (json.data.pending.length === 0) {
+                            finished = true;
+                            bar.style.width = '100%';
+                            label.classList.add('invisible');
+                            clock.style.fontSize = '1.1rem';
+                            clock.textContent = text.done;
+                            setTimeout(() => window.location.reload(), 800);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // Offline for a moment: keep counting and ask again.
+                }
+                setTimeout(poll, 5000);
+            };
+
+            tick();
+            setInterval(tick, 1000);
+            setTimeout(poll, 5000);
+        })();
+    </script>
+@endpush

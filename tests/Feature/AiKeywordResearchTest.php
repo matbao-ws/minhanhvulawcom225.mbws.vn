@@ -90,6 +90,45 @@ class AiKeywordResearchTest extends TestCase
             ->assertSee(route('admin.ai.research.topics'), false);
     }
 
+    public function test_a_fetch_in_progress_counts_down_on_the_gateways_clock_and_a_failure_says_why(): void
+    {
+        $this->overview['now'] = '2026-10-19T09:00:30+00:00';
+        $this->overview['competitors'][] = ['domain' => 'new-rival.vn', 'status' => 'queued', 'error' => null, 'refreshed_at' => null, 'queued_at' => '2026-10-19T09:00:00+00:00', 'keywords' => 0];
+        $this->overview['competitors'][] = ['domain' => 'broken.vn', 'status' => 'failed', 'error' => 'bad_key', 'refreshed_at' => null, 'queued_at' => null, 'keywords' => 0];
+        $this->overview['tracked'][] = ['id' => 9, 'keyword' => 'ống pvc', 'position' => null, 'previous_position' => null, 'url' => null,
+            'checked_at' => null, 'added_at' => '2026-10-19T09:00:10+00:00', 'error' => null, 'history' => []];
+        $user = $this->user(['ai.use']);
+
+        $this->actingAs($user)->get('/vi/admin/ai/research')->assertOk()
+            ->assertSee(__('ai.research.progress_title'))
+            // Counted from the earliest request: one competitor (45 s) and one keyword (10 s).
+            ->assertSee('data-start="2026-10-19T09:00:00+00:00"', false)
+            ->assertSee('data-estimate="55"', false)
+            ->assertSee('data-now="2026-10-19T09:00:30+00:00"', false)
+            ->assertSee(__('ai.research.pending_competitor', ['name' => 'new-rival.vn']))
+            // A failure names the reason in plain words and offers a retry.
+            ->assertSee(__('ai.research.failed_reason', ['reason' => __('ai.research.errors.bad_key')]))
+            ->assertSee(__('ai.research.retry'))
+            ->assertDontSee('bad_key');
+
+        $this->actingAs($user)->getJson('/vi/admin/ai/research/status')->assertOk()
+            ->assertJsonPath('data.now', '2026-10-19T09:00:30+00:00')
+            ->assertJsonPath('data.pending.0', ['kind' => 'competitor', 'label' => 'new-rival.vn', 'since' => '2026-10-19T09:00:00+00:00'])
+            ->assertJsonPath('data.pending.1.kind', 'keyword');
+    }
+
+    public function test_an_empty_page_shows_how_to_start_and_no_progress(): void
+    {
+        $this->overview['competitors'] = [];
+        $this->overview['gaps'] = [];
+        $this->overview['tracked'] = [];
+
+        $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/research')->assertOk()
+            ->assertSee(__('ai.research.how_title'))
+            ->assertSee(__('ai.research.how')[0])
+            ->assertDontSee(__('ai.research.progress_title'));
+    }
+
     public function test_competitors_and_keywords_are_sent_to_the_gateway(): void
     {
         $user = $this->user(['ai.use']);

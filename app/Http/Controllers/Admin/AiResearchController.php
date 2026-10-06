@@ -7,6 +7,7 @@ use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\AiGateway\KeywordResearchService;
 use App\Support\FeatureGate;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -33,6 +34,24 @@ class AiResearchController extends Controller
         $canWrite = $request->user()->can('posts.create') && $features->availableTo($request->user(), 'cms_page');
 
         return view('admin.ai.research.index', compact('research', 'error', 'canWrite'));
+    }
+
+    /**
+     * Polled by the page while the gateway is still fetching: what is left, on the gateway's clock.
+     * The page reloads itself once nothing is pending.
+     */
+    public function status(): JsonResponse
+    {
+        try {
+            $research = $this->research->overview(fresh: true);
+        } catch (GatewayUnavailable $e) {
+            return response()->json(['success' => false, 'message' => self::message($e)]);
+        }
+
+        return response()->json(['success' => true, 'data' => [
+            'now' => $research['now'],
+            'pending' => KeywordResearchService::pending($research),
+        ]]);
     }
 
     public function storeCompetitor(Request $request): RedirectResponse
@@ -113,7 +132,12 @@ class AiResearchController extends Controller
     /** A sentence for the owner; the reason code alone never reaches the page. */
     public static function message(GatewayUnavailable $e): string
     {
-        foreach (['ai.research.errors.'.$e->reason, 'ai.errors.'.$e->reason] as $key) {
+        return self::reasonMessage($e->reason);
+    }
+
+    public static function reasonMessage(string $reason): string
+    {
+        foreach (['ai.research.errors.'.$reason, 'ai.errors.'.$reason] as $key) {
             if (__($key) !== $key) {
                 return __($key);
             }

@@ -127,6 +127,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::middleware('feature:ai_research')->prefix('research')->name('research.')
             ->controller(\App\Http\Controllers\Admin\AiResearchController::class)->group(function () {
                 Route::get('/', 'index')->name('index');
+                Route::get('status', 'status')->name('status');
                 Route::post('competitors', 'storeCompetitor')->middleware('throttle:admin-ai')->name('competitors.store');
                 Route::delete('competitors/{domain}', 'destroyCompetitor')->where('domain', '[A-Za-z0-9.-]+')->name('competitors.destroy');
                 Route::post('competitors/suggest', 'suggest')->middleware('throttle:admin-ai')->name('competitors.suggest');
