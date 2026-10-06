@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\ProjectSetting;
 use App\Services\AiGateway\GatewayClient;
 use App\Services\AiGateway\GatewayUnavailable;
+use App\Services\AiGateway\SeoTaskService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +71,7 @@ class AnalyticsReport
         );
 
         Cache::forget('analytics.settings');
+        SeoTaskService::forget();
 
         // Best effort: the settings form must save even when the gateway is down;
         // report() re-sends the ID the first time the gateway does not know it.

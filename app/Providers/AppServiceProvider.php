@@ -113,7 +113,14 @@ class AppServiceProvider extends ServiceProvider
         // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
         view()->composer('admin.dashboard._seo-tasks', function ($view) {
             $user = auth()->user();
-            $view->with('seoTasksVisible', $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'));
+            $view->with([
+                'seoTasksVisible' => $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'),
+                // A connection changes shared settings, so only expose this shortcut
+                // to staff who can both open and save that screen.
+                'seoTasksSettingsUrl' => $user && $user->can('settings.view') && $user->can('settings.update')
+                    ? route('admin.settings.index', ['tab' => 'analytics'])
+                    : null,
+            ]);
         });
 
         view()->composer('admin.shared.ai-draft-review', function ($view) {

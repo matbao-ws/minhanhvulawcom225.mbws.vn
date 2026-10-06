@@ -98,9 +98,12 @@ class AiSeoTasksTest extends TestCase
 
     public function test_the_dashboard_card_gets_totals_and_the_top_tasks(): void
     {
-        $user = $this->user(['ai.use', 'posts.update']);
+        $user = $this->user(['ai.use', 'posts.update', 'settings.view', 'settings.update']);
 
-        $this->actingAs($user)->get('/vi/admin')->assertOk()->assertSee(route('admin.ai.seo-tasks.summary'), false);
+        $this->actingAs($user)->get('/vi/admin')->assertOk()
+            ->assertSee(route('admin.ai.seo-tasks.summary'), false)
+            ->assertSee(route('admin.settings.index', ['tab' => 'analytics']), false)
+            ->assertSee('notConnected', false);
 
         $this->actingAs($user)->getJson('/vi/admin/ai/seo-tasks/summary')->assertOk()
             ->assertJsonPath('data.totals.current.clicks', 263)
@@ -150,13 +153,35 @@ class AiSeoTasksTest extends TestCase
         $this->assertSame(2, $this->listCalls);
     }
 
-    public function test_without_search_console_the_page_says_how_to_connect(): void
+    public function test_removing_search_console_hides_cached_dashboard_data_and_the_page_says_how_to_connect(): void
     {
+        $user = $this->user(['ai.use']);
+
+        // Prime the SEO-task cache with connected data first.
+        $this->actingAs($user)->getJson('/vi/admin/ai/seo-tasks/summary')
+            ->assertOk()
+            ->assertJsonPath('data.count', 3);
+        $this->assertSame(1, $this->listCalls);
+
         app(AnalyticsReport::class)->saveSettings([]);
 
-        $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/seo-tasks')
-            ->assertOk()->assertSee(__('ai.tasks.not_connected'));
-        $this->assertSame(0, $this->listCalls);
+        $this->actingAs($user)->getJson('/vi/admin/ai/seo-tasks/summary')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'not_connected')
+            ->assertJsonPath('data.synced_through', null)
+            ->assertJsonPath('data.totals', null)
+            ->assertJsonPath('data.count', 0)
+            ->assertJsonCount(0, 'data.tasks');
+
+        $settingsUser = $this->user(['ai.use', 'settings.view', 'settings.update']);
+        $this->actingAs($settingsUser)->get('/vi/admin/ai/seo-tasks')
+            ->assertOk()
+            ->assertSee(__('ai.tasks.not_connected'))
+            ->assertSee(__('ai.tasks.connect_hint'))
+            ->assertSee(route('admin.settings.index', ['tab' => 'analytics']), false);
+
+        // Removing the setting neither reads nor serves the old cached list.
+        $this->assertSame(1, $this->listCalls);
     }
 
     public function test_it_needs_the_feature_and_the_permission(): void
