@@ -3,9 +3,11 @@
 namespace App\Support\CoreUpdate;
 
 use App\Support\CoreManifest;
+use App\Support\ErrorReference;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionState;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 use ZipArchive;
@@ -479,15 +481,36 @@ class CoreUpdater
         return array_values($ids);
     }
 
+    /**
+     * A run that failed before the updater took over (gateway unreachable, release withdrawn,
+     * download refused): recorded like any other failure, so the update page says why.
+     */
+    public function recordFailure(string $from, ?string $to, string $step, string $error): void
+    {
+        $this->writeState(['status' => 'failed', 'from' => $from, 'to' => $to, 'step' => $step, 'error' => $error]);
+        $this->history(['event' => 'failed', 'from' => $from, 'to' => $to, 'step' => $step, 'error' => $error, 'rolled_back' => false]);
+    }
+
     private function writeState(array $state): void
     {
         File::ensureDirectoryExists($this->coreDir());
+        // A failed or blocked run: the page shows a reference code, the detail goes to the core log.
+        if (in_array($state['status'] ?? null, ['failed', 'blocked'], true) && filled($state['error'] ?? null)) {
+            $state['ref'] = ErrorReference::make('UPD');
+            Log::channel('core')->error("Core update {$state['status']} [{$state['ref']}]", array_intersect_key($state, array_flip(['ref', 'from', 'to', 'step', 'error'])));
+        } elseif (isset($state['status'])) {
+            $state['ref'] = null;
+        }
         $state = array_merge($this->state(), $state, ['updated_at' => now()->toIso8601String()]);
         file_put_contents($this->coreDir().'/state.json', json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
     private function history(array $entry): void
     {
+        // A failure carries the reference of the state written just before it (writeState()).
+        if (($entry['event'] ?? null) === 'failed' && ! isset($entry['ref'])) {
+            $entry['ref'] = $this->state()['ref'] ?? null;
+        }
         File::ensureDirectoryExists($this->coreDir());
         file_put_contents($this->coreDir().'/history.jsonl', json_encode(['at' => now()->toIso8601String()] + $entry, JSON_UNESCAPED_SLASHES)."\n", FILE_APPEND);
     }

@@ -135,3 +135,39 @@ Mỗi lệnh đều dạng `docker compose exec gateway php artisan <lệnh>`.
   `storage/app/core/installed.json`).
 - **"N file core đã bị sửa trực tiếp trên website"**: có người sửa file core trên hosting. Đưa thay đổi
   đó vào theme hoặc vào core, rồi chạy `php artisan core:status --baseline` trên website.
+
+## 9. Ghi chú phát hành ("Có gì mới")
+
+Trang **Cập nhật phiên bản** của website hiện mục "Có gì mới trong bản X" lấy từ ghi chú phát hành:
+
+1. Bình thường: file `docs/release-notes/<phiên bản>.md` trong repo core, đóng vào `release.json` lúc
+   phát hành (có chữ ký). Bản stable thiếu file này thì workflow dừng.
+2. Bản **đã phát hành** mà thiếu hoặc cần sửa ghi chú (vd 1.1.0): đặt trên gateway, không phát hành lại.
+   Trên VPS gateway:
+
+   ```bash
+   cd /opt/matbaows
+   nano /tmp/notes.md        # dán nội dung, vd từ docs/release-notes/1.1.0.md
+   docker compose cp /tmp/notes.md gateway:/tmp/notes.md
+   docker compose exec gateway php artisan core:release 1.1.0 --notes-file=/tmp/notes.md
+   ```
+
+   Ghi chú đặt trên gateway được ưu tiên hơn ghi chú trong `release.json`. Gỡ: `--clear-notes`.
+   Website thấy nội dung mới ở lần bấm **Kiểm tra** tiếp theo.
+
+## 10. Tra một mã lỗi
+
+Trang admin và trang lỗi **không bao giờ** hiện chi tiết kỹ thuật, chỉ một mã. Chi tiết nằm trong log
+của website (máy chủ chứa website, thư mục website):
+
+| Mã | Từ đâu | File log |
+|---|---|---|
+| `UPD-…` | Cập nhật core bị chặn hoặc lỗi (trang Cập nhật phiên bản) | `storage/logs/core-YYYY-MM-DD.log` |
+| `EXT-…` | Tiện ích mở rộng lỗi khi khởi động (trang Tiện ích mở rộng) | `storage/logs/core-YYYY-MM-DD.log` |
+| `ERR-…` | Lỗi 500 (trang lỗi, khách hoặc admin gặp) | `storage/logs/laravel*.log` |
+
+```bash
+cd <thư mục website>
+grep -r "UPD-20261005103012-K7QD" storage/logs/ | tail -5
+```
+

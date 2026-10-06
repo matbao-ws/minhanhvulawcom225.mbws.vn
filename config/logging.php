@@ -65,6 +65,15 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Core updates and extensions: what the admin pages only show as a reference code.
+        'core' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/core.log'),
+            'level' => 'info',
+            'days' => 60,
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),

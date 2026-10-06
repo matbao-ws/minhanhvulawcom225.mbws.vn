@@ -40,6 +40,20 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "channel=$channel" >> "$GITHUB_OUTPUT"
 
+      # What the shop owner reads on the update page (docs/release-notes/README.md). A beta may reuse
+      # the notes of its final version; a stable release must have its own.
+      - id: notes
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          file=""
+          for candidate in "$version" "${version%%-*}"; do
+            if [ -f "docs/release-notes/$candidate.md" ]; then file="docs/release-notes/$candidate.md"; break; fi
+          done
+          if [ -z "$file" ] && [ "${{ steps.version.outputs.channel }}" = "stable" ]; then
+            echo "Missing docs/release-notes/$version.md: write what changed for the shop owner (see docs/release-notes/README.md)."; exit 1
+          fi
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
       # The lowest PHP composer.json allows, so the vendor/ artifact runs on every supported host.
       - uses: shivammathur/setup-php@v2
         with:
@@ -85,4 +99,6 @@ jobs:
         run: |
           flags=""
           if [ "${{ steps.version.outputs.channel }}" != "stable" ]; then flags="--prerelease"; fi
-          gh release create "${GITHUB_REF_NAME}" dist/* --title "Core ${{ steps.version.outputs.version }}" --generate-notes $flags
+          notes="--generate-notes"
+          if [ -n "${{ steps.notes.outputs.file }}" ]; then notes="--notes-file ${{ steps.notes.outputs.file }}"; fi
+          gh release create "${GITHUB_REF_NAME}" dist/* --title "Core ${{ steps.version.outputs.version }}" $notes $flags

@@ -130,11 +130,15 @@ git switch dev
 git pull origin dev
 git switch -c chore/release-1.0.2
 # mở file VERSION, sửa thành 1.0.2 (chỉ một dòng, không có chữ v)
-git add VERSION
+# viết docs/release-notes/1.0.2.md: bản này có gì mới, cho chủ shop đọc (docs/release-notes/README.md)
+git add VERSION docs/release-notes/1.0.2.md
 git commit -m "chore: release 1.0.2"
 git push -u origin chore/release-1.0.2
 ```
 Tạo PR `chore/release-1.0.2` → `dev` và merge.
+
+**Ghi chú phát hành là bắt buộc với bản stable**: thiếu `docs/release-notes/<phiên bản>.md` thì workflow
+phát hành dừng. Chủ shop đọc nó ở mục "Có gì mới" trên trang Cập nhật phiên bản.
 
 ### 4.2. Đưa `dev` lên `main`
 

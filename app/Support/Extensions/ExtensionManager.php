@@ -95,7 +95,11 @@ class ExtensionManager
         }
     }
 
-    public function markFailed(string $id, Throwable|string $error): void
+    /**
+     * @param  string|null  $ref  the reference the failure was logged under: what the admin page
+     *                            shows instead of the error itself
+     */
+    public function markFailed(string $id, Throwable|string $error, ?string $ref = null): void
     {
         $this->all();
         if (isset($this->records[$id])) {
@@ -103,6 +107,7 @@ class ExtensionManager
             $this->records[$id]['error'] = $error instanceof Throwable
                 ? $error::class.': '.$error->getMessage()
                 : $error;
+            $this->records[$id]['ref'] = $ref;
         }
     }
 
