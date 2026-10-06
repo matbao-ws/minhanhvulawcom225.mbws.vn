@@ -123,6 +123,19 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->name('bulk.show');
         Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
+        // Keywords & competitors (Hero 4+). Data from a paid provider, limited on the gateway.
+        Route::middleware('feature:ai_research')->prefix('research')->name('research.')
+            ->controller(\App\Http\Controllers\Admin\AiResearchController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('competitors', 'storeCompetitor')->middleware('throttle:admin-ai')->name('competitors.store');
+                Route::delete('competitors/{domain}', 'destroyCompetitor')->where('domain', '[A-Za-z0-9.-]+')->name('competitors.destroy');
+                Route::post('competitors/suggest', 'suggest')->middleware('throttle:admin-ai')->name('competitors.suggest');
+                Route::post('refresh', 'refresh')->middleware('throttle:admin-ai')->name('refresh');
+                Route::post('keywords', 'storeKeywords')->middleware('throttle:admin-ai')->name('keywords.store');
+                Route::delete('keywords/{keyword}', 'destroyKeyword')->whereNumber('keyword')->name('keywords.destroy');
+                Route::post('topics', 'topics')->middleware('throttle:admin-ai')->name('topics');
+            });
+
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
         Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');
         Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');

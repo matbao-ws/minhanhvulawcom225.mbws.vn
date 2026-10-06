@@ -343,6 +343,8 @@ return [
         'subtitle_for_multilingual' => 'Nội dung nhiều ngôn ngữ và dịch tự động.',
         'ai_seo' => 'Trợ lý AI SEO',
         'subtitle_for_ai_seo' => 'Gợi ý meta và biên tập nội dung bằng AI; người dùng duyệt trước khi lưu.',
+        'ai_research' => 'Từ khoá & đối thủ',
+        'subtitle_for_ai_research' => 'Từ khoá đối thủ có mà website chưa có, gợi ý chủ đề bài viết và theo dõi thứ hạng Google hằng tuần.',
         'subtitle_for_max_products' => 'Cài đặt số lượng sản phẩm tối đa được phép tạo trong hệ thống.',
         'subtitle_for_max_admin_users' => 'Cài đặt số lượng quản trị viên tối đa được phép tạo.',
     ],

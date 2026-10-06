@@ -365,6 +365,14 @@
                                       <span class="hide-menu">{{ __('ai.tasks.title') }}</span>
                                   </a>
                               </li>
+                              @if($sidebarFeatures->availableTo($sidebarUser, 'ai_research'))
+                              <li class="sidebar-item">
+                                  <a class="sidebar-link" href="{{ route('admin.ai.research.index') }}" aria-expanded="false">
+                                      <i class="ti ti-target-arrow fs-6" aria-hidden="true"></i>
+                                      <span class="hide-menu">{{ __('ai.research.title') }}</span>
+                                  </a>
+                              </li>
+                              @endif
                               <li class="sidebar-item">
                                   <a class="sidebar-link" href="{{ route('admin.ai.bulk.index') }}" aria-expanded="false">
                                       <i class="ti ti-stack-2 fs-6" aria-hidden="true"></i>
