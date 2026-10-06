@@ -44,7 +44,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label" for="keyword">{{ __('ai.draft.keyword') }} <span class="text-danger">*</span></label>
-                                <input class="form-control @error('keyword') is-invalid @enderror" id="keyword" name="keyword" maxlength="120" value="{{ old('keyword') }}" placeholder="{{ __('ai.draft.keyword_hint') }}" required>
+                                <input class="form-control @error('keyword') is-invalid @enderror" id="keyword" name="keyword" maxlength="120" value="{{ old('keyword', is_string(request()->query('keyword')) ? \Illuminate\Support\Str::limit(request()->query('keyword'), 120, '') : '') }}" placeholder="{{ __('ai.draft.keyword_hint') }}" required>
                                 <div class="form-text">{{ __('ai.draft.keyword_help') }}</div>
                                 @error('keyword')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>

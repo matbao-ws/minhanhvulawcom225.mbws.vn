@@ -340,6 +340,8 @@ return [
         'subtitle_for_multilingual' => 'Content in several languages and automatic translation.',
         'ai_seo' => 'AI SEO Copilot',
         'subtitle_for_ai_seo' => 'AI meta suggestions and copy editing; every change is reviewed before saving.',
+        'ai_research' => 'Keywords & competitors',
+        'subtitle_for_ai_research' => 'Keywords competitors rank for that this website does not, post topic ideas and weekly Google rank tracking.',
         'subtitle_for_max_products' => 'Set the maximum number of products allowed in the database.',
         'subtitle_for_max_admin_users' => 'Set the maximum number of administrators allowed.',
     ],

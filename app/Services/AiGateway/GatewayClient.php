@@ -82,6 +82,16 @@ class GatewayClient
     }
 
     /**
+     * @return array<string, mixed>
+     *
+     * @throws GatewayUnavailable
+     */
+    public function delete(string $path): array
+    {
+        return $this->send(fn () => $this->request()->delete($this->url($path)));
+    }
+
+    /**
      * One AI task (`POST v1/tasks/{code}`). The key makes a retry after a timeout
      * return the first answer instead of charging the project twice.
      *

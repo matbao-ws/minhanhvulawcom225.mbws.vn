@@ -20,6 +20,7 @@ return [
         'multilingual',
         'analytics',
         'ai_seo',
+        'ai_research',
     ],
 
     'groups' => [
@@ -44,6 +45,7 @@ return [
             'multilingual',
             'analytics',
             'ai_seo',
+            'ai_research',
         ],
     ],
 ];
