@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
+use App\Services\Seo\SeoMetaFactory;
 use App\Support\FeatureGate;
 use Illuminate\Contracts\View\View;
 
@@ -15,6 +16,7 @@ class PageController extends Controller
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LocalizedContent $content,
         private readonly FeatureGate $features,
+        private readonly SeoMetaFactory $seo,
     ) {}
 
     public function show(string $locale, string $slug): View
@@ -33,12 +35,17 @@ class PageController extends Controller
 
         $page->load('localizedSlugs');
 
+        $title = $this->content->get($page, 'title');
+        $metaTitle = $this->content->get($page, 'meta_title');
+        $metaDescription = $this->content->get($page, 'meta_description');
+
         return view('client.pages.show', [
             'page' => $page,
-            'title' => $this->content->get($page, 'title'),
+            'title' => $title,
             'html' => $this->content->get($page, 'published_html'),
-            'metaTitle' => $this->content->get($page, 'meta_title'),
-            'metaDescription' => $this->content->get($page, 'meta_description'),
+            'metaTitle' => $metaTitle,
+            'metaDescription' => $metaDescription,
+            'seo' => $this->seo->forRecord($page, 'client.pages.show', $metaTitle ?: $title, $metaDescription),
         ]);
     }
 }

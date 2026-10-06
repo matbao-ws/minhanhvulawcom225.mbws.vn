@@ -1,9 +1,10 @@
 @extends('client.layouts.app')
 
-@section('title', $metaTitle ?: $title)
+{{-- $seo (SeoMetaFactory) holds the cleaned title and description the search tags use too. --}}
+@section('title', $seo->title)
 
-@if($metaDescription)
-    @section('meta_description', $metaDescription)
+@if($seo->description)
+    @section('meta_description', $seo->description)
 @endif
 
 @section('content')
