@@ -426,7 +426,11 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
 - `App\Support\CoreManifest` là nguồn sự thật duy nhất, dạng **allowlist**: chỉ đường dẫn trong
   `CoreManifest::CORE` là core (app, config, database, lang, routes của core, views admin/api/auth/
   components/core/emails/errors/vendor, `public/admin-assets`, `public/client-assets/vendor`, `public/docs`,
-  `public/index.php`, `artisan`, composer.json/lock, `VERSION`). `vendor/` là gói dependencies riêng,
+  `public/index.php`, `artisan`, composer.json/lock, `VERSION`, `.agents/skills`, `AI_BUILD_PROMPT.md`,
+  `CLAUDE.md`, `README.md`, `docs/`). Skill và tài liệu hướng dẫn AI là core: mọi website nhận bản mới qua
+  bản cập nhật. Sửa hoặc **thêm** file trong các đường dẫn đó ngay trên website là lệch file core và chặn
+  lần cập nhật sau — sửa ở repo này. Ghi chú riêng của một dự án đặt ngoài các đường dẫn core (ví dụ
+  `PROJECT_NOTES.md` ở root). `vendor/` là gói dependencies riêng,
   chỉ phát hành khi composer.lock đổi. Mọi thứ khác thuộc website và bản cập nhật không bao giờ ghi:
   theme `resources/views/client/**`, `public/client-assets/css`, `routes/theme.php`, `extensions/**`,
   `.env`, `storage`, `.htaccess`, robots, logo. Thêm thư mục core mới thì phải thêm vào allowlist (kèm test).
