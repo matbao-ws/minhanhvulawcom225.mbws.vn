@@ -160,6 +160,11 @@ class AiKeywordResearchTest extends TestCase
         $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/research')->assertOk()
             ->assertSee(__('ai.research.errors.not_enabled'))
             ->assertDontSee('not_enabled');
+
+        // A problem with Mắt Bão's data account: a sentence, never the generic "AI busy".
+        $this->refuse = 'bad_key';
+        $this->actingAs($this->user(['ai.use']))->from('/vi/admin/ai/research')->post('/vi/admin/ai/research/competitors/suggest')
+            ->assertSessionHas('error', __('ai.research.errors.bad_key'));
     }
 
     private function topics(Request $request)
