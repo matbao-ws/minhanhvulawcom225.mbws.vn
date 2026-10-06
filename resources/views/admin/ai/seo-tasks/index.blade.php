@@ -49,6 +49,14 @@
         .seo-task-group { color: #26364a; }
         .seo-task-group--critical { color: #c5221f; }
         .seo-task-card.is-marked { opacity: .55; }
+        .seo-task-setup { overflow: hidden; border: 1px solid #dce6f5; border-radius: 1rem; box-shadow: 0 .45rem 1.3rem rgba(44, 58, 87, .045); }
+        .seo-task-setup__body { display: flex; align-items: center; gap: 1.1rem; padding: 1.35rem 1.5rem; background: linear-gradient(115deg, #fbfcff, #f2f7ff); }
+        .seo-task-setup__icon { display: inline-flex; width: 3rem; height: 3rem; flex: 0 0 3rem; align-items: center; justify-content: center; border-radius: .9rem; color: #365a8c; background: #e4eeff; font-size: 1.35rem; }
+        .seo-task-setup__content { min-width: 0; flex: 1; }
+        .seo-task-setup__eyebrow { margin-bottom: .2rem; color: #627391; font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .seo-task-setup__title { margin: 0 0 .25rem; color: #26364a; font-size: 1.05rem; font-weight: 800; }
+        .seo-task-setup__hint { margin: 0; color: #5a6a85; font-size: .85rem; line-height: 1.5; }
+        .seo-task-setup__action { flex: 0 0 auto; white-space: nowrap; }
         [data-bs-theme="dark"] .seo-task-group { color: #f2f6fb; }
         [data-bs-theme="dark"] .seo-task-group--critical { color: #ffb9b6; }
         .seo-task-page a:focus-visible, .seo-task-page button:focus-visible { outline: 3px solid rgba(192, 30, 37, .35); outline-offset: 2px; }
@@ -67,7 +75,16 @@
         [data-bs-theme="dark"] .seo-task-page .text-success { color: #98e3b4 !important; }
         [data-bs-theme="dark"] .seo-task-page .text-danger { color: #ffb9b6 !important; }
         [data-bs-theme="dark"] .seo-task-page .text-warning { color: #ffdc8a !important; }
-        @media (max-width: 575.98px) { .seo-task-card__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        [data-bs-theme="dark"] .seo-task-setup { border-color: #3b4c64; }
+        [data-bs-theme="dark"] .seo-task-setup__body { background: linear-gradient(115deg, #203046, #263a54); }
+        [data-bs-theme="dark"] .seo-task-setup__icon { color: #c6ddff; background: #314a70; }
+        [data-bs-theme="dark"] .seo-task-setup__title { color: #edf2f8; }
+        [data-bs-theme="dark"] .seo-task-setup__eyebrow, [data-bs-theme="dark"] .seo-task-setup__hint { color: #c4cfde; }
+        @media (max-width: 575.98px) {
+            .seo-task-card__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .seo-task-setup__body { align-items: flex-start; flex-wrap: wrap; padding: 1.1rem; }
+            .seo-task-setup__action { margin-left: 4.1rem; }
+        }
     </style>
 @endpush
 
@@ -80,13 +97,19 @@
     </x-admin.page-header>
 
     @if(! $connected)
-        <div class="card">
-            <div class="card-body d-flex flex-wrap align-items-center gap-3">
-                <i class="ti ti-plug-connected-x fs-6 text-muted"></i>
-                <span class="me-auto">{{ __('ai.tasks.not_connected') }}</span>
-                @can('settings.view')
-                    <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.settings.index') }}">{{ __('ai.tasks.connect') }}</a>
-                @endcan
+        <div class="card seo-task-setup">
+            <div class="seo-task-setup__body">
+                <span class="seo-task-setup__icon"><i class="ti ti-brand-google" aria-hidden="true"></i></span>
+                <div class="seo-task-setup__content">
+                    <div class="seo-task-setup__eyebrow">Google Search Console</div>
+                    <h2 class="seo-task-setup__title">{{ __('ai.tasks.not_connected') }}</h2>
+                    <p class="seo-task-setup__hint">{{ __('ai.tasks.connect_hint') }}</p>
+                </div>
+                @if(auth()->user()?->can('settings.view') && auth()->user()?->can('settings.update'))
+                    <a class="btn btn-primary btn-sm seo-task-setup__action" href="{{ route('admin.settings.index', ['tab' => 'analytics']) }}">
+                        {{ __('ai.tasks.connect') }}<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i>
+                    </a>
+                @endif
             </div>
         </div>
     @elseif($error)

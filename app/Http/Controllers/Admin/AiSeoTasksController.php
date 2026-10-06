@@ -36,8 +36,20 @@ class AiSeoTasksController extends Controller
     }
 
     /** Totals and the first five tasks, for the dashboard card. */
-    public function summary(Request $request): JsonResponse
+    public function summary(Request $request, AnalyticsReport $analytics): JsonResponse
     {
+        // The local setting is authoritative. Do not let a cached gateway result
+        // keep old Search Console figures visible after the connection is removed.
+        if ($analytics->settings()['gsc_site_url'] === null) {
+            return response()->json(['success' => true, 'data' => [
+                'status' => 'not_connected',
+                'synced_through' => null,
+                'totals' => null,
+                'count' => 0,
+                'tasks' => [],
+            ]]);
+        }
+
         try {
             $weekly = $this->tasks->forUser($request->user());
         } catch (GatewayUnavailable $e) {
