@@ -16,13 +16,15 @@ use Tests\TestCase;
  * paragraph on a live site and cannot click it. This is the same job
  * PermissionRegistryDriftTest does for permission codes.
  *
- * Two ways to make this test green, and they are both correct answers:
+ * Ways to make this test green, and they are all correct answers:
  *
- *     php artisan client:editable-audit --fix     the copy should be editable
- *     add data-editable-ignore to the element      it is static on purpose
+ *     php artisan client:editable-audit --fix     plain headings, paragraphs, <img>
+ *     wrap by hand as the report advises           CTAs, <div>/<span> copy, slots
+ *     data-editable-ignore="<reason>"              static on purpose, and why
  *
- * Silencing it is not a third way. A region that nobody can edit and nobody
- * declared static is the exact state this test exists to report.
+ * Silencing it is not another way. A bare `data-editable-ignore` fails too, and
+ * a region that nobody can edit and nobody declared static is the exact state
+ * this test exists to report.
  */
 class EditableCoverageDriftTest extends TestCase
 {

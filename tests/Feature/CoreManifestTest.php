@@ -63,6 +63,16 @@ class CoreManifestTest extends TestCase
         // The error pages are the same on every website, so an update brings their fixes.
         $this->assertSame('core', $manifest->owner('resources/views/errors/404.blade.php'));
         $this->assertSame('dependencies', $manifest->owner('vendor/laravel/framework/src/x.php'));
+        // Agent skills describe core behaviour, so every website gets them from the update.
+        $this->assertSame('core', $manifest->owner('.agents/skills/connect-ecommerce-frontend/references/editable-markup-standard.md'));
+        $this->assertSame('site', $manifest->owner('.agents/notes.md'));
+        // So do the contract and docs they route to — but only by name: a note dropped at the
+        // root stays the website's, or creating it would block the next update as drift.
+        foreach (['AI_BUILD_PROMPT.md', 'CLAUDE.md', 'README.md', 'docs/EXTENSIONS.md', 'docs/release-notes/1.2.0.md'] as $path) {
+            $this->assertSame('core', $manifest->owner($path), $path);
+        }
+        $this->assertSame('site', $manifest->owner('PROJECT_NOTES.md'));
+        $this->assertSame('site', $manifest->owner('extensions/shop/README.md'));
 
         foreach (['resources/views/client/home.blade.php', 'public/client-assets/css/storefront.css', 'routes/theme.php',
             '.env', '.htaccess', 'storage/app/public/a.jpg', 'public/robots.txt', 'public/flaticon.png', 'something-new.txt',
@@ -106,6 +116,8 @@ class CoreManifestTest extends TestCase
 
         $this->assertContains('resources/views/core/editor.blade.php', $files);
         $this->assertContains('app/Support/CoreManifest.php', $files);
+        $this->assertContains('.agents/skills/connect-ecommerce-frontend/SKILL.md', $files);
+        $this->assertContains('.agents/skills/maintain-ecommerce-core/SKILL.md', $files);
         $this->assertNotContains('.env', $files);
         $this->assertEmpty(array_filter($files, fn ($f) => str_starts_with($f, 'resources/views/client/') || str_starts_with($f, 'vendor/') || str_starts_with($f, 'storage/')));
         $this->assertSame(trim(file_get_contents(base_path('VERSION'))), $manifest->version());

@@ -25,6 +25,7 @@ whole block and hope.
 | Product name, price, post title, category name, menu label, shop name, phone | **plain Blade output** | Comes from the database and has its own admin screen |
 | Anything server-rendered from a model on a CMS page | plain Blade **plus** `contenteditable="false"` on the wrapper | Keeps it out of the page's editable root |
 | Decorative markup: spacers, icons, overlays, `aria-hidden` | leave untouched | Nothing to edit |
+| Static copy or artwork that must stay static (decorative background, legal line, breadcrumb) | `data-editable-ignore="<lý do>"` on the element | The reason is mandatory; a bare marker fails the audit and hides nothing |
 
 The line that matters most is the one about database-driven values. **Two places to edit one field is a defect**, not a
 convenience: whichever screen is saved last wins, and neither admin knows the other exists. If a
@@ -274,4 +275,10 @@ Run through this per page after cutting, before calling the cut done.
       change, then Save/reload preserves both content and the semantic wrapper.
 - [ ] Production and theme-acceptance routes contain no editor fixture, demo-only block or
       superseded sandbox markup.
+- [ ] `php artisan client:editable-audit` ends in `RESULT: PASS`. It classifies every visible text
+      run and image source in `resources/views/client/**` (partials included) as editable, dynamic
+      (Blade echo/output directive) or ignored-with-reason; `unknown`, `unsupported` and
+      `Ignored without reason` must all be 0. `--fix` wraps only text-level tags and plain `<img>`;
+      everything marked `[sửa tay]` or `[chưa hỗ trợ]` is resolved by hand — never by changing the
+      layout to dodge the scanner. Read the "Vùng cố ý để tĩnh" list: every reason must be true.
 - [ ] `php artisan test --compact` passes.

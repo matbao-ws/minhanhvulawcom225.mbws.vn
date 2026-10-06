@@ -48,10 +48,24 @@ class EditableRegionScannerTest extends TestCase
         $this->assertSame([], $this->keys('<div><p>Giá: {{ $price }} đ</p></div>'));
     }
 
-    public function test_it_never_offers_content_whose_shape_depends_on_a_directive(): void
+    public function test_static_copy_inside_a_branch_is_reported_but_never_auto_wrapped(): void
     {
-        $this->assertSame([], $this->keys('<ul><li>@if($a)Có@else Không @endif</li></ul>'));
-        $this->assertSame([], $this->keys('<p>@lang("messages.hello")</p>'));
+        // A stored override would replace the branch along with the words, so
+        // this is not something --fix may touch. It is still copy nobody can
+        // edit, though, and reporting nothing is how it used to slip through.
+        $findings = (new EditableRegionScanner)->scan('<ul><li>@if($a)Có@else Không @endif</li></ul>', 'home');
+
+        $this->assertCount(1, $findings);
+        $this->assertFalse($findings[0]['fixable']);
+        $this->assertSame('conditional', $findings[0]['reason']);
+    }
+
+    public function test_output_directives_are_dynamic(): void
+    {
+        $audit = (new EditableRegionScanner)->audit('<p>@lang("messages.hello")</p><div>@include("x")</div>', 'home');
+
+        $this->assertSame([], $audit['findings']);
+        $this->assertSame(2, $audit['counts']['text']['dynamic']);
     }
 
     public function test_an_email_address_is_copy_and_not_a_directive(): void
@@ -73,11 +87,14 @@ class EditableRegionScannerTest extends TestCase
         $this->assertSame([], $this->keys($source));
     }
 
-    public function test_it_honours_contenteditable_false_on_an_ancestor(): void
+    public function test_contenteditable_false_is_not_an_opt_out(): void
     {
-        // Dynamic blocks rendered onto a CMS page carry this on their wrapper
-        // precisely so the editor stays out; the audit has to agree.
-        $this->assertSame([], $this->keys('<div contenteditable="false"><p>Menu</p></div>'));
+        // It keeps a block out of a CMS page's editable root; it says nothing
+        // about who owns the words. The layout puts it on the whole header and
+        // footer, and static copy there is exactly what a theme cut forgets.
+        // Database values under it still classify as dynamic on their own.
+        $this->assertSame(['Hotline'], $this->previews('<div contenteditable="false"><p>Hotline</p></div>'));
+        $this->assertSame([], $this->keys('<div contenteditable="false"><p>{{ $menu }}</p></div>'));
     }
 
     public function test_the_body_of_a_cms_page_belongs_to_the_page_not_to_the_template(): void
@@ -91,18 +108,42 @@ class EditableRegionScannerTest extends TestCase
         $this->assertSame([], $this->keys($source));
     }
 
-    public function test_it_honours_the_opt_out_marker(): void
+    public function test_it_honours_the_opt_out_marker_when_it_gives_a_reason(): void
     {
-        $source = '<div><p '.EditableRegionScanner::IGNORE_ATTRIBUTE.'>Trang chủ / Tin</p><p>Thật</p></div>';
+        $source = '<div><p '.EditableRegionScanner::IGNORE_ATTRIBUTE.'="breadcrumb sinh từ route">Trang chủ / Tin</p><p>Thật</p></div>';
+        $audit = (new EditableRegionScanner)->audit($source, 'home');
 
-        $this->assertSame(['Thật'], $this->previews($source));
+        $this->assertSame(['Thật'], array_column($audit['findings'], 'preview'));
+        $this->assertCount(1, $audit['ignored']);
+        $this->assertSame('breadcrumb sinh từ route', $audit['ignored'][0]['reason']);
+        $this->assertSame(1, $audit['counts']['text']['ignored']);
     }
 
-    public function test_a_candidate_containing_structure_is_not_a_region(): void
+    public function test_an_opt_out_without_a_reason_is_an_error_and_hides_nothing(): void
     {
-        // A cell holding a layout is not a sentence. Wrapping it would make the
-        // editor responsible for markup it cannot rebuild.
-        $this->assertSame([], $this->keys('<table><tr><td><div class="x">Hộp</div></td></tr></table>'));
+        // The cheapest way to turn the audit green is to sprinkle the marker.
+        // A bare one is therefore reported, and what it covers is still audited.
+        foreach (['', '=""', '="   "'] as $value) {
+            $source = '<div><p '.EditableRegionScanner::IGNORE_ATTRIBUTE.$value.'>Hotline 24/7</p></div>';
+            $audit = (new EditableRegionScanner)->audit($source, 'home');
+
+            $this->assertCount(1, $audit['invalidIgnores'], "marker `{$value}`");
+            $this->assertSame([], $audit['ignored']);
+            $this->assertSame(['Hotline 24/7'], array_column($audit['findings'], 'preview'));
+            $this->assertFalse($audit['findings'][0]['fixable'], 'a half-made decision is not the fixer’s to finish');
+        }
+    }
+
+    public function test_text_beside_a_layout_is_owned_by_its_own_element_not_the_cell(): void
+    {
+        // A cell holding a layout is not a sentence, so the cell is never the
+        // region. The <div> holding the words is — reported for a human,
+        // because it is not a tag --fix wraps mechanically.
+        $findings = (new EditableRegionScanner)->scan('<table><tr><td><div class="x">Hộp</div></td></tr></table>', 'home');
+
+        $this->assertCount(1, $findings);
+        $this->assertSame('div', $findings[0]['tag']);
+        $this->assertFalse($findings[0]['fixable']);
     }
 
     public function test_inline_formatting_stays_part_of_its_paragraph(): void
@@ -223,6 +264,162 @@ class EditableRegionScannerTest extends TestCase
 
         $this->assertCount(1, $findings);
         $this->assertSame(' class="{{ $theme }} lead" data-x="1"', $findings[0]['attrs']);
+    }
+
+    /**
+     * Every row here was reported as nothing by the tag-list scanner — and
+     * every one is copy that themes routinely ship.
+     */
+    public function test_text_outside_the_classic_tags_is_found_and_left_for_a_human(): void
+    {
+        $cases = [
+            '<div class="hero"><div class="hero__title">Giải pháp</div><p>x</p></div>' => ['div', 'Giải pháp'],
+            '<section><span class="eyebrow">Về chúng tôi</span><h2>Về</h2></section>' => ['span', 'Về chúng tôi'],
+            '<div class="hero"><a href="/lien-he" class="btn">Liên hệ ngay</a></div>' => ['a', 'Liên hệ ngay'],
+            '<form><button type="submit">Gửi yêu cầu</button></form>' => ['button', 'Gửi yêu cầu'],
+        ];
+
+        foreach ($cases as $source => [$tag, $preview]) {
+            $findings = array_values(array_filter(
+                (new EditableRegionScanner)->scan($source, 'home'),
+                static fn (array $f): bool => $f['preview'] === $preview,
+            ));
+
+            $this->assertCount(1, $findings, $source);
+            $this->assertSame($tag, $findings[0]['tag'], $source);
+            $this->assertFalse($findings[0]['fixable'], $source);
+            $this->assertSame('manual', $findings[0]['reason'], $source);
+        }
+    }
+
+    public function test_a_sentence_split_by_inline_tags_has_exactly_one_owner(): void
+    {
+        // Two owners for one sentence is the failure that makes a region
+        // swallow half of its neighbour on the first save.
+        $findings = (new EditableRegionScanner)->scan(
+            '<section><div class="stat"><strong>500+</strong> khách hàng</div><div class="stat">x</div></section>',
+            'home',
+        );
+
+        $this->assertSame(['500+ khách hàng', 'x'], array_column($findings, 'preview'));
+        $this->assertSame(['div', 'div'], array_column($findings, 'tag'));
+    }
+
+    public function test_ownership_climbs_into_a_heading_or_link_but_not_a_plain_wrapper(): void
+    {
+        $this->assertSame(['h2'], array_column((new EditableRegionScanner)->scan('<h2><span>Dịch vụ</span></h2>', 'home'), 'tag'));
+        $this->assertSame(['a'], array_column((new EditableRegionScanner)->scan('<a class="btn"><span>Liên hệ</span></a>', 'home'), 'tag'));
+
+        // Two CTAs side by side are two regions, not one region holding both.
+        $this->assertSame(
+            ['a', 'a'],
+            array_column((new EditableRegionScanner)->scan('<div class="actions"><a href="#">A</a><a href="#">B</a></div>', 'home'), 'tag'),
+        );
+    }
+
+    public function test_text_mixed_with_block_children_has_no_owner_to_wrap(): void
+    {
+        $findings = (new EditableRegionScanner)->scan('<div class="x">Chữ trần <div>khối</div></div>', 'home');
+        $mixed = array_values(array_filter($findings, static fn (array $f): bool => $f['reason'] === 'mixed'));
+
+        $this->assertCount(1, $mixed);
+        $this->assertSame('Chữ trần', $mixed[0]['preview']);
+        $this->assertSame('div', $mixed[0]['container']);
+        $this->assertFalse($mixed[0]['fixable']);
+    }
+
+    public function test_a_doctype_is_not_copy(): void
+    {
+        $this->assertSame([], $this->keys('<!doctype html><html><body><p>{{ $x }}</p></body></html>'));
+    }
+
+    public function test_images_the_editor_cannot_replace_are_unsupported_not_offered(): void
+    {
+        // Replacing src on any of these "succeeds" and the visitor still sees
+        // the old picture, so --fix must never touch them.
+        $cases = [
+            '<section style="background-image:url(/client-assets/img/bg.jpg)"></section>' => 'background',
+            '<div data-bg="/client-assets/img/bg.jpg"></div>' => 'data-background',
+            '<picture><source srcset="/a.webp"><img src="/a.jpg" alt=""></picture>' => 'picture',
+            '<img src="/a.jpg" srcset="/a-2x.jpg 2x" alt="">' => 'srcset',
+            '<img src="data:image/gif;base64,R0lG" data-src="/real.jpg" alt="">' => 'lazy',
+            '<video poster="/poster.jpg"></video>' => 'poster',
+        ];
+
+        foreach ($cases as $source => $reason) {
+            $findings = (new EditableRegionScanner)->scan($source, 'home');
+
+            $this->assertCount(1, $findings, $source);
+            $this->assertSame(EditableRegionScanner::STATUS_UNSUPPORTED, $findings[0]['status'], $source);
+            $this->assertSame($reason, $findings[0]['reason'], $source);
+            $this->assertFalse($findings[0]['fixable'], $source);
+        }
+    }
+
+    public function test_a_lazy_image_reports_the_real_source_not_the_placeholder(): void
+    {
+        $findings = (new EditableRegionScanner)->scan('<img src="data:image/gif;base64,R0lG" data-src="/real.jpg" alt="">', 'home');
+
+        $this->assertSame('/real.jpg', $findings[0]['preview']);
+    }
+
+    public function test_image_sources_from_a_record_are_dynamic(): void
+    {
+        $audit = (new EditableRegionScanner)->audit(
+            '<section style="background-image:url({{ $banner->url }})"></section><img data-src="{{ $p->image }}" src="x.gif">',
+            'home',
+        );
+
+        $this->assertSame([], $audit['findings']);
+        $this->assertSame(2, $audit['counts']['image']['dynamic']);
+    }
+
+    public function test_an_ignore_reason_covers_images_too(): void
+    {
+        $audit = (new EditableRegionScanner)->audit(
+            '<section data-editable-ignore="ảnh nền trang trí" style="background:url(/bg.jpg)"></section>',
+            'home',
+        );
+
+        $this->assertSame([], $audit['findings']);
+        $this->assertSame(1, $audit['counts']['image']['ignored']);
+    }
+
+    public function test_a_plain_theme_image_is_still_auto_fixable(): void
+    {
+        $findings = (new EditableRegionScanner)->scan('<div class="hero"><img src="/a.jpg" alt="A"></div>', 'home');
+
+        $this->assertTrue($findings[0]['fixable']);
+        $this->assertSame(EditableRegionScanner::STATUS_UNKNOWN, $findings[0]['status']);
+    }
+
+    public function test_marked_regions_are_counted_as_editable(): void
+    {
+        $audit = (new EditableRegionScanner)->audit(
+            '<x-client::editable key="a.b.c" tag="p">Chữ</x-client::editable><x-client::editable-image key="a.b.d" src="/a.jpg" />',
+            'home',
+        );
+
+        $this->assertSame([], $audit['findings']);
+        $this->assertSame(1, $audit['counts']['text']['editable']);
+        $this->assertSame(1, $audit['counts']['image']['editable']);
+    }
+
+    public function test_a_header_partial_is_audited_like_any_other_view(): void
+    {
+        // partials/ used to be skipped wholesale; this is the markup that hid there.
+        $source = <<<'BLADE'
+        <header class="site-header">
+            <a class="brand" href="/">{{ $siteBranding['name'] }}</a>
+            <div class="hotline"><span>Hotline:</span> {{ $settings['phone'] }}</div>
+            <a class="btn" href="/lien-he">Nhận báo giá</a>
+            @include('client.partials.navigation')
+        </header>
+        BLADE;
+
+        // The label is its own element, so it is copy; the number beside it is
+        // a setting and stays dynamic.
+        $this->assertSame(['Hotline:', 'Nhận báo giá'], $this->previews($source, 'partials.header'));
     }
 
     public function test_offsets_delimit_exactly_the_element_that_was_found(): void
