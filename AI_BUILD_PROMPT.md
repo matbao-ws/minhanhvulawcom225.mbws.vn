@@ -485,8 +485,11 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
 - **Update service trên gateway** quyết định website nào nhận bản nào, khi nào: kênh, ghim phiên bản,
   rollout theo %, pause; website vẫn tự verify mọi gói. `App\Support\CoreUpdate\CoreUpdateService`:
   `core:poll` mỗi giờ vào một phút riêng của website (`pollMinute()`, rải đều trong giờ) hỏi
-  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang superadmin
-  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`), còn `core:run-requested`
+  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang
+  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`). Giống WordPress, admin của
+  website (quyền `settings.update`) xem trang và bấm cập nhật được, trừ khi superadmin tắt công tắc trên
+  trang đó (`App\Support\CoreUpdate\CoreUpdateAccess`, `project_settings.core_update_admin_access`,
+  không có dòng = bật). Rollback, baseline và công tắc luôn chỉ superadmin. Còn `core:run-requested`
   chạy bằng cron mỗi phút; không bao giờ cài trong request web. Mọi lần cài, lỗi, quay lại đều báo
   về `POST v1/core/report`. `CORE_UPDATE_ENABLED=false` tắt cả hai lệnh (staging Docker, máy dev).
 

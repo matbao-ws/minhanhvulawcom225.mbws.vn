@@ -1,7 +1,7 @@
   @php
       $sidebarUser = auth()->user();
       $sidebarFeatures = app(\App\Support\FeatureGate::class);
-      $sidebarCoreVersion = app(\App\Support\CoreManifest::class)->version();
+      $sidebarCanUpdateCore = app(\App\Support\CoreUpdate\CoreUpdateAccess::class)->allows($sidebarUser);
   @endphp
 
   <style>
@@ -454,15 +454,17 @@
                                       </a>
                                   </li>
                                   @endif
+                                  @if($sidebarCanUpdateCore)
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ route('admin.core-update.index') }}">
+                                          <span class="icon-small"></span>{{ __('admin.sidebar.core_update') }}
+                                      </a>
+                                  </li>
+                                  @endif
                                   @if($sidebarUser?->isSuperAdmin())
                                   <li class="sidebar-item">
                                       <a class="sidebar-link" href="{{ route('admin.features.index') }}">
                                           <span class="icon-small"></span>{{ __('admin.sidebar.feature_settings') }}
-                                      </a>
-                                  </li>
-                                  <li class="sidebar-item">
-                                      <a class="sidebar-link" href="{{ route('admin.core-update.index') }}">
-                                          <span class="icon-small"></span>{{ __('admin.sidebar.core_update') }}
                                       </a>
                                   </li>
                                   <li class="sidebar-item">
@@ -524,14 +526,6 @@
                           @endcan
                       </ul>
                   </nav>
-                  {{-- Which core this website runs: the first thing to look at after an update. --}}
-                  <div class="hide-menu px-4 pt-3 pb-4 fs-2 text-muted" data-core-version="{{ $sidebarCoreVersion }}">
-                      @if($sidebarUser?->isSuperAdmin())
-                      <a href="{{ route('admin.core-update.index') }}" class="text-muted">{{ __('admin.sidebar.core_version', ['version' => $sidebarCoreVersion]) }}</a>
-                      @else
-                      {{ __('admin.sidebar.core_version', ['version' => $sidebarCoreVersion]) }}
-                      @endif
-                  </div>
               </div>
           </div>
       </div>

@@ -95,11 +95,15 @@
                     @if($driftCount === null)
                         <div class="alert alert-warning small py-2 mb-2">
                             <div class="fw-semibold mb-1">{{ __('admin.core_update.not_ready') }}</div>
-                            <div class="mb-2">{{ __('admin.core_update.drift_missing') }}</div>
-                            <form method="POST" action="{{ route('admin.core-update.baseline') }}" onsubmit="return confirm(@js(__('admin.core_update.baseline_confirm')))">
-                                @csrf
-                                <x-admin.action-button type="submit" size="sm" icon="checklist">{{ __('admin.core_update.baseline') }}</x-admin.action-button>
-                            </form>
+                            @if($isSuperAdmin)
+                                <div class="mb-2">{{ __('admin.core_update.drift_missing') }}</div>
+                                <form method="POST" action="{{ route('admin.core-update.baseline') }}" onsubmit="return confirm(@js(__('admin.core_update.baseline_confirm')))">
+                                    @csrf
+                                    <x-admin.action-button type="submit" size="sm" icon="checklist">{{ __('admin.core_update.baseline') }}</x-admin.action-button>
+                                </form>
+                            @else
+                                <div>{{ __('admin.core_update.drift_missing_admin') }}</div>
+                            @endif
                         </div>
                     @elseif($driftCount > 0)
                         <div class="alert alert-danger small py-2 mb-2">
@@ -189,7 +193,7 @@
                             : __('admin.core_update.never_checked') }}
                     </div>
 
-                    @if($canRollback)
+                    @if($canRollback && $isSuperAdmin)
                         <hr>
                         <form method="POST" action="{{ route('admin.core-update.rollback') }}" onsubmit="return confirm(@js(__('admin.core_update.rollback_confirm')))">
                             @csrf
@@ -202,6 +206,27 @@
             </div>
         </div>
     </div>
+
+    @if($isSuperAdmin)
+        {{-- Per website, like WordPress' DISALLOW_FILE_MODS: on by default. --}}
+        <div class="card mb-4" data-core-update-access>
+            <div class="card-body">
+                <form method="POST" action="{{ route('admin.core-update.access') }}" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="admin_allowed" value="0">
+                    <div>
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" role="switch" id="admin_allowed" name="admin_allowed" value="1" @checked($adminAllowed) onchange="this.form.submit()">
+                            <label class="form-check-label fw-semibold" for="admin_allowed">{{ __('admin.core_update.access.label') }}</label>
+                        </div>
+                        <div class="small text-muted">{{ __('admin.core_update.access.hint') }}</div>
+                    </div>
+                    <noscript><x-admin.action-button type="submit" size="sm">{{ __('admin.core_update.access.save') }}</x-admin.action-button></noscript>
+                </form>
+            </div>
+        </div>
+    @endif
 
     @if($history !== [])
         <div class="card">

@@ -51,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
+            'core-update.access' => \App\Http\Middleware\EnsureCoreUpdateAccess::class,
             'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
             'package.sync' => \App\Http\Middleware\SyncPackageInfo::class,
             'package.limit' => \App\Http\Middleware\EnsurePackageLimit::class,
