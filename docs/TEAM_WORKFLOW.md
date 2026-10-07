@@ -205,9 +205,11 @@ python deploy.py
 nhận thông báo. Thông tin được lưu trên máy bạn để các lần sau không phải hỏi lại. `.env` production
 trên hosting được tạo tự động: không cần, và không nên, sửa `.env` bằng tay.
 
-Script cũng xin **GATEWAY_INTERNAL_KEY** để kết nối website với hệ thống Mắt Bão (gửi mail, AI, cập
-nhật core). Key này chỉ trưởng nhóm giữ: **lần deploy đầu tiên của mỗi website, nhờ trưởng nhóm
-chạy** hoặc ngồi cùng. Không có kết nối này thì website không gửi được email.
+Script cũng xin **GATEWAY_DEPLOY_KEY** để kết nối website với hệ thống Mắt Bão (gửi mail, AI, cập
+nhật core). Cả team dùng chung một key: xin trưởng nhóm **một lần** qua tin nhắn riêng, script lưu
+vào `~/.matbaows/deploy.env` trên máy bạn, các website sau không hỏi lại. Key chỉ đăng ký website và
+lấy token, không làm được gì khác. Khi trưởng nhóm đổi key (có người nghỉ, hoặc lộ), script báo bị từ
+chối và hỏi key mới. Không có kết nối này thì website không gửi được email.
 
 Cuối quá trình deploy, script tự kiểm tra kết nối: dòng `Kết nối gateway OK` là đạt.
 
