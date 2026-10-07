@@ -48,9 +48,11 @@ SITES_DIR = '.deploy-sites'
 # site's profile, never from the developer's own .env.
 ENV_TEMPLATE = '.env.example'
 
-# The gateway's internal key lets deploy.py register a site and fetch its token by itself. It can
-# create and close any project, so it lives in the user's home — never in a checkout, never
-# uploaded — and is asked only once. GATEWAY_INTERNAL_KEY in the environment works too.
+# The gateway's deploy key lets deploy.py register a site and fetch its token by itself. Every
+# dev holds the same one; it can do nothing else on the gateway (MatBaoAI-SEO docs/CONSOLE.md).
+# It lives in the user's home — never in a checkout, never uploaded — and is asked only once.
+# GATEWAY_DEPLOY_KEY in the environment works too, and so does a GATEWAY_INTERNAL_KEY saved
+# before the deploy key existed.
 DEPLOYER_SECRETS = os.path.join(os.path.expanduser('~'), '.matbaows', 'deploy.env')
 
 # The hosting panel writes its own key names into backend/.env; Laravel reads
@@ -402,21 +404,27 @@ def legacy_profile(domain):
     return site
 
 
-def gateway_internal_key(args):
-    key = os.environ.get('GATEWAY_INTERNAL_KEY') or read_env_file(DEPLOYER_SECRETS).get('GATEWAY_INTERNAL_KEY')
+def gateway_deploy_key(args):
+    saved = read_env_file(DEPLOYER_SECRETS)
+    key = (os.environ.get('GATEWAY_DEPLOY_KEY') or saved.get('GATEWAY_DEPLOY_KEY')
+           or os.environ.get('GATEWAY_INTERNAL_KEY') or saved.get('GATEWAY_INTERNAL_KEY'))
     if key or args.yes:
         return key
-    print('[?] Để tự lấy token, deploy.py cần khoá nội bộ của gateway (chỉ hỏi một lần cho máy này).')
-    print("    Lấy trên VPS: grep '^GATEWAY_INTERNAL_KEY=' /opt/matbaows/env/gateway.env | cut -d= -f2-")
-    key = ask('GATEWAY_INTERNAL_KEY (Enter = bỏ qua)', secret=True, required=False)
+    print('[?] Để tự lấy token, deploy.py cần deploy key của gateway (chỉ hỏi một lần cho máy này).')
+    print('    Key dùng chung cho cả team: xin trưởng nhóm một lần, qua tin nhắn riêng.')
+    key = ask('GATEWAY_DEPLOY_KEY (Enter = bỏ qua)', secret=True, required=False)
     if key:
-        os.makedirs(os.path.dirname(DEPLOYER_SECRETS), exist_ok=True)
-        with open(DEPLOYER_SECRETS, 'w', encoding='utf-8') as f:
-            f.write('# deploy.py: MatBao gateway internal key. Never commit or share.' + chr(10))
-            f.write(f'GATEWAY_INTERNAL_KEY={env_value_literal(key)}' + chr(10))
-        os.chmod(DEPLOYER_SECRETS, 0o600)
-        print(f'[+] Đã lưu khoá vào {DEPLOYER_SECRETS} (ngoài repo).')
+        save_deploy_key(key)
     return key
+
+
+def save_deploy_key(key):
+    os.makedirs(os.path.dirname(DEPLOYER_SECRETS), exist_ok=True)
+    with open(DEPLOYER_SECRETS, 'w', encoding='utf-8') as f:
+        f.write('# deploy.py: MatBao gateway deploy key. Never commit or share.' + chr(10))
+        f.write(f'GATEWAY_DEPLOY_KEY={env_value_literal(key)}' + chr(10))
+    os.chmod(DEPLOYER_SECRETS, 0o600)
+    print(f'[+] Đã lưu key vào {DEPLOYER_SECRETS} (ngoài repo).')
 
 
 def gateway_call(url, key, payload=None):
@@ -440,7 +448,7 @@ def provision_gateway_token(gateway_url, domain, args):
     Register the site on the gateway (or, when it is already there and the user agrees, issue it
     a new token) and return {MATBAO_AI_TOKEN, MATBAO_AI_WEBHOOK_SECRET}, or {} when skipped.
     """
-    key = gateway_internal_key(args)
+    key = gateway_deploy_key(args)
     if not key:
         return {}
     host = host_of(domain)
@@ -458,8 +466,15 @@ def provision_gateway_token(gateway_url, domain, args):
         return {}
 
     if status == 401:
-        print(f'[-] Gateway từ chối GATEWAY_INTERNAL_KEY. Sửa hoặc xoá {DEPLOYER_SECRETS} rồi chạy lại.')
-        return {}
+        # The team's key was changed (someone left, or it leaked): ask for the new one, once.
+        print('[-] Gateway từ chối key đang lưu: có thể trưởng nhóm vừa đổi deploy key.')
+        if args.yes or not prompt_yes_no('Nhập deploy key mới?', True, args):
+            return {}
+        new_key = ask('GATEWAY_DEPLOY_KEY mới', secret=True, required=False)
+        if not new_key:
+            return {}
+        save_deploy_key(new_key)
+        return provision_gateway_token(gateway_url, domain, args)
     if status not in (200, 201) or not body.get('token'):
         print(f'[-] Gateway trả lỗi {status}: {body.get("reason", "?")}')
         return {}
