@@ -152,6 +152,9 @@ class CoreUpdateServiceTest extends TestCase
         $this->assertTrue($result['rolled_back']);
         $this->assertSame(['failed', 'migrate', '1.0.1'], [end($this->reports)['event'], end($this->reports)['step'], end($this->reports)['to']]);
         $this->assertSame('1.0.0', $this->version());
+        // The code the update page shows reaches the gateway, so the console finds the report by it.
+        $this->assertMatchesRegularExpression('/^UPD-\d{14}-[A-Z0-9]{4}$/', end($this->reports)['ref'] ?? '');
+        $this->assertSame(app(\App\Support\CoreUpdate\CoreUpdater::class)->state()['ref'], end($this->reports)['ref']);
     }
 
     public function test_the_page_needs_a_superadmin_and_a_backup_confirmation_when_asked(): void

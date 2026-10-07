@@ -331,6 +331,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
   meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
+- Lỗi 500 (mã `ERR-…` trên trang lỗi) và extension lỗi (`EXT-…`) được gửi tóm tắt lên gateway qua
+  `App\Support\ErrorReporting\GatewayErrorReporter` (`POST v1/errors`), để console nội bộ tra theo mã.
+  Chỉ gửi **sau khi** response đã đi, timeout ngắn, tối đa `PER_MINUTE` lần/phút, mọi lỗi khi gửi bị nuốt:
+  báo lỗi không bao giờ được làm hỏng hay chậm trang của khách. Chỉ gửi mã, method, path (**không** query
+  string), route, loại exception, file:dòng, câu lỗi đã che email/số điện thoại, phiên bản core —
+  không bao giờ body, cookie, header hay stack trace (chúng ở log của hosting, cùng mã). Tắt bằng
+  `MATBAO_AI_REPORT_ERRORS=false`. Báo cáo cập nhật core gửi kèm mã `UPD-…` trang cập nhật hiện.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.
 - Upload phải validate MIME/kích thước, dùng folder allow-list và extension do server xác định.

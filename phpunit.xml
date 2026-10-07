@@ -30,6 +30,7 @@
         <env name="PACKAGE_INFO_DOMAIN" value=""/>
         <env name="MATBAO_AI_URL" value=""/>
         <env name="MATBAO_AI_TOKEN" value=""/>
+        <env name="MATBAO_AI_REPORT_ERRORS" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

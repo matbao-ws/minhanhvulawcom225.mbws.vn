@@ -82,6 +82,27 @@ class GatewayClient
     }
 
     /**
+     * Best effort, for reports nothing waits on (an error summary): a short timeout, and any
+     * failure is swallowed. Returns whether the gateway accepted it.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    public function postQuietly(string $path, array $body, int $timeout = 3): bool
+    {
+        if (! $this->configured()) {
+            return false;
+        }
+
+        try {
+            return Http::withToken((string) config('ai_gateway.token'))->acceptJson()->asJson()
+                ->connectTimeout(2)->timeout($timeout)
+                ->post($this->url($path), $body)->successful();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      *
      * @throws GatewayUnavailable

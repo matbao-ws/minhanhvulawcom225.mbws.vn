@@ -26,4 +26,7 @@ return [
 
     // Seconds for one AI task; the model alone may use most of the gateway's 30 s.
     'task_timeout' => (int) env('MATBAO_AI_TASK_TIMEOUT', 45),
+    // Send the gateway a summary of each 500 (the ERR- code its page shows), so the internal
+    // console finds it by that code. Masked, after the response; the detail stays in the log.
+    'report_errors' => (bool) env('MATBAO_AI_REPORT_ERRORS', true),
 ];
