@@ -18,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(\App\Services\SiteBranding::class);
+        // Holds the request's error summaries until the response is out (one flush per request).
+        $this->app->scoped(\App\Support\ErrorReporting\GatewayErrorReporter::class);
         $this->app->bind(\App\Support\CoreUpdate\ReleaseVerifier::class, fn () => new \App\Support\CoreUpdate\ReleaseVerifier(
             array_values(array_filter((array) config('core_update.public_keys'))),
         ));

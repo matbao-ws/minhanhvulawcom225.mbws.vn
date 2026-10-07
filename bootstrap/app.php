@@ -71,4 +71,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // The error page shows only this code; the log line carries it next to the detail.
         $exceptions->context(fn () => ['error_ref' => \App\Support\ErrorReference::current()]);
+
+        // The same code reaches the internal console, so it is found without this hosting's log.
+        $exceptions->reportable(function (\Throwable $e): void {
+            app(\App\Support\ErrorReporting\GatewayErrorReporter::class)->capture($e);
+        });
     })->create();
