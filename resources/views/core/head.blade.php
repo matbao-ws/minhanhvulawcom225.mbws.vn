@@ -2,3 +2,4 @@
      @include('core.head')
      Core may add or change what is in here in an update; a theme never lists the parts. --}}
 @include('core.partials.google-analytics')
+@include('core.partials.seo-head')

@@ -53,6 +53,18 @@ class CoreManifest
         'composer.json',
         'composer.lock',
         'VERSION',
+        // The working instructions AI agents follow on every website, and the documents they
+        // point to. They describe core behaviour — the editable audit, the markup contract, the
+        // update rules — so they have to move with the core they describe; a site keeping last
+        // year's contract would build by rules the code no longer enforces.
+        // Root files are listed one by one, never as `*.md`: a core file *added* on a website
+        // is drift and blocks the next update, so a glob would turn any note a developer drops
+        // at the root into a stuck site. Project notes belong outside these paths.
+        '.agents/skills/**',
+        'AI_BUILD_PROMPT.md',
+        'CLAUDE.md',
+        'README.md',
+        'docs/**',
     ];
 
     public const DEPENDENCIES = ['vendor/**'];
@@ -66,6 +78,7 @@ class CoreManifest
         'public/client-assets/css/**',
         'routes/theme.php',
         'theme/**',
+        'extensions/**',
         '.env',
         '.htaccess',
         'public/.htaccess',

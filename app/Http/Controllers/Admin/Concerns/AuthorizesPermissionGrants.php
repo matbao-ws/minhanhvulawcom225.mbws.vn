@@ -57,7 +57,7 @@ trait AuthorizesPermissionGrants
             ));
 
             if ($actions !== []) {
-                $modules[$module] = ['label' => $definition['label'], 'group' => $definition['group'], 'actions' => $actions];
+                $modules[$module] = ['label' => $definition['label'], 'group' => $definition['group'], 'actions' => $actions, 'action_labels' => $definition['action_labels'] ?? []];
             }
         }
 

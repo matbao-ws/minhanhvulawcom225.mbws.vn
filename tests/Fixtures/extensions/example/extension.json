@@ -1,0 +1,14 @@
+{
+    "schema": 1,
+    "id": "example",
+    "name": "Ghi chú nội bộ (mẫu)",
+    "version": "1.0.0",
+    "requires_core": ">=1.2.0 <2.0.0",
+    "provider": "Extensions\\Example\\ExampleServiceProvider",
+    "permissions": [
+        { "code": "example.view", "label": "Xem ghi chú" },
+        { "code": "example.manage", "label": "Thêm ghi chú" }
+    ],
+    "description": "Extension mẫu của core: trang admin, menu, quyền, bảng riêng. Đọc kèm docs/EXTENSIONS.md.",
+    "author": "Mat Bao WS"
+}

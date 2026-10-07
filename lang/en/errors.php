@@ -2,6 +2,8 @@
 
 return [
     'common' => [
+        'reference' => 'Error code',
+        'reference_hint' => 'Send this code to the website administrator to look it up.',
         'back_to_home' => 'Back to Home',
         'go_to_dashboard' => 'Go to Dashboard',
         'go_back' => 'Go Back',

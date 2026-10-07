@@ -34,6 +34,11 @@
             .dashboard-seo-tasks__title { color: #2a3547; font-size: 1rem; font-weight: 800; }
             .dashboard-seo-tasks__all { font-weight: 700; white-space: nowrap; }
             .dashboard-seo-tasks__body { padding: 1.1rem 1.25rem 1.25rem; }
+            .dashboard-seo-tasks__notice { display: flex; align-items: center; gap: .85rem; padding: .9rem; border: 1px solid #e5dffc; border-radius: .8rem; color: #526174; background: linear-gradient(135deg, #fbfaff, #f6f9ff); }
+            .dashboard-seo-tasks__notice-icon { display: inline-flex; width: 2.25rem; height: 2.25rem; flex: 0 0 2.25rem; align-items: center; justify-content: center; border-radius: .7rem; color: #713df2; background: #eee8ff; }
+            .dashboard-seo-tasks__notice-copy { min-width: 0; flex: 1; }
+            .dashboard-seo-tasks__notice-title { margin: 0 0 .2rem; color: #35425b; font-size: .875rem; font-weight: 800; }
+            .dashboard-seo-tasks__notice-action { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
             .dashboard-seo-tasks__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
             .dashboard-seo-tasks__stat { padding: .8rem .9rem; border: 1px solid #edf0f6; border-radius: .75rem; background: #fbfcff; }
             .dashboard-seo-tasks__label { color: #8190a8; font-size: .75rem; font-weight: 700; }
@@ -47,15 +52,24 @@
             .dashboard-seo-tasks__tag { padding: .2rem .45rem; border-radius: 999px; color: #627391; background: #edf1f8; font-size: .7rem; font-weight: 700; white-space: nowrap; }
             .dashboard-seo-tasks__gain { color: #198754; font-size: .75rem; font-weight: 800; white-space: nowrap; }
             .dashboard-seo-tasks__empty { display: flex; align-items: center; gap: .5rem; color: #198754; font-size: .875rem; font-weight: 700; }
+            [data-bs-theme="dark"] .dashboard-seo-tasks { border-color: #3b4c64; background: #203046; }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__header { border-color: #3b4c64; background: linear-gradient(110deg, #2a2443, #203046 62%); }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__title, [data-bs-theme="dark"] .dashboard-seo-tasks__notice-title { color: #edf2f8; }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__notice { border-color: #4b4770; color: #c4cfde; background: linear-gradient(135deg, #2c2948, #26364c); }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__notice-icon { color: #cbb8ff; background: #3b3260; }
             @media (max-width: 575.98px) {
                 .dashboard-seo-tasks__header, .dashboard-seo-tasks__body { padding-right: 1rem; padding-left: 1rem; }
                 .dashboard-seo-tasks__item { align-items: flex-start; flex-wrap: wrap; }
                 .dashboard-seo-tasks__tag { margin-left: 1.65rem; }
+                .dashboard-seo-tasks__notice { align-items: flex-start; flex-wrap: wrap; }
+                .dashboard-seo-tasks__notice-action { margin-left: 3.1rem; }
             }
         </style>
     @endpush
 
-    <div class="card shadow-sm mb-4 dashboard-seo-tasks" data-seo-tasks-card="{{ route('admin.ai.seo-tasks.summary') }}">
+    <div class="card shadow-sm mb-4 dashboard-seo-tasks"
+         data-seo-tasks-card="{{ route('admin.ai.seo-tasks.summary') }}"
+         data-seo-tasks-settings-url="{{ $seoTasksSettingsUrl }}">
         <div class="dashboard-seo-tasks__header">
             <div class="dashboard-seo-tasks__heading">
                 <span class="dashboard-seo-tasks__icon" aria-hidden="true"><i class="ti ti-chart-arrows-vertical fs-5"></i></span>
@@ -72,6 +86,8 @@
             'impressions' => __('ai.tasks.impressions'),
             'vs' => __('ai.tasks.vs_previous'),
             'pending' => __('ai.tasks.pending'),
+            'notConnected' => __('ai.tasks.not_connected'),
+            'connect' => __('ai.tasks.connect'),
             'empty' => __('ai.tasks.empty'),
             'gain' => __('ai.tasks.gain', ['count' => '__N__']),
             'error' => __('ai.errors.default'),
@@ -82,6 +98,7 @@
             document.addEventListener('DOMContentLoaded', async function () {
                 const card = document.querySelector('[data-seo-tasks-card]');
                 const body = card?.querySelector('[data-seo-tasks-body]');
+                const viewAll = card?.querySelector('.dashboard-seo-tasks__all');
                 if (!body) return;
 
                 const text = @json($seoTasksText);
@@ -92,6 +109,26 @@
                     return node;
                 };
                 const change = (now, before) => before ? Math.round((now - before) / before * 100) : null;
+                const renderNotConnected = () => {
+                    body.textContent = '';
+                    body.classList.remove('text-muted');
+                    viewAll?.classList.add('d-none');
+
+                    const notice = el('div', 'dashboard-seo-tasks__notice');
+                    const icon = el('span', 'dashboard-seo-tasks__notice-icon');
+                    icon.append(el('i', 'ti ti-plug-connected'));
+                    const copy = el('div', 'dashboard-seo-tasks__notice-copy');
+                    copy.append(el('p', 'dashboard-seo-tasks__notice-title', text.notConnected));
+                    let action = null;
+                    if (card.dataset.seoTasksSettingsUrl) {
+                        action = el('a', 'btn btn-sm btn-primary dashboard-seo-tasks__notice-action', text.connect);
+                        action.href = card.dataset.seoTasksSettingsUrl;
+                        action.append(el('i', 'ti ti-arrow-right ms-1'));
+                    }
+                    notice.append(icon, copy);
+                    if (action) notice.append(action);
+                    body.append(notice);
+                };
 
                 try {
                     const response = await fetch(card.dataset.seoTasksCard, {headers: {'Accept': 'application/json'}});
@@ -104,6 +141,10 @@
                     const data = json.data;
                     body.textContent = '';
                     body.classList.remove('text-muted');
+                    if (data.status === 'not_connected') {
+                        renderNotConnected();
+                        return;
+                    }
                     if (!data.synced_through) {
                         body.append(el('span', 'text-muted', text.pending));
                         return;

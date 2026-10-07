@@ -78,7 +78,58 @@ class CoreUpdateService
             return null;
         }
         @unlink($this->path('requested.json'));
+        // From now until it ends — download included — the update page shows the run as going on.
+        $this->write('running.json', $request + ['started_at' => now()->toIso8601String()]);
 
+        try {
+            return $this->carryOut($request);
+        } finally {
+            @unlink($this->path('running.json'));
+        }
+    }
+
+    /**
+     * Where the admin's request stands, for the update page (which polls it): queued for cron,
+     * running (and at which step), or idle with the last run's outcome. Times come from the server,
+     * so a reload or another browser shows the same progress.
+     *
+     * @return array<string, mixed>
+     */
+    public function progress(): array
+    {
+        $requested = $this->requested();
+        $running = $this->read('running.json') ?: null;
+        $state = $this->updater->state();
+
+        $phase = match (true) {
+            $running !== null => 'running',
+            $requested !== null => 'queued',
+            default => 'idle',
+        };
+        $since = $running['started_at'] ?? $requested['requested_at'] ?? null;
+        $step = $phase !== 'running' ? null
+            : (($state['status'] ?? null) === 'running' ? (string) ($state['step'] ?? '') : 'download');
+
+        return [
+            'phase' => $phase,
+            'action' => ($running ?? $requested)['action'] ?? null,
+            'target' => ($running ?? $requested)['version'] ?? null,
+            'requested_at' => $running['requested_at'] ?? $requested['requested_at'] ?? null,
+            'started_at' => $running['started_at'] ?? null,
+            'step' => $step,
+            'step_group' => $step === null ? null : UpdateProblems::stepGroup($step),
+            // Cron runs at the top of each minute: past a few minutes something is wrong with it.
+            'stale' => $since !== null && now()->diffInMinutes($since, true) >= ($phase === 'running' ? 30 : 5),
+            'version' => $this->manifest->version(),
+            // No error text: pages (and this JSON) show the reference, the log holds the detail.
+            'last' => array_intersect_key($state, array_flip(['status', 'from', 'to', 'ref', 'updated_at'])),
+            'now' => now()->toIso8601String(),
+        ];
+    }
+
+    /** @param  array<string, mixed>  $request */
+    private function carryOut(array $request): array
+    {
         if (($request['action'] ?? null) === 'rollback') {
             $from = $this->manifest->version();
             $result = $this->updater->rollback();
@@ -90,13 +141,19 @@ class CoreUpdateService
         }
 
         // Ask again: the release may have been paused since the click.
+        $from = $this->manifest->version();
         try {
             $offer = $this->offer();
         } catch (GatewayUnavailable $e) {
+            $this->updater->recordFailure($from, $request['version'] ?? null, 'gateway', 'gateway: '.$e->reason);
+
             return ['ok' => false, 'error' => 'gateway: '.$e->reason];
         }
         if ($offer === null || $offer['version'] !== ($request['version'] ?? null)) {
-            return ['ok' => false, 'error' => 'Release '.($request['version'] ?? '?').' is no longer offered to this website.'];
+            $error = 'not_offered: release '.($request['version'] ?? '?').' is no longer offered to this website';
+            $this->updater->recordFailure($from, $request['version'] ?? null, 'offer', $error);
+
+            return ['ok' => false, 'error' => $error];
         }
 
         return $this->run($offer, (bool) ($request['backup_done'] ?? false));
@@ -115,12 +172,13 @@ class CoreUpdateService
 
         try {
             $lock = $this->manifest->base().'/composer.lock';
-            $this->downloader->download((string) $offer['base_url'], $dir, (string) config('ai_gateway.token'),
+            $this->downloader->download($this->packageUrl((string) $offer['base_url']), $dir, (string) config('ai_gateway.token'),
                 is_file($lock) ? hash_file('sha256', $lock) : null);
 
             $result = $this->updater->apply($dir, ['backup_done' => $backupDone]);
         } catch (Throwable $e) {
             $result = ['ok' => false, 'from' => $from, 'to' => $offer['version'], 'error' => 'download: '.$e->getMessage()];
+            $this->updater->recordFailure($from, (string) $offer['version'], 'download', $result['error']);
         } finally {
             File::deleteDirectory($dir);
         }
@@ -132,6 +190,24 @@ class CoreUpdateService
         });
 
         return $result;
+    }
+
+    /**
+     * The gateway's package URL, upgraded to https when it names the gateway's own host over plain
+     * http. Following an http → https redirect, the HTTP client drops the token on the port change
+     * and the gateway answers 401 — which is how 1.1.0 first failed to download.
+     */
+    public function packageUrl(string $url): string
+    {
+        $gateway = parse_url((string) config('ai_gateway.url'));
+        $package = parse_url($url);
+
+        if (($package['scheme'] ?? null) === 'http' && ($gateway['scheme'] ?? null) === 'https'
+            && isset($package['host'], $gateway['host']) && strcasecmp($package['host'], $gateway['host']) === 0) {
+            return 'https'.substr($url, 4);
+        }
+
+        return $url;
     }
 
     /** Best effort: an unreachable gateway never fails an update. */

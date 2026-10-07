@@ -67,4 +67,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Keep integration credentials out of flashed input if any future
         // validation path uses Laravel's automatic redirect helper.
         $exceptions->dontFlash(['cloudinary_url', 'cloud_name', 'api_key', 'api_secret']);
+
+        // The error page shows only this code; the log line carries it next to the detail.
+        $exceptions->context(fn () => ['error_ref' => \App\Support\ErrorReference::current()]);
     })->create();

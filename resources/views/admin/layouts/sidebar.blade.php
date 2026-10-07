@@ -366,6 +366,14 @@
                                       <span class="hide-menu">{{ __('ai.tasks.title') }}</span>
                                   </a>
                               </li>
+                              @if($sidebarFeatures->availableTo($sidebarUser, 'ai_research'))
+                              <li class="sidebar-item">
+                                  <a class="sidebar-link" href="{{ route('admin.ai.research.index') }}" aria-expanded="false">
+                                      <i class="ti ti-target-arrow fs-6" aria-hidden="true"></i>
+                                      <span class="hide-menu">{{ __('ai.research.title') }}</span>
+                                  </a>
+                              </li>
+                              @endif
                               <li class="sidebar-item">
                                   <a class="sidebar-link" href="{{ route('admin.ai.bulk.index') }}" aria-expanded="false">
                                       <i class="ti ti-stack-2 fs-6" aria-hidden="true"></i>
@@ -457,10 +465,44 @@
                                           <span class="icon-small"></span>{{ __('admin.sidebar.core_update') }}
                                       </a>
                                   </li>
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ route('admin.extensions.index') }}">
+                                          <span class="icon-small"></span>{{ __('admin.sidebar.extensions') }}
+                                      </a>
+                                  </li>
                                   @endif
                               </ul>
                           </li>
                           @endif
+
+                          {{-- Entries of the website's extensions (App\Extension\Registries\AdminMenu), each only for an account allowed to open it. --}}
+                          @foreach(app(\App\Extension\Registries\AdminMenu::class)->visibleTo($sidebarUser) as $extensionItem)
+                          <li class="sidebar-item" data-extension-menu="{{ $extensionItem['key'] }}">
+                              @if($extensionItem['children'] !== [])
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="{{ $extensionItem['icon'] ?? 'solar:widget-add-line-duotone' }}"></iconify-icon>
+                                  <span class="hide-menu">{{ $extensionItem['label'] }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  @if($extensionItem['url'])
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ $extensionItem['url'] }}"><span class="icon-small"></span>{{ $extensionItem['label'] }}</a>
+                                  </li>
+                                  @endif
+                                  @foreach($extensionItem['children'] as $extensionChild)
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ $extensionChild['url'] }}"><span class="icon-small"></span>{{ $extensionChild['label'] }}</a>
+                                  </li>
+                                  @endforeach
+                              </ul>
+                              @else
+                              <a class="sidebar-link" href="{{ $extensionItem['url'] }}" aria-expanded="false">
+                                  <iconify-icon icon="{{ $extensionItem['icon'] ?? 'solar:widget-add-line-duotone' }}"></iconify-icon>
+                                  <span class="hide-menu">{{ $extensionItem['label'] }}</span>
+                              </a>
+                              @endif
+                          </li>
+                          @endforeach
 
                           @can('activity_logs.view')
                           <li class="sidebar-item">

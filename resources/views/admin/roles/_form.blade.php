@@ -39,6 +39,7 @@
                                         @foreach(['view', 'create', 'update', 'delete', 'use'] as $action)
                                             <th class="text-center" style="width: 96px;">{{ __('admin.roles.actions.'.$action) }}</th>
                                         @endforeach
+                                        <th>{{ __('admin.roles.fields.other_actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -61,6 +62,20 @@
                                                     @endif
                                                 </td>
                                             @endforeach
+                                            {{-- Actions outside the five columns: ai.apply, an extension's own (with its label). --}}
+                                            <td>
+                                                @foreach(array_diff($definition['actions'], ['view', 'create', 'update', 'delete', 'use']) as $action)
+                                                    @php($code = $module.'.'.$action)
+                                                    @php($actionLabel = $definition['action_labels'][$action] ?? __('admin.roles.actions.'.$action))
+                                                    <div class="form-check form-switch m-0">
+                                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                                               value="{{ $code }}" id="perm_{{ $module }}_{{ $action }}"
+                                                               data-permission-group-checkbox="{{ $group }}"
+                                                               @checked($isWildcard || in_array($code, $selected, true))>
+                                                        <label class="form-check-label text-dark" for="perm_{{ $module }}_{{ $action }}">{{ $actionLabel }}</label>
+                                                    </div>
+                                                @endforeach
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>

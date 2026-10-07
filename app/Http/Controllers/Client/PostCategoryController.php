@@ -7,6 +7,7 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
+use App\Services\Seo\SeoMetaFactory;
 use App\Support\FeatureGate;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class PostCategoryController extends Controller
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LocalizedContent $content,
         private readonly FeatureGate $features,
+        private readonly SeoMetaFactory $seo,
     ) {}
 
     public function show(Request $request, string $locale, string $slug): View
@@ -35,13 +37,23 @@ class PostCategoryController extends Controller
             ->paginate(12)
             ->withQueryString();
 
+        $title = $this->content->get($category, 'name');
+        $description = $this->content->get($category, 'description');
+
         return view('client.blog.category', [
             'category' => $category,
-            'title' => $this->content->get($category, 'name'),
-            'description' => $this->content->get($category, 'description'),
+            'title' => $title,
+            'description' => $description,
+            'posts' => $posts,
             // PostCategory carries no SEO fields of its own; the name and
             // description are the honest source for the document head.
-            'posts' => $posts,
+            'seo' => $this->seo->forRecord(
+                $category,
+                'client.post-categories.show',
+                $title,
+                $description,
+                breadcrumbs: $this->seo->ancestorTrail($category, 'client.post-categories.show', 'name', fn (PostCategory $parent) => $parent->is_active),
+            ),
         ]);
     }
 }

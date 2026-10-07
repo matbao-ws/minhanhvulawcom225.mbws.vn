@@ -26,11 +26,13 @@ Các lệnh dưới đây gõ trong PowerShell hoặc terminal của VS Code, t�
 | `feat/...` | Không có gì |
 | `main` | CI build và **tự deploy** lên `aimbw.webwow.vn` |
 
-### Ba quy tắc vàng
+### Bốn quy tắc vàng
 
 1. **Không code thẳng trên `main` hoặc `dev`.** Luôn tạo nhánh `feat/...` hoặc `fix/...`.
 2. **Luôn chạy `git pull` trước khi tạo nhánh mới hoặc gắn tag.**
-3. **Không commit secret**: `.env`, file `.pem`, file key JSON, token. Đừng mở hay bôi đen chúng trong
+3. **Sửa file của hệ thống cập nhật** (`config/core_update.php`, `app/Support/CoreUpdate/`,
+   `CoreManifest.php`...) thì theo quy trình trong [UPDATE_SAFETY.md](UPDATE_SAFETY.md), phần B.
+4. **Không commit secret**: `.env`, file `.pem`, file key JSON, token. Đừng mở hay bôi đen chúng trong
    VS Code khi đang chat với AI.
 
 ---
@@ -128,11 +130,15 @@ git switch dev
 git pull origin dev
 git switch -c chore/release-1.0.2
 # mở file VERSION, sửa thành 1.0.2 (chỉ một dòng, không có chữ v)
-git add VERSION
+# viết docs/release-notes/1.0.2.md: bản này có gì mới, cho chủ shop đọc (docs/release-notes/README.md)
+git add VERSION docs/release-notes/1.0.2.md
 git commit -m "chore: release 1.0.2"
 git push -u origin chore/release-1.0.2
 ```
 Tạo PR `chore/release-1.0.2` → `dev` và merge.
+
+**Ghi chú phát hành là bắt buộc với bản stable**: thiếu `docs/release-notes/<phiên bản>.md` thì workflow
+phát hành dừng. Chủ shop đọc nó ở mục "Có gì mới" trên trang Cập nhật phiên bản.
 
 ### 4.2. Đưa `dev` lên `main`
 
@@ -168,6 +174,8 @@ kèm 4 file (`release.json`, `release.json.sig`, `core-1.0.2.zip`, `dependencies
 ---
 
 ## 5. Cho website khách nhận bản mới (trên server gateway)
+
+> Hướng dẫn đầy đủ (ghim, mở dần, dừng, xử lý khi không thấy bản mới): [CORE_ROLLOUT.md](CORE_ROLLOUT.md).
 
 Gateway tự nạp bản mới: ngay lập tức nếu đã bật webhook, chậm nhất trong vòng 1 giờ nếu chưa.
 Bản mới bắt đầu ở **0%**, tức chưa site nào nhận.

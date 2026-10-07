@@ -73,7 +73,7 @@ return [
                 'analytics',
             ],
         ],
-        // Hero 4 → 7: everything the core has today. Their extra items (loyalty,
+        // Hero 4 → 7: everything the core has today, keyword research (ai_research) included. Their extra items (loyalty,
         // ZNS, CRO, omni-channel, AI, Stripe/PayPal) do not exist in the core yet.
         'HERO4' => ['features' => '*'],
         'HERO5' => ['features' => '*'],

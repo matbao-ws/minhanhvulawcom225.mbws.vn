@@ -87,6 +87,7 @@ class UserController extends Controller
             $desired[$code] = $state === 'grant';
         }
 
+        Permission::ensureRegistered(array_keys($desired));
         $permissionIds = Permission::query()->pluck('id', 'code');
         $existing = $user->permissionOverrides()->pluck('user_permissions.granted', 'permissions.code')
             ->map(fn ($granted): bool => (bool) $granted)

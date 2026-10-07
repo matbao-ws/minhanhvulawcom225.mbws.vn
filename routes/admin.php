@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\CoreUpdateController;
+use App\Http\Controllers\Admin\ExtensionController;
 use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
@@ -123,6 +124,20 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->name('bulk.show');
         Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
+        // Keywords & competitors (Hero 4+). Data from a paid provider, limited on the gateway.
+        Route::middleware('feature:ai_research')->prefix('research')->name('research.')
+            ->controller(\App\Http\Controllers\Admin\AiResearchController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('status', 'status')->name('status');
+                Route::post('competitors', 'storeCompetitor')->middleware('throttle:admin-ai')->name('competitors.store');
+                Route::delete('competitors/{domain}', 'destroyCompetitor')->where('domain', '[A-Za-z0-9.-]+')->name('competitors.destroy');
+                Route::post('competitors/suggest', 'suggest')->middleware('throttle:admin-ai')->name('competitors.suggest');
+                Route::post('refresh', 'refresh')->middleware('throttle:admin-ai')->name('refresh');
+                Route::post('keywords', 'storeKeywords')->middleware('throttle:admin-ai')->name('keywords.store');
+                Route::delete('keywords/{keyword}', 'destroyKeyword')->whereNumber('keyword')->name('keywords.destroy');
+                Route::post('topics', 'topics')->middleware('throttle:admin-ai')->name('topics');
+            });
+
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
         Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');
         Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');
@@ -168,6 +183,11 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
         Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
         Route::post('core-update/rollback', [CoreUpdateController::class, 'rollback'])->name('core-update.rollback');
+        Route::get('core-update/status', [CoreUpdateController::class, 'status'])->name('core-update.status');
+        Route::post('core-update/baseline', [CoreUpdateController::class, 'baseline'])->name('core-update.baseline');
+
+        // The website's extensions/ and what became of each (read-only: extension:enable|disable).
+        Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');
     });
 
     Route::get('languages', [LanguageController::class, 'index'])->middleware(['feature:multilingual', 'can:languages.view'])->name('languages.index');

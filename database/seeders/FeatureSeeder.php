@@ -28,6 +28,7 @@ class FeatureSeeder extends Seeder
             ['code' => 'multilingual', 'name' => 'Multilingual', 'value_type' => 'boolean'],
             ['code' => 'analytics', 'name' => 'Analytics', 'value_type' => 'boolean'],
             ['code' => 'ai_seo', 'name' => 'AI SEO Copilot', 'value_type' => 'boolean'],
+            ['code' => 'ai_research', 'name' => 'Keyword Research', 'value_type' => 'boolean'],
         ];
 
         foreach ($features as $feature) {

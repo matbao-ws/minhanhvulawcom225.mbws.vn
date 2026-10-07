@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Permission;
+use App\Support\Extensions\ExtensionManager;
 use App\Support\PermissionRegistry;
 use Illuminate\Console\Command;
 
@@ -32,7 +33,11 @@ class SyncPermissions extends Command
 
         // Pruning detaches pivot rows through the cascade, so it stays opt-in:
         // a mistyped registry entry would otherwise silently strip live roles.
-        $stale = Permission::query()->whereNotIn('code', PermissionRegistry::codes())->get();
+        // An extension still on the website keeps its permissions even while switched off, so
+        // disabling it for a moment never strips them from roles.
+        $installed = array_keys(app(ExtensionManager::class)->all());
+        $stale = Permission::query()->whereNotIn('code', PermissionRegistry::codes())->get()
+            ->reject(fn (Permission $permission) => in_array(explode('.', $permission->code, 2)[0], $installed, true));
 
         if ($stale->isEmpty()) {
             return self::SUCCESS;

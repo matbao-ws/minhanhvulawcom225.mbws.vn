@@ -128,6 +128,7 @@ Mở thư mục **dự án khách** trong VS Code (`F:\laragon\www\web-spico`), 
 | `public/client-assets/` (trừ `vendor/`) | CSS, JS, ảnh, font của giao diện |
 | `routes/theme.php` | Route riêng của giao diện: landing page, trang đặc biệt |
 | `theme/` | Dành riêng cho website, không bị bản cập nhật core đụng tới |
+| `extensions/<id>/` | Tính năng riêng của khách (trang admin, bảng, tích hợp): [EXTENSIONS.md](EXTENSIONS.md) |
 
 ### ❌ Không sửa (thuộc về core)
 
@@ -136,7 +137,7 @@ Danh sách đầy đủ là hằng `CORE` trong `app/Support/CoreManifest.php`, 
 `database/migrations/`, `config/`, `lang/`, `composer.json`, `public/admin-assets/`,
 `public/client-assets/vendor/`. `team.py` đọc đúng danh sách này khi kiểm tra trước lúc lưu.
 
-Cần thay đổi ở đó thì xem mục 3.2.
+Cần thay đổi ở đó thì xem mục 3.2. Danh sách chi tiết và hậu quả khi sửa nhầm: [UPDATE_SAFETY.md](UPDATE_SAFETY.md).
 
 ### 3.1. Cách làm giao diện
 
@@ -151,6 +152,7 @@ Cần thay đổi ở đó thì xem mục 3.2.
 | Yêu cầu | Làm gì |
 |---|---|
 | Chỉ khác giao diện / thêm trang | Tự làm trong theme |
+| Logic riêng chỉ khách này có (đồng bộ MISA, quản lý đại lý, báo cáo riêng...) | Viết **extension**: `php artisan extension:make <id>` — [EXTENSIONS.md](EXTENSIONS.md) |
 | Tính năng mới mà khách khác cũng có thể cần (thanh toán, vận chuyển, khuyến mãi...) | **Báo trưởng nhóm**. Tính năng được làm trong core, có công tắc bật cho từng khách |
 | Gặp lỗi của core (admin, giỏ hàng, đơn hàng...) | Mở **Issue** trên repo core: mô tả lỗi, các bước tái hiện, ảnh chụp. **Không** tự sửa trong repo khách |
 

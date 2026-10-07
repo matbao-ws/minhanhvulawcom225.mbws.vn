@@ -172,6 +172,145 @@ class CoreUpdateServiceTest extends TestCase
         $this->assertTrue(app(CoreUpdateService::class)->requested()['backup_done']);
     }
 
+    public function test_an_http_package_url_on_the_gateway_host_is_downloaded_over_https(): void
+    {
+        // A gateway behind a TLS proxy once sent http:// URLs: following the redirect to https://
+        // the HTTP client dropped the token and every download got a 401.
+        $this->offer['base_url'] = 'http://gw.test/v1/core/releases/1.0.1';
+        $service = app(CoreUpdateService::class);
+        $this->assertSame('https://gw.test/v1/core/releases/1.0.1', $service->packageUrl($this->offer['base_url']));
+        $this->assertSame('http://cdn.other/x', $service->packageUrl('http://cdn.other/x'), 'another host is left alone');
+
+        $this->assertTrue($service->run($this->offer)['ok']);
+        Http::assertSent(fn ($r) => $r->url() === 'https://gw.test/v1/core/releases/1.0.1/release.json'
+            && $r->hasHeader('Authorization', 'Bearer mbp_project_token'));
+        Http::assertNotSent(fn ($r) => str_starts_with($r->url(), 'http://gw.test/v1/core/releases'));
+    }
+
+    public function test_the_page_shows_what_is_new_and_escapes_html_in_the_notes(): void
+    {
+        $admin = $this->superadmin();
+        $this->offer['notes'] = "## Tính năng mới\n- **GHN** tạo vận đơn tự động.\n- <script>alert(1)</script> [x](javascript:alert(2))";
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']));
+
+        $page = $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk();
+        $page->assertSee('Có gì mới trong bản 1.0.1')->assertSee('<strong>GHN</strong>', false)->assertSee('Tính năng mới');
+        // Raw HTML stays text; an unsafe link never becomes an <a> (the sidebar has its own javascript: links).
+        preg_match('/<div class="release-notes[^"]*"[^>]*>(.*?)<\/div>/s', $page->getContent(), $notes);
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $notes[1]);
+        $this->assertStringNotContainsString('<script>', $notes[1]);
+        $this->assertStringNotContainsString('<a ', $notes[1]);
+
+        unset($this->offer['notes']);
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']));
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))
+            ->assertSee('Bản này chưa có ghi chú phát hành.');
+    }
+
+    public function test_progress_is_queued_then_running_then_idle_and_survives_a_reload(): void
+    {
+        $admin = $this->superadmin();
+        $service = app(CoreUpdateService::class);
+        $service->offer();
+        $this->assertSame('idle', $service->progress()['phase']);
+
+        $this->actingAs($admin)->post(route('admin.core-update.update', ['locale' => 'vi']), ['version' => '1.0.1']);
+        $queued = $this->actingAs($admin)->getJson(route('admin.core-update.status', ['locale' => 'vi']))->assertOk()->json();
+        $this->assertSame(['queued', 'update', '1.0.1', false], [$queued['phase'], $queued['action'], $queued['target'], $queued['stale']]);
+        $this->assertNotNull($queued['requested_at']);
+
+        // A reload shows the same progress, from the server's times.
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('data-phase="queued"', false)->assertSee('Đang cập nhật lên bản 1.0.1')->assertSee('Tải bản cập nhật');
+
+        // While cron runs it — download included — the page sees "running".
+        $seen = null;
+        Http::fake(function ($request) use (&$seen) {
+            $path = parse_url($request->url(), PHP_URL_PATH);
+            if (str_ends_with($path, '/release.json')) {
+                $seen = app(CoreUpdateService::class)->progress();
+            }
+            if ($path === '/v1/core/update') {
+                return Http::response(['ok' => true, 'update' => $this->offer]);
+            }
+            if (str_starts_with($path, '/v1/core/releases/1.0.1/') && is_file($this->release.'/'.basename($path))) {
+                return Http::response(file_get_contents($this->release.'/'.basename($path)));
+            }
+
+            return Http::response(['ok' => true]);
+        });
+        $this->artisan('core:run-requested')->expectsOutput('DONE')->assertExitCode(0);
+        $this->assertSame(['running', 'download', 'download'], [$seen['phase'], $seen['step'], $seen['step_group']]);
+
+        $done = $service->progress();
+        $this->assertSame(['idle', 'installed', '1.0.1'], [$done['phase'], $done['last']['status'], $done['version']]);
+        $this->assertFileDoesNotExist($this->site.'/storage/app/core/running.json');
+    }
+
+    public function test_a_request_waiting_too_long_is_flagged(): void
+    {
+        $this->travelTo(now()->subMinutes(6), fn () => app(CoreUpdateService::class)->request(['action' => 'update', 'version' => '1.0.1']));
+
+        $this->assertTrue(app(CoreUpdateService::class)->progress()['stale']);
+    }
+
+    public function test_failures_before_installing_are_recorded_and_explained(): void
+    {
+        $admin = $this->superadmin();
+        $service = app(CoreUpdateService::class);
+
+        // Release withdrawn between the click and cron.
+        $service->request(['action' => 'update', 'version' => '9.9.9']);
+        $this->artisan('core:run-requested')->assertExitCode(1);
+        $this->assertSame(['failed', 'offer'], [app(CoreUpdater::class)->state()['status'], app(CoreUpdater::class)->state()['step']]);
+
+        // Download refused (1.1.0 first failed with a 401): the gateway has no package to serve.
+        File::deleteDirectory($this->release);
+        $service->request(['action' => 'update', 'version' => '1.0.1']);
+        $this->artisan('core:run-requested')->assertExitCode(1);
+
+        $state = app(CoreUpdater::class)->state();
+        $this->assertSame(['failed', 'download'], [$state['status'], $state['step']]);
+        $this->assertMatchesRegularExpression('/^UPD-\d{14}-[A-Z0-9]{4}$/', $state['ref']);
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('Không tải được bản cập nhật. Thử lại sau ít phút.')->assertSee('Mã: DOWNLOAD')
+            ->assertSee('Mã tra cứu: '.$state['ref'])->assertDontSee('Download failed');
+        // Nor in the JSON the page polls.
+        $status = $this->actingAs($admin)->getJson(route('admin.core-update.status', ['locale' => 'vi']))->json();
+        $this->assertStringNotContainsString('Download failed', json_encode($status));
+        $this->assertSame($state['ref'], $status['last']['ref']);
+    }
+
+    public function test_reasons_become_plain_sentences_with_a_code(): void
+    {
+        $problems = \App\Support\CoreUpdate\UpdateProblems::explain(
+            'drift: 3 core file(s) edited | extensions: Quản lý đại lý (dealers) 1.4.0 needs core <2 — run `php artisan extension:disable dealers` | migrate: artisan migrate failed: x | something odd'
+        );
+
+        $this->assertSame(['DRIFT', 'EXTENSIONS', 'INSTALL_FAILED', 'UNKNOWN'], array_column($problems, 'code'));
+        $this->assertSame('Cài đặt gặp lỗi ở bước cập nhật dữ liệu; website đã tự quay về bản đang chạy.', $problems[2]['message']);
+        $this->assertStringNotContainsString('php artisan', implode(' ', array_column($problems, 'message')));
+        $this->assertSame([], \App\Support\CoreUpdate\UpdateProblems::explain(null));
+    }
+
+    public function test_the_page_shows_no_server_command_and_records_a_missing_baseline(): void
+    {
+        $admin = $this->superadmin();
+        @unlink($this->site.'/storage/app/core/installed.json');
+
+        $page = $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk();
+        $page->assertSee('Chưa sẵn sàng cập nhật')->assertSee('Ghi mốc ngay')->assertDontSee('php artisan')->assertDontSee('CORE_UPDATE_ENABLED');
+
+        $this->actingAs($admin)->post(route('admin.core-update.baseline', ['locale' => 'vi']))->assertSessionHas('success');
+        $this->assertFileExists($this->site.'/storage/app/core/installed.json');
+        // Never over an existing record: that would hide files edited by hand.
+        $this->actingAs($admin)->post(route('admin.core-update.baseline', ['locale' => 'vi']))->assertSessionHas('error');
+
+        $editor = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Ed', 'permissions' => ['settings.update']])->id]);
+        $this->actingAs($editor)->post(route('admin.core-update.baseline', ['locale' => 'vi']))->assertForbidden();
+        $this->actingAs($editor)->getJson(route('admin.core-update.status', ['locale' => 'vi']))->assertForbidden();
+    }
+
     public function test_disabled_websites_neither_poll_nor_run_requests(): void
     {
         config(['core_update.enabled' => false]);

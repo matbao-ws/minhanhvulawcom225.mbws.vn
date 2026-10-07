@@ -32,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(\App\Services\SiteListService::class);
         // Same again: every section on the page asks how it should render.
         $this->app->scoped(\App\Services\SiteSectionService::class);
+        // Read by both the <head> partial and the footer partial of one page.
+        $this->app->scoped(\App\Services\Seo\SiteEmbeds::class);
         // Media pages and upload services consult the same encrypted
         // Cloudinary setting several times in one request.
         $this->app->scoped(\App\Services\CloudinaryCredentials::class);
@@ -113,12 +115,52 @@ class AppServiceProvider extends ServiceProvider
         // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
         view()->composer('admin.dashboard._seo-tasks', function ($view) {
             $user = auth()->user();
-            $view->with('seoTasksVisible', $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'));
+            $view->with([
+                'seoTasksVisible' => $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'),
+                // A connection changes shared settings, so only expose this shortcut
+                // to staff who can both open and save that screen.
+                'seoTasksSettingsUrl' => $user && $user->can('settings.view') && $user->can('settings.update')
+                    ? route('admin.settings.index', ['tab' => 'analytics'])
+                    : null,
+            ]);
         });
 
         view()->composer('admin.shared.ai-draft-review', function ($view) {
             $post = $view->getData()['post'] ?? null;
             $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);
+        });
+
+        // On the core partials, not a layout: every theme layout reaches them through
+        // @include('core.head') / @include('core.editor') and needs no composer of its own.
+        view()->composer(['core.partials.seo-head', 'core.partials.embed-footer'], function ($view) {
+            $branding = app(\App\Services\SiteBranding::class)->current();
+            $view->with('siteEmbeds', app(\App\Services\Seo\SiteEmbeds::class)->current());
+
+            if ($view->name() !== 'core.partials.seo-head') {
+                return;
+            }
+
+            $seo = $view->getData()['seo'] ?? null;
+
+            if (! $seo instanceof \App\Support\Seo\SeoMeta) {
+                // A page that passes no $seo still declared its title and description
+                // as sections, which the layout has captured before this partial renders.
+                // Inline sections arrive already escaped; the partial escapes again.
+                $section = fn (string $name) => trim(html_entity_decode($view->getFactory()->yieldContent($name), ENT_QUOTES | ENT_HTML5));
+                $seo = app(\App\Services\Seo\SeoMetaFactory::class)->fallback(
+                    $section('title') ?: $branding['name'],
+                    $section('meta_description') ?: null,
+                );
+            }
+
+            $view->with([
+                'seo' => $seo,
+                'seoSiteName' => $branding['name'],
+                'seoOrganization' => \App\Support\Seo\StructuredData::script(\App\Support\Seo\StructuredData::organization(
+                    $branding,
+                    config('app.public_frontend_url') ?: url('/'),
+                )),
+            ]);
         });
 
         view()->composer('core.partials.google-analytics', function ($view) {
