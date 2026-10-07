@@ -1,6 +1,9 @@
 @php
     // Same gate as the editable root in the page view; see User::canEditClientContent().
     $showClientAdminBar = \App\Support\ClientEditorChrome::editorActive();
+    // Links into the admin UI. A storefront-only language (ja) has no admin
+    // translation; the editor's own API calls keep the page locale.
+    $adminLocale = app(\App\Services\LanguageRegistry::class)->adminLocale(app()->getLocale());
 @endphp
 
 {{--
@@ -188,13 +191,13 @@
     </style>
 
     <nav id="client-admin-bar" aria-label="Công cụ quản trị">
-        <a href="{{ route('admin.dashboard', ['locale' => app()->getLocale()]) }}">
+        <a href="{{ route('admin.dashboard', ['locale' => $adminLocale]) }}">
             <svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H2a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 3.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H8a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
             <span class="client-admin-bar__label">Quản trị</span>
         </a>
 
         @isset($page)
-            <a href="{{ route('admin.pages.edit', ['locale' => app()->getLocale(), 'page' => $page]) }}">
+            <a href="{{ route('admin.pages.edit', ['locale' => $adminLocale, 'page' => $page]) }}">
                 <svg class="client-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
                 <span class="client-admin-bar__label">Sửa tiêu đề/SEO</span>
             </a>

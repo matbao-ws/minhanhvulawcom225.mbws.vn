@@ -223,6 +223,12 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Đa ngôn ngữ
 
 - Admin route luôn có `{locale}`.
+- Hai danh sách locale trong `LanguageRegistry`: `routable()` là mọi ngôn ngữ active (URL `/{locale}/…`,
+  tab nội dung), `admin()` chỉ gồm ngôn ngữ có trong `config('multilingual.admin_locales')` (mặc định
+  `vi`, `en` — những locale có file `lang/`). Mở trang admin bằng ngôn ngữ chỉ dành cho storefront
+  (`/ja/admin/...`, GET không phải JSON) thì `ValidateLocalizedAdminPath` chuyển 302 sang
+  `adminLocale()` (`admin_fallback_locale`, mặc định `en`). Request JSON và request ghi **không** bị
+  chuyển: editor trên `/ja/…` gọi `/ja/admin/site-blocks…`, và lịch sử block đọc locale nội dung từ URL.
 - Public API resolve locale bằng middleware `apiLocale`.
 - Field dịch dùng pattern/model/service hiện có; không tự tạo cột ngôn ngữ rời rạc.
 - Slug đa ngôn ngữ đi qua `LocalizedSlugService`/`HasLocalizedSlugs`.
