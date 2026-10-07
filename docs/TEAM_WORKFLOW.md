@@ -278,7 +278,7 @@ git merge v1.2.0
 | Tạo dự án: "Tạo repo GitHub không được" | Tên repo đã có trong org, hoặc bạn chưa vào org. Dự án local vẫn được tạo; báo trưởng nhóm |
 | `git push` lên repo core báo 403 | Đúng thiết lập: team dev chỉ đọc core. Làm trong repo khách |
 | `http://web-xxx.test` không mở được | Laragon → Menu → Reload; kiểm tra Apache/Nginx đang chạy |
-| Website khách không gửi email | Chưa kết nối gateway ở lần deploy đầu. Báo trưởng nhóm |
+| Website khách không gửi email | Chưa kết nối gateway ở lần deploy đầu. Chạy `python deploy.py --gateway-token` (cần deploy key) |
 | Trang Cập nhật phiên bản báo "file core đã bị sửa", không cập nhật được | Có người sửa file core trong repo khách. Báo trưởng nhóm, không tự xử lý trên hosting |
 | Deploy xong website lỗi 500 | Chụp màn hình + giờ xảy ra, báo trưởng nhóm. Không sửa trực tiếp trên hosting |
 
