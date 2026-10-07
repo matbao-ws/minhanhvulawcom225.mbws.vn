@@ -210,9 +210,7 @@ class SettingController extends Controller
             ])),
         ]);
 
-        $redirectLocale = $this->languages->supportsAdmin(app()->getLocale())
-            ? app()->getLocale()
-            : $this->languages->defaultLocale();
+        $redirectLocale = $this->languages->adminLocale(app()->getLocale());
         $activeTab = $request->string('active_tab')->toString();
         if (! in_array($activeTab, self::TABS, true)
             || ($activeTab === 'multilingual' && ! $request->user()?->isSuperAdmin())) {

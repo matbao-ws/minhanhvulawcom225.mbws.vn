@@ -91,13 +91,14 @@ class SidebarNavigationTest extends TestCase
     }
 
     /** @return list<string> */
-    public function test_the_sidebar_shows_the_core_version(): void
+    public function test_the_header_shows_the_core_version(): void
     {
         $version = trim((string) file_get_contents(base_path('VERSION')));
         $editor = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Editor', 'permissions' => ['settings.view']])->id]);
         $superadmin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_system' => true])->id]);
 
-        // Everyone sees it; only the superadmin gets the link to the update page.
+        // In the header, so a collapsed sidebar cannot hide it. Everyone sees it; only who may
+        // update (here the superadmin: the editor lacks settings.update) gets the link.
         $this->actingAs($editor)->get('/vi/admin')->assertOk()
             ->assertSeeText("Phiên bản core {$version}")
             ->assertDontSee('href="'.route('admin.core-update.index').'"', false);

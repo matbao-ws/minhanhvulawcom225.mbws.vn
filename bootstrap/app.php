@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::get('/admin', fn () => redirect('/'.app(\App\Services\LanguageRegistry::class)->defaultLocale().'/admin'));
+            Route::get('/admin', fn () => redirect('/'.app(\App\Services\LanguageRegistry::class)->adminLocale(null).'/admin'));
 
             Route::middleware(['web', 'setLocale'])
                 ->prefix('{locale}')
@@ -40,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\App\Http\Middleware\ValidateLocalizedAdminPath::class);
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request): string {
             return route('admin.login', [
-                'locale' => $request->route('locale') ?: app(\App\Services\LanguageRegistry::class)->defaultLocale(),
+                'locale' => app(\App\Services\LanguageRegistry::class)->adminLocale($request->route('locale')),
             ]);
         });
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
@@ -51,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
+            'core-update.access' => \App\Http\Middleware\EnsureCoreUpdateAccess::class,
             'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
             'package.sync' => \App\Http\Middleware\SyncPackageInfo::class,
             'package.limit' => \App\Http\Middleware\EnsurePackageLimit::class,

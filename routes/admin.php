@@ -168,6 +168,15 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->middleware(['can:media.view', 'can:settings.update', 'throttle:admin-integration'])
         ->name('media.cloudinary.disconnect');
 
+    // Installing an offered release: the website's admin too, unless a superadmin turned that
+    // off for this website (CoreUpdateAccess). Only queued here; cron runs it.
+    Route::middleware('core-update.access')->group(function () {
+        Route::get('core-update', [CoreUpdateController::class, 'index'])->name('core-update.index');
+        Route::get('core-update/status', [CoreUpdateController::class, 'status'])->name('core-update.status');
+        Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
+        Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
+    });
+
     // Feature flags and impersonation stay superadmin-only: they can hand out
     // access rather than merely use it.
     Route::middleware('superadmin')->group(function () {
@@ -178,13 +187,10 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('features/sync-package', [FeatureController::class, 'syncPackage'])->name('features.sync-package');
         Route::post('features/reset-overrides', [FeatureController::class, 'resetOverrides'])->name('features.reset-overrides');
 
-        // Core updates replace the code of the website: superadmin only, and only queued here.
-        Route::get('core-update', [CoreUpdateController::class, 'index'])->name('core-update.index');
-        Route::post('core-update/check', [CoreUpdateController::class, 'check'])->middleware('throttle:admin-integration')->name('core-update.check');
-        Route::post('core-update', [CoreUpdateController::class, 'update'])->name('core-update.update');
+        // Core update repairs and who may update: superadmin only. Updates are only queued here.
         Route::post('core-update/rollback', [CoreUpdateController::class, 'rollback'])->name('core-update.rollback');
-        Route::get('core-update/status', [CoreUpdateController::class, 'status'])->name('core-update.status');
         Route::post('core-update/baseline', [CoreUpdateController::class, 'baseline'])->name('core-update.baseline');
+        Route::put('core-update/access', [CoreUpdateController::class, 'access'])->name('core-update.access');
 
         // The website's extensions/ and what became of each (read-only: extension:enable|disable).
         Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');

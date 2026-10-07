@@ -16,7 +16,7 @@ class SetLocaleFromRoute
     {
         $locale = $this->languages->normalize((string) ($request->route('locale') ?: $this->languages->defaultLocale()));
 
-        if (! $this->languages->supportsAdmin($locale)) {
+        if (! $this->languages->supportsRoute($locale)) {
             abort(404);
         }
 

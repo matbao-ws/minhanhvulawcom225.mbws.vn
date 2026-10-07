@@ -223,6 +223,12 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Đa ngôn ngữ
 
 - Admin route luôn có `{locale}`.
+- Hai danh sách locale trong `LanguageRegistry`: `routable()` là mọi ngôn ngữ active (URL `/{locale}/…`,
+  tab nội dung), `admin()` chỉ gồm ngôn ngữ có trong `config('multilingual.admin_locales')` (mặc định
+  `vi`, `en` — những locale có file `lang/`). Mở trang admin bằng ngôn ngữ chỉ dành cho storefront
+  (`/ja/admin/...`, GET không phải JSON) thì `ValidateLocalizedAdminPath` chuyển 302 sang
+  `adminLocale()` (`admin_fallback_locale`, mặc định `en`). Request JSON và request ghi **không** bị
+  chuyển: editor trên `/ja/…` gọi `/ja/admin/site-blocks…`, và lịch sử block đọc locale nội dung từ URL.
 - Public API resolve locale bằng middleware `apiLocale`.
 - Field dịch dùng pattern/model/service hiện có; không tự tạo cột ngôn ngữ rời rạc.
 - Slug đa ngôn ngữ đi qua `LocalizedSlugService`/`HasLocalizedSlugs`.
@@ -479,8 +485,11 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
 - **Update service trên gateway** quyết định website nào nhận bản nào, khi nào: kênh, ghim phiên bản,
   rollout theo %, pause; website vẫn tự verify mọi gói. `App\Support\CoreUpdate\CoreUpdateService`:
   `core:poll` mỗi giờ vào một phút riêng của website (`pollMinute()`, rải đều trong giờ) hỏi
-  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang superadmin
-  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`), còn `core:run-requested`
+  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang
+  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`). Giống WordPress, admin của
+  website (quyền `settings.update`) xem trang và bấm cập nhật được, trừ khi superadmin tắt công tắc trên
+  trang đó (`App\Support\CoreUpdate\CoreUpdateAccess`, `project_settings.core_update_admin_access`,
+  không có dòng = bật). Rollback, baseline và công tắc luôn chỉ superadmin. Còn `core:run-requested`
   chạy bằng cron mỗi phút; không bao giờ cài trong request web. Mọi lần cài, lỗi, quay lại đều báo
   về `POST v1/core/report`. `CORE_UPDATE_ENABLED=false` tắt cả hai lệnh (staging Docker, máy dev).
 

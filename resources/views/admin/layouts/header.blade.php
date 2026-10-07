@@ -174,6 +174,7 @@
                                   </a>
                               </li>
 
+                              @include('admin.layouts.core-version')
                               <!-- ------------------------------- -->
                               <!-- start notification Dropdown -->
                               <!-- ------------------------------- -->
@@ -603,6 +604,7 @@
                                   </a>
                               </li>
 
+                              @include('admin.layouts.core-version')
                               <!-- ------------------------------- -->
                               <!-- start notification Dropdown -->
                               <!-- ------------------------------- -->

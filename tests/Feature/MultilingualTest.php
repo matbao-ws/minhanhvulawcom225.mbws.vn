@@ -145,7 +145,9 @@ class MultilingualTest extends TestCase
         ]);
         app(LanguageRegistry::class)->forget();
 
-        $this->get('/zh/admin/login')->assertOk();
+        // A new language is storefront content: its admin pages open in the
+        // admin's own languages (config multilingual.admin_locales).
+        $this->get('/zh/admin/login')->assertRedirect(url('/en/admin/login'));
         $this->getJson('/api/public/languages')->assertJsonFragment(['code' => 'zh']);
     }
 

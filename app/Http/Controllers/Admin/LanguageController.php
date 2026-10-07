@@ -47,9 +47,7 @@ class LanguageController extends Controller
         ]);
         $registry->forget();
 
-        $redirectLocale = $registry->supportsAdmin(app()->getLocale())
-            ? app()->getLocale()
-            : $registry->defaultLocale();
+        $redirectLocale = $registry->adminLocale(app()->getLocale());
 
         return redirect()->route('admin.languages.index', ['locale' => $redirectLocale])
             ->with('success', 'Đã cập nhật ngôn ngữ.');

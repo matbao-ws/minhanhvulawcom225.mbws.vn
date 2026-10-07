@@ -38,11 +38,11 @@ class LanguageRegistry
     }
 
     /**
-     * Locales available for the admin interface are independent from the
-     * selected content translation mode. Disabling multilingual content must
-     * not make an existing localized admin URL return 404.
+     * Every active language, whatever the content translation mode. These are the
+     * locales a /{locale}/… URL may carry: disabling multilingual content must not
+     * make an existing localized URL return 404.
      */
-    public function admin(): Collection
+    public function routable(): Collection
     {
         if (! Schema::hasTable('languages')) {
             return $this->configuredLanguages();
@@ -55,6 +55,30 @@ class LanguageRegistry
             ->get());
     }
 
+    public function supportsRoute(?string $locale): bool
+    {
+        return is_string($locale)
+            && in_array($this->normalize($locale), $this->routable()->pluck('code')->all(), true);
+    }
+
+    /**
+     * Languages the admin interface is offered in.
+     *
+     * Narrower than {@see routable()}: a language added for the storefront has
+     * content tabs in admin forms, but no lang/ files to translate the admin itself.
+     */
+    public function admin(): Collection
+    {
+        $allowed = (array) config('multilingual.admin_locales', []);
+        $languages = $this->routable();
+        $admin = $languages->filter(fn ($language) => in_array($language->code, $allowed, true))->values();
+
+        // A misconfigured list must not lock everyone out of the admin.
+        return $admin->isNotEmpty()
+            ? $admin
+            : $languages->where('code', $this->defaultLocale())->values();
+    }
+
     public function adminCodes(): array
     {
         return $this->admin()->pluck('code')->all();
@@ -63,6 +87,27 @@ class LanguageRegistry
     public function supportsAdmin(?string $locale): bool
     {
         return is_string($locale) && in_array($this->normalize($locale), $this->adminCodes(), true);
+    }
+
+    /**
+     * The admin locale to use for $locale: itself when the admin is offered in it,
+     * otherwise admin_fallback_locale, then the default language, then any.
+     */
+    public function adminLocale(?string $locale): string
+    {
+        $candidates = [
+            $this->normalize((string) $locale),
+            (string) config('multilingual.admin_fallback_locale', 'en'),
+            $this->defaultLocale(),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($this->supportsAdmin($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return $this->adminCodes()[0] ?? $this->defaultLocale();
     }
 
     public function supports(?string $locale): bool
@@ -79,14 +124,14 @@ class LanguageRegistry
 
     public function defaultLocale(): string
     {
-        return $this->admin()->firstWhere('is_default', true)?->code
-            ?? $this->admin()->first()?->code
+        return $this->routable()->firstWhere('is_default', true)?->code
+            ?? $this->routable()->first()?->code
             ?? config('multilingual.default_locale', 'vi');
     }
 
     public function fallbackLocale(): string
     {
-        return $this->admin()->firstWhere('is_content_fallback', true)?->code
+        return $this->routable()->firstWhere('is_content_fallback', true)?->code
             ?? $this->defaultLocale();
     }
 

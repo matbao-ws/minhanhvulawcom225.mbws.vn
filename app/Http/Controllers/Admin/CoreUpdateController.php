@@ -3,15 +3,21 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use App\Services\AiGateway\GatewayUnavailable;
 use App\Support\CoreManifest;
+use App\Support\CoreUpdate\CoreUpdateAccess;
 use App\Support\CoreUpdate\CoreUpdater;
+use App\Support\CoreUpdate\ReleaseBuilder;
 use App\Support\CoreUpdate\CoreUpdateService;
 use App\Support\CoreUpdate\UpdateProblems;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 /**
- * Superadmin page: the core version, what the update service offers, and the buttons. A click
+ * The core version, what the update service offers, and the buttons — for the website's admin
+ * too unless a superadmin turned that off (CoreUpdateAccess). Rollback and baseline stay
+ * superadmin-only. A click
  * only queues the work (requested.json); cron runs it within a minute — an update never runs
  * inside a web request.
  */
@@ -21,9 +27,10 @@ class CoreUpdateController extends Controller
         private readonly CoreUpdateService $service,
         private readonly CoreManifest $manifest,
         private readonly CoreUpdater $updater,
+        private readonly CoreUpdateAccess $access,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
         $historyFile = $this->manifest->base().'/storage/app/core/history.jsonl';
         $history = is_file($historyFile)
@@ -43,7 +50,23 @@ class CoreUpdateController extends Controller
             'state' => $this->updater->state(),
             'history' => $history,
             'canRollback' => glob($this->manifest->base().'/storage/app/core/backups/*/meta.json') !== [],
+            'isSuperAdmin' => (bool) $request->user()?->isSuperAdmin(),
+            'adminAllowed' => $this->access->adminAllowed(),
+            'currentNotes' => $this->currentNotes(),
         ]);
+    }
+
+    /**
+     * What the running version brought. Its docs/release-notes file ships with the core, so the
+     * page can still say so once the offer — and the gateway's copy of the notes — is gone.
+     */
+    private function currentNotes(): ?string
+    {
+        try {
+            return (new ReleaseBuilder($this->manifest->base()))->notes($this->manifest->version());
+        } catch (RuntimeException) {
+            return null;
+        }
     }
 
     /** Polled by the update page while a request is queued or running. */
@@ -97,6 +120,20 @@ class CoreUpdateController extends Controller
         $this->service->request(['action' => 'update', 'version' => $data['version'], 'backup_done' => $request->boolean('backup_done'), 'by' => (string) $request->user()?->email]);
 
         return back()->with('success', __('admin.core_update.queued'));
+    }
+
+    /** Superadmin: whether this website's admin may install updates itself. */
+    public function access(Request $request)
+    {
+        $data = $request->validate(['admin_allowed' => ['required', 'boolean']]);
+        $allowed = (bool) $data['admin_allowed'];
+
+        $this->access->setAdminAllowed($allowed);
+        ActivityLogger::log('updated', null, $allowed ? 'Cho phép admin website cập nhật core' : 'Tắt quyền cập nhật core của admin website', [
+            'new' => ['admin_allowed' => $allowed],
+        ]);
+
+        return back()->with('success', __($allowed ? 'admin.core_update.access.enabled' : 'admin.core_update.access.disabled'));
     }
 
     public function rollback(Request $request)
