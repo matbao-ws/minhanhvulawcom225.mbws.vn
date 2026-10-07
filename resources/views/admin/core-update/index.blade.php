@@ -19,6 +19,32 @@
         .update-steps li.current .dot i { animation: update-spin 1.2s linear infinite; }
         @keyframes update-spin { to { transform: rotate(360deg); } }
         .update-clock { font-variant-numeric: tabular-nums; }
+        .core-update-card { overflow: hidden; border: 1px solid #e4ebf4; border-radius: 1rem; box-shadow: 0 .45rem 1.3rem rgba(43, 57, 82, .045); }
+        .core-update-card .card-body { padding: 1.35rem; }
+        .core-update-card__eyebrow { color: #71809a; font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .core-update-card__version { margin: .2rem 0 1.15rem; color: #24344c; font-size: 2rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+        .core-update-state { display: flex; align-items: flex-start; gap: .75rem; padding: .9rem; border: 1px solid; border-radius: .8rem; }
+        .core-update-state + .core-update-state { margin-top: .65rem; }
+        .core-update-state__icon, .core-update-empty__icon { display: inline-flex; width: 2.25rem; height: 2.25rem; flex: 0 0 2.25rem; align-items: center; justify-content: center; border-radius: .7rem; font-size: 1.1rem; }
+        .core-update-state__title { margin-bottom: .2rem; color: #344256; font-size: .875rem; font-weight: 800; }
+        .core-update-state--warning { border-color: #f2d29b; background: #fff9ed; }
+        .core-update-state--warning .core-update-state__icon { color: #a76200; background: #fff0cf; }
+        .core-update-state--danger { border-color: #efc4c7; background: #fff5f5; }
+        .core-update-state--danger .core-update-state__icon { color: #b4232a; background: #ffe5e7; }
+        .core-update-state--success { border-color: #bce6cc; background: #f2fcf6; }
+        .core-update-state--success .core-update-state__icon { color: #187a42; background: #ddf6e7; }
+        .core-update-empty { display: flex; align-items: center; min-height: 100%; gap: 1rem; padding: 1.1rem; border: 1px dashed #d9e2ef; border-radius: .9rem; color: #5d6d84; background: #fbfcff; }
+        .core-update-empty__icon { color: #365a8c; background: #eaf1ff; }
+        .core-update-empty__title { margin: 0 0 .25rem; color: #344256; font-size: 1rem; font-weight: 800; }
+        .core-update-empty__copy { margin: 0; font-size: .85rem; line-height: 1.5; }
+        [data-bs-theme="dark"] .core-update-card { border-color: #3b4c64; background: #203046; }
+        [data-bs-theme="dark"] .core-update-card__version, [data-bs-theme="dark"] .core-update-state__title, [data-bs-theme="dark"] .core-update-empty__title { color: #edf2f8; }
+        [data-bs-theme="dark"] .core-update-card__eyebrow, [data-bs-theme="dark"] .core-update-empty { color: #c4cfde; }
+        [data-bs-theme="dark"] .core-update-state--warning { border-color: #735f36; background: #3c3424; }
+        [data-bs-theme="dark"] .core-update-state--danger { border-color: #70434a; background: #402a31; }
+        [data-bs-theme="dark"] .core-update-state--success { border-color: #386a50; background: #243c31; }
+        [data-bs-theme="dark"] .core-update-empty { border-color: #40536d; background: #293a51; }
+        @media (max-width: 575.98px) { .core-update-empty { align-items: flex-start; } }
     </style>
 @endpush
 
@@ -87,40 +113,40 @@
 
     <div class="row g-4 mb-4">
         <div class="col-lg-5">
-            <div class="card h-100 mb-0">
-                <div class="card-body">
-                    <div class="small text-muted mb-1">{{ __('admin.core_update.current') }}</div>
-                    <div class="fs-3 fw-bold mb-3">{{ $version }}</div>
+            <div class="card h-100 mb-0 core-update-card">
+                <div class="card-body core-update-card__body">
+                    <div class="core-update-card__eyebrow">{{ __('admin.core_update.current') }}</div>
+                    <div class="core-update-card__version">{{ $version }}</div>
 
                     @if($driftCount === null)
-                        <div class="alert alert-warning small py-2 mb-2">
-                            <div class="fw-semibold mb-1">{{ __('admin.core_update.not_ready') }}</div>
+                        <div class="core-update-state core-update-state--warning mb-2">
+                            <span class="core-update-state__icon"><i class="ti ti-file-alert" aria-hidden="true"></i></span>
+                            <div>
+                            <div class="core-update-state__title">{{ __('admin.core_update.not_ready') }}</div>
                             @if($isSuperAdmin)
-                                <div class="mb-2">{{ __('admin.core_update.drift_missing') }}</div>
+                                <div class="small mb-2">{{ __('admin.core_update.drift_missing') }}</div>
                                 <form method="POST" action="{{ route('admin.core-update.baseline') }}" onsubmit="return confirm(@js(__('admin.core_update.baseline_confirm')))">
                                     @csrf
                                     <x-admin.action-button type="submit" size="sm" icon="checklist">{{ __('admin.core_update.baseline') }}</x-admin.action-button>
                                 </form>
                             @else
-                                <div>{{ __('admin.core_update.drift_missing_admin') }}</div>
+                                <div class="small">{{ __('admin.core_update.drift_missing_admin') }}</div>
                             @endif
+                            </div>
                         </div>
                     @elseif($driftCount > 0)
-                        <div class="alert alert-danger small py-2 mb-2">
-                            <div class="fw-semibold mb-1">{{ __('admin.core_update.not_ready') }}</div>
-                            {{ __('admin.core_update.drift_found', ['count' => $driftCount]) }}
-                            <span class="text-nowrap">({{ __('admin.core_update.code', ['code' => 'DRIFT']) }})</span>
+                        <div class="core-update-state core-update-state--danger mb-2">
+                            <span class="core-update-state__icon"><i class="ti ti-shield-exclamation" aria-hidden="true"></i></span>
+                            <div><div class="core-update-state__title">{{ __('admin.core_update.not_ready') }}</div>
+                                <div class="small">{{ __('admin.core_update.drift_found', ['count' => $driftCount]) }} <span class="text-nowrap">({{ __('admin.core_update.code', ['code' => 'DRIFT']) }})</span></div>
+                            </div>
                         </div>
                     @else
-                        <div class="small text-success mb-2"><i class="ti ti-circle-check me-1" aria-hidden="true"></i>{{ __('admin.core_update.drift_none') }}</div>
-                    @endif
-
-                    @unless($enabled)
-                        <div class="alert alert-secondary small py-2 mb-0">
-                            {{ __('admin.core_update.disabled') }}
-                            <span class="text-nowrap">({{ __('admin.core_update.code', ['code' => 'UPDATES_OFF']) }})</span>
+                        <div class="core-update-state core-update-state--success mb-2">
+                            <span class="core-update-state__icon"><i class="ti ti-circle-check" aria-hidden="true"></i></span>
+                            <div class="small">{{ __('admin.core_update.drift_none') }}</div>
                         </div>
-                    @endunless
+                    @endif
 
                     @if(! empty($last['status']))
                         <hr>
@@ -145,9 +171,17 @@
         </div>
 
         <div class="col-lg-7">
-            <div class="card h-100 mb-0">
-                <div class="card-body">
-                    @if($update)
+            <div class="card h-100 mb-0 core-update-card">
+                <div class="card-body core-update-card__body">
+                    @if(! $enabled)
+                        <div class="core-update-empty">
+                            <span class="core-update-empty__icon"><i class="ti ti-plug-connected-x" aria-hidden="true"></i></span>
+                            <div>
+                                <h5 class="core-update-empty__title">{{ __('admin.core_update.not_ready') }}</h5>
+                                <p class="core-update-empty__copy">{{ __('admin.core_update.disabled') }} <span class="text-nowrap">({{ __('admin.core_update.code', ['code' => 'UPDATES_OFF']) }})</span></p>
+                            </div>
+                        </div>
+                    @elseif($update)
                         <h5 class="fw-bold mb-1">{{ __('admin.core_update.available', ['version' => $update['version']]) }}</h5>
                         <div class="mb-3">
                             <span class="badge bg-primary-subtle text-primary">{{ __('admin.core_update.level.'.$update['level']) }}</span>
@@ -187,11 +221,36 @@
                         <p class="mb-0"><i class="ti ti-circle-check text-success me-1" aria-hidden="true"></i>{{ __('admin.core_update.up_to_date') }}</p>
                     @endif
 
+                    @if($enabled && ! $update && empty($available['checked_at']))
+                        <div class="core-update-empty">
+                            <span class="core-update-empty__icon"><i class="ti ti-refresh" aria-hidden="true"></i></span>
+                            <div>
+                                <h5 class="core-update-empty__title">{{ __('admin.core_update.never_checked') }}</h5>
+                                <form method="POST" action="{{ route('admin.core-update.check') }}" class="mt-2">
+                                    @csrf
+                                    <x-admin.action-button type="submit" size="sm" icon="refresh" :disabled="$busy">{{ __('admin.core_update.check') }}</x-admin.action-button>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- What the running version brought: its notes ship with the core (docs/release-notes). --}}
+                    @if(! $update && filled($currentNotes))
+                        <div class="border rounded bg-light-subtle p-3 mt-3" data-current-release-notes>
+                            <div class="fw-semibold text-dark mb-2"><i class="ti ti-sparkles text-primary me-1" aria-hidden="true"></i>{{ __('admin.core_update.whats_new_current', ['version' => $version]) }}</div>
+                            <div class="release-notes small" style="max-height: 320px; overflow-y: auto;">
+                                {!! \Illuminate\Support\Str::markdown((string) $currentNotes, ['html_input' => 'escape', 'allow_unsafe_links' => false]) !!}
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($enabled)
                     <div class="small text-muted mt-3">
                         {{ ! empty($available['checked_at'])
                             ? __('admin.core_update.last_checked', ['time' => \Illuminate\Support\Carbon::parse($available['checked_at'])->timezone($tz)->format('d/m/Y H:i')])
                             : __('admin.core_update.never_checked') }}
                     </div>
+                    @endif
 
                     @if($canRollback && $isSuperAdmin)
                         <hr>
@@ -209,8 +268,8 @@
 
     @if($isSuperAdmin)
         {{-- Per website, like WordPress' DISALLOW_FILE_MODS: on by default. --}}
-        <div class="card mb-4" data-core-update-access>
-            <div class="card-body">
+        <div class="card mb-4 core-update-card" data-core-update-access>
+            <div class="card-body core-update-card__body">
                 <form method="POST" action="{{ route('admin.core-update.access') }}" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                     @csrf
                     @method('PUT')

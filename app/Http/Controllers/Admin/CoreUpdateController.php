@@ -8,9 +8,11 @@ use App\Services\AiGateway\GatewayUnavailable;
 use App\Support\CoreManifest;
 use App\Support\CoreUpdate\CoreUpdateAccess;
 use App\Support\CoreUpdate\CoreUpdater;
+use App\Support\CoreUpdate\ReleaseBuilder;
 use App\Support\CoreUpdate\CoreUpdateService;
 use App\Support\CoreUpdate\UpdateProblems;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 /**
  * The core version, what the update service offers, and the buttons — for the website's admin
@@ -50,7 +52,21 @@ class CoreUpdateController extends Controller
             'canRollback' => glob($this->manifest->base().'/storage/app/core/backups/*/meta.json') !== [],
             'isSuperAdmin' => (bool) $request->user()?->isSuperAdmin(),
             'adminAllowed' => $this->access->adminAllowed(),
+            'currentNotes' => $this->currentNotes(),
         ]);
+    }
+
+    /**
+     * What the running version brought. Its docs/release-notes file ships with the core, so the
+     * page can still say so once the offer — and the gateway's copy of the notes — is gone.
+     */
+    private function currentNotes(): ?string
+    {
+        try {
+            return (new ReleaseBuilder($this->manifest->base()))->notes($this->manifest->version());
+        } catch (RuntimeException) {
+            return null;
+        }
     }
 
     /** Polled by the update page while a request is queued or running. */

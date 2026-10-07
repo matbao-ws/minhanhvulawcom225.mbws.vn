@@ -385,6 +385,37 @@ class CoreUpdateServiceTest extends TestCase
         return trim(file_get_contents($this->site.'/VERSION'));
     }
 
+    public function test_the_page_shows_what_the_running_version_brought(): void
+    {
+        $this->write($this->site, ['docs/release-notes/1.0.0.md' => "## Tính năng mới
+- Tạo vận đơn <b>ngay</b>."]);
+
+        // No offer yet: the running version's own notes, shipped with the core, still show.
+        $this->actingAs($this->websiteAdmin())->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('data-current-release-notes', false)
+            ->assertSeeText('Bản 1.0.0 đang chạy có gì mới')
+            ->assertSee('Tạo vận đơn &lt;b&gt;ngay&lt;/b&gt;.', false);
+    }
+
+    public function test_a_queued_update_shows_in_the_header_of_every_admin_page(): void
+    {
+        $admin = $this->websiteAdmin();
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']));
+        $this->actingAs($admin)->post(route('admin.core-update.update', ['locale' => 'vi']), ['version' => '1.0.1'])
+            ->assertSessionHas('success');
+
+        // Leaving the update page does not stop it: cron runs it, and every page says so.
+        $this->actingAs($admin)->get(route('admin.settings.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('data-core-update-progress', false)
+            ->assertSeeText('Chờ cập nhật lên 1.0.1')
+            ->assertDontSee('data-core-update-available', false);
+
+        $this->artisan('core:run-requested');
+
+        $this->actingAs($admin)->get(route('admin.settings.index', ['locale' => 'vi']))->assertOk()
+            ->assertDontSee('data-core-update-progress', false);
+    }
+
     /** The website owner's account: the seeded Admin role edits settings. */
     private function websiteAdmin(): User
     {

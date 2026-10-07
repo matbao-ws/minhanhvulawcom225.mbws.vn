@@ -8,6 +8,8 @@
         'avg_session' => ['icon' => 'ti-clock-hour-4', 'tone' => 'warning'],
         'conversion' => ['icon' => 'ti-chart-arrows-vertical', 'tone' => 'success'],
     ];
+    $analyticsSettings = app(\App\Services\Analytics\AnalyticsReport::class)->settings();
+    $analyticsConnected = filled($analyticsSettings['property_id']);
 @endphp
 
 @push('styles')
@@ -111,6 +113,16 @@
         .dashboard-analytics [data-analytics-picker] > [data-bs-toggle="dropdown"] .text-muted {
             color: inherit !important;
         }
+
+        .dashboard-analytics [data-analytics-picker] .dropdown-menu {
+            z-index: 8;
+        }
+
+        .dashboard-analytics [data-analytics-toggle]:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
     </style>
 @endpush
 
@@ -127,7 +139,7 @@
             <div class="d-flex align-items-center gap-2" data-analytics-controls>
                 <div class="d-flex align-items-center gap-2" data-analytics-options>
                     <span class="badge bg-success-subtle text-success d-none" data-analytics-online></span>
-                    <div class="dropdown position-relative" data-analytics-picker style="z-index: 1055">
+                    <div class="dropdown" data-analytics-picker>
                         <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle d-flex align-items-center gap-2"
                             data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
                             aria-label="{{ __('admin.analytics.range_pick') }}">
@@ -135,7 +147,7 @@
                             <span data-analytics-range-label>{{ __('admin.analytics.range_' . \App\Services\Analytics\AnalyticsReport::DEFAULT_PRESET) }}</span>
                             <span class="text-muted d-none d-md-inline" data-analytics-range-dates></span>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-end p-2" style="min-width: 280px; z-index: 1055;">
+                        <div class="dropdown-menu dropdown-menu-end p-2" style="min-width: 280px;">
                             @foreach (\App\Services\Analytics\AnalyticsReport::PRESETS as $preset)
                                 <button type="button"
                                     class="dropdown-item rounded {{ $preset === \App\Services\Analytics\AnalyticsReport::DEFAULT_PRESET ? 'active' : '' }}"
@@ -170,7 +182,9 @@
                     </button>
                 </div>
                 <button type="button" class="btn btn-sm btn-light" data-analytics-toggle aria-expanded="false"
-                    aria-controls="analytics-detail" title="{{ __('admin.analytics.expand') }}">
+                    aria-controls="analytics-detail"
+                    title="{{ ! $analyticsConnected ? __('admin.analytics.setup_title') : __('admin.analytics.expand') }}"
+                    {{ ! $analyticsConnected ? 'disabled' : '' }}>
                     <i class="ti ti-chevron-down" aria-hidden="true" data-analytics-toggle-icon></i>
                     <span class="d-none d-sm-inline"
                         data-analytics-toggle-label>{{ __('admin.analytics.expand') }}</span>
@@ -311,6 +325,15 @@
                 q('[data-analytics-loading]').classList.toggle('d-none', state !== 'loading');
                 q('[data-analytics-error]').classList.toggle('d-none', state !== 'error');
                 q('[data-analytics-body]').classList.remove('d-none');
+
+                if (state === 'ready') {
+                    toggle.disabled = false;
+                    toggle.title = toggle.getAttribute('aria-expanded') === 'true' ? t.collapse : t.expand;
+                } else if (state === 'error') {
+                    toggle.disabled = true;
+                    toggle.title = t.setupTitle;
+                    setExpanded(false);
+                }
             };
 
             let chartOptions = null;
@@ -512,6 +535,7 @@
             q('[data-analytics-refresh]').addEventListener('click', () => load(true));
 
             const setExpanded = (expanded) => {
+                if (toggle.disabled && expanded) return;
                 panel.hidden = !expanded;
                 toggle.setAttribute('aria-expanded', String(expanded));
                 toggle.title = expanded ? t.collapse : t.expand;
@@ -522,8 +546,14 @@
                 if (expanded) drawChart();
             };
 
-            toggle.addEventListener('click', () => setExpanded(toggle.getAttribute('aria-expanded') !== 'true'));
+            toggle.addEventListener('click', () => {
+                if (toggle.disabled) return;
+                setExpanded(toggle.getAttribute('aria-expanded') !== 'true');
+            });
             setExpanded(false);
+            if (toggle.disabled) {
+                toggle.title = t.setupTitle;
+            }
 
             // The figures sit above the fold of the collapsible panel, so fetch them straight away.
             load();
