@@ -195,11 +195,38 @@
                   <!-- ---------------------------------- -->
                   <nav class="sidebar-nav" id="menu-right-mini-1" data-simplebar="">
                       <ul class="sidebar-menu" id="sidebarnav">
-                          <li class="nav-small-cap">
-                              <!-- <span class="hide-menu">E-Commerce</span> -->
-                          </li>
-                          
-                          <!-- Trang quản trị -->
+                          @php
+                              // One place decides what each account sees; a section heading shows only above visible items.
+                              $sidebarCatalog = $sidebarFeatures->availableTo($sidebarUser, 'catalog');
+                              $sidebarCms = $sidebarFeatures->availableTo($sidebarUser, 'cms_page');
+                              $sidebarSeo = $sidebarFeatures->availableTo($sidebarUser, 'ai_seo') && $sidebarUser?->can('ai.use');
+                              $sidebarCan = fn (string $ability): bool => (bool) $sidebarUser?->can($ability);
+                              $sidebarShow = [
+                                  'orders' => $sidebarCatalog && $sidebarCan('orders.view'),
+                                  'customers' => $sidebarCan('customers.view'),
+                                  'contacts' => $sidebarCan('contacts.view'),
+                                  'products' => $sidebarCatalog && $sidebarCan('products.view'),
+                                  'vouchers' => $sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarCan('vouchers.view'),
+                                  'promotions' => $sidebarCatalog && $sidebarCan('promotions.view'),
+                                  'reviews' => $sidebarFeatures->availableTo($sidebarUser, 'review') && $sidebarCan('reviews.view'),
+                                  'posts' => $sidebarCms && $sidebarCan('posts.view'),
+                                  'pages' => $sidebarCms && $sidebarCan('pages.view'),
+                                  'banners' => $sidebarFeatures->availableTo($sidebarUser, 'banner') && $sidebarCan('banners.view'),
+                                  'menus' => $sidebarFeatures->availableTo($sidebarUser, 'menu') && $sidebarCan('menus.view'),
+                                  'media' => $sidebarCan('media.view'),
+                                  'seo_tasks' => $sidebarSeo,
+                                  'seo_research' => $sidebarSeo && $sidebarFeatures->availableTo($sidebarUser, 'ai_research'),
+                                  'seo_bulk' => $sidebarSeo,
+                                  'seo_draft' => $sidebarSeo && $sidebarCms && $sidebarCan('posts.create'),
+                                  'users' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('users.view'),
+                                  'roles' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('roles.view'),
+                                  'settings' => $sidebarCan('settings.view') || $sidebarCan('shipping.view') || $sidebarCan('payments.view') || $sidebarCan('languages.view') || (bool) $sidebarUser?->isSuperAdmin(),
+                                  'activity_logs' => $sidebarCan('activity_logs.view'),
+                              ];
+                              $sidebarExtensionItems = app(\App\Extension\Registries\AdminMenu::class)->visibleTo($sidebarUser);
+                              $sidebarAny = fn (string ...$keys): bool => collect($keys)->contains(fn ($key) => $sidebarShow[$key]);
+                          @endphp
+
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.dashboard') }}" id="get-url" aria-expanded="false">
                                   <iconify-icon icon="solar:chart-line-duotone"></iconify-icon>
@@ -207,212 +234,166 @@
                               </a>
                           </li>
 
-                          <!-- Đơn hàng -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'catalog'))
-                              @can('orders.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.orders.index') }}" aria-expanded="false">
-                                      <iconify-icon icon="solar:bill-list-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.orders') }}</span>
-                                  </a>
-                              </li>
-                              @endcan
+                          {{-- Bán hàng --}}
+                          @if($sidebarAny('orders', 'customers', 'contacts', 'products', 'vouchers', 'promotions', 'reviews'))
+                          <li class="nav-small-cap"><span class="hide-menu">{{ __('admin.sidebar.section_sales') }}</span></li>
                           @endif
-
-                          @can('customers.view')
+                          @if($sidebarShow['orders'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.orders.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:bill-list-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.orders') }}</span>
+                              </a>
+                          </li>
+                          @endif
+                          @if($sidebarShow['customers'])
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.customers.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:users-group-two-rounded-line-duotone"></iconify-icon>
                                   <span class="hide-menu">{{ __('admin.sidebar.customers') }}</span>
                               </a>
                           </li>
-                          @endcan
-
-                          <!-- Sản phẩm (Products, Categories, Brands) -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'catalog'))
-                              @can('products.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                                      <iconify-icon icon="solar:cart-3-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.products') }}</span>
-                                  </a>
-                                  <ul aria-expanded="false" class="collapse first-level">
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.products.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.product_list') }}
-                                          </a>
-                                      </li>
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.categories.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.product_categories') }}
-                                          </a>
-                                      </li>
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.brands.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.brands') }}
-                                          </a>
-                                      </li>
-                                  </ul>
-                              </li>
-                              @endcan
                           @endif
-
-                          <!-- Đánh giá bình luận -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'review'))
-                              @can('reviews.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.reviews.index') }}" aria-expanded="false">
-                                      <iconify-icon icon="solar:chat-round-line-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.reviews') }}</span>
-                                  </a>
-                              </li>
-                              @endcan
-                          @endif
-
-                          <!-- Liên hệ -->
-                          @can('contacts.view')
+                          @if($sidebarShow['contacts'])
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.contact-submissions.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:letter-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">Liên hệ</span>
+                                  <span class="hide-menu">{{ __('admin.sidebar.contacts') }}</span>
                               </a>
                           </li>
-                          @endcan
-
-                          <!-- Mã giảm giá -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'voucher') || $sidebarFeatures->availableTo($sidebarUser, 'catalog'))
-                              @if($sidebarUser?->can('vouchers.view') || $sidebarUser?->can('promotions.view'))
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                                      <iconify-icon icon="solar:ticket-sale-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.promotions') }}</span>
-                                  </a>
-                                  <ul aria-expanded="false" class="collapse first-level">
-                                      @if($sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarUser?->can('vouchers.view'))
-                                      <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.vouchers.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.vouchers') }}</a></li>
-                                      @endif
-                                      @if($sidebarFeatures->availableTo($sidebarUser, 'catalog') && $sidebarUser?->can('promotions.view'))
-                                      <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.promotions.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.promotions_flash_sale') }}</a></li>
-                                      @endif
-                                  </ul>
-                              </li>
-                              @endif
+                          @endif
+                          @if($sidebarShow['products'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="solar:cart-3-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.products') }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.products.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.product_list') }}</a></li>
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.categories.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.product_categories') }}</a></li>
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.brands.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.brands') }}</a></li>
+                              </ul>
+                          </li>
+                          @endif
+                          @if($sidebarAny('vouchers', 'promotions'))
+                          <li class="sidebar-item">
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="solar:ticket-sale-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.promotions') }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  @if($sidebarShow['vouchers'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.vouchers.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.vouchers') }}</a></li>
+                                  @endif
+                                  @if($sidebarShow['promotions'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.promotions.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.promotions_flash_sale') }}</a></li>
+                                  @endif
+                              </ul>
+                          </li>
+                          @endif
+                          @if($sidebarShow['reviews'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.reviews.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:chat-round-line-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.reviews') }}</span>
+                              </a>
+                          </li>
                           @endif
 
-                          <!-- Quản lý Banner -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'banner'))
-                              @can('banners.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.banners.index') }}" aria-expanded="false">
-                                      <iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.banners') }}</span>
-                                  </a>
-                              </li>
-                              @endcan
+                          {{-- Nội dung & SEO --}}
+                          @if($sidebarAny('posts', 'pages', 'banners', 'menus', 'media', 'seo_tasks', 'seo_research', 'seo_bulk', 'seo_draft'))
+                          <li class="nav-small-cap"><span class="hide-menu">{{ __('admin.sidebar.section_content') }}</span></li>
+                          @endif
+                          @if($sidebarShow['posts'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="solar:widget-4-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.blog') }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.posts.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.post_list') }}</a></li>
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.post-categories.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.post_categories') }}</a></li>
+                              </ul>
+                          </li>
+                          @endif
+                          @if($sidebarShow['pages'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.pages.index') }}" aria-expanded="false">
+                                  <i class="ti ti-file-text fs-6" aria-hidden="true"></i>
+                                  <span class="hide-menu">{{ __('admin.sidebar.pages') }}</span>
+                              </a>
+                          </li>
+                          @endif
+                          @if($sidebarShow['banners'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.banners.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.banners') }}</span>
+                              </a>
+                          </li>
+                          @endif
+                          @if($sidebarShow['menus'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.menus.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:list-arrow-down-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.menu.menus') }}</span>
+                              </a>
+                          </li>
+                          @endif
+                          @if($sidebarShow['media'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link" href="{{ route('admin.media.index') }}" aria-expanded="false">
+                                  <iconify-icon icon="solar:gallery-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.media_library') }}</span>
+                              </a>
+                          </li>
+                          @endif
+                          @if($sidebarAny('seo_tasks', 'seo_research', 'seo_bulk', 'seo_draft'))
+                          <li class="sidebar-item" data-sidebar-seo-menu>
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="solar:graph-up-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.seo') }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  @if($sidebarShow['seo_tasks'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.seo-tasks.index') }}"><span class="icon-small"></span>{{ __('ai.tasks.title') }}</a></li>
+                                  @endif
+                                  @if($sidebarShow['seo_research'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.research.index') }}"><span class="icon-small"></span>{{ __('ai.research.title') }}</a></li>
+                                  @endif
+                                  @if($sidebarShow['seo_bulk'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.bulk.index') }}"><span class="icon-small"></span>{{ __('ai.bulk.title') }}</a></li>
+                                  @endif
+                                  @if($sidebarShow['seo_draft'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.post-drafts.create') }}"><span class="icon-small"></span>{{ __('ai.draft.button') }}</a></li>
+                                  @endif
+                              </ul>
+                          </li>
                           @endif
 
-                          <!-- Menu điều hướng storefront -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'menu'))
-                              @can('menus.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.menus.index') }}" aria-expanded="false">
-                                      <iconify-icon icon="solar:list-arrow-down-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.menu.menus') }}</span>
-                                  </a>
-                              </li>
-                              @endcan
+                          {{-- Hệ thống --}}
+                          @if($sidebarAny('users', 'roles', 'settings', 'activity_logs') || $sidebarExtensionItems !== [])
+                          <li class="nav-small-cap"><span class="hide-menu">{{ __('admin.sidebar.section_system') }}</span></li>
                           @endif
-
-                          <!-- Bài viết (Posts, Post Categories) -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'cms_page'))
-                              @can('posts.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                                      <iconify-icon icon="solar:widget-4-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.blog') }}</span>
-                                  </a>
-                                  <ul aria-expanded="false" class="collapse first-level">
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.posts.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.post_list') }}
-                                          </a>
-                                      </li>
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.post-categories.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.post_categories') }}
-                                          </a>
-                                      </li>
-                                  </ul>
-                              </li>
-                              @endcan
-                          @endif
-
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'cms_page'))
-                              @can('pages.view')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.pages.index') }}" aria-expanded="false">
-                                      <i class="ti ti-file-text fs-6" aria-hidden="true"></i>
-                                      <span class="hide-menu">{{ __('admin.sidebar.pages') }}</span>
-                                  </a>
-                              </li>
-                              @endcan
-                          @endif
-
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'ai_seo'))
-                              @can('ai.use')
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.ai.seo-tasks.index') }}" aria-expanded="false">
-                                      <i class="ti ti-chart-arrows-vertical fs-6" aria-hidden="true"></i>
-                                      <span class="hide-menu">{{ __('ai.tasks.title') }}</span>
-                                  </a>
-                              </li>
-                              @if($sidebarFeatures->availableTo($sidebarUser, 'ai_research'))
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.ai.research.index') }}" aria-expanded="false">
-                                      <i class="ti ti-target-arrow fs-6" aria-hidden="true"></i>
-                                      <span class="hide-menu">{{ __('ai.research.title') }}</span>
-                                  </a>
-                              </li>
-                              @endif
-                              <li class="sidebar-item">
-                                  <a class="sidebar-link" href="{{ route('admin.ai.bulk.index') }}" aria-expanded="false">
-                                      <i class="ti ti-stack-2 fs-6" aria-hidden="true"></i>
-                                      <span class="hide-menu">{{ __('ai.bulk.title') }}</span>
-                                  </a>
-                              </li>
-                              @endcan
-                          @endif
-
-                          <!-- Quản lý người dùng -->
-                          @if($sidebarFeatures->availableTo($sidebarUser, 'multi_admin'))
-                               @if($sidebarUser?->can('users.view') || $sidebarUser?->can('roles.view'))
-                               <li class="sidebar-item">
-                                  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
-                                      <iconify-icon icon="solar:shield-user-line-duotone"></iconify-icon>
-                                      <span class="hide-menu">{{ __('admin.sidebar.user_management') }}</span>
-                                  </a>
-                                  <ul aria-expanded="false" class="collapse first-level">
-                                      @can('users.view')
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.users.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.user_list') }}
-                                          </a>
-                                      </li>
-                                      @endcan
-                                      @can('roles.view')
-                                      <li class="sidebar-item">
-                                          <a class="sidebar-link" href="{{ route('admin.roles.index') }}">
-                                              <span class="icon-small"></span>{{ __('admin.sidebar.roles_permissions') }}
-                                          </a>
-                                      </li>
-                                      @endcan
-                                  </ul>
-                              </li>
-                              @endif
+                          @if($sidebarAny('users', 'roles'))
+                          <li class="sidebar-item">
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="solar:shield-user-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('admin.sidebar.user_management') }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  @if($sidebarShow['users'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.users.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.user_list') }}</a></li>
+                                  @endif
+                                  @if($sidebarShow['roles'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.roles.index') }}"><span class="icon-small"></span>{{ __('admin.sidebar.roles_permissions') }}</a></li>
+                                  @endif
+                              </ul>
+                          </li>
                           @endif
 
                           <!-- Cấu hình -->
-                          @if($sidebarUser?->can('settings.view') || $sidebarUser?->can('shipping.view') || $sidebarUser?->can('payments.view') || $sidebarUser?->can('languages.view') || $sidebarUser?->isSuperAdmin())
+                          @if($sidebarShow['settings'])
                           <li class="sidebar-item" data-sidebar-settings-menu>
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                   <iconify-icon icon="solar:settings-line-duotone"></iconify-icon>
@@ -478,7 +459,7 @@
                           @endif
 
                           {{-- Entries of the website's extensions (App\Extension\Registries\AdminMenu), each only for an account allowed to open it. --}}
-                          @foreach(app(\App\Extension\Registries\AdminMenu::class)->visibleTo($sidebarUser) as $extensionItem)
+                          @foreach($sidebarExtensionItems as $extensionItem)
                           <li class="sidebar-item" data-extension-menu="{{ $extensionItem['key'] }}">
                               @if($extensionItem['children'] !== [])
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
@@ -506,24 +487,14 @@
                           </li>
                           @endforeach
 
-                          @can('activity_logs.view')
+                          @if($sidebarShow['activity_logs'])
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.activity-logs.index') }}" aria-expanded="false">
                                   <iconify-icon icon="solar:history-line-duotone"></iconify-icon>
                                   <span class="hide-menu">{{ __('admin.sidebar.activity_logs') }}</span>
                               </a>
                           </li>
-                          @endcan
-
-                          <!-- Media Library -->
-                          @can('media.view')
-                          <li class="sidebar-item">
-                              <a class="sidebar-link" href="{{ route('admin.media.index') }}" aria-expanded="false">
-                                  <iconify-icon icon="solar:gallery-line-duotone"></iconify-icon>
-                                  <span class="hide-menu">{{ __('admin.sidebar.media_library') }}</span>
-                              </a>
-                          </li>
-                          @endcan
+                          @endif
                       </ul>
                   </nav>
               </div>
