@@ -47,7 +47,8 @@ class CustomerResetPasswordController extends Controller
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            return back()->withErrors(['email' => __($status)])->withInput();
+            // Same message as an unknown account, so the form does not confirm which emails exist.
+            return back()->withErrors(['email' => __('controller.auth.invalid_reset_token')])->withInput();
         }
 
         return redirect()->to(config('app.public_frontend_url') ?: url('/'))

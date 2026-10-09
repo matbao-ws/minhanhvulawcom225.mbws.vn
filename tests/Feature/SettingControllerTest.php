@@ -130,6 +130,35 @@ class SettingControllerTest extends TestCase
         $this->assertTrue($smtpSettings->fresh()->setting_value['smtp']['enabled']);
     }
 
+    /** Embed code is raw script that runs in a superadmin's session: only a superadmin sets it. */
+    public function test_only_a_superadmin_sets_embed_code(): void
+    {
+        ProjectSetting::query()->create(['setting_key' => 'embed_footer', 'setting_value' => '<script>chat()</script>']);
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+
+        $this->actingAs($admin)->post('/vi/admin/settings', [
+            'shop_name' => 'Test Shop Name',
+            'embed_header' => '<script>steal()</script>',
+        ])->assertRedirect('/vi/admin/settings');
+
+        $this->assertNull(ProjectSetting::query()->where('setting_key', 'embed_header')->value('setting_value'));
+        $this->assertSame('<script>chat()</script>', ProjectSetting::query()->where('setting_key', 'embed_footer')->value('setting_value'), 'left as it was, not wiped');
+        $this->get('/vi/admin/settings')->assertSee(__('admin.settings.embed.superadmin_only'));
+
+        $superadmin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Root', 'permissions' => ['*'], 'is_superadmin' => true, 'is_system' => true])->id]);
+        $this->actingAs($superadmin)->post('/vi/admin/settings', [
+            'shop_name' => 'Test Shop Name',
+            'embed_header' => '<meta name="verify" content="x">',
+            // A superadmin's form also carries the multilingual section.
+            'multilingual' => ['enabled' => false, 'mode' => 'gtranslate', 'gtranslate' => [
+                'target_locales' => ['en'], 'widget_look' => 'float', 'position' => 'bottom_right',
+                'detect_browser_language' => false, 'native_language_names' => true,
+            ]],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('<meta name="verify" content="x">', ProjectSetting::query()->where('setting_key', 'embed_header')->value('setting_value'));
+    }
+
     public function test_admin_can_update_settings(): void
     {
         Storage::fake('public');

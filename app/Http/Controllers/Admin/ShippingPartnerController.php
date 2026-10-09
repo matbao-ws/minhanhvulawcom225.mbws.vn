@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShippingPartner;
+use App\Support\SecretMask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -194,7 +195,13 @@ class ShippingPartnerController extends Controller
      */
     public function settings(string $locale, ShippingPartner $shipping_partner)
     {
-        return view('admin.shipping_partners.settings', ['partner' => $shipping_partner]);
+        $partner = $shipping_partner;
+        if (! auth()->user()->can('shipping.update')) {
+            $partner = clone $shipping_partner;
+            $partner->settings = SecretMask::apply($shipping_partner->settings, ['api_token', 'webhook_token', 'key']);
+        }
+
+        return view('admin.shipping_partners.settings', ['partner' => $partner]);
     }
 
     /**
@@ -207,7 +214,7 @@ class ShippingPartnerController extends Controller
                 'api_token' => 'required|string|max:255',
                 'api_url' => ['required', 'url', Rule::in(['https://services.giaohangtietkiem.vn', 'https://services.ghtk.vn'])],
                 'realtime_tracking_enabled' => 'nullable|boolean',
-                'webhook_token' => 'nullable|string|max:255',
+                'webhook_token' => 'nullable|string|min:20|max:255',
                 'pickup_name' => 'nullable|string|max:255',
                 'pickup_tel' => 'nullable|string|max:20',
                 'pickup_province' => 'nullable|string|max:255',
@@ -247,7 +254,7 @@ class ShippingPartnerController extends Controller
                 'api_url' => ['required', 'url', Rule::in([\App\Services\ShippingService::GHN_PRODUCTION_URL, \App\Services\ShippingService::GHN_DEVELOPMENT_URL])],
                 'shop_id' => 'required|integer|min:1|max:2147483647',
                 'realtime_tracking_enabled' => 'nullable|boolean',
-                'webhook_token' => 'nullable|string|max:255',
+                'webhook_token' => 'nullable|string|min:20|max:255',
                 'auto_push_on_confirm' => 'nullable|boolean',
                 'default_weight' => 'nullable|integer|min:1|max:50000',
                 'default_length' => 'nullable|integer|min:1|max:200',

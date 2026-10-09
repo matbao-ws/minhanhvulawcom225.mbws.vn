@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Support\ApiResponse;
+use App\Support\PasswordCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -38,7 +38,7 @@ class LoginController extends Controller
             ->where('email', $request->input('email'))
             ->first();
 
-        if (! $user || ! $user->is_active || $user->role_id === null || ! Hash::check($request->input('password'), $user->password)) {
+        if (! PasswordCheck::matches($user, (string) $request->input('password')) || ! $user->is_active || $user->role_id === null) {
             throw ValidationException::withMessages([
                 'email' => [__('controller.auth.invalid_credentials')],
             ]);

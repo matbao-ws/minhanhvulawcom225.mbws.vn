@@ -7,6 +7,7 @@ use App\Models\PaymentMethod;
 use App\Services\SePayService;
 use App\Services\VNPAYService;
 use App\Support\FeatureGate;
+use App\Support\SecretMask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -202,7 +203,13 @@ class PaymentMethodController extends Controller
     {
         $this->requirePaymentMethod($payment_method);
 
-        return view('admin.payment_methods.settings', ['method' => $payment_method]);
+        $method = $payment_method;
+        if (! auth()->user()->can('payments.update')) {
+            $method = clone $payment_method;
+            $method->settings = SecretMask::apply($payment_method->settings, ['secret_key', 'webhook_secret', 'api_key', 'webhook_token']);
+        }
+
+        return view('admin.payment_methods.settings', ['method' => $method]);
     }
 
     /**
@@ -249,8 +256,9 @@ class PaymentMethodController extends Controller
                 'account_holder' => ['nullable', 'string', 'max:255'],
                 // Optional: only needed for SePay's read APIs, not for the QR + webhook flow.
                 'api_key' => ['nullable', 'string', 'max:255'],
-                'webhook_token' => ['nullable', 'string', 'max:255'],
-                'webhook_secret' => ['nullable', 'string', 'max:255'],
+                // Self-chosen shared secrets: a short one can be guessed and forges payments.
+                'webhook_token' => ['nullable', 'string', 'min:20', 'max:255'],
+                'webhook_secret' => ['nullable', 'string', 'min:20', 'max:255'],
                 'payment_prefix' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/'],
                 'qr_template' => ['nullable', Rule::in(SePayService::QR_TEMPLATES)],
                 'instructions' => ['nullable', 'string', 'max:1000'],

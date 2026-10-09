@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProjectSetting;
+use App\Support\SecretMask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -54,6 +55,10 @@ class NotificationSettingController extends Controller
         $settings = array_merge($defaults, is_array($settings) ? $settings : []);
         foreach ($defaults as $section => $fields) {
             $settings[$section] = array_merge($fields, is_array($settings[$section] ?? null) ? $settings[$section] : []);
+        }
+
+        if (! auth()->user()->can('settings.update')) {
+            $settings = SecretMask::apply($settings, ['zalo_oa.secret_key', 'zalo_oa.access_token', 'zalo_oa.refresh_token', 'zalo_personal.bot_token', 'smtp.password']);
         }
 
         $zaloFeatureEnabled = \App\Models\FeatureSetting::query()
@@ -239,9 +244,12 @@ class NotificationSettingController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            // The HTTP client's message holds the request URL, and the bot token is part of that URL.
+            \Illuminate\Support\Facades\Log::warning('Zalo getUpdates failed.', ['exception' => $e::class]);
+
             return response()->json([
                 'success' => false,
-                'message' => __('admin.notification_settings.zalo_personal.get_chat_id_error') . ' ' . $e->getMessage(),
+                'message' => __('admin.notification_settings.zalo_personal.get_chat_id_error'),
             ], 500);
         }
     }

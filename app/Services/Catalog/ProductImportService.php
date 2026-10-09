@@ -16,7 +16,12 @@ class ProductImportService
     {
     }
 
-    public function import(string $filePath, string $type): array
+    /**
+     * @param  bool  $mayUpdate  whether the importer holds `products.update`. A row whose SKU
+     *                           already exists rewrites that product (price, stock, status…), which
+     *                           a create-only importer must not be able to do.
+     */
+    public function import(string $filePath, string $type, bool $mayUpdate = true): array
     {
         if (!file_exists($filePath) || !is_readable($filePath)) {
             throw new RuntimeException("File is not readable or does not exist.");
@@ -60,7 +65,7 @@ class ProductImportService
             $data = array_combine($headers, array_slice($row, 0, count($headers)));
 
             try {
-                DB::transaction(function () use ($data, $type) {
+                DB::transaction(function () use ($data, $type, $mayUpdate) {
                     $payload = $this->mapPayload($data, $type);
                     if (!$payload) {
                         return; // Skip empty row
@@ -70,6 +75,10 @@ class ProductImportService
                     $product = null;
                     if (!empty($payload['sku'])) {
                         $product = Product::query()->where('sku', $payload['sku'])->first();
+                    }
+
+                    if ($product && ! $mayUpdate) {
+                        throw new RuntimeException(__('catalog.products.import_existing_needs_update', ['sku' => $payload['sku']]));
                     }
 
                     if ($product) {

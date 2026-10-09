@@ -178,6 +178,9 @@
         color: #53627e !important;
     }
     .dashboard-welcome-features {
+        display: block;
+    }
+    .dashboard-welcome-features-track {
         display: flex;
         flex-wrap: wrap;
         gap: 12px 24px;
@@ -189,6 +192,13 @@
         color: #53627e;
         font-size: 13px;
         font-weight: 600;
+        text-decoration: none !important;
+        transition: color 0.2s ease, transform 0.2s ease;
+        user-select: none;
+    }
+    .dashboard-welcome-feature:hover {
+        color: #d11e28 !important;
+        transform: translateY(-2px);
     }
     .dashboard-welcome-feature-icon {
         display: inline-flex;
@@ -199,6 +209,12 @@
         border-radius: 10px;
         background: #fff;
         box-shadow: 0 4px 12px rgba(168, 94, 111, 0.10);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        flex-shrink: 0;
+    }
+    .dashboard-welcome-feature:hover .dashboard-welcome-feature-icon {
+        box-shadow: 0 6px 16px rgba(209, 30, 40, 0.20);
+        transform: scale(1.06);
     }
     .dashboard-welcome-mascot {
         position: absolute;
@@ -219,7 +235,38 @@
         .dashboard-welcome-banner { min-height: 0; padding: 24px 20px; }
         .dashboard-welcome-content { max-width: none; }
         .dashboard-welcome-mascot { display: none; }
-        .dashboard-welcome-features { gap: 10px 16px; }
+        .dashboard-welcome-features-track { gap: 10px 16px; }
+    }
+    @media (max-width: 485px) {
+        .dashboard-welcome-banner { padding: 18px 16px; }
+        .dashboard-welcome-features {
+            height: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+        .dashboard-welcome-features-track {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: 0;
+            will-change: transform;
+        }
+        .dashboard-welcome-feature {
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+            transform: none !important;
+        }
+        .dashboard-welcome-features-track > [data-clone="true"] {
+            display: inline-flex;
+        }
+    }
+    @media (min-width: 485.02px) {
+        .dashboard-welcome-features-track > [data-clone="true"] {
+            display: none !important;
+        }
     }
 </style>
 @endpush
@@ -231,11 +278,33 @@
             {{-- <p class="mb-1 fw-semibold">{{ __('admin.dashboard_page.welcome_greeting') }}</p> --}}
             <h1 id="dashboard-welcome-title" class="mb-1">{{ __('admin.dashboard_page.welcome_title') }}</h1>
             <p class="mb-4">{{ __('admin.dashboard_page.welcome_description') }}</p>
-            <div class="dashboard-welcome-features">
-                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-danger"><iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.revenue') }}</span>
-                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-primary"><iconify-icon icon="solar:bag-4-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.orders') }}</span>
-                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-success"><iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.customers') }}</span>
-                <span class="dashboard-welcome-feature"><span class="dashboard-welcome-feature-icon text-warning"><iconify-icon icon="solar:shop-2-bold-duotone" class="fs-5"></iconify-icon></span>{{ __('admin.dashboard_page.welcome_features.growth') }}</span>
+            <div class="dashboard-welcome-features" data-welcome-slider>
+                <div class="dashboard-welcome-features-track" data-welcome-track>
+                    <a href="#revenueChart" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-danger">
+                            <iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features.revenue') }}</span>
+                    </a>
+                    <a href="{{ auth()->user()?->can('orders.view') ? route('admin.orders.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-primary">
+                            <iconify-icon icon="solar:bag-4-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features.orders') }}</span>
+                    </a>
+                    <a href="{{ auth()->user()?->can('customers.view') ? route('admin.customers.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-success">
+                            <iconify-icon icon="solar:users-group-rounded-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features.customers') }}</span>
+                    </a>
+                    <a href="{{ auth()->user()?->can('products.view') ? route('admin.products.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-warning">
+                            <iconify-icon icon="solar:shop-2-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features.growth') }}</span>
+                    </a>
+                </div>
             </div>
         </div>
         <img class="dashboard-welcome-mascot" src="{{ asset('admin-assets/images/backgrounds/icon-homme.png') }}" alt="" aria-hidden="true">
@@ -938,4 +1007,121 @@
     });
 </script>
 @endif
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const slider = document.querySelector('[data-welcome-slider]');
+        const track = document.querySelector('[data-welcome-track]');
+        if (!slider || !track) return;
+
+        const originalItems = Array.from(track.querySelectorAll('.dashboard-welcome-feature:not([data-clone])'));
+        if (originalItems.length <= 1) return;
+
+        // Clone first item to create seamless infinite loop
+        if (!track.querySelector('[data-clone]')) {
+            const clone = originalItems[0].cloneNode(true);
+            clone.setAttribute('data-clone', 'true');
+            clone.setAttribute('aria-hidden', 'true');
+            clone.setAttribute('tabindex', '-1');
+            track.appendChild(clone);
+        }
+
+        let currentIndex = 0;
+        const totalItems = originalItems.length;
+        const itemHeight = 40;
+        let timer = null;
+        let isPaused = false;
+        let isTransitioning = false;
+
+        function isMobile() {
+            return window.matchMedia('(max-width: 485px)').matches;
+        }
+
+        function slideNext() {
+            if (!isMobile() || isPaused || isTransitioning) return;
+            isTransitioning = true;
+            currentIndex++;
+            track.style.transition = 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)';
+            track.style.transform = `translateY(-${currentIndex * itemHeight}px)`;
+
+            if (currentIndex === totalItems) {
+                setTimeout(() => {
+                    track.style.transition = 'none';
+                    track.style.transform = 'translateY(0px)';
+                    currentIndex = 0;
+                    isTransitioning = false;
+                }, 460);
+            } else {
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 460);
+            }
+        }
+
+        function startAutoSlide() {
+            stopAutoSlide();
+            if (isMobile()) {
+                timer = setInterval(slideNext, 2600);
+            } else {
+                track.style.transition = 'none';
+                track.style.transform = 'none';
+                currentIndex = 0;
+                isTransitioning = false;
+            }
+        }
+
+        function stopAutoSlide() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        slider.addEventListener('mouseenter', () => { isPaused = true; });
+        slider.addEventListener('mouseleave', () => { isPaused = false; });
+
+        let touchStartY = 0;
+        slider.addEventListener('touchstart', (e) => {
+            isPaused = true;
+            if (e.touches && e.touches.length > 0) {
+                touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        slider.addEventListener('touchend', (e) => {
+            isPaused = false;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const diffY = touchStartY - e.changedTouches[0].clientY;
+                if (Math.abs(diffY) > 25) {
+                    if (diffY > 0) {
+                        slideNext();
+                    } else if (currentIndex > 0) {
+                        currentIndex--;
+                        track.style.transition = 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)';
+                        track.style.transform = `translateY(-${currentIndex * itemHeight}px)`;
+                    }
+                }
+            }
+        }, { passive: true });
+
+        // Smooth scroll for revenue chart link
+        slider.querySelectorAll('a[href="#revenueChart"]').forEach(link => {
+            link.addEventListener('click', function (e) {
+                const target = document.getElementById('revenueChart') || document.querySelector('.dashboard-analytics');
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        });
+
+        window.addEventListener('resize', startAutoSlide);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopAutoSlide();
+            else startAutoSlide();
+        });
+
+        startAutoSlide();
+    });
+</script>
 @endpush

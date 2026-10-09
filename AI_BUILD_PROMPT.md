@@ -223,6 +223,12 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Đa ngôn ngữ
 
 - Admin route luôn có `{locale}`.
+- Hai danh sách locale trong `LanguageRegistry`: `routable()` là mọi ngôn ngữ active (URL `/{locale}/…`,
+  tab nội dung), `admin()` chỉ gồm ngôn ngữ có trong `config('multilingual.admin_locales')` (mặc định
+  `vi`, `en` — những locale có file `lang/`). Mở trang admin bằng ngôn ngữ chỉ dành cho storefront
+  (`/ja/admin/...`, GET không phải JSON) thì `ValidateLocalizedAdminPath` chuyển 302 sang
+  `adminLocale()` (`admin_fallback_locale`, mặc định `en`). Request JSON và request ghi **không** bị
+  chuyển: editor trên `/ja/…` gọi `/ja/admin/site-blocks…`, và lịch sử block đọc locale nội dung từ URL.
 - Public API resolve locale bằng middleware `apiLocale`.
 - Field dịch dùng pattern/model/service hiện có; không tự tạo cột ngôn ngữ rời rạc.
 - Slug đa ngôn ngữ đi qua `LocalizedSlugService`/`HasLocalizedSlugs`.
@@ -241,6 +247,9 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Checkout phải tính lại toàn bộ giá từ database.
 - Promotion tự động áp dụng trước; voucher tính trên subtotal sau promotion.
 - Voucher phải kiểm tra thời gian, trạng thái, số lượng và giới hạn mỗi khách trong transaction.
+  "Một khách" = khớp **bất kỳ** định danh nào: `user_id`, email chuẩn hoá (`Voucher::emailKey`, bỏ
+  `+tag`, bỏ dấu chấm Gmail) hoặc số điện thoại chuẩn hoá (`Voucher::phoneKey`). Ghi `voucher_usages`
+  phải kèm hai khoá này.
 - Checkout/stock/payment cần `DB::transaction()` và row lock khi cạnh tranh dữ liệu.
 
 ### Đơn hàng và tồn kho
@@ -253,6 +262,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   biến thể (`option_value_ids` ở public, SKU đã chọn ở admin), nguồn giảm giá thứ hai (voucher hay
   thủ công) và nguồn phí vận chuyển.
 - Chuyển trạng thái qua `OrderStateTransitionService`.
+- Huỷ đơn trả lại **cả ba** thứ đơn đã giữ: tồn kho, lượt voucher và suất khuyến mãi — qua
+  `Orders\OrderCancellationService` (`cancel()` hoặc `releaseReservations()` khi caller đã tự đổi
+  status). Không tự gọi `OrderStockService::restore()` cho đơn bị huỷ. Webhook lặp an toàn nhờ
+  `orders.reservations_released_at`.
+- Đơn VNPAY/SePay chưa thanh toán tự huỷ sau TTL (`config/orders.php`, mặc định 30 phút / 24 giờ) bởi
+  `orders:expire-unpaid` mỗi 5 phút; COD không bao giờ tự huỷ. Checkout giới hạn số dòng và số lượng
+  mỗi dòng (`orders.max_lines`, `orders.max_line_quantity`).
 - Trừ/hoàn kho qua `OrderStockService`.
 - Inventory movement phải idempotent; không cập nhật stock trực tiếp ở controller.
 - `completed` và `cancelled` là trạng thái đơn hàng kết thúc theo policy hiện tại.
@@ -331,6 +347,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
   meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
+- Lỗi 500 (mã `ERR-…` trên trang lỗi) và extension lỗi (`EXT-…`) được gửi tóm tắt lên gateway qua
+  `App\Support\ErrorReporting\GatewayErrorReporter` (`POST v1/errors`), để console nội bộ tra theo mã.
+  Chỉ gửi **sau khi** response đã đi, timeout ngắn, tối đa `PER_MINUTE` lần/phút, mọi lỗi khi gửi bị nuốt:
+  báo lỗi không bao giờ được làm hỏng hay chậm trang của khách. Chỉ gửi mã, method, path (**không** query
+  string), route, loại exception, file:dòng, câu lỗi đã che email/số điện thoại, phiên bản core —
+  không bao giờ body, cookie, header hay stack trace (chúng ở log của hosting, cùng mã). Tắt bằng
+  `MATBAO_AI_REPORT_ERRORS=false`. Báo cáo cập nhật core gửi kèm mã `UPD-…` trang cập nhật hiện.
 - Nội dung HTML cho phép phải qua sanitizer: `HtmlSanitizer` cho rich text (post, mô tả sản phẩm),
   `PageHtmlSanitizer` cho HTML của `Page`. Không tự viết sanitizer mới.
 - Upload phải validate MIME/kích thước, dùng folder allow-list và extension do server xác định.
@@ -479,8 +502,11 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
 - **Update service trên gateway** quyết định website nào nhận bản nào, khi nào: kênh, ghim phiên bản,
   rollout theo %, pause; website vẫn tự verify mọi gói. `App\Support\CoreUpdate\CoreUpdateService`:
   `core:poll` mỗi giờ vào một phút riêng của website (`pollMinute()`, rải đều trong giờ) hỏi
-  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang superadmin
-  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`), còn `core:run-requested`
+  `GET v1/core/update`, chỉ tự cài khi gateway trả `auto`. Trang
+  `admin/core-update` chỉ **xếp lịch** (`storage/app/core/requested.json`). Giống WordPress, admin của
+  website (quyền `settings.update`) xem trang và bấm cập nhật được, trừ khi superadmin tắt công tắc trên
+  trang đó (`App\Support\CoreUpdate\CoreUpdateAccess`, `project_settings.core_update_admin_access`,
+  không có dòng = bật). Rollback, baseline và công tắc luôn chỉ superadmin. Còn `core:run-requested`
   chạy bằng cron mỗi phút; không bao giờ cài trong request web. Mọi lần cài, lỗi, quay lại đều báo
   về `POST v1/core/report`. `CORE_UPDATE_ENABLED=false` tắt cả hai lệnh (staging Docker, máy dev).
 
@@ -556,7 +582,8 @@ Kiểm kê toàn bộ theme/
 
 - Thẻ SEO đến từ `@include('core.head')` (partial `core.partials.seo-head`): `robots`, canonical,
   hreflang, Open Graph/Twitter, JSON-LD `Organization` và mã **Cài đặt → Embed** phần header. Phần
-  footer của Embed đến từ `@include('core.editor')`. Layout theme **không** include partial SEO nào
+  footer của Embed đến từ `@include('core.editor')`. Embed là script thô chạy cả trong editor của admin,
+  nên **chỉ superadmin** sửa được; `settings.update` không chạm tới hai khoá này. Layout theme **không** include partial SEO nào
   khác và không có composer riêng: mọi thứ nằm sau hai dòng `core.*`, nên site đang chạy nhận bản
   sửa qua cập nhật core (`resources/views/client/**` thuộc website, cập nhật không bao giờ chạm tới).
 - `<title>` và meta description vẫn do layout theme in (`@yield('title')`,

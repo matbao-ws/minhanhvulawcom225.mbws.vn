@@ -247,7 +247,11 @@ class PostController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
 
-            return back()->with('error', 'Import WordPress thất bại: '.$exception->getMessage());
+            // The importer's own RuntimeExceptions explain the file; anything else (SQL, HTTP…) would
+            // show schema or internal detail, so it stays in the log.
+            $reason = $exception::class === \RuntimeException::class ? $exception->getMessage() : 'Lỗi hệ thống, xem log để biết chi tiết.';
+
+            return back()->with('error', 'Import WordPress thất bại: '.$reason);
         }
 
         ActivityLogger::log('wordpress_posts_imported', null, 'Import bài viết từ WordPress XML', [

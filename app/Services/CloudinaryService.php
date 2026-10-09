@@ -10,6 +10,7 @@ use App\Support\MediaUrl;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class CloudinaryService
 {
@@ -60,6 +61,31 @@ class CloudinaryService
     }
 
     /**
+     * Extensions a stored file may carry. The web server serves storage/ by
+     * extension, so anything that renders (html, svg, xml…) would run on the
+     * admin's own origin.
+     */
+    public const STORABLE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'ico', 'cur', 'pdf', 'mp4'];
+
+    /**
+     * The extension comes from the content, not from the client's file name:
+     * validation reads the content, so an image polyglot named x.html passes it.
+     * The client's extension is only a fallback for types the MIME database
+     * names differently (cursor files), and only from the allowlist.
+     */
+    private function storedExtension(UploadedFile $file): string
+    {
+        foreach ([$file->guessExtension(), $file->getClientOriginalExtension()] as $candidate) {
+            $candidate = strtolower((string) $candidate);
+            if (in_array($candidate, self::STORABLE_EXTENSIONS, true)) {
+                return $candidate;
+            }
+        }
+
+        throw ValidationException::withMessages(['file' => __('catalog.media.upload_invalid_file')]);
+    }
+
+    /**
      * Upload a file to Cloudinary (or local storage fallback).
      */
     public function uploadFile(UploadedFile $file, string $folder = 'general'): string
@@ -70,7 +96,7 @@ class CloudinaryService
 
         // Generate clean, SEO-friendly filename from original file name
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $extension = $this->storedExtension($file);
         $slug = \Illuminate\Support\Str::slug($originalName);
         if (empty($slug)) {
             $slug = 'file';

@@ -183,11 +183,16 @@ class CoreUpdateService
             File::deleteDirectory($dir);
         }
 
-        $this->report(match (true) {
+        $report = match (true) {
             $result['ok'] => ['event' => 'installed', 'from' => $from, 'to' => $result['to']],
             isset($result['blockers']) => ['event' => 'blocked', 'from' => $from, 'to' => $offer['version'], 'error' => implode(' | ', $result['blockers'])],
             default => ['event' => 'failed', 'from' => $from, 'to' => $offer['version'], 'step' => $this->updater->state()['step'] ?? null, 'error' => $result['error'] ?? null],
-        });
+        };
+        // The code the update page shows (UPD-…), so the console finds this report by it.
+        if (! $result['ok'] && filled($ref = $this->updater->state()['ref'] ?? null)) {
+            $report['ref'] = $ref;
+        }
+        $this->report($report);
 
         return $result;
     }

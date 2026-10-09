@@ -139,6 +139,7 @@ class ExtensionServiceProvider extends ServiceProvider
         // The admin page shows only this reference; the detail is in storage/logs/core.log.
         $ref = ErrorReference::make('EXT');
         $manager->markFailed($manifest->id, "{$phase}: ".$e::class.": {$message}", $ref);
+        $this->app->make(\App\Support\ErrorReporting\GatewayErrorReporter::class)->captureWithReference($e, $ref);
         $this->app->make(AdminMenu::class)->forget($manifest->id);
         unset($this->extensions[$manifest->id]);
 

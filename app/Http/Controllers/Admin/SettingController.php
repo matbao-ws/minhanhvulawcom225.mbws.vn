@@ -152,16 +152,20 @@ class SettingController extends Controller
             ['setting_value' => $validated['social_links'] ?? []]
         );
 
-        // Update Embed codes
-        ProjectSetting::updateOrCreate(
-            ['setting_key' => 'embed_header'],
-            ['setting_value' => $validated['embed_header'] ?? '']
-        );
+        // Embed codes are raw script on every storefront page and in the inline editor admins use,
+        // so they would run in a superadmin's session: only a superadmin sets them. Everyone else
+        // leaves them exactly as they are (the fields are not even submitted).
+        if ($request->user()->isSuperAdmin()) {
+            ProjectSetting::updateOrCreate(
+                ['setting_key' => 'embed_header'],
+                ['setting_value' => $validated['embed_header'] ?? '']
+            );
 
-        ProjectSetting::updateOrCreate(
-            ['setting_key' => 'embed_footer'],
-            ['setting_value' => $validated['embed_footer'] ?? '']
-        );
+            ProjectSetting::updateOrCreate(
+                ['setting_key' => 'embed_footer'],
+                ['setting_value' => $validated['embed_footer'] ?? '']
+            );
+        }
 
         if ($request->has('google_analytics')) {
             // Through the report service so cached statistics of an old property are dropped.
@@ -210,9 +214,7 @@ class SettingController extends Controller
             ])),
         ]);
 
-        $redirectLocale = $this->languages->supportsAdmin(app()->getLocale())
-            ? app()->getLocale()
-            : $this->languages->defaultLocale();
+        $redirectLocale = $this->languages->adminLocale(app()->getLocale());
         $activeTab = $request->string('active_tab')->toString();
         if (! in_array($activeTab, self::TABS, true)
             || ($activeTab === 'multilingual' && ! $request->user()?->isSuperAdmin())) {

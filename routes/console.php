@@ -10,6 +10,12 @@ Artisan::command('inspire', function () {
 
 Schedule::command('vouchers:expire')->dailyAt('00:10')->withoutOverlapping();
 
+// Expired API tokens (SANCTUM_EXPIRATION) stop working on their own; this only clears the rows.
+Schedule::command('sanctum:prune-expired', ['--hours' => 24])->daily()->withoutOverlapping();
+
+// Unpaid online orders hand back stock, voucher uses and promotion quota (config/orders.php).
+Schedule::command('orders:expire-unpaid')->everyFiveMinutes()->withoutOverlapping();
+
 // Also refreshed lazily from admin requests, for hosting without a cron.
 Schedule::command('package:sync')->hourly()->withoutOverlapping();
 

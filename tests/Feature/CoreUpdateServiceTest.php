@@ -152,16 +152,18 @@ class CoreUpdateServiceTest extends TestCase
         $this->assertTrue($result['rolled_back']);
         $this->assertSame(['failed', 'migrate', '1.0.1'], [end($this->reports)['event'], end($this->reports)['step'], end($this->reports)['to']]);
         $this->assertSame('1.0.0', $this->version());
+        // The code the update page shows reaches the gateway, so the console finds the report by it.
+        $this->assertMatchesRegularExpression('/^UPD-\d{14}-[A-Z0-9]{4}$/', end($this->reports)['ref'] ?? '');
+        $this->assertSame(app(\App\Support\CoreUpdate\CoreUpdater::class)->state()['ref'], end($this->reports)['ref']);
     }
 
-    public function test_the_page_needs_a_superadmin_and_a_backup_confirmation_when_asked(): void
+    public function test_the_website_admin_updates_and_needs_a_backup_confirmation_when_asked(): void
     {
-        $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['settings.view', 'settings.update']]);
-        $this->actingAs(User::factory()->create(['role_id' => $role->id]))
-            ->get(route('admin.core-update.index', ['locale' => 'vi']))->assertForbidden();
+        $staff = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Staff', 'permissions' => ['settings.view']])->id]);
+        $this->actingAs($staff)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertForbidden();
 
         $this->offer['database']['backup_required'] = true;
-        $admin = $this->superadmin();
+        $admin = $this->websiteAdmin();
         $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']))->assertSessionHas('success', 'Có bản 1.0.1.');
 
         $this->actingAs($admin)->post(route('admin.core-update.update', ['locale' => 'vi']), ['version' => '1.0.1'])->assertSessionHas('error');
@@ -306,9 +308,43 @@ class CoreUpdateServiceTest extends TestCase
         // Never over an existing record: that would hide files edited by hand.
         $this->actingAs($admin)->post(route('admin.core-update.baseline', ['locale' => 'vi']))->assertSessionHas('error');
 
-        $editor = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Ed', 'permissions' => ['settings.update']])->id]);
+        // The website admin may follow an update, never record the baseline.
+        $editor = $this->websiteAdmin();
         $this->actingAs($editor)->post(route('admin.core-update.baseline', ['locale' => 'vi']))->assertForbidden();
-        $this->actingAs($editor)->getJson(route('admin.core-update.status', ['locale' => 'vi']))->assertForbidden();
+        $this->actingAs($editor)->getJson(route('admin.core-update.status', ['locale' => 'vi']))->assertOk();
+    }
+
+    public function test_a_superadmin_can_take_updating_away_from_the_website_admin(): void
+    {
+        $admin = $this->websiteAdmin();
+        $superadmin = $this->superadmin();
+
+        // On by default: the admin sees the menu, the version link and the new release.
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']))->assertSessionHas('success');
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('href="'.route('admin.core-update.index', ['locale' => 'vi']).'"', false)
+            ->assertSeeText('Có bản mới 1.0.1')
+            ->assertDontSee('data-core-update-access', false)
+            ->assertDontSee(route('admin.core-update.rollback', ['locale' => 'vi']), false);
+        $this->actingAs($admin)->post(route('admin.core-update.rollback', ['locale' => 'vi']))->assertForbidden();
+        $this->actingAs($admin)->put(route('admin.core-update.access', ['locale' => 'vi']), ['admin_allowed' => 0])->assertForbidden();
+
+        $this->actingAs($superadmin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('data-core-update-access', false);
+        $this->actingAs($superadmin)->put(route('admin.core-update.access', ['locale' => 'vi']), ['admin_allowed' => 0])
+            ->assertSessionHas('success');
+
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertForbidden();
+        $this->actingAs($admin)->post(route('admin.core-update.update', ['locale' => 'vi']), ['version' => '1.0.1'])->assertForbidden();
+        $this->assertNull(app(CoreUpdateService::class)->requested());
+        $this->actingAs($admin)->get(route('admin.settings.index', ['locale' => 'vi']))->assertOk()
+            ->assertSeeText('Phiên bản core')
+            ->assertDontSee('href="'.route('admin.core-update.index', ['locale' => 'vi']).'"', false)
+            ->assertDontSeeText('Có bản mới');
+        $this->actingAs($superadmin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk();
+
+        $this->actingAs($superadmin)->put(route('admin.core-update.access', ['locale' => 'vi']), ['admin_allowed' => 1]);
+        $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk();
     }
 
     public function test_disabled_websites_neither_poll_nor_run_requests(): void
@@ -350,6 +386,45 @@ class CoreUpdateServiceTest extends TestCase
     private function version(): string
     {
         return trim(file_get_contents($this->site.'/VERSION'));
+    }
+
+    public function test_the_page_shows_what_the_running_version_brought(): void
+    {
+        $this->write($this->site, ['docs/release-notes/1.0.0.md' => "## Tính năng mới
+- Tạo vận đơn <b>ngay</b>."]);
+
+        // No offer yet: the running version's own notes, shipped with the core, still show.
+        $this->actingAs($this->websiteAdmin())->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('data-current-release-notes', false)
+            ->assertSeeText('Bản 1.0.0 đang chạy có gì mới')
+            ->assertSee('Tạo vận đơn &lt;b&gt;ngay&lt;/b&gt;.', false);
+    }
+
+    public function test_a_queued_update_shows_in_the_header_of_every_admin_page(): void
+    {
+        $admin = $this->websiteAdmin();
+        $this->actingAs($admin)->post(route('admin.core-update.check', ['locale' => 'vi']));
+        $this->actingAs($admin)->post(route('admin.core-update.update', ['locale' => 'vi']), ['version' => '1.0.1'])
+            ->assertSessionHas('success');
+
+        // Leaving the update page does not stop it: cron runs it, and every page says so.
+        $this->actingAs($admin)->get(route('admin.settings.index', ['locale' => 'vi']))->assertOk()
+            ->assertSee('data-core-update-progress', false)
+            ->assertSeeText('Chờ cập nhật lên 1.0.1')
+            ->assertDontSee('data-core-update-available', false);
+
+        $this->artisan('core:run-requested');
+
+        $this->actingAs($admin)->get(route('admin.settings.index', ['locale' => 'vi']))->assertOk()
+            ->assertDontSee('data-core-update-progress', false);
+    }
+
+    /** The website owner's account: the seeded Admin role edits settings. */
+    private function websiteAdmin(): User
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'Admin'], ['permissions' => ['settings.view', 'settings.update']]);
+
+        return User::factory()->create(['role_id' => $role->id]);
     }
 
     private function superadmin(): User

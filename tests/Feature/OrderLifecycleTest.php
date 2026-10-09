@@ -129,6 +129,25 @@ class OrderLifecycleTest extends TestCase
         $this->assertSame(2, $this->product->fresh()->stock_quantity);
     }
 
+    /** A double click on "refund 1" used to record two refunds and restore stock twice. */
+    public function test_a_double_submitted_refund_is_recorded_once(): void
+    {
+        $order = $this->makeOrder(2, 'processing', 'paid');
+        $item = $order->items()->firstOrFail();
+        $this->product->decrement('stock_quantity', 2);
+        $payload = [
+            'type' => 'partial',
+            'items' => [['order_item_id' => $item->id, 'quantity' => 1]],
+            'request_key' => 'f3b1c2d4-0000-4000-8000-000000000001',
+        ];
+
+        $this->actingAs($this->admin)->post("/vi/admin/orders/{$order->id}/refund", $payload)->assertRedirect();
+        $this->actingAs($this->admin)->post("/vi/admin/orders/{$order->id}/refund", $payload)->assertRedirect();
+
+        $this->assertSame(1, $order->refunds()->count());
+        $this->assertSame(2, $this->product->fresh()->stock_quantity, 'one unit back, not two');
+    }
+
     public function test_admin_can_create_manual_order_with_inventory_and_initial_history(): void
     {
         $this->actingAs($this->admin)->post('/vi/admin/orders', [

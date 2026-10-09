@@ -66,12 +66,12 @@ class VoucherPerUserLimitTest extends TestCase
         ]);
     }
 
-    private function checkoutPayload(string $email): array
+    private function checkoutPayload(string $email, string $phone = '0988776655'): array
     {
         return [
             'customer_name' => 'Khách Hàng',
             'customer_email' => $email,
-            'customer_phone' => '0988776655',
+            'customer_phone' => $phone,
             'shipping_address' => '123 Đường ABC, HCMC',
             'payment_method' => 'cod',
             'items' => [[
@@ -148,11 +148,40 @@ class VoucherPerUserLimitTest extends TestCase
         $second = $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('guest@example.com'));
         $second->assertStatus(422)->assertJsonFragment(['success' => false]);
 
-        // A different guest email can still use it.
-        $other = $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('another@example.com'));
+        // A different guest (other email, other phone) can still use it.
+        $other = $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('another@example.com', '0911222333'));
         $other->assertStatus(200);
 
         $this->assertDatabaseCount('voucher_usages', 2);
+    }
+
+    public function test_a_guest_cannot_reuse_the_voucher_with_an_aliased_gmail_address(): void
+    {
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('khach.hang@gmail.com', '0911000001'))->assertOk();
+
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('KhachHang+2@googlemail.com', '0911000002'))
+            ->assertStatus(422);
+        $this->assertDatabaseCount('voucher_usages', 1);
+    }
+
+    public function test_a_guest_cannot_reuse_the_voucher_under_a_new_email_with_the_same_phone(): void
+    {
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('first@example.com', '0911 000 003'))->assertOk();
+
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('second@example.com', '+84911000003'))
+            ->assertStatus(422);
+    }
+
+    public function test_a_member_cannot_reuse_the_voucher_by_checking_out_as_a_guest(): void
+    {
+        $customer = User::factory()->create(['role_id' => null, 'email' => 'member@example.com']);
+        Sanctum::actingAs($customer, ['customer']);
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('member@example.com', '0911000004'))->assertOk();
+
+        // No token, a fresh email, but the member's own phone.
+        $this->app['auth']->forgetGuards();
+        $this->postJson('/api/public/orders/checkout', $this->checkoutPayload('not-me@example.com', '0911000004'))
+            ->assertStatus(422);
     }
 
     public function test_apply_voucher_preview_reports_per_user_limit(): void

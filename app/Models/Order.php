@@ -109,6 +109,7 @@ class Order extends Model
         'carrier_shipping_fee' => 'decimal:2',
         'shipping_status_updated_at' => 'datetime',
         'shipping_location' => 'array',
+        'reservations_released_at' => 'datetime',
     ];
 
     /** @return array{province_id?: int, district_id: int, ward_code: string}|null the GHN address codes chosen at checkout */

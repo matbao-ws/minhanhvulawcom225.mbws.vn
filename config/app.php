@@ -43,6 +43,10 @@ return [
 
     'payment_mock_enabled' => (bool) env('PAYMENT_MOCK_ENABLED', false),
 
+    // Catalogue/content reads on /api/public per IP and minute. A headless storefront rendering on
+    // its own server sends every visitor's requests from that one IP: raise this for such a site.
+    'public_read_per_minute' => (int) env('PUBLIC_API_READ_PER_MINUTE', 300),
+
     'payment_return_hosts' => array_values(array_filter(array_map(
         'trim',
         explode(',', (string) env('PAYMENT_RETURN_HOSTS', ''))

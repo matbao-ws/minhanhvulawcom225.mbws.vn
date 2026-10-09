@@ -177,6 +177,53 @@ class ProductUploadAndMediaTest extends TestCase
         ])->assertSessionHasErrors('file');
     }
 
+    /**
+     * Validation reads the content, so an image polyglot named x.html passes
+     * it. Stored under the client's extension, the web server would serve it
+     * as text/html on the admin's origin.
+     */
+    public function test_the_stored_extension_comes_from_the_content_not_the_client_name(): void
+    {
+        $this->actingAs(User::factory()->create());
+        // A real UploadedFile: the fake one reports its MIME type from the name.
+        $path = tempnam(sys_get_temp_dir(), 'poly');
+        file_put_contents($path, base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7').'<script>alert(1)</script>');
+        $polyglot = new UploadedFile($path, 'banner.html', null, null, true);
+
+        $this->post('/vi/admin/media/upload', [
+            'file' => $polyglot,
+            'folder' => 'general',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $files = Storage::disk('public')->files('general');
+        $this->assertCount(1, $files);
+        $this->assertStringEndsWith('.gif', $files[0]);
+    }
+
+    public function test_uploads_are_rate_limited_per_admin(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        foreach (range(1, 20) as $attempt) {
+            $this->post('/vi/admin/media/upload', ['file' => UploadedFile::fake()->image("p{$attempt}.jpg"), 'folder' => 'general'])->assertRedirect();
+        }
+
+        $this->post('/vi/admin/media/upload', ['file' => UploadedFile::fake()->image('p21.jpg'), 'folder' => 'general'])->assertStatus(429);
+    }
+
+    public function test_the_extension_audit_lists_files_uploads_no_longer_produce(): void
+    {
+        Storage::disk('public')->put('general/old-banner.html', '<script>alert(1)</script>');
+        Storage::disk('public')->put('general/photo.jpg', 'jpg');
+
+        $this->artisan('media:audit-extensions')
+            ->expectsOutputToContain('storage/app/public/general/old-banner.html')
+            ->doesntExpectOutputToContain('photo.jpg')
+            ->assertFailed();
+
+        Storage::disk('public')->assertExists('general/old-banner.html');
+    }
+
     public function test_image_picker_rejects_svg_with_a_clear_security_message(): void
     {
         $this->actingAs(User::factory()->create());

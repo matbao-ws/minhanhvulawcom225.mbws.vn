@@ -233,6 +233,66 @@ class PublicApiTest extends TestCase
         $response->assertJsonFragment(['success' => false]);
     }
 
+    /** Telling unknown, locked and upcoming codes apart confirms private codes to a guesser. */
+    public function test_unknown_locked_and_upcoming_vouchers_answer_alike(): void
+    {
+        \App\Models\Voucher::query()->create(['code' => 'LOCKED', 'name' => ['vi' => 'Khoá'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => false]);
+        \App\Models\Voucher::query()->create(['code' => 'SOON', 'name' => ['vi' => 'Sắp tới'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => true, 'start_date' => now()->addWeek()]);
+
+        $messages = collect(['NOSUCHCODE', 'LOCKED', 'SOON'])->map(fn (string $code) => $this->postJson('/api/public/vouchers/apply', [
+            'code' => $code,
+            'subtotal' => 600000,
+        ])->assertStatus(422)->json('message'));
+
+        $this->assertCount(1, $messages->unique());
+    }
+
+    public function test_voucher_guessing_is_rate_limited(): void
+    {
+        foreach (range(1, 10) as $attempt) {
+            $this->postJson('/api/public/vouchers/apply', ['code' => 'GUESS'.$attempt, 'subtotal' => 1000])->assertStatus(422);
+        }
+
+        $this->postJson('/api/public/vouchers/apply', ['code' => 'GUESS11', 'subtotal' => 1000])->assertStatus(429);
+    }
+
+    /** Every order mails its customer_email: checkout must not be a free mail cannon. */
+    public function test_checkout_is_rate_limited_per_email_across_ips(): void
+    {
+        Mail::fake();
+
+        foreach (range(1, 5) as $attempt) {
+            $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
+                ->postJson('/api/public/orders/checkout', $this->checkoutPayload('victim+'.$attempt.'@gmail.com'))
+                ->assertOk();
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
+            ->postJson('/api/public/orders/checkout', $this->checkoutPayload('victim@gmail.com'))
+            ->assertStatus(429);
+    }
+
+    public function test_public_search_treats_the_keyword_as_plain_text(): void
+    {
+        // An array used to end in a 500; wildcards used to match everything.
+        $this->getJson('/api/public/products?q[]=x')->assertOk();
+        $this->getJson('/api/public/posts?q[]=x')->assertOk();
+
+        $this->getJson('/api/public/products?q=_')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/public/products?q=%25')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_public_reads_are_rate_limited(): void
+    {
+        config(['app.public_read_per_minute' => 3]);
+
+        foreach (range(1, 3) as $attempt) {
+            $this->getJson('/api/public/categories')->assertOk();
+        }
+
+        $this->getJson('/api/public/categories')->assertStatus(429);
+    }
+
     public function test_guest_checkout_creation(): void
     {
         Mail::fake();

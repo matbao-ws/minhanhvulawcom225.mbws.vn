@@ -33,6 +33,28 @@ class ContactSubmissionTest extends TestCase
         $this->assertSame(['company' => 'Acme Corp', 'budget' => '10-20 triệu'], $submission->meta);
     }
 
+    /** A form produces a few short flat values; nothing else is worth storing. */
+    public function test_extra_fields_are_kept_only_in_the_shape_a_form_produces(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/api/public/contact', [
+            'name' => 'Nguyễn Văn C',
+            'phone' => '0900000001',
+            'message' => 'Tôi cần báo giá.',
+            'company' => str_repeat('a', 5000),
+            'nested' => ['deep' => ['payload' => 'x']],
+            'bad key!' => 'x',
+            ...collect(range(1, 40))->mapWithKeys(fn (int $i) => ["field_{$i}" => 'v'])->all(),
+        ])->assertOk();
+
+        $meta = ContactSubmission::query()->firstOrFail()->meta;
+        $this->assertCount(20, $meta);
+        $this->assertSame(1000, mb_strlen($meta['company']));
+        $this->assertArrayNotHasKey('nested', $meta);
+        $this->assertArrayNotHasKey('bad key!', $meta);
+    }
+
     public function test_public_contact_submission_without_extra_fields_has_null_meta(): void
     {
         Mail::fake();

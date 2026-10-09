@@ -32,6 +32,7 @@ use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
 use App\Services\MultilingualSettings;
 use App\Services\OrderStateTransitionService;
+use App\Services\Orders\OrderCancellationService;
 use App\Services\Orders\OrderCreationService;
 use App\Services\Orders\OrderDraft;
 use App\Services\OrderStockService;
@@ -43,6 +44,7 @@ use App\Services\VNPAYService;
 use App\Support\ApiResponse;
 use App\Support\FeatureGate;
 use App\Support\NotificationHelper;
+use App\Support\SearchTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -219,11 +221,11 @@ class PublicController extends Controller
             $category = $this->localizedSlugs->find(PostCategory::class, $request->input('category'), app()->getLocale());
             $query->where('category_id', $category?->id ?? 0);
         }
-        if ($request->filled('q')) {
-            $keyword = $request->input('q');
+        if (($keyword = SearchTerm::from($request->input('q'))) !== null) {
+            $pattern = SearchTerm::contains($keyword);
             $locale = app()->getLocale();
-            $query->where(fn ($query) => $query->where("title->{$locale}", 'like', "%{$keyword}%")
-                ->orWhere("summary->{$locale}", 'like', "%{$keyword}%"));
+            $query->where(fn ($query) => $query->where("title->{$locale}", 'like', $pattern)
+                ->orWhere("summary->{$locale}", 'like', $pattern));
         }
 
         $posts = $query->latest('published_at')->paginate(12)->withQueryString();
@@ -307,17 +309,11 @@ class PublicController extends Controller
 
         $voucher = Voucher::query()->where('code', $code)->first();
 
-        if (! $voucher) {
-            return ApiResponse::error('Mã giảm giá không tồn tại.', 422);
-        }
-
-        if (! $voucher->is_active) {
-            return ApiResponse::error('Mã giảm giá đã bị khóa.', 422);
-        }
-
+        // Unknown, locked and not-yet-started codes answer alike: telling them apart
+        // would confirm private and upcoming campaign codes to anyone guessing.
         $now = now();
-        if ($voucher->start_date && $voucher->start_date->isAfter($now)) {
-            return ApiResponse::error('Chương trình giảm giá chưa bắt đầu.', 422);
+        if (! $voucher || ! $voucher->is_active || ($voucher->start_date && $voucher->start_date->isAfter($now))) {
+            return ApiResponse::error('Mã giảm giá không hợp lệ.', 422);
         }
         if ($voucher->end_date && $voucher->end_date->isBefore($now)) {
             return ApiResponse::error('Mã giảm giá đã hết hạn sử dụng.', 422);
@@ -359,12 +355,12 @@ class PublicController extends Controller
             'shipping_address' => 'required|string|max:500',
             'payment_method' => 'required|string|max:100',
             'notes' => 'nullable|string|max:500',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.config('orders.max_lines'),
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant_id' => 'nullable|exists:product_variants,id',
             'items.*.option_value_ids' => 'nullable|array|max:8',
             'items.*.option_value_ids.*' => 'integer|distinct|exists:product_option_values,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:1|max:'.config('orders.max_line_quantity'),
             'voucher_code' => 'nullable|string',
             // GHN master-data codes of the address, when the form offers GHN's province/district/ward
             // pickers: an admin then ships the order with one click (or automatically on confirm).
@@ -448,7 +444,7 @@ class PublicController extends Controller
                         ->where('code', strtoupper($request->input('voucher_code')))
                         ->lockForUpdate()
                         ->first();
-                    if (! $voucher || ! $voucher->isValidForOrder($discountableSubtotal, $customerId, $request->input('customer_email'))) {
+                    if (! $voucher || ! $voucher->isValidForOrder($discountableSubtotal, $customerId, $request->input('customer_email'), $request->input('customer_phone'))) {
                         throw new \DomainException('Mã giảm giá không hợp lệ cho đơn hàng này.');
                     }
                     $voucherDiscount = $voucher->calculateDiscount($discountableSubtotal);
@@ -482,6 +478,8 @@ class PublicController extends Controller
                         'user_id' => $customerId,
                         'order_id' => $order->id,
                         'customer_email' => $order->customer_email,
+                        'customer_email_key' => Voucher::emailKey($order->customer_email),
+                        'customer_phone_key' => Voucher::phoneKey($order->customer_phone),
                         'used_at' => now(),
                     ]);
                 }
@@ -503,27 +501,10 @@ class PublicController extends Controller
 
             if (! $paymentUrl) {
                 try {
-                    DB::transaction(function () use ($order, $request) {
+                    DB::transaction(function () use ($order) {
                         $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-                        $oldStatus = $lockedOrder->status;
-                        $lockedOrder->update(['status' => 'cancelled', 'notes' => $lockedOrder->notes.' (Khởi tạo thanh toán VNPAY thất bại)']);
-                        $this->orderStockService->restore($lockedOrder, 'Hoàn kho do khởi tạo thanh toán VNPAY thất bại');
-                        OrderStatusHistory::query()->create([
-                            'order_id' => $lockedOrder->id,
-                            'from_status' => $oldStatus,
-                            'to_status' => 'cancelled',
-                            'from_payment_status' => $lockedOrder->payment_status,
-                            'to_payment_status' => $lockedOrder->payment_status,
-                            'note' => 'Khởi tạo thanh toán VNPAY thất bại',
-                            'created_at' => now(),
-                        ]);
-                        if ($request->filled('voucher_code')) {
-                            Voucher::query()
-                                ->where('code', strtoupper($request->input('voucher_code')))
-                                ->where('used_count', '>', 0)
-                                ->decrement('used_count');
-                            VoucherUsage::query()->where('order_id', $lockedOrder->id)->delete();
-                        }
+                        $lockedOrder->update(['notes' => $lockedOrder->notes.' (Khởi tạo thanh toán VNPAY thất bại)']);
+                        app(OrderCancellationService::class)->cancel($lockedOrder, 'Khởi tạo thanh toán VNPAY thất bại');
                     });
                 } catch (\Throwable $ex) {
                     Log::error('Could not roll back failed VNPAY checkout: '.$ex->getMessage());
@@ -786,10 +767,17 @@ class PublicController extends Controller
             return ApiResponse::error('Không tìm thấy đơn hàng.', 404, ['payment' => $outcome]);
         }
 
+        // A signed return URL never expires and ends up in browser history, screenshots and
+        // referrers: whoever holds it learns the outcome, not the customer's name, phone or address.
         return ApiResponse::success([
             'payment' => $outcome,
             'response_code' => $responseCode,
-            'order' => new PublicOrderResource($order),
+            'order' => [
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+                'grand_total' => $order->grand_total,
+            ],
         ], $outcome === 'success' ? 'Thanh toán thành công.' : 'Thanh toán chưa hoàn tất hoặc đã bị hủy.');
     }
 

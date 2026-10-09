@@ -25,19 +25,49 @@ class PageHtmlSanitizer
         'width', 'xmlns',
     ];
 
+    /**
+     * Removed with their content, never unwrapped. The raw-text ones (style,
+     * xmp, noscript…) hold markup as unescaped text: unwrapping them hands that
+     * text to the parent, where it serialises as live markup.
+     */
+    private const REMOVED_TAGS = [
+        'script', 'object', 'embed', 'iframe', 'form', 'input', 'textarea', 'select',
+        'style', 'noscript', 'template', 'title', 'xmp', 'noembed', 'noframes', 'plaintext',
+        'math', 'base', 'link', 'meta',
+    ];
+
     public function clean(?string $html): string
+    {
+        // Re-parse until stable: anything a pass exposes is cleaned by the next.
+        $output = (string) $html;
+        for ($pass = 0; $pass < 3; $pass++) {
+            $next = $this->cleanOnce($output);
+            if ($next === $output) {
+                break;
+            }
+            $output = $next;
+        }
+
+        return MediaUrl::relativizeHtmlSources($output);
+    }
+
+    private function cleanOnce(string $html): string
     {
         $document = new DOMDocument('1.0', 'UTF-8');
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML(
-            '<?xml encoding="utf-8" ?><div id="page-builder-root">'.(string) $html.'</div>',
+            '<?xml encoding="utf-8" ?><div id="page-builder-root">'.$html.'</div>',
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD,
         );
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
         $xpath = new DOMXPath($document);
-        foreach (iterator_to_array($xpath->query('//script|//object|//embed|//iframe|//form|//input|//textarea|//select') ?: []) as $node) {
+        $removed = implode('|', array_map(
+            static fn (string $tag): string => "//*[local-name()='{$tag}']",
+            self::REMOVED_TAGS,
+        ));
+        foreach (iterator_to_array($xpath->query($removed) ?: []) as $node) {
             $node->parentNode?->removeChild($node);
         }
 
@@ -75,7 +105,7 @@ class PageHtmlSanitizer
             $output .= $document->saveHTML($child);
         }
 
-        return MediaUrl::relativizeHtmlSources($output);
+        return $output;
     }
 
     private function unwrap(DOMNode $node): void

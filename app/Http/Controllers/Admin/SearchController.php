@@ -15,12 +15,12 @@ class SearchController extends Controller
 {
     public function search(Request $request)
     {
-        $q = $request->get('q');
+        $q = $request->query('q');
         $locale = app()->getLocale();
         $results = [];
         $user = $request->user();
 
-        if (empty($q) || strlen($q) < 2) {
+        if (! is_string($q) || mb_strlen($q) < 2 || mb_strlen($q) > 100) {
             return response()->json(['results' => []]);
         }
 
@@ -120,19 +120,22 @@ class SearchController extends Controller
         }
 
         if ($user->can('users.view')) {
-        $users = User::query()
-            ->where('name', 'like', "%{$q}%")
-            ->orWhere('email', 'like', "%{$q}%")
+        // Staff only, and the same accounts the users screen shows: customers belong to
+        // customers.view, and privileged accounts stay hidden from non-superadmins.
+        $staff = User::query()
+            ->whereNotNull('role_id')
+            ->when(! $user->isSuperAdmin(), fn ($query) => $query->whereHas('role', fn ($role) => $role->where('is_system', false)->where('is_superadmin', false)))
+            ->where(fn ($query) => $query->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"))
             ->limit(5)
             ->get();
 
-        if ($users->count() > 0) {
+        if ($staff->count() > 0) {
             $items = [];
-            foreach ($users as $user) {
+            foreach ($staff as $member) {
                 $items[] = [
-                    'title' => $user->name,
-                    'subtitle' => $user->email,
-                    'link' => route('admin.users.edit', ['user' => $user->id, 'locale' => $locale])
+                    'title' => $member->name,
+                    'subtitle' => $member->email,
+                    'link' => route('admin.users.edit', ['user' => $member->id, 'locale' => $locale])
                 ];
             }
             $results[] = [

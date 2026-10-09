@@ -8,6 +8,12 @@ return [
     'default_locale' => env('CONTENT_DEFAULT_LOCALE', 'vi'),
     'fallback_locale' => env('CONTENT_FALLBACK_LOCALE', 'vi'),
 
+    // Languages the admin interface is offered in — the ones lang/ ships files for.
+    // Any other active language is storefront content only: opening its
+    // /{locale}/admin page redirects to admin_fallback_locale.
+    'admin_locales' => ['vi', 'en'],
+    'admin_fallback_locale' => env('ADMIN_FALLBACK_LOCALE', 'en'),
+
     'translation' => [
         'provider' => env('TRANSLATION_PROVIDER', 'google'),
         'google' => [

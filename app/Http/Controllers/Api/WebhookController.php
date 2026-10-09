@@ -7,6 +7,7 @@ use App\Jobs\SendOrderStatusEmail;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\ShippingPartner;
+use App\Services\Orders\OrderCancellationService;
 use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
@@ -22,6 +23,7 @@ class WebhookController extends Controller
         private readonly OrderStockService $orderStockService,
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
+        private readonly OrderCancellationService $cancellations,
     ) {
     }
 
@@ -104,7 +106,9 @@ class WebhookController extends Controller
 
                 $lockedOrder->update($updates);
                 $paymentChanged = $oldPaymentStatus !== $lockedOrder->payment_status;
-                if (($statusChanged && $lockedOrder->status === 'cancelled') || ($shippingChanged && $lockedOrder->shipping_status === 'returned')) {
+                if ($statusChanged && $lockedOrder->status === 'cancelled') {
+                    $this->cancellations->releaseReservations($lockedOrder, 'Hoàn kho theo trạng thái trả/hủy từ GHTK');
+                } elseif ($shippingChanged && $lockedOrder->shipping_status === 'returned') {
                     $this->orderStockService->restore($lockedOrder, 'Hoàn kho theo trạng thái trả/hủy từ GHTK');
                 }
                 $this->paymentTransactionService->syncInitialTransaction($lockedOrder);
@@ -174,10 +178,16 @@ class WebhookController extends Controller
             'Reason' => ['nullable', 'string', 'max:1000'],
             'CODAmount' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
         ]);
-        $order = Order::query()
-            ->where('tracking_number', $payload['OrderCode'])
-            ->orWhere('order_number', $payload['ClientOrderCode'] ?? '__missing__')
-            ->first();
+        // GHN's own code first. Our order number is the fallback for shipments created on GHN's
+        // dashboard, and only for orders no other carrier ships: it is guessable and printed on
+        // labels, so it must not let a GHN callback take over a GHTK order.
+        $order = Order::query()->where('tracking_number', $payload['OrderCode'])->first()
+            ?? (filled($payload['ClientOrderCode'] ?? null)
+                ? Order::query()
+                    ->where('order_number', $payload['ClientOrderCode'])
+                    ->where(fn ($query) => $query->whereNull('shipping_carrier')->orWhere('shipping_carrier', 'ghn'))
+                    ->first()
+                : null);
         if (! $order) {
             return response()->json(['success' => true]);
         }
@@ -209,7 +219,9 @@ class WebhookController extends Controller
                     $updates['status'] = $newOrderStatus;
                 }
                 $locked->update($updates);
-                if (in_array($locked->shipping_status, ['returned', 'cancelled'], true)) {
+                if ($locked->status === 'cancelled') {
+                    $this->cancellations->releaseReservations($locked, 'Hoàn kho theo trạng thái từ GHN');
+                } elseif (in_array($locked->shipping_status, ['returned', 'cancelled'], true)) {
                     $this->orderStockService->restore($locked, 'Hoàn kho theo trạng thái từ GHN');
                 }
                 $this->paymentTransactionService->syncInitialTransaction($locked);
@@ -330,6 +342,18 @@ class WebhookController extends Controller
                 }
 
                 if ($lockedOrder->status === 'cancelled') {
+                    // Unpaid orders now expire (orders:expire-unpaid), so a late transfer can land on
+                    // a cancelled order. The money is real: put it on the order page, not only in the log.
+                    OrderStatusHistory::query()->create([
+                        'order_id' => $lockedOrder->id,
+                        'from_status' => 'cancelled',
+                        'to_status' => 'cancelled',
+                        'from_payment_status' => $lockedOrder->payment_status,
+                        'to_payment_status' => $lockedOrder->payment_status,
+                        'note' => 'Đã nhận '.number_format($receivedAmount, 0, ',', '.').' ₫ qua SePay sau khi đơn bị hủy — cần hoàn tiền cho khách hoặc khôi phục đơn thủ công.',
+                        'created_at' => now(),
+                    ]);
+
                     return ['outcome' => 'order_cancelled', 'order' => $lockedOrder, 'status_changed' => false];
                 }
 

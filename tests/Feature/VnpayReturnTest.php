@@ -82,7 +82,11 @@ class VnpayReturnTest extends TestCase
         $this->getJson('/api/public/payment/vnpay/return?'.http_build_query($this->signedVnpayParams($order)))
             ->assertOk()
             ->assertJsonFragment(['payment' => 'success'])
-            ->assertJsonPath('data.order.order_number', 'ORD-RET-001');
+            ->assertJsonPath('data.order.order_number', 'ORD-RET-001')
+            // The signed URL never expires and lands in browser history: no personal data.
+            ->assertDontSee('return@example.com')
+            ->assertDontSee('Return Customer')
+            ->assertDontSee('0900000000');
 
         // The return endpoint never changes payment state — the IPN is authoritative.
         $this->assertSame('pending', $order->fresh()->payment_status);
