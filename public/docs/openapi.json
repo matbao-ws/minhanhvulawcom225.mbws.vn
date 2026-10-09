@@ -720,7 +720,8 @@
               }
             }
           },
-          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin)" }
+          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin)" },
+          "429": { "description": "Quá 10 đơn/phút từ cùng IP hoặc 5 đơn/giờ cho cùng email" }
         }
       }
     },
