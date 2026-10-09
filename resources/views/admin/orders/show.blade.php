@@ -137,6 +137,8 @@
                 @if($order->payment_status !== 'refunded')
                 <form action="{{ route('admin.orders.refund', $order) }}" method="POST" id="refund-form">
                     @csrf
+                    {{-- One-time key: a double click records the refund once. --}}
+                    <input type="hidden" name="request_key" value="{{ \Illuminate\Support\Str::uuid() }}">
                     <div class="row g-2 mb-2">
                         <div class="col-md-4">
                             <select class="form-select fw-semibold" name="type" id="refund-type">

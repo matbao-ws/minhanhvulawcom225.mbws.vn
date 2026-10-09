@@ -12,6 +12,7 @@ class OrderRefund extends Model
         'type',
         'reason',
         'created_by',
+        'request_key',
     ];
 
     protected $casts = ['amount' => 'decimal:2'];

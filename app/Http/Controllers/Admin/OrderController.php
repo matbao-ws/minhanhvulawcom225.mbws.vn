@@ -347,11 +347,17 @@ class OrderController extends Controller
             'items' => 'required_if:type,partial|array',
             'items.*.order_item_id' => 'required|integer|exists:order_items,id',
             'items.*.quantity' => 'required|integer|min:1',
+            'request_key' => 'nullable|string|max:64',
         ]);
 
         try {
-            DB::transaction(function () use ($validated, $order): void {
+            $recorded = DB::transaction(function () use ($validated, $order): bool {
                 $lockedOrder = Order::query()->with('items')->lockForUpdate()->findOrFail($order->id);
+                // The form's one-time key: a double click submits it twice, the second does nothing.
+                $requestKey = $validated['request_key'] ?? null;
+                if ($requestKey !== null && $lockedOrder->refunds()->where('request_key', $requestKey)->exists()) {
+                    return false;
+                }
                 if (! in_array($lockedOrder->payment_status, ['paid', 'partially_refunded'], true)) {
                     throw new \DomainException('Chỉ đơn đã thanh toán mới có thể hoàn tiền.');
                 }
@@ -408,6 +414,7 @@ class OrderController extends Controller
                     'type' => $validated['type'],
                     'reason' => $validated['reason'] ?? null,
                     'created_by' => auth()->id(),
+                    'request_key' => $requestKey,
                 ]);
                 $refund->items()->createMany($refundItems);
 
@@ -438,12 +445,15 @@ class OrderController extends Controller
                     'amount' => $amount,
                     'type' => $validated['type'],
                 ]);
+
+                return true;
             }, 3);
         } catch (\DomainException $exception) {
             return back()->withErrors(['refund' => $exception->getMessage()]);
         }
 
-        return redirect()->route('admin.orders.show', $order)->with('success', 'Đã ghi nhận hoàn tiền.');
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', $recorded ? 'Đã ghi nhận hoàn tiền.' : 'Yêu cầu hoàn tiền này đã được ghi nhận trước đó.');
     }
 
     /**
