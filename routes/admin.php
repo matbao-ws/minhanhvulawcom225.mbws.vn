@@ -44,7 +44,7 @@ Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:a
 Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
 Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:admin-login')->name('password.email');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
-Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.update');
+Route::post('/reset-password', [ResetPasswordController::class, 'store'])->middleware('throttle:admin-login')->name('password.update');
 
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
