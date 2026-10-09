@@ -91,6 +91,22 @@ def version_tuple(text):
     return tuple(int(x) for x in m.groups()) if m else None
 
 
+def release_key(text):
+    """
+    Order core versions the way semver does: 1.4.0-beta.1 < 1.4.0-beta.2 < 1.4.0. version_tuple
+    drops the suffix, so a project on a beta never saw the release that followed it as newer.
+    None when the text is not a version.
+    """
+    m = re.match(r'v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?', (text or '').strip())
+    if not m:
+        return None
+    major, minor, patch, pre = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)
+    if pre is None:
+        return (major, minor, patch, 1, ())
+    parts = tuple((0, int(p), '') if p.isdigit() else (1, 0, p) for p in pre.split('.'))
+    return (major, minor, patch, 0, parts)
+
+
 def read_version(folder=None):
     path = os.path.join(folder or HERE, 'VERSION')
     return open(path, encoding='utf-8').read().strip() if os.path.exists(path) else ''
@@ -669,8 +685,8 @@ def update_core(target=None):
         raise Stop('Đang có thay đổi chưa lưu. Lưu & đẩy trước.')
     mine = read_version()
     git('fetch', 'core', '--tags', '--quiet')
-    tags = sorted((t for t in out(['git', 'tag', '-l', 'v*']).split() if version_tuple(t)), key=version_tuple)
-    newer = [t for t in tags if version_tuple(t) > (version_tuple(mine) or (0, 0, 0))]
+    tags = sorted((t for t in out(['git', 'tag', '-l', 'v*']).split() if release_key(t)), key=release_key)
+    newer = [t for t in tags if release_key(t) > (release_key(mine) or release_key('0.0.0'))]
     say(f'Core trong dự án: {mine or "?"}')
     if not newer:
         say('[+] Đã là bản core mới nhất.')
@@ -716,9 +732,9 @@ def deploy():
     say(f'Core trong dự án: {mine}')
     say('Xem phiên bản đang chạy trên website: admin website → menu "Cập nhật phiên bản".')
     live = ask('Phiên bản trên website (Enter nếu là website mới)')
-    if live and version_tuple(live) is None:
+    if live and release_key(live) is None:
         raise Stop(f'"{live}" không phải số phiên bản (vd 1.2.0).')
-    if live and version_tuple(live) > (version_tuple(mine) or (0, 0, 0)):
+    if live and release_key(live) > (release_key(mine) or release_key('0.0.0')):
         say(f'[!] Website đang chạy core {live}, dự án mới có {mine}. Deploy bây giờ sẽ đè core cũ lên website.')
         if yes(f'Lấy core v{live.lstrip("v")} về dự án trước?'):
             update_core('v' + live.lstrip('v'))
