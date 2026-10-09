@@ -1,12 +1,12 @@
 @php
     $segments = request()->segments();
-    if (!empty($segments) && in_array($segments[0], ['vi', 'en'])) {
+    if (!empty($segments) && app(\App\Services\LanguageRegistry::class)->supports($segments[0])) {
         app()->setLocale($segments[0]);
     }
     $isAdminContext = $isAdminContext ?? (request()->is('*/admin*') || request()->is('admin*') || (request()->is('error-preview*') && request()->query('context') !== 'client'));
     $currentLocale = app()->getLocale();
     $adminDashboardUrl = $adminDashboardUrl ?? route('admin.dashboard', ['locale' => $currentLocale]);
-    $clientHomeUrl = $clientHomeUrl ?? (\Illuminate\Support\Facades\Route::has('client.home') ? route('client.home') : null);
+    $clientHomeUrl = $clientHomeUrl ?? (\Illuminate\Support\Facades\Route::has('client.home') ? route('client.home', ['locale' => $currentLocale]) : null);
 @endphp
 
 @extends('errors.layout')

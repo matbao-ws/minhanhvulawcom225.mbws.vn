@@ -22,7 +22,7 @@
     $extraIds = $extraList ? $lists->items($extraList) : [];
 
     $describe = function (string $blockKey) use ($site, $html, $tag): array {
-        $stored = $site->value($blockKey);
+        $stored = $site->value($blockKey, null, (bool) config('multilingual.inline_edit_fallback', true));
         $format = $site->format($blockKey);
         $cleared = $site->isCleared($blockKey);
         // A region authored as plain text becomes HTML the moment the inline
@@ -75,13 +75,29 @@
             ]));
     };
 
+    /*
+     * The inner markup, built here rather than with nested @if/@else in the tag:
+     * Blade needs whitespace between `@endif` and `@else`, and that whitespace was
+     * rendered inside every saved region as a trailing space.
+     */
+    $content = function (array $block, $fallback): string {
+        if ($block['cleared']) {
+            return '';
+        }
+        if ($block['stored'] === null) {
+            return (string) $fallback;
+        }
+
+        return $block['rendersHtml'] ? trim($block['stored']) : e(trim($block['stored']));
+    };
+
     $anchor = $describe($key);
 @endphp
 
 {{-- Emptied on purpose renders nothing at all, unless an admin is editing and
      needs a handle to restore it. --}}
 @if(! $anchor['cleared'] || $canEdit)
-    <{{ $anchor['renderTag'] }} {{ $editorAttributes($anchor, $key) }}>@if($anchor['cleared'])@elseif($anchor['stored'] !== null)@if($anchor['rendersHtml']){!! trim($anchor['stored']) !!}@else{{ trim($anchor['stored']) }}@endif @else{{ $slot }}@endif</{{ $anchor['renderTag'] }}>
+    <{{ $anchor['renderTag'] }} {{ $editorAttributes($anchor, $key) }}>{!! $content($anchor, $slot) !!}</{{ $anchor['renderTag'] }}>
 @endif
 
 @foreach($extraIds as $extraId)
@@ -91,6 +107,6 @@
     @endphp
 
     @if(! $extra['cleared'] || $canEdit)
-        <{{ $extra['renderTag'] }} {{ $editorAttributes($extra, $extraKey, $extraList, $extraId) }}>@if($extra['cleared'])@elseif($extra['stored'] !== null)@if($extra['rendersHtml']){!! trim($extra['stored']) !!}@else{{ trim($extra['stored']) }}@endif @endif</{{ $extra['renderTag'] }}>
+        <{{ $extra['renderTag'] }} {{ $editorAttributes($extra, $extraKey, $extraList, $extraId) }}>{!! $content($extra, '') !!}</{{ $extra['renderTag'] }}>
     @endif
 @endforeach

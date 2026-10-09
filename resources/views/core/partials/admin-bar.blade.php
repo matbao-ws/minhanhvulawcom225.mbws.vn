@@ -67,6 +67,23 @@
             width: max-content !important;
             z-index: 2147483645 !important;
         }
+        /*
+         * Themes often set text-transform/letter-spacing on every button, link or
+         * heading; the editor's controls read as shouted, spaced-out labels. One
+         * rule for every panel root (keep in step with EDITOR_CHROME below).
+         */
+        #client-admin-bar, #client-admin-bar *,
+        #client-admin-bar-restore, #client-admin-bar-restore *,
+        #client-block-toolbar, #client-block-toolbar *,
+        #client-block-toast, #client-region-hint,
+        [id$="media-picker"], [id$="media-picker"] *,
+        #client-outline, #client-outline *,
+        #client-history, #client-history *,
+        #client-section-panel, #client-section-panel *,
+        #client-viewport, #client-viewport * {
+            text-transform: none !important;
+            letter-spacing: normal !important;
+        }
         #client-admin-bar a,
         #client-admin-bar button {
             align-items: center !important;
@@ -851,7 +868,15 @@
                 const type = element.getAttribute('data-block-type') || snapshot.type;
                 const format = element.getAttribute('data-block-format') || null;
                 const isImage = type === 'image';
-                const value = isImage ? (element.getAttribute('src') || '') : element.innerHTML;
+                /*
+                 * A plain-text region sends its text, not its markup. innerHTML
+                 * encodes "&" and ">" as entities; the server only strips tags, so
+                 * the entities were stored verbatim and Blade escaped them again —
+                 * visitors read "&amp;gt;" after the next reload.
+                 */
+                const value = isImage
+                    ? (element.getAttribute('src') || '')
+                    : (type === 'text' ? element.textContent : cleanEditedHtml(element));
 
                 const response = await fetch(blockUrl, {
                     method: 'PATCH',
@@ -876,6 +901,9 @@
 
                 if (isImage) {
                     if (payload.data.value) element.setAttribute('src', payload.data.value);
+                } else if (type === 'text') {
+                    element.textContent = payload.data.value ?? '';
+                    element.classList.toggle('client-block-empty', Boolean(payload.data.cleared));
                 } else {
                     element.innerHTML = payload.data.value ?? '';
                     element.classList.toggle('client-block-empty', Boolean(payload.data.cleared));
@@ -884,6 +912,56 @@
                 element.dataset.blockEntryTag = element.tagName.toLowerCase();
                 element.dataset.blockEntryClass = element.className;
                 element.dataset.blockEntryFormat = element.getAttribute('data-block-format') || '';
+            }
+
+            /*
+             * The HTML a rich region will store, minus what the browser invented.
+             *
+             * Chrome wraps text in <span style="…"> whenever a delete or merge
+             * crosses an element with computed styles, to keep the look. The
+             * sanitizer then drops the style and keeps the span, so every edit
+             * left another empty, nested <span> in the database. No toolbar
+             * command creates a span, so an unclassed one carries nothing.
+             */
+            function cleanEditedHtml(element) {
+                const copy = element.cloneNode(true);
+                /*
+                 * Bold on a heading the theme already sets in bold *removes* the
+                 * weight, and the browser expresses that as
+                 * <span style="font-weight: normal">. The sanitizer keeps no
+                 * style, so the change vanished on reload. A class survives it
+                 * (core.head styles it for every visitor).
+                 */
+                copy.querySelectorAll('span[style], font[style]').forEach(function (node) {
+                    const style = node.style;
+                    const classes = [];
+                    if (/^(normal|[1-4]00)$/.test(style.fontWeight)) classes.push('client-weight-normal');
+                    if (style.fontStyle === 'normal') classes.push('client-style-normal');
+                    if (/^none\b/.test(style.textDecorationLine || style.textDecoration || '')) classes.push('client-decoration-none');
+                    if (classes.length === 0) return;
+
+                    const marker = document.createElement('span');
+                    marker.className = classes.join(' ');
+                    marker.append.apply(marker, Array.from(node.childNodes));
+                    node.replaceWith(marker);
+                });
+                // Bold toggled back on: "not bold" wrapping only a <b> means bold.
+                copy.querySelectorAll('span.client-weight-normal').forEach(function (node) {
+                    const only = node.childNodes.length === 1 ? node.firstChild : null;
+                    if (only && only.nodeType === 1 && /^(b|strong)$/i.test(only.tagName)) {
+                        node.classList.remove('client-weight-normal');
+                        if (node.classList.length === 0) node.replaceWith(only);
+                    }
+                });
+                copy.querySelectorAll('[style]').forEach(function (node) {
+                    node.removeAttribute('style');
+                });
+                Array.from(copy.querySelectorAll('span, font')).reverse().forEach(function (node) {
+                    if (node.tagName.toLowerCase() === 'span' && node.attributes.length > 0) return;
+                    node.replaceWith.apply(node, Array.from(node.childNodes));
+                });
+
+                return copy.innerHTML.replace(/&nbsp;/g, ' ');
             }
 
             function errorText(payload, fallback) {
@@ -998,6 +1076,10 @@
 
             function openRegion(element) {
                 if (element.getAttribute('contenteditable') === 'true') return;
+                // One open region at a time: the toolbar and the pending state follow one.
+                if (activeRegion && activeRegion !== element) {
+                    closeRegion(activeRegion);
+                }
                 element.dataset.blockEntryHtml = element.innerHTML;
                 element.dataset.blockEntryTag = element.tagName.toLowerCase();
                 element.dataset.blockEntryClass = element.className;
@@ -1160,6 +1242,27 @@
                 });
             }
 
+            /*
+             * Paste into a template region as plain text. A copy from Word, a
+             * browser tab or the admin brings fonts, colours and wrapper divs the
+             * theme never had; the sanitizer keeps the wrappers, and a block
+             * inside an <h3> or <p> is invalid markup the browser re-parents.
+             */
+            document.addEventListener('paste', function (event) {
+                if (!editModeOn) return;
+                const region = event.target.closest ? event.target.closest('[data-block-key]') : null;
+                if (!region || region.getAttribute('data-block-type') === 'image') return;
+                if (region.getAttribute('contenteditable') !== 'true') return;
+
+                const text = event.clipboardData ? event.clipboardData.getData('text/plain') : '';
+                event.preventDefault();
+                if (!text) return;
+
+                const singleLine = region.getAttribute('data-block-type') === 'text';
+                document.execCommand('insertText', false, singleLine ? text.replace(/\s*[\r\n]+\s*/g, ' ') : text);
+                markRegionDirty(region);
+            }, true);
+
             ['input', 'paste', 'cut', 'drop'].forEach(function (type) {
                 // One delegated listener: attaching per region would add
                 // hundreds of listeners on a fully marked-up page.
@@ -1195,6 +1298,17 @@
                 if (event.key === 'Enter' && region && region.getAttribute('data-block-type') === 'text') {
                     event.preventDefault();
                     closeRegion(region);
+
+                    return;
+                }
+
+                // A rich region rendered as a heading or paragraph cannot hold the
+                // <p>/<div> the browser inserts on Enter; break the line instead.
+                // Lists keep the native behaviour, which adds the next <li>.
+                if (event.key === 'Enter' && region && region.getAttribute('data-block-type') === 'html'
+                    && /^(h[1-6]|p|span|a|button|label|strong|em|small)$/i.test(region.tagName)) {
+                    event.preventDefault();
+                    document.execCommand('insertLineBreak');
                 }
             });
 
@@ -1387,15 +1501,44 @@
              *        lacks the media permission: images then behave as plain
              *        text rather than offering a control that would 403.
              */
+            const EDITOR_CHROME = [
+                '#client-admin-bar', '#client-admin-bar-restore', '#client-block-toolbar', '#client-block-toast',
+                // Media pickers by suffix: an admin without media.view must not even get their ids.
+                '#client-block-hint', '#client-region-hint', '[id$="media-picker"]',
+                '#client-outline', '#client-history', '#client-section-panel', '#client-viewport',
+            ].join(', ');
+
             function interceptClicks(onImage) {
                 document.addEventListener('click', function (event) {
                     if (!editModeOn) return;
 
-                    const region = event.target.closest('[data-block-key]');
+                    // The editor's own controls are not part of the page being edited.
+                    // Keep in step with the panels' root ids (core/partials).
+                    if (event.target.closest(EDITOR_CHROME)) {
+                        return;
+                    }
+
+                    let region = event.target.closest('[data-block-key]');
+                    const clickable = event.target.closest('a, button');
+                    // A click on a link's padding or border lands on the link, not on
+                    // the editable text inside it: edit that text.
+                    if (!region && clickable) {
+                        region = clickable.querySelector('[data-block-key]');
+                    }
+
                     if (region) {
+                        // A region inside a link or a button must never navigate or submit.
+                        if (clickable || /^(a|button)$/i.test(region.tagName)) {
+                            event.preventDefault();
+                        }
+
                         // Let a click inside an open region land so the caret
-                        // can be positioned.
-                        if (region.getAttribute('contenteditable') === 'true') return;
+                        // can be positioned, without reaching the wrapping link's handler.
+                        if (region.getAttribute('contenteditable') === 'true') {
+                            if (clickable && clickable !== region) event.stopPropagation();
+
+                            return;
+                        }
 
                         stopEverything(event);
                         if (region.getAttribute('data-block-type') === 'image') {
@@ -1407,23 +1550,30 @@
                         return;
                     }
 
-                    if (!pageContent || !pageContent.contains(event.target)) return;
+                    // A click outside any region closes the one being edited.
+                    if (activeRegion) {
+                        closeRegion(activeRegion);
+                    }
 
-                    // Server-rendered dynamic blocks own their own admin screen.
-                    if (event.target.closest('[contenteditable="false"]')) return;
+                    if (pageContent && pageContent.contains(event.target)) {
+                        // Server-rendered dynamic blocks own their own admin screen.
+                        if (event.target.closest('[contenteditable="false"]')) return;
 
-                    const img = onImage ? event.target.closest('img') : null;
-                    if (img) {
-                        stopEverything(event);
-                        onImage(img);
+                        const img = onImage ? event.target.closest('img') : null;
+                        if (img) {
+                            stopEverything(event);
+                            onImage(img);
 
-                        return;
+                            return;
+                        }
                     }
 
                     // Navigating away mid-edit loses the pending changes, and a
-                    // theme link often carries a script handler as well.
-                    if (event.target.closest('a')) {
+                    // theme link often carries a script handler as well — on any
+                    // page, not only a CMS page: template regions sit everywhere.
+                    if (clickable) {
                         stopEverything(event);
+                        setStatus('Đang ở chế độ chỉnh sửa. Bấm "Tắt chỉnh sửa" để chuyển trang.', false);
                     }
                 }, true);
             }
