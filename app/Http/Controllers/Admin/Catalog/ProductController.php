@@ -467,7 +467,7 @@ class ProductController extends Controller
         $type = $request->input('import_type');
 
         try {
-            $results = $this->importService->import($file->getRealPath(), $type);
+            $results = $this->importService->import($file->getRealPath(), $type, $request->user()->can('products.update'));
 
             $msg = __('catalog.products.import_summary', [
                 'success' => $results['success'],

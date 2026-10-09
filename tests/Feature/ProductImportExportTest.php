@@ -109,6 +109,38 @@ class ProductImportExportTest extends TestCase
         @unlink($tempFile);
     }
 
+    /** The import route needs products.create; rewriting a live product needs products.update. */
+    public function test_a_create_only_importer_cannot_overwrite_an_existing_product(): void
+    {
+        Product::query()->create([
+            'name' => ['vi' => 'Đang bán'],
+            'slug' => 'dang-ban',
+            'sku' => 'LIVE-1',
+            'price' => 500000,
+            'stock_quantity' => 7,
+            'is_active' => true,
+        ]);
+        $csv = "Name_VI,Name_EN,Slug,SKU,Category,Brand,Price,Compare_At_Price,Cost_Price,Stock_Quantity,Manage_Stock,Is_Active,Short_Description_VI,Short_Description_EN,Description_VI,Description_EN,Image_URL\n"
+            ."Đang bán,,dang-ban,LIVE-1,,,1000,,,0,1,0,,,,,\n"
+            ."Hàng mới,,hang-moi,NEW-1,,,90000,,,3,1,1,,,,,\n";
+        $path = tempnam(sys_get_temp_dir(), 'import_test');
+        file_put_contents($path, $csv);
+        $role = \App\Models\Role::query()->create(['name' => 'Nhập hàng', 'permissions' => ['products.view', 'products.create']]);
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
+
+        $this->post('/vi/admin/products/import', [
+            'import_type' => 'standard',
+            'import_file' => new UploadedFile($path, 'import.csv', 'text/csv', null, true),
+        ])->assertRedirect()->assertSessionHas('import_errors');
+
+        $live = Product::query()->where('sku', 'LIVE-1')->firstOrFail();
+        $this->assertEquals(500000, $live->price);
+        $this->assertTrue($live->is_active);
+        $this->assertDatabaseHas('products', ['sku' => 'NEW-1']);
+
+        @unlink($path);
+    }
+
     public function test_can_import_wordpress_woocommerce_csv(): void
     {
         $csvContent = "\xEF\xBB\xBF\"SKU\",\"Name\",\"Published\",\"Short description\",\"Description\",\"Regular price\",\"Sale price\",\"Manage stock?\",\"Stock\",\"Categories\",\"Images\"\n"

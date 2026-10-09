@@ -266,6 +266,20 @@ class PostCrudTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    /** The import route needs posts.create; overwriting existing posts needs posts.update. */
+    public function test_a_create_only_author_cannot_overwrite_posts_through_the_wordpress_import(): void
+    {
+        $role = Role::query()->create(['name' => 'Tác giả', 'permissions' => ['posts.view', 'posts.create']]);
+        $author = User::factory()->create(['role_id' => $role->id]);
+
+        $this->actingAs($author)
+            ->post('/vi/admin/posts/import-wordpress', [
+                'import_file' => UploadedFile::fake()->createWithContent('wordpress.xml', $this->wordpressWxr()),
+                'duplicate_action' => 'update',
+            ])
+            ->assertSessionHasErrors('duplicate_action');
+    }
+
     public function test_wordpress_import_rejects_non_xml_files_and_invalid_wxr(): void
     {
         $this->actingAs($this->adminUser)

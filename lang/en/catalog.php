@@ -154,6 +154,7 @@ return [
         'download_template' => 'Download Template',
         'import_success' => 'Successfully imported :count products.',
         'import_failed' => 'Product import failed. Please check your CSV file.',
+        'import_existing_needs_update' => 'SKU :sku already exists; updating an existing product requires the edit-products permission.',
         'import_summary' => 'Result: Successfully imported :success products, failed/skipped :failed products.',
     ],
     'variants' => [
