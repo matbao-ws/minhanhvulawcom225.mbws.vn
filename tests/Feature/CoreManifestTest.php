@@ -219,7 +219,10 @@ class CoreManifestTest extends TestCase
     public function test_a_theme_routes_file_is_loaded_under_the_locale_prefix(): void
     {
         $file = base_path('routes/theme.php');
-        $this->assertFileDoesNotExist($file, 'routes/theme.php belongs to a theme, not to core');
+        // In a website's checkout the file is the theme's own: never overwrite or delete it.
+        if (is_file($file)) {
+            $this->markTestSkipped('This checkout is a website: routes/theme.php belongs to its theme.');
+        }
 
         file_put_contents($file, "<?php\nuse Illuminate\\Support\\Facades\\Route;\nRoute::get('/theme-probe', fn () => 'theme ok')->name('theme-probe');\n");
         try {

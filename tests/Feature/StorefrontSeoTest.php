@@ -194,6 +194,50 @@ class StorefrontSeoTest extends TestCase
         $this->assertStringNotContainsString('/san-pham/', $xml);
     }
 
+    /**
+     * A record opened in a language it has no text in shows the fallback's text: that URL is
+     * not a translation, so it is neither declared (hreflang, sitemap) nor its own canonical.
+     */
+    public function test_an_untranslated_record_declares_only_the_languages_it_has(): void
+    {
+        $page = $this->page(['slug' => 'chi-tieng-viet', 'title' => ['vi' => 'Chỉ tiếng Việt']]);
+        $vi = route('client.pages.show', ['locale' => 'vi', 'slug' => $page->canonicalSlug('vi')]);
+        $en = route('client.pages.show', ['locale' => 'en', 'slug' => $page->canonicalSlug('en')]);
+
+        $this->get($vi)->assertOk()->assertDontSee('hreflang="en"', false);
+        $this->get($en)->assertOk()->assertSee('<link rel="canonical" href="'.$vi.'">', false);
+
+        $xml = $this->get('/sitemap.xml')->assertOk()->getContent();
+        $this->assertStringContainsString('<loc>'.$vi.'</loc>', $xml);
+        $this->assertStringNotContainsString('<loc>'.$en.'</loc>', $xml);
+    }
+
+    /** A theme's own pages (routes/theme.php) are crawlable too, except private ones. */
+    public function test_the_sitemap_lists_the_theme_pages_but_not_private_ones(): void
+    {
+        $locales = implode('|', app(LanguageRegistry::class)->codes());
+        Route::middleware(['web', 'setLocale'])->prefix('{locale}')->where(['locale' => $locales])->group(function (): void {
+            Route::get('/', fn () => 'home')->name('client.home');
+            Route::get('gioi-thieu', fn () => 'about')->name('client.about');
+            Route::get('gio-hang', fn () => 'cart')->name('client.cart');
+            Route::get('tai-khoan/don-hang', fn () => 'orders')->name('client.account.orders');
+            Route::get('noi-bo', fn () => 'internal')->name('client.internal')->defaults('sitemap', false);
+            Route::redirect('cu', '/vi/gioi-thieu')->name('client.old');
+        });
+        Route::getRoutes()->refreshNameLookups();
+
+        $xml = $this->get('/sitemap.xml')->assertOk()->getContent();
+
+        $this->assertStringContainsString('<loc>'.route('client.about', ['locale' => 'vi']).'</loc>', $xml);
+        $this->assertStringContainsString('<loc>'.route('client.about', ['locale' => 'en']).'</loc>', $xml);
+        $this->assertStringContainsString('hreflang="en" href="'.route('client.about', ['locale' => 'en']).'"', $xml);
+        foreach (['gio-hang', 'don-hang', 'noi-bo', '/cu<'] as $private) {
+            $this->assertStringNotContainsString($private, $xml);
+        }
+        // Home first.
+        $this->assertStringStartsWith('<loc>'.route('client.home', ['locale' => 'vi']).'</loc>', trim(explode('<url>', $xml)[1]));
+    }
+
     public function test_sitemap_follows_feature_switches(): void
     {
         $this->category('ao-thun');
