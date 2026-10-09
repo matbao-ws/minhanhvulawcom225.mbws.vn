@@ -10,6 +10,7 @@ use App\Support\MediaUrl;
 use Illuminate\Support\Facades\Route;
 use App\Services\LocalizedContent;
 use App\Services\SiteBranding;
+use App\Support\Seo\RecordLocales;
 use App\Support\Seo\SeoMeta;
 use App\Support\Seo\StructuredData;
 use Illuminate\Database\Eloquent\Model;
@@ -52,18 +53,25 @@ class SeoMetaFactory
         $locale = app()->getLocale();
         $url = fn (string $code) => route($routeName, ['locale' => $code, 'slug' => $model->canonicalSlug($code)]);
 
+        // Only the languages the record has its own text in: elsewhere it shows the fallback's
+        // text, and that URL is not a translation search engines should index.
+        $fallback = $this->languages->fallbackLocale();
+        $own = RecordLocales::of($model, $this->languages->codes(), $fallback);
+
         // An owner-set canonical (a post republished from elsewhere) wins; it must be absolute.
-        $canonical = $canonical && preg_match('#^https?://#i', $canonical) ? $canonical : $this->withPage($url($locale));
+        $canonical = $canonical && preg_match('#^https?://#i', $canonical)
+            ? $canonical
+            : $this->withPage($url(RecordLocales::canonicalLocale($locale, $own, $fallback)));
 
         $alternates = [];
-        $codes = $this->languages->codes();
 
         // hreflang only means something when there is more than one language.
-        if (count($codes) > 1) {
-            foreach ($codes as $code) {
+        if (count($own) > 1) {
+            foreach ($own as $code) {
                 $alternates[$code] = $url($code);
             }
         }
+        $default = $this->languages->defaultLocale();
 
         $trail = [...$breadcrumbs, ['name' => $title, 'url' => $url($locale)]];
 
@@ -76,7 +84,7 @@ class SeoMetaFactory
             type: $type,
             image: $image ?: ($this->branding->current()['logo_url'] ?? null),
             alternates: $alternates,
-            xDefault: $alternates ? $url($this->languages->defaultLocale()) : null,
+            xDefault: $alternates ? $url(in_array($default, $own, true) ? $default : $own[0]) : null,
             structuredData: array_values(array_filter([StructuredData::breadcrumbs($trail), ...$structuredData])),
         );
     }
