@@ -868,6 +868,8 @@ return [
     'notifications' => 'Notifications',
     'see_all_notifications' => 'See all notifications',
     'sidebar' => [
+        'seo' => 'SEO',
+        'contacts' => 'Contacts',
         'ecommerce' => 'E-Commerce / Store',
         'landingpage' => 'Landing Page',
         'other_web' => 'Other Websites / Features',
