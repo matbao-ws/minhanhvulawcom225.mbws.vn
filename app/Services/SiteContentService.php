@@ -33,8 +33,11 @@ class SiteContentService
      *
      * Null covers both "never edited" and "deliberately emptied"; those mean
      * opposite things, so {@see isCleared()} tells them apart.
+     *
+     * `$fallback = false` returns only this locale's own edit, for themes whose template
+     * text is already translated (config multilingual.inline_edit_fallback).
      */
-    public function value(string $key, ?string $locale = null): ?string
+    public function value(string $key, ?string $locale = null, bool $fallback = true): ?string
     {
         $locale ??= app()->getLocale();
         $block = $this->all()[$key] ?? null;
@@ -45,8 +48,7 @@ class SiteContentService
 
         $translations = $block->rawTranslations();
         $stored = $translations[$locale]
-            ?? $translations[$this->languages->fallbackLocale()]
-            ?? null;
+            ?? ($fallback ? $translations[$this->languages->fallbackLocale()] ?? null : null);
 
         if (! is_string($stored) || $stored === '') {
             return null;

@@ -14,6 +14,11 @@ return [
     'admin_locales' => ['vi', 'en'],
     'admin_fallback_locale' => env('ADMIN_FALLBACK_LOCALE', 'en'),
 
+    // A region edited inline in one language only: do the other languages show that edit (true,
+    // for themes written in one language) or their own template text (false, for themes whose
+    // Blade is already translated — a /ja visitor must not read the Vietnamese edit)?
+    'inline_edit_fallback' => (bool) env('INLINE_EDIT_FALLBACK', true),
+
     'translation' => [
         'provider' => env('TRANSLATION_PROVIDER', 'google'),
         'google' => [

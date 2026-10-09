@@ -95,6 +95,51 @@ class ClientInlineEditorHardeningTest extends TestCase
         $this->assertStringNotContainsString('lastSavedHtml', $html);
     }
 
+    public function test_text_regions_save_their_text_and_rich_regions_drop_browser_spans(): void
+    {
+        $html = $this->editorHtml();
+
+        // innerHTML of a text region carries &amp;/&gt;, which the server stores
+        // verbatim and Blade escapes again on the next render.
+        $this->assertStringContainsString("(type === 'text' ? element.textContent : cleanEditedHtml(element))", $html);
+        $this->assertStringContainsString('element.textContent = payload.data.value', $html);
+        // Chrome's style-preserving <span>s survive the sanitizer as empty spans; an
+        // un-bold must become a class or it reverts on reload.
+        $this->assertStringContainsString('function cleanEditedHtml(element)', $html);
+        $this->assertStringContainsString("classes.push('client-weight-normal')", $html);
+    }
+
+    public function test_paste_is_plain_text_and_enter_breaks_a_heading_line(): void
+    {
+        $html = $this->editorHtml();
+
+        $this->assertStringContainsString("getData('text/plain')", $html);
+        $this->assertStringContainsString("document.execCommand('insertText'", $html);
+        $this->assertStringContainsString("document.execCommand('insertLineBreak')", $html);
+    }
+
+    /**
+     * The click guard and the anti-uppercase rule name the panels by id: a panel
+     * left out has its own buttons swallowed or its labels shouted.
+     */
+    public function test_every_editor_panel_is_spared_by_the_click_guard_and_the_theme_typography(): void
+    {
+        $html = $this->editorHtml();
+
+        foreach (['#client-admin-bar', '#client-block-toolbar', '#client-outline', '#client-history', '#client-section-panel', '#client-viewport', '[id$="media-picker"]'] as $panel) {
+            $this->assertStringContainsString("'{$panel}'", $html, "click guard spares {$panel}");
+            $this->assertMatchesRegularExpression('/'.preg_quote($panel, '/').' \*[^{]*\{[^}]*text-transform: none !important/s', $html, "typography spares {$panel}");
+        }
+        // A region inside a link is edited, the link never followed.
+        $this->assertStringContainsString("clickable.querySelector('[data-block-key]')", $html);
+    }
+
+    public function test_every_visitor_gets_the_formatting_reset_classes(): void
+    {
+        $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()
+            ->assertSee('.client-weight-normal{font-weight:400!important}', false);
+    }
+
     public function test_nothing_is_written_without_an_explicit_save(): void
     {
         $html = $this->editorHtml();
