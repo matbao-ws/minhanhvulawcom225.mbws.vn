@@ -71,6 +71,25 @@ class ShippingPartnerTest extends TestCase
         $response->assertSee('DTGHTEST01');
     }
 
+    /** The Viettel Post row points at the logo file that ships, not the removed SVG. */
+    public function test_the_viettel_post_logo_exists(): void
+    {
+        $logo = ShippingPartner::query()->where('partner_code', 'DTGH000016')->value('logo_url');
+
+        $this->assertSame('Viettel_Post_logo.png', $logo);
+        $this->assertFileExists(public_path('admin-assets/images/logo-vanchuyen/'.$logo));
+    }
+
+    /** A site installed before the PNG still points at the deleted SVG until the migration runs. */
+    public function test_the_viettel_post_logo_migration_moves_existing_rows_to_the_png(): void
+    {
+        ShippingPartner::query()->where('partner_code', 'DTGH000016')->update(['logo_url' => 'Viettel_Post_logo.svg']);
+
+        (require database_path('migrations/2026_10_09_140000_switch_viettel_post_logo_to_png.php'))->up();
+
+        $this->assertSame('Viettel_Post_logo.png', ShippingPartner::query()->where('partner_code', 'DTGH000016')->value('logo_url'));
+    }
+
     public function test_admin_can_create_custom_shipping_partner(): void
     {
         $response = $this->actingAs($this->adminUser)->post('/vi/admin/shipping-partners', [
