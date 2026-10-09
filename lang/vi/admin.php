@@ -860,6 +860,7 @@ return [
             'header' => 'Mã nhúng Header (Chèn trước thẻ </head>)',
             'footer' => 'Mã nhúng Footer (Chèn trước thẻ </body>)',
             'placeholder' => 'Dán đoạn mã script (e.g. <script>...</script>) tại đây',
+            'superadmin_only' => 'Chỉ superadmin được sửa mã nhúng: mã này chạy trên mọi trang và trong trình sửa trực tiếp của quản trị viên.',
         ],
         'save_settings' => 'Lưu cấu hình website',
         'saving' => 'Đang lưu cấu hình...',

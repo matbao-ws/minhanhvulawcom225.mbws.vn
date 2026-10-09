@@ -582,7 +582,8 @@ Kiểm kê toàn bộ theme/
 
 - Thẻ SEO đến từ `@include('core.head')` (partial `core.partials.seo-head`): `robots`, canonical,
   hreflang, Open Graph/Twitter, JSON-LD `Organization` và mã **Cài đặt → Embed** phần header. Phần
-  footer của Embed đến từ `@include('core.editor')`. Layout theme **không** include partial SEO nào
+  footer của Embed đến từ `@include('core.editor')`. Embed là script thô chạy cả trong editor của admin,
+  nên **chỉ superadmin** sửa được; `settings.update` không chạm tới hai khoá này. Layout theme **không** include partial SEO nào
   khác và không có composer riêng: mọi thứ nằm sau hai dòng `core.*`, nên site đang chạy nhận bản
   sửa qua cập nhật core (`resources/views/client/**` thuộc website, cập nhật không bao giờ chạm tới).
 - `<title>` và meta description vẫn do layout theme in (`@yield('title')`,

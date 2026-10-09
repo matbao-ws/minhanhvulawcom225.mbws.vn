@@ -764,15 +764,19 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.embed.title') }}</h5>
+                        @php($canEditEmbeds = auth()->user()->isSuperAdmin())
+                        @unless ($canEditEmbeds)
+                            <div class="alert alert-info">{{ __('admin.settings.embed.superadmin_only') }}</div>
+                        @endunless
                         <div class="row">
                             <div class="col-md-12 mb-4">
                                 <label class="form-label fw-semibold text-dark" for="embed_header">{{ __('admin.settings.embed.header') }}</label>
-                                <textarea class="form-control text-dark font-monospace" id="embed_header" name="embed_header" rows="8" 
+                                <textarea class="form-control text-dark font-monospace" id="embed_header" name="embed_header" rows="8" @disabled(! $canEditEmbeds) 
                                     placeholder="{{ __('admin.settings.embed.placeholder') }}">{{ old('embed_header', $settings->get('embed_header')) }}</textarea>
                             </div>
                             <div class="col-md-12 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="embed_footer">{{ __('admin.settings.embed.footer') }}</label>
-                                <textarea class="form-control text-dark font-monospace" id="embed_footer" name="embed_footer" rows="8" 
+                                <textarea class="form-control text-dark font-monospace" id="embed_footer" name="embed_footer" rows="8" @disabled(! $canEditEmbeds) 
                                     placeholder="{{ __('admin.settings.embed.placeholder') }}">{{ old('embed_footer', $settings->get('embed_footer')) }}</textarea>
                             </div>
                         </div>
