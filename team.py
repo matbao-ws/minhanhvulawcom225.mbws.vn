@@ -82,6 +82,12 @@ def has(tool):
     return shutil.which(tool) is not None
 
 
+def github_repo(url):
+    """'OWNER/REPO' from a GitHub remote URL (https or ssh), or '' for anything else."""
+    m = re.match(r'^(?:https://github\.com/|git@github\.com:)([^/]+/[^/]+?)(?:\.git)?/?$', (url or '').strip())
+    return m.group(1) if m else ''
+
+
 def git(*args, check=True, cwd=None):
     return run(['git', *args], check=check, cwd=cwd)
 
@@ -661,11 +667,14 @@ def save_and_push():
 
     git('push', '-u', 'origin', current)
     if has('gh') and yes('Mở Pull Request vào main?'):
-        existing = out(['gh', 'pr', 'view', current, '--json', 'url', '-q', '.url'])
+        # A project also has the `core` remote, so gh cannot guess the repository: name it.
+        repo = github_repo(out(['git', 'remote', 'get-url', 'origin']))
+        target = ['--repo', repo] if repo else []
+        existing = out(['gh', 'pr', 'view', current, *target, '--json', 'url', '-q', '.url'])
         if existing:
             say(f'[+] PR đã có: {existing}')
         else:
-            run(['gh', 'pr', 'create', '--base', 'main', '--head', current, '--fill'], check=False)
+            run(['gh', 'pr', 'create', *target, '--base', 'main', '--head', current, '--fill'], check=False)
     say('[+] Đã đẩy. Chờ CI ✅ trên PR rồi merge; merge xong chọn "Dọn nhánh đã merge".')
 
 
