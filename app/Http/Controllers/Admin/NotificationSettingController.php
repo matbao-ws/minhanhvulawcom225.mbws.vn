@@ -244,9 +244,12 @@ class NotificationSettingController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            // The HTTP client's message holds the request URL, and the bot token is part of that URL.
+            \Illuminate\Support\Facades\Log::warning('Zalo getUpdates failed.', ['exception' => $e::class]);
+
             return response()->json([
                 'success' => false,
-                'message' => __('admin.notification_settings.zalo_personal.get_chat_id_error') . ' ' . $e->getMessage(),
+                'message' => __('admin.notification_settings.zalo_personal.get_chat_id_error'),
             ], 500);
         }
     }

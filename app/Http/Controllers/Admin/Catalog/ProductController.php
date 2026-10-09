@@ -487,7 +487,12 @@ class ProductController extends Controller
 
             return back()->with('success', $msg);
         } catch (\Exception $exception) {
-            return back()->with('error', __('catalog.products.import_failed').' '.$exception->getMessage());
+            report($exception);
+
+            // Only the importer's own messages are meant for the screen; a QueryException carries SQL.
+            $reason = $exception::class === \RuntimeException::class ? ' '.$exception->getMessage() : '';
+
+            return back()->with('error', __('catalog.products.import_failed').$reason);
         }
     }
 
