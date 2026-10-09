@@ -41,13 +41,13 @@ class CoreUpdateController extends Controller
 
         return view('admin.core-update.index', [
             'progress' => $progress,
-            'problems' => UpdateProblems::explain($this->updater->state()['error'] ?? null),
+            'problems' => UpdateProblems::explain($this->updater->displayState()['error'] ?? null),
             'version' => $this->manifest->version(),
             'enabled' => $this->service->enabled(),
             'drift' => $this->manifest->drift(),
             'available' => $this->service->available(),
             'requested' => $this->service->requested(),
-            'state' => $this->updater->state(),
+            'state' => $this->updater->displayState(),
             'history' => $history,
             'canRollback' => glob($this->manifest->base().'/storage/app/core/backups/*/meta.json') !== [],
             'isSuperAdmin' => (bool) $request->user()?->isSuperAdmin(),
@@ -74,7 +74,7 @@ class CoreUpdateController extends Controller
     {
         $progress = $this->service->progress();
 
-        return response()->json($progress + ['problems' => UpdateProblems::explain($this->updater->state()['error'] ?? null)])
+        return response()->json($progress + ['problems' => UpdateProblems::explain($this->updater->displayState()['error'] ?? null)])
             ->header('Cache-Control', 'no-store');
     }
 
