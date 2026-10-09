@@ -178,10 +178,16 @@ class WebhookController extends Controller
             'Reason' => ['nullable', 'string', 'max:1000'],
             'CODAmount' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
         ]);
-        $order = Order::query()
-            ->where('tracking_number', $payload['OrderCode'])
-            ->orWhere('order_number', $payload['ClientOrderCode'] ?? '__missing__')
-            ->first();
+        // GHN's own code first. Our order number is the fallback for shipments created on GHN's
+        // dashboard, and only for orders no other carrier ships: it is guessable and printed on
+        // labels, so it must not let a GHN callback take over a GHTK order.
+        $order = Order::query()->where('tracking_number', $payload['OrderCode'])->first()
+            ?? (filled($payload['ClientOrderCode'] ?? null)
+                ? Order::query()
+                    ->where('order_number', $payload['ClientOrderCode'])
+                    ->where(fn ($query) => $query->whereNull('shipping_carrier')->orWhere('shipping_carrier', 'ghn'))
+                    ->first()
+                : null);
         if (! $order) {
             return response()->json(['success' => true]);
         }
