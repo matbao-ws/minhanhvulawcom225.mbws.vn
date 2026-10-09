@@ -112,6 +112,9 @@ class SiteBlockEditingTest extends TestCase
             'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_TEXT, 'content_locale' => 'vi', 'value' => 'Bản sửa tiếng Việt',
         ])->assertOk();
 
+        // Set explicitly: a website's checkout may run its tests with its own value.
+        config(['multilingual.inline_edit_fallback' => true]);
+        $this->site();
         $this->get('/en/danh-muc/dien-thoai')->assertOk()->assertSee('Bản sửa tiếng Việt');
 
         config(['multilingual.inline_edit_fallback' => false]);
