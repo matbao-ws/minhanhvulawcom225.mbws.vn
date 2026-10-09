@@ -219,6 +219,10 @@ class AppServiceProvider extends ServiceProvider
         // Each request spends an AI credit; the gateway enforces the monthly quota itself.
         RateLimiter::for('admin-ai', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->user()?->id ?: $request->ip())));
 
+        // Uploads and imports: up to 10 × 50 MB per upload, imports run synchronously.
+        RateLimiter::for('admin-heavy', fn (Request $request) => Limit::perMinute(20)->by('heavy:'.($request->user()?->id ?: $request->ip())));
+        // Admin AI screens that ask the gateway on every load (job status, research, SEO tasks).
+        RateLimiter::for('admin-gateway-read', fn (Request $request) => Limit::perMinute(60)->by('gw:'.($request->user()?->id ?: $request->ip())));
         RateLimiter::for('admin-translation', fn (Request $request) => [
             Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip())),
             Limit::perDay(500)->by((string) ($request->user()?->id ?: $request->ip())),

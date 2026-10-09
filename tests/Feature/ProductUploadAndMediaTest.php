@@ -200,6 +200,17 @@ class ProductUploadAndMediaTest extends TestCase
         $this->assertStringEndsWith('.gif', $files[0]);
     }
 
+    public function test_uploads_are_rate_limited_per_admin(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        foreach (range(1, 20) as $attempt) {
+            $this->post('/vi/admin/media/upload', ['file' => UploadedFile::fake()->image("p{$attempt}.jpg"), 'folder' => 'general'])->assertRedirect();
+        }
+
+        $this->post('/vi/admin/media/upload', ['file' => UploadedFile::fake()->image('p21.jpg'), 'folder' => 'general'])->assertStatus(429);
+    }
+
     public function test_the_extension_audit_lists_files_uploads_no_longer_produce(): void
     {
         Storage::disk('public')->put('general/old-banner.html', '<script>alert(1)</script>');
