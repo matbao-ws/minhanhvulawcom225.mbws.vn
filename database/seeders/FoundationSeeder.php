@@ -11,6 +11,15 @@ use Illuminate\Database\Seeder;
 use RuntimeException;
 use Illuminate\Support\Str;
 
+/**
+ * The rows a shop cannot run without: features, permissions, the superadmin, default roles,
+ * settings, languages, the primary menu and the fallback category.
+ *
+ * Create-only. deploy.py offers this seed again on every deploy, and a live shop has edited these
+ * rows by then: upserting put the shop's name, logo, contact, SEO, languages, menu name and the
+ * Admin role's permissions back to the defaults. The seeder guarantees each row exists; once it
+ * does, its values belong to the shop.
+ */
 class FoundationSeeder extends Seeder
 {
     public function run(): void
@@ -20,7 +29,7 @@ class FoundationSeeder extends Seeder
             PermissionSeeder::class,
         ]);
 
-        \App\Models\Category::query()->updateOrCreate(
+        \App\Models\Category::query()->firstOrCreate(
             ['slug' => 'chua-phan-loai'],
             [
                 'name' => [
@@ -56,14 +65,20 @@ class FoundationSeeder extends Seeder
             $this->command?->info('Package sync: '.$result['status'].($result['package'] ? ' ('.$result['package']['code'].')' : ''));
         }
 
-        $superadminRole = Role::query()->updateOrCreate(
+        $superadminRole = Role::query()->firstOrCreate(
             ['name' => 'Superadmin'],
             ['permissions' => ['*'], 'is_system' => true]
         );
+        // The one repair kept: this role is the superadmin by definition, and losing the flag
+        // would lock the owner out of permission management.
+        if (! $superadminRole->is_superadmin || ! $superadminRole->is_system) {
+            $superadminRole->update(['permissions' => ['*'], 'is_system' => true]);
+        }
 
         // Everything except permission management and language configuration,
         // which stay with the superadmin.
-        $adminRole = Role::query()->updateOrCreate(
+        // The owner may narrow or widen it afterwards; a re-seed must not undo that.
+        $adminRole = Role::query()->firstOrCreate(
             ['name' => 'Admin'],
             [
                 'permissions' => array_values(array_filter(
@@ -77,7 +92,7 @@ class FoundationSeeder extends Seeder
 
         // The client layout asks for the `primary` menu, so the install always
         // has one to fill in rather than a missing key.
-        \App\Models\Menu::query()->updateOrCreate(
+        \App\Models\Menu::query()->firstOrCreate(
             ['key' => 'primary'],
             ['name' => 'Menu chính', 'is_active' => true],
         );
@@ -110,11 +125,11 @@ class FoundationSeeder extends Seeder
         }
 
         if (\Illuminate\Support\Facades\Schema::hasTable('languages')) {
-            \App\Models\Language::query()->updateOrCreate(
+            \App\Models\Language::query()->firstOrCreate(
                 ['code' => 'vi'],
                 ['name' => 'Vietnamese', 'native_name' => 'Tiếng Việt', 'regional' => 'vi_VN', 'flag_path' => 'admin-assets/images/flag/Flag_of_Vietnam.svg.png', 'is_active' => true, 'is_default' => true, 'is_content_fallback' => true, 'sort_order' => 0],
             );
-            \App\Models\Language::query()->updateOrCreate(
+            \App\Models\Language::query()->firstOrCreate(
                 ['code' => 'en'],
                 ['name' => 'English', 'native_name' => 'English', 'regional' => 'en_US', 'flag_path' => 'admin-assets/images/flag/icon-flag-en.svg', 'is_active' => true, 'is_default' => false, 'is_content_fallback' => false, 'sort_order' => 10],
             );
@@ -152,7 +167,7 @@ class FoundationSeeder extends Seeder
         ];
 
         foreach ($settings as $key => $value) {
-            ProjectSetting::query()->updateOrCreate(
+            ProjectSetting::query()->firstOrCreate(
                 ['setting_key' => $key],
                 [
                     'setting_value' => $value,
