@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Network\PublicAddress;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -90,7 +91,10 @@ class WordPressImageImportService
             return $localUrl;
         } catch (Throwable $exception) {
             $this->cache[$url] = null;
-            $this->errors[] = Str::limit($url, 180).' — '.$exception->getMessage();
+            // Only our own checks explain themselves. A connection error's text (refused, timed
+            // out, TLS…) would turn the import into a scanner of what answers where.
+            $reason = $exception instanceof RuntimeException ? $exception->getMessage() : 'không tải được ảnh';
+            $this->errors[] = Str::limit($url, 180).' — '.$reason;
 
             return $url;
         }
@@ -126,11 +130,12 @@ class WordPressImageImportService
     private function request(string $url): Response
     {
         for ($redirects = 0; $redirects <= 3; $redirects++) {
-            $this->assertPublicUrl($url);
+            // Connect to the address that was checked, not to whatever DNS answers next (rebinding).
+            $pin = $this->assertPublicUrl($url);
             $response = Http::connectTimeout(8)
                 ->timeout(20)
                 ->withHeaders(['User-Agent' => $this->userAgent])
-                ->withOptions(['allow_redirects' => false, 'stream' => true])
+                ->withOptions(['allow_redirects' => false, 'stream' => true, 'curl' => [CURLOPT_RESOLVE => [$pin]]])
                 ->get($url);
 
             if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
@@ -181,7 +186,10 @@ class WordPressImageImportService
         return strtolower(trim(explode(';', $response->header('Content-Type'))[0]));
     }
 
-    private function assertPublicUrl(string $url): void
+    /**
+     * @return string the curl CURLOPT_RESOLVE entry ("host:port:ip") pinning the checked address
+     */
+    private function assertPublicUrl(string $url): string
     {
         $parts = parse_url($url);
         $scheme = strtolower((string) ($parts['scheme'] ?? ''));
@@ -190,10 +198,16 @@ class WordPressImageImportService
             throw new RuntimeException('URL ảnh không hợp lệ');
         }
 
-        $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : $this->resolveIps($host);
-        if ($ips === [] || collect($ips)->contains(fn (string $ip): bool => ! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))) {
+        $literal = trim($host, '[]');
+        $ips = filter_var($literal, FILTER_VALIDATE_IP) ? [$literal] : $this->resolveIps($host);
+        if ($ips === [] || collect($ips)->contains(fn (string $ip): bool => ! PublicAddress::isPublic($ip))) {
             throw new RuntimeException('URL ảnh trỏ tới mạng nội bộ hoặc host không phân giải được');
         }
+
+        $port = (int) ($parts['port'] ?? ($scheme === 'https' ? 443 : 80));
+        $ip = str_contains($ips[0], ':') ? '['.$ips[0].']' : $ips[0];
+
+        return "{$host}:{$port}:{$ip}";
     }
 
     /** @return list<string> */

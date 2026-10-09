@@ -57,6 +57,19 @@ class NotificationSettingTest extends TestCase
         $response->assertStatus(403);
     }
 
+    /** The HTTP client's error names the URL, and the Zalo bot token is part of that URL. */
+    public function test_a_failed_zalo_lookup_does_not_echo_the_bot_token(): void
+    {
+        \Illuminate\Support\Facades\Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException(
+            'cURL error 28: Operation timed out for https://bot-api.zaloplatforms.com/botSECRET-BOT-TOKEN-123/getUpdates',
+        ));
+
+        $this->actingAs($this->adminUser)
+            ->postJson('/vi/admin/notification-settings/get-zalo-chat-id', ['bot_token' => 'SECRET-BOT-TOKEN-123'])
+            ->assertStatus(500)
+            ->assertDontSee('SECRET-BOT-TOKEN-123');
+    }
+
     public function test_admin_can_view_notification_settings_page(): void
     {
         $response = $this->actingAs($this->adminUser)->get('/vi/admin/notification-settings');

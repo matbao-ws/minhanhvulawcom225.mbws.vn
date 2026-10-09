@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PublicAddressResource;
 use App\Models\UserAddress;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -10,6 +11,9 @@ use Illuminate\Support\Facades\Validator;
 
 class UserAddressController extends Controller
 {
+    /** An address book, not storage: the cap keeps one account from filling the table. */
+    public const MAX_ADDRESSES = 20;
+
     /**
      * Get list of addresses for the logged-in customer.
      */
@@ -21,7 +25,7 @@ class UserAddressController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        return ApiResponse::success($addresses);
+        return ApiResponse::success(PublicAddressResource::collection($addresses));
     }
 
     /**
@@ -41,6 +45,9 @@ class UserAddressController extends Controller
         }
 
         $user = $request->user();
+        if ($user->addresses()->count() >= self::MAX_ADDRESSES) {
+            return ApiResponse::error(__('controller.api.address_limit', ['max' => self::MAX_ADDRESSES]), 422);
+        }
         $isFirst = $user->addresses()->count() === 0;
         $isDefault = $isFirst || (bool) $request->input('is_default');
 
@@ -56,7 +63,7 @@ class UserAddressController extends Controller
             'is_default' => $isDefault,
         ]);
 
-        return ApiResponse::success($address, __('controller.api.address_created'));
+        return ApiResponse::success(new PublicAddressResource($address), __('controller.api.address_created'));
     }
 
     /**
@@ -96,7 +103,7 @@ class UserAddressController extends Controller
             'is_default' => $isDefault || $address->is_default, // if it was already default, keep it default
         ]);
 
-        return ApiResponse::success($address, __('controller.api.address_updated'));
+        return ApiResponse::success(new PublicAddressResource($address), __('controller.api.address_updated'));
     }
 
     /**
@@ -140,6 +147,6 @@ class UserAddressController extends Controller
         $user->addresses()->update(['is_default' => false]);
         $address->update(['is_default' => true]);
 
-        return ApiResponse::success($address, __('controller.api.address_defaulted'));
+        return ApiResponse::success(new PublicAddressResource($address), __('controller.api.address_defaulted'));
     }
 }

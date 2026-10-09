@@ -195,7 +195,20 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute((int) config('contact.per_minute', 5))->by('contact-minute:'.$request->ip()),
             Limit::perDay((int) config('contact.per_day', 20))->by('contact-day:'.$request->ip()),
         ]);
-        RateLimiter::for('public-checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        // Per email too: every order mails its customer_email, so checkout could otherwise flood
+        // any inbox with shop-branded mail and burn the site's monthly mail quota.
+        RateLimiter::for('public-checkout', fn (Request $request) => array_filter([
+            Limit::perMinute(10)->by($request->ip()),
+            ($emailKey = \App\Models\Voucher::emailKey($request->input('customer_email')))
+                ? Limit::perHour(5)->by('checkout-email:'.$emailKey)
+                : null,
+        ]));
+        // Voucher codes are short words an admin picked; without a ceiling the endpoint is a guessing oracle.
+        RateLimiter::for('public-voucher', fn (Request $request) => [
+            Limit::perMinute(10)->by('voucher-minute:'.$request->ip()),
+            Limit::perHour(60)->by('voucher-hour:'.$request->ip()),
+        ]);
+        RateLimiter::for('public-read', fn (Request $request) => Limit::perMinute((int) config('app.public_read_per_minute', 300))->by('read:'.$request->ip()));
         RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
         RateLimiter::for('public-review', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
@@ -206,6 +219,10 @@ class AppServiceProvider extends ServiceProvider
         // Each request spends an AI credit; the gateway enforces the monthly quota itself.
         RateLimiter::for('admin-ai', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->user()?->id ?: $request->ip())));
 
+        // Uploads and imports: up to 10 × 50 MB per upload, imports run synchronously.
+        RateLimiter::for('admin-heavy', fn (Request $request) => Limit::perMinute(20)->by('heavy:'.($request->user()?->id ?: $request->ip())));
+        // Admin AI screens that ask the gateway on every load (job status, research, SEO tasks).
+        RateLimiter::for('admin-gateway-read', fn (Request $request) => Limit::perMinute(60)->by('gw:'.($request->user()?->id ?: $request->ip())));
         RateLimiter::for('admin-translation', fn (Request $request) => [
             Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip())),
             Limit::perDay(500)->by((string) ($request->user()?->id ?: $request->ip())),

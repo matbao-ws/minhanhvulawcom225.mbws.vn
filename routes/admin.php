@@ -44,7 +44,7 @@ Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:a
 Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
 Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware('throttle:admin-login')->name('password.email');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
-Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.update');
+Route::post('/reset-password', [ResetPasswordController::class, 'store'])->middleware('throttle:admin-login')->name('password.update');
 
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
@@ -121,14 +121,14 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'index'])->name('bulk.index');
         Route::post('bulk/estimate', [\App\Http\Controllers\Admin\AiBulkController::class, 'estimate'])->middleware('throttle:admin-ai')->name('bulk.estimate');
         Route::post('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'store'])->middleware('throttle:admin-ai')->name('bulk.store');
-        Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->name('bulk.show');
+        Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->middleware('throttle:admin-gateway-read')->name('bulk.show');
         Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
         // Keywords & competitors (Hero 4+). Data from a paid provider, limited on the gateway.
         Route::middleware('feature:ai_research')->prefix('research')->name('research.')
             ->controller(\App\Http\Controllers\Admin\AiResearchController::class)->group(function () {
-                Route::get('/', 'index')->name('index');
-                Route::get('status', 'status')->name('status');
+                Route::get('/', 'index')->middleware('throttle:admin-gateway-read')->name('index');
+                Route::get('status', 'status')->middleware('throttle:admin-gateway-read')->name('status');
                 Route::post('competitors', 'storeCompetitor')->middleware('throttle:admin-ai')->name('competitors.store');
                 Route::delete('competitors/{domain}', 'destroyCompetitor')->where('domain', '[A-Za-z0-9.-]+')->name('competitors.destroy');
                 Route::post('competitors/suggest', 'suggest')->middleware('throttle:admin-ai')->name('competitors.suggest');
@@ -139,8 +139,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             });
 
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
-        Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->name('seo-tasks.index');
-        Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->name('seo-tasks.summary');
+        Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.index');
+        Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.summary');
         Route::post('seo-tasks/{task}/advice', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'advice'])
             ->where('task', '[a-f0-9]{16}')->middleware('throttle:admin-ai')->name('seo-tasks.advice');
         Route::post('seo-tasks/{task}/status', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'mark'])
@@ -158,7 +158,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
         Route::get('media/resources', [MediaController::class, 'resources'])->name('media.resources');
     });
-    Route::post('media/upload', [MediaController::class, 'upload'])->middleware('can:media.create')->name('media.upload');
+    Route::post('media/upload', [MediaController::class, 'upload'])->middleware(['can:media.create', 'throttle:admin-heavy'])->name('media.upload');
     Route::delete('media/delete', [MediaController::class, 'destroy'])->middleware('can:media.delete')->name('media.delete');
     Route::delete('media/bulk-delete', [MediaController::class, 'bulkDestroy'])->middleware('can:media.delete')->name('media.bulk-delete');
     Route::post('media/cloudinary/connect', [MediaController::class, 'connectCloudinary'])
@@ -222,7 +222,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     });
 
     Route::middleware('feature:cms_page')->group(function () {
-        Route::post('posts/import-wordpress', [PostController::class, 'importWordPress'])->middleware('can:posts.create')->name('posts.import-wordpress');
+        Route::post('posts/import-wordpress', [PostController::class, 'importWordPress'])->middleware(['can:posts.create', 'throttle:admin-heavy'])->name('posts.import-wordpress');
         Route::patch('posts/bulk', [PostController::class, 'bulk'])->middleware('can:posts.update')->name('posts.bulk');
         Route::post('post-categories/sort', [PostCategoryController::class, 'sort'])->middleware('can:posts.update')->name('post-categories.sort');
         Route::put('post-categories/{post_category}/quick-update', [PostCategoryController::class, 'quickUpdate'])->middleware('can:posts.update')->name('post-categories.quick-update');
@@ -415,7 +415,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::post('products/sort', [ProductController::class, 'sort'])->middleware('can:products.update')->name('products.sort');
         Route::get('products/export', [ProductController::class, 'export'])->middleware('can:products.view')->name('products.export');
         Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
-        Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.create')->name('products.import');
+        Route::post('products/import', [ProductController::class, 'import'])->middleware(['can:products.create', 'throttle:admin-heavy'])->name('products.import');
         Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware(['can:products.create', 'package.limit:data_unit']);
         Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('can:products.view');
         Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('can:products.update');

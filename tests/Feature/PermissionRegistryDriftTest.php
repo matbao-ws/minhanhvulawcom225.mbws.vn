@@ -62,6 +62,38 @@ class PermissionRegistryDriftTest extends TestCase
         $this->assertSame([], array_values($unenforced), 'Quyền khai báo nhưng không route nào kiểm tra: '.implode(', ', $unenforced));
     }
 
+    /**
+     * `auth` + `admin` only prove the caller is staff. A route that changes
+     * something must also say who may do it, or it is open to every staff
+     * account the day it is added. Exceptions are listed with their reason.
+     */
+    public function test_every_admin_route_that_changes_something_checks_a_permission(): void
+    {
+        $exempt = [
+            'admin.login.store' => 'before login',
+            'admin.password.email' => 'before login',
+            'admin.password.update' => 'before login',
+            'admin.logout' => 'ends the caller\'s own session',
+            'admin.users.impersonate.leave' => 'returns to the original superadmin, checked in the controller',
+            'admin.dashboard.package-usage.refresh' => 'refreshes read-only package data shown to every admin; throttled',
+        ];
+        $gates = static fn (string $middleware): bool => str_starts_with($middleware, 'can:')
+            || in_array($middleware, ['superadmin', 'core-update.access'], true);
+
+        $ungated = [];
+        foreach (Route::getRoutes() as $route) {
+            $name = (string) $route->getName();
+            if (! str_starts_with($name, 'admin.') || isset($exempt[$name]) || array_diff($route->methods(), ['GET', 'HEAD']) === []) {
+                continue;
+            }
+            if (! collect($route->gatherMiddleware())->filter(fn ($m) => is_string($m))->contains($gates)) {
+                $ungated[] = $name;
+            }
+        }
+
+        $this->assertSame([], $ungated, 'Route ghi dữ liệu thiếu can:/superadmin: '.implode(', ', $ungated));
+    }
+
     public function test_seeder_projects_the_registry_exactly(): void
     {
         (new \Database\Seeders\PermissionSeeder())->run();

@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $siteBranding['name'] }} API Documentation</title>
     <link rel="icon" href="{{ $siteBranding['favicon_url'] }}">
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+    {{-- Pinned with SRI (hashes cross-checked against cdnjs): this page shares the admin's origin. --}}
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" integrity="sha512-CUrU8jW2FzbeOhVlOTweMpj7bkllUqGepjvth3oj9EZdDscEb6W7sz+zpbRLVBuS/y3dBsRSuDpeY5aG5mzieQ==" crossorigin="anonymous" />
     <style>
         html {
             box-sizing: border-box;
@@ -65,8 +66,8 @@
 
     <div id="swagger-ui"></div>
 
-    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" charset="UTF-8"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" integrity="sha512-hSZOpml815hXtcPhOSV9IotBOTxeGieOTRPdTIuWBNNYx8zyUhEgRYDlxnGL6WCnhV/iB8OcvEVXyWtT4lf3uQ==" crossorigin="anonymous" charset="UTF-8"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js" integrity="sha512-EbhIdguft3zBqYIGe6VMR2lUjGYBnCM5Y5jfwgYnFhOGu4A7v8IfX4pGp29D8vxVK/eOW6E41GxQIdJHEmce7g==" crossorigin="anonymous" charset="UTF-8"></script>
     <script>
         window.onload = function() {
             const ui = SwaggerUIBundle({

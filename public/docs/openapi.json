@@ -81,6 +81,13 @@
         }
       }
     },
+    "/public/health": {
+      "get": {
+        "tags": ["Storefront Configuration"],
+        "summary": "Kiểm tra API còn hoạt động",
+        "responses": { "200": { "description": "API đang chạy" } }
+      }
+    },
     "/public/contact": {
       "post": {
         "tags": ["Public"],
@@ -420,7 +427,7 @@
         "summary": "Danh sách sản phẩm kèm bộ lọc",
         "description": "Trả về danh sách sản phẩm có phân trang. Hỗ trợ tìm kiếm và lọc theo danh mục, thương hiệu, khoảng giá và sắp xếp.",
         "parameters": [
-          { "name": "search", "in": "query", "description": "Từ khóa tìm kiếm theo tên sản phẩm", "required": false, "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "description": "Từ khóa tìm theo tên, mô tả, SKU (tối đa 100 ký tự; % và _ được hiểu là ký tự thường)", "required": false, "schema": { "type": "string", "maxLength": 100 } },
           { "name": "category", "in": "query", "description": "Slug của danh mục sản phẩm", "required": false, "schema": { "type": "string" } },
           { "name": "brand", "in": "query", "description": "Slug của thương hiệu", "required": false, "schema": { "type": "string" } },
           { "name": "min_price", "in": "query", "description": "Giá tối thiểu", "required": false, "schema": { "type": "number" } },
@@ -617,7 +624,8 @@
               }
             }
           },
-          "422": { "description": "Mã giảm giá không hợp lệ hoặc không đủ điều kiện tối thiểu" }
+          "422": { "description": "Mã giảm giá không hợp lệ (không tồn tại, đã khoá và chưa bắt đầu trả cùng một thông báo), hết hạn, hết lượt hoặc không đủ điều kiện tối thiểu" },
+          "429": { "description": "Quá 10 lần/phút hoặc 60 lần/giờ từ cùng IP" }
         }
       }
     },
@@ -647,13 +655,16 @@
                   "notes": { "type": "string", "example": "Giao hàng giờ hành chính", "nullable": true },
                   "items": {
                     "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "description": "Tối đa 50 dòng (ORDER_MAX_LINES). Đơn VNPAY/SePay chưa thanh toán tự hủy sau 30 phút / 24 giờ và hoàn lại tồn kho, voucher, suất khuyến mãi.",
                     "items": {
                       "type": "object",
                       "required": ["product_id", "quantity"],
                       "properties": {
                         "product_id": { "type": "integer", "example": 1 },
                         "option_value_ids": { "type": "array", "description": "Bắt buộc với sản phẩm có biến thể; chọn đúng một value ID từ mỗi option group.", "items": { "type": "integer" }, "example": [11, 24] },
-                        "quantity": { "type": "integer", "example": 2 }
+                        "quantity": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Tối đa 100 mỗi dòng (ORDER_MAX_LINE_QUANTITY)", "example": 2 }
                       }
                     }
                   }
@@ -716,7 +727,8 @@
               }
             }
           },
-          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin)" }
+          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin)" },
+          "429": { "description": "Quá 10 đơn/phút từ cùng IP hoặc 5 đơn/giờ cho cùng email" }
         }
       }
     },
@@ -946,6 +958,16 @@
         }
       }
     },
+    "/public/post-categories": {
+      "get": {
+        "tags": ["Blog Posts"],
+        "summary": "Lấy danh sách chuyên mục bài viết đang hoạt động",
+        "parameters": [
+          { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } }
+        ],
+        "responses": { "200": { "description": "Thành công" }, "429": { "description": "Quá giới hạn đọc theo IP (PUBLIC_API_READ_PER_MINUTE)" } }
+      }
+    },
     "/public/posts": {
       "get": {
         "tags": ["Blog Posts"],
@@ -953,7 +975,7 @@
         "parameters": [
           { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } },
           { "name": "category", "in": "query", "required": false, "schema": { "type": "string" } },
-          { "name": "q", "in": "query", "required": false, "schema": { "type": "string" } }
+          { "name": "q", "in": "query", "description": "Từ khóa tìm theo tiêu đề, tóm tắt (tối đa 100 ký tự)", "required": false, "schema": { "type": "string", "maxLength": 100 } }
         ],
         "responses": {
           "200": {
@@ -1095,13 +1117,81 @@
         }
       }
     },
+    "/public/payment/vnpay/return": {
+      "get": {
+        "tags": ["Checkout & Orders"],
+        "summary": "Trình duyệt quay về từ VNPAY",
+        "description": "Chỉ xác minh chữ ký và báo kết quả; không bao giờ đổi trạng thái đơn (IPN mới là nguồn sự thật). Có `redirect_url` hợp lệ thì chuyển về storefront kèm `payment`, `order_number`, `vnp_response_code`. Không có thì trả JSON gồm kết quả và mã/trạng thái/tổng tiền của đơn — không có thông tin cá nhân của khách.",
+        "parameters": [
+          { "name": "redirect_url", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Chỉ chấp nhận host của APP_URL hoặc PAYMENT_RETURN_HOSTS" }
+        ],
+        "responses": {
+          "200": { "description": "Chữ ký hợp lệ; `data.payment` là success hoặc failed" },
+          "302": { "description": "Chuyển về redirect_url" },
+          "400": { "description": "Chữ ký VNPAY không hợp lệ" },
+          "404": { "description": "Không tìm thấy đơn hàng" }
+        }
+      }
+    },
+    "/public/payment/vnpay/ipn": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "VNPAY IPN (máy chủ VNPAY gọi)",
+        "description": "Nguồn duy nhất đổi trạng thái thanh toán VNPAY. Kiểm tra chữ ký HMAC-SHA512, TMN code, phương thức, số tiền; idempotent theo giao dịch. Trả `RspCode` theo chuẩn VNPAY.",
+        "responses": { "200": { "description": "Phản hồi RspCode/Message cho VNPAY" } }
+      }
+    },
+    "/admin/login": {
+      "post": {
+        "tags": ["Admin API"],
+        "summary": "Đăng nhập API admin (token ability `admin`)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["email", "password"], "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Trả token" }, "422": { "description": "Sai thông tin đăng nhập" }, "429": { "description": "Quá số lần thử theo IP/email" } }
+      }
+    },
+    "/admin/me": {
+      "get": {
+        "tags": ["Admin API"],
+        "summary": "Thông tin tài khoản admin hiện tại",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Thành công" }, "401": { "description": "Chưa đăng nhập" }, "403": { "description": "Token không có ability admin hoặc tài khoản bị khoá" } }
+      }
+    },
+    "/admin/logout": {
+      "post": {
+        "tags": ["Admin API"],
+        "summary": "Thu hồi token admin hiện tại",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Đã đăng xuất" } }
+      }
+    },
+    "/webhooks/ghn": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Webhook nhận trạng thái từ Giao Hàng Nhanh (GHN)",
+        "description": "GHN chỉ gửi được token trên query string. Khớp đơn theo mã vận đơn GHN (`OrderCode`); mã đơn của shop (`ClientOrderCode`) chỉ dùng cho đơn chưa thuộc hãng vận chuyển khác. Idempotent theo nội dung sự kiện.",
+        "parameters": [
+          { "name": "token", "in": "query", "required": true, "schema": { "type": "string", "minLength": 20 } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["OrderCode", "Status"], "properties": { "OrderCode": { "type": "string" }, "ClientOrderCode": { "type": "string" }, "Status": { "type": "string", "example": "delivered" }, "Reason": { "type": "string" }, "CODAmount": { "type": "number" } } } } } },
+        "responses": { "200": { "description": "Đã nhận" }, "401": { "description": "Token không hợp lệ hoặc tracking chưa bật" } }
+      }
+    },
+    "/ai/webhook": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Tín hiệu từ MatBao AI gateway báo một job đã xong",
+        "description": "Ký HMAC trên timestamp + body, lệch tối đa 300 giây. Chỉ tin `job_id`; kết quả được đọc lại từ gateway.",
+        "responses": { "200": { "description": "Đã nhận" }, "401": { "description": "Chữ ký không hợp lệ" } }
+      }
+    },
     "/webhooks/ghtk": {
       "post": {
         "tags": ["Webhooks"],
         "summary": "Webhook nhận trạng thái từ Giao Hàng Tiết Kiệm (GHTK)",
-        "description": "Đồng bộ trạng thái vận đơn tự động từ hệ thống GHTK gửi về. Cần truyền `token` bảo mật trên query string.",
+        "description": "Đồng bộ trạng thái vận đơn tự động từ hệ thống GHTK gửi về. Token bảo mật gửi trong header `X-GHTK-Token`; query `token` chỉ được nhận khi bật GHTK_WEBHOOK_ALLOW_QUERY_TOKEN cho tương thích.",
         "parameters": [
-          { "name": "token", "in": "query", "description": "Token bảo mật được cấu hình trên shop", "required": true, "schema": { "type": "string" } }
+          { "name": "X-GHTK-Token", "in": "header", "description": "Token bảo mật được cấu hình trên shop (tối thiểu 20 ký tự)", "required": true, "schema": { "type": "string", "minLength": 20 } }
         ],
         "requestBody": {
           "required": true,

@@ -169,7 +169,10 @@ return [
     |
     */
 
-    'secure' => env('APP_ENV', 'production') === 'production' || env('SESSION_SECURE_COOKIE', false),
+    // Any HTTPS site (staging included), not only production: the cookie never travels over plain HTTP.
+    'secure' => env('APP_ENV', 'production') === 'production'
+        || str_starts_with((string) env('APP_URL', ''), 'https://')
+        || (bool) env('SESSION_SECURE_COOKIE', false),
 
     /*
     |--------------------------------------------------------------------------

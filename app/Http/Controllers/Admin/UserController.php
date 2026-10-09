@@ -29,18 +29,31 @@ class UserController extends Controller
 
     private function getAvailableRoles()
     {
-        $query = Role::query();
-        if (! auth()->user()->isSuperAdmin()) {
-            $query->where('is_system', false)->where('is_superadmin', false);
+        if (auth()->user()->isSuperAdmin()) {
+            return Role::query()->get();
         }
-        return $query->get();
+
+        return Role::query()
+            ->where('is_system', false)
+            ->where('is_superadmin', false)
+            ->get()
+            ->filter(fn (Role $role): bool => $this->withinReach($role->permissions))
+            ->values();
     }
 
+    /**
+     * Managing an account means being able to take it over (its password is on
+     * the form), so nobody manages an account that holds access they lack.
+     */
     private function assertCanManage(User $user): void
     {
         $this->assertStaffAccount($user);
 
-        if ($user->hasPrivilegedRole() && ! auth()->user()->isSuperAdmin()) {
+        if (auth()->user()->isSuperAdmin()) {
+            return;
+        }
+
+        if ($user->hasPrivilegedRole() || ! $this->withinReach($user->effectivePermissionCodes())) {
             abort(403, 'Unauthorized.');
         }
     }
@@ -50,11 +63,33 @@ class UserController extends Controller
         abort_if($user->role_id === null, 404);
     }
 
-    private function assertCanAssignRole(?Role $role): void
+    /**
+     * Handing out a role hands out its permissions, so the same rule applies as
+     * for overrides. Keeping an account on the role it already has grants
+     * nothing; without that exception a user whose override revokes part of
+     * their own role could no longer save their own name.
+     */
+    private function assertCanAssignRole(?Role $role, ?User $target = null): void
     {
-        if (! $role || ($role->is_system || $role->is_superadmin) && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
+        abort_unless($role, 403, 'Unauthorized.');
+
+        if (auth()->user()->isSuperAdmin() || ($target && (int) $target->role_id === (int) $role->id)) {
+            return;
         }
+
+        abort_if($role->is_system || $role->is_superadmin, 403, 'Unauthorized.');
+        abort_unless($this->withinReach($role->permissions), 403, 'Không thể cấp quyền vượt quá quyền của chính bạn.');
+    }
+
+    /**
+     * Codes the registry no longer declares are enforced nowhere, so they never
+     * count against the actor.
+     *
+     * @param  array<int, string>  $codes
+     */
+    private function withinReach(array $codes): bool
+    {
+        return array_diff(array_filter($codes, PermissionRegistry::has(...)), $this->grantableCodes()) === [];
     }
 
     /**
@@ -209,7 +244,7 @@ class UserController extends Controller
     public function update(UserRequest $request, string $locale, User $user)
     {
         $this->assertCanManage($user);
-        $this->assertCanAssignRole(Role::find($request->input('role_id')));
+        $this->assertCanAssignRole(Role::find($request->input('role_id')), $user);
 
         if ($user->is(auth()->user()) && ((int) $request->input('role_id') !== (int) $user->role_id || (bool) $request->input('is_active', false) !== $user->is_active)) {
             abort(403, 'You cannot change your own role or account status.');

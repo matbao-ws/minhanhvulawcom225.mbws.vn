@@ -148,7 +148,8 @@ class WordPressPostImportService
         libxml_clear_errors();
 
         try {
-            if (! $reader->open($filePath, null, LIBXML_NONET | LIBXML_COMPACT | LIBXML_PARSEHUGE)) {
+            // No LIBXML_PARSEHUGE: libxml's own size limits are what stop a crafted export from exhausting memory.
+            if (! $reader->open($filePath, null, LIBXML_NONET | LIBXML_COMPACT)) {
                 throw new RuntimeException('File XML không hợp lệ hoặc không thể mở.');
             }
 
@@ -172,7 +173,7 @@ class WordPressPostImportService
 
                 $xml = $reader->readOuterXml();
                 libxml_clear_errors();
-                $item = simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA | LIBXML_PARSEHUGE);
+                $item = simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
                 if (! $item) {
                     throw new RuntimeException('Không thể đọc một mục trong file WordPress XML. '.$this->xmlErrorMessage());
                 }

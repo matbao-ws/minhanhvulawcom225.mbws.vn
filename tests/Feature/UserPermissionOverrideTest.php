@@ -150,12 +150,13 @@ class UserPermissionOverrideTest extends TestCase
 
     /**
      * A narrow admin editing someone else must not silently wipe overrides on
-     * permissions they cannot even see.
+     * permissions they cannot even see. (A revocation: a grant beyond the
+     * editor's reach puts the whole account beyond it.)
      */
     public function test_overrides_outside_the_editor_reach_survive_a_save(): void
     {
         $target = User::factory()->create(['role_id' => $this->staffRole->id]);
-        $this->override($target, 'settings.update', true);
+        $this->override($target, 'settings.update', false);
 
         $this->actingAsUserManager(['orders.view']);
 
@@ -168,15 +169,128 @@ class UserPermissionOverrideTest extends TestCase
         ])->assertRedirect('/vi/admin/users');
 
         $fresh = $target->fresh();
-        $this->assertTrue($fresh->permissionOverrideFor('settings.update'));
+        $this->assertFalse($fresh->permissionOverrideFor('settings.update'));
         $this->assertTrue($fresh->permissionOverrideFor('orders.view'));
     }
 
+    public function test_an_admin_cannot_create_an_account_on_a_role_beyond_their_reach(): void
+    {
+        $this->actingAsUserManager([]);
+        $power = Role::query()->create(['name' => 'Power', 'permissions' => ['posts.view', 'settings.update']]);
+
+        $this->post('/vi/admin/users', [
+            'name' => 'Sock Puppet',
+            'email' => 'sock@example.com',
+            'role_id' => $power->id,
+            'is_active' => 1,
+            'password' => 'Str0ng!Passw0rd',
+            'password_confirmation' => 'Str0ng!Passw0rd',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'sock@example.com']);
+    }
+
+    public function test_an_admin_can_create_an_account_on_a_role_within_their_reach(): void
+    {
+        $this->actingAsUserManager([]);
+
+        $this->post('/vi/admin/users', [
+            'name' => 'New Staff',
+            'email' => 'staff@example.com',
+            'role_id' => $this->staffRole->id,
+            'is_active' => 1,
+            'password' => 'Str0ng!Passw0rd',
+            'password_confirmation' => 'Str0ng!Passw0rd',
+        ])->assertRedirect('/vi/admin/users');
+
+        $this->assertDatabaseHas('users', ['email' => 'staff@example.com', 'role_id' => $this->staffRole->id]);
+    }
+
+    public function test_an_admin_cannot_move_an_account_onto_a_role_beyond_their_reach(): void
+    {
+        $this->actingAsUserManager([]);
+        $power = Role::query()->create(['name' => 'Power', 'permissions' => ['posts.view', 'settings.update']]);
+        $target = User::factory()->create(['role_id' => $this->staffRole->id]);
+
+        $this->put('/vi/admin/users/'.$target->id, [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role_id' => $power->id,
+            'is_active' => 1,
+        ])->assertForbidden();
+
+        $this->assertSame($this->staffRole->id, $target->fresh()->role_id);
+    }
+
+    public function test_the_role_picker_only_offers_roles_within_reach(): void
+    {
+        $this->actingAsUserManager([]);
+        Role::query()->create(['name' => 'Power Role', 'permissions' => ['settings.update']]);
+
+        $this->get('/vi/admin/users/create')
+            ->assertOk()
+            ->assertSee('Staff')
+            ->assertDontSee('Power Role');
+    }
+
+    /**
+     * The edit form sets passwords, so managing a more powerful account is
+     * taking it over.
+     */
+    public function test_an_admin_cannot_take_over_an_account_holding_access_they_lack(): void
+    {
+        $power = Role::query()->create(['name' => 'Power', 'permissions' => ['posts.view', 'settings.update']]);
+        $byRole = User::factory()->create(['role_id' => $power->id]);
+        $byOverride = User::factory()->create(['role_id' => $this->staffRole->id]);
+        $this->override($byOverride, 'settings.update', true);
+
+        $this->actingAsUserManager([]);
+
+        foreach ([$byRole, $byOverride] as $target) {
+            $hash = $target->password;
+
+            $this->get('/vi/admin/users/'.$target->id.'/edit')->assertForbidden();
+            $this->put('/vi/admin/users/'.$target->id, [
+                'name' => $target->name,
+                'email' => $target->email,
+                'role_id' => $target->role_id,
+                'is_active' => 1,
+                'password' => 'Str0ng!Passw0rd',
+                'password_confirmation' => 'Str0ng!Passw0rd',
+            ])->assertForbidden();
+            $this->patch('/vi/admin/users/'.$target->id.'/toggle-status')->assertForbidden();
+
+            $fresh = $target->fresh();
+            $this->assertSame($hash, $fresh->password);
+            $this->assertTrue($fresh->is_active);
+        }
+    }
+
+    /** Keeping your own role grants nothing, even when an override trims it. */
+    public function test_an_admin_whose_override_trims_their_role_can_still_save_their_profile(): void
+    {
+        $manager = $this->actingAsUserManager([]);
+        $this->override($manager, 'posts.update', false);
+
+        $this->put('/vi/admin/users/'.$manager->id, [
+            'name' => 'Renamed',
+            'email' => $manager->email,
+            'role_id' => $manager->role_id,
+            'is_active' => 1,
+        ])->assertRedirect('/vi/admin/users');
+
+        $this->assertSame('Renamed', $manager->fresh()->name);
+    }
+
+    /**
+     * The manager holds the Staff role's permissions too: managing an account
+     * that holds access the manager lacks is refused outright.
+     */
     private function actingAsUserManager(array $extraPermissions): User
     {
         $role = Role::query()->create([
             'name' => 'User Manager',
-            'permissions' => array_merge(['users.view', 'users.create', 'users.update'], $extraPermissions),
+            'permissions' => array_merge(['users.view', 'users.create', 'users.update', 'posts.view', 'posts.update'], $extraPermissions),
         ]);
         $manager = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($manager);

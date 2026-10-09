@@ -46,7 +46,7 @@ class ContactController extends Controller
         }
 
         $inquiry = $request->only(['name', 'phone', 'email', 'message']);
-        $meta = $request->except(['name', 'phone', 'email', 'message', ...ContactSpamGuard::CONTROL_FIELDS]);
+        $meta = $this->extraFields($request->except(['name', 'phone', 'email', 'message', ...ContactSpamGuard::CONTROL_FIELDS]));
         $spam = $guard->reason($request, $inquiry);
 
         if ($spam === ContactSpamGuard::DUPLICATE) {
@@ -78,5 +78,29 @@ class ContactController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => self::SENT]);
+    }
+
+    /**
+     * Extra fields a theme's form adds (company, budget…) are kept as meta, but only
+     * in the shape a form produces: a bounded number of short, flat text values.
+     * Anything else was stored verbatim, so one request could park megabytes of
+     * JSON in the table and in every row of the admin list.
+     *
+     * @param  array<string, mixed>  $fields
+     * @return array<string, string>
+     */
+    private function extraFields(array $fields): array
+    {
+        $kept = [];
+        foreach ($fields as $key => $value) {
+            if (count($kept) >= 20) {
+                break;
+            }
+            if (is_string($key) && preg_match('/^[a-z0-9_]{1,40}$/i', $key) && (is_string($value) || is_numeric($value))) {
+                $kept[$key] = mb_substr((string) $value, 0, 1000);
+            }
+        }
+
+        return $kept;
     }
 }

@@ -90,6 +90,34 @@ class PromotionService
         $target?->increment('used_count', $quantity);
     }
 
+    /**
+     * Hands back quota reserve() consumed for a cancelled order line. The order
+     * line records the promotion but not the target, so the target is picked
+     * the way quote() picks it: the variant's own row before the product-wide one.
+     */
+    public function release(int $promotionId, int $productId, ?int $variantId, int $quantity): void
+    {
+        $promotion = Promotion::query()->lockForUpdate()->find($promotionId);
+        if (! $promotion) {
+            return;
+        }
+
+        $promotion->forceFill(['used_count' => max(0, (int) $promotion->used_count - $quantity)])->save();
+
+        if ($promotion->applies_to !== 'selected') {
+            return;
+        }
+
+        $target = PromotionTarget::query()
+            ->where('promotion_id', $promotion->id)
+            ->where('product_id', $productId)
+            ->where(fn ($query) => $query->whereNull('product_variant_id')->orWhere('product_variant_id', $variantId))
+            ->orderByRaw('product_variant_id IS NULL')
+            ->lockForUpdate()
+            ->first();
+        $target?->forceFill(['used_count' => max(0, (int) $target->used_count - $quantity)])->save();
+    }
+
     private function discountedUnitPrice(Promotion $promotion, float $originalPrice): float
     {
         return match ($promotion->discount_type) {

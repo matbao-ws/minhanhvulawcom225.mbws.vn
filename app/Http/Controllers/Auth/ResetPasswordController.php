@@ -43,7 +43,9 @@ class ResetPasswordController extends Controller
         );
 
         $success = $status === Password::PASSWORD_RESET;
-        $message = __($status);
+        // One message for every failure: "unknown account" and "bad token" must read the same, or
+        // the form tells anyone which emails are staff accounts.
+        $message = $success ? __($status) : __('controller.auth.invalid_reset_token');
 
         if ($request->expectsJson()) {
             return $success

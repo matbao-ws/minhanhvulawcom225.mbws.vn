@@ -247,6 +247,9 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Checkout phải tính lại toàn bộ giá từ database.
 - Promotion tự động áp dụng trước; voucher tính trên subtotal sau promotion.
 - Voucher phải kiểm tra thời gian, trạng thái, số lượng và giới hạn mỗi khách trong transaction.
+  "Một khách" = khớp **bất kỳ** định danh nào: `user_id`, email chuẩn hoá (`Voucher::emailKey`, bỏ
+  `+tag`, bỏ dấu chấm Gmail) hoặc số điện thoại chuẩn hoá (`Voucher::phoneKey`). Ghi `voucher_usages`
+  phải kèm hai khoá này.
 - Checkout/stock/payment cần `DB::transaction()` và row lock khi cạnh tranh dữ liệu.
 
 ### Đơn hàng và tồn kho
@@ -259,6 +262,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   biến thể (`option_value_ids` ở public, SKU đã chọn ở admin), nguồn giảm giá thứ hai (voucher hay
   thủ công) và nguồn phí vận chuyển.
 - Chuyển trạng thái qua `OrderStateTransitionService`.
+- Huỷ đơn trả lại **cả ba** thứ đơn đã giữ: tồn kho, lượt voucher và suất khuyến mãi — qua
+  `Orders\OrderCancellationService` (`cancel()` hoặc `releaseReservations()` khi caller đã tự đổi
+  status). Không tự gọi `OrderStockService::restore()` cho đơn bị huỷ. Webhook lặp an toàn nhờ
+  `orders.reservations_released_at`.
+- Đơn VNPAY/SePay chưa thanh toán tự huỷ sau TTL (`config/orders.php`, mặc định 30 phút / 24 giờ) bởi
+  `orders:expire-unpaid` mỗi 5 phút; COD không bao giờ tự huỷ. Checkout giới hạn số dòng và số lượng
+  mỗi dòng (`orders.max_lines`, `orders.max_line_quantity`).
 - Trừ/hoàn kho qua `OrderStockService`.
 - Inventory movement phải idempotent; không cập nhật stock trực tiếp ở controller.
 - `completed` và `cancelled` là trạng thái đơn hàng kết thúc theo policy hiện tại.
@@ -572,7 +582,8 @@ Kiểm kê toàn bộ theme/
 
 - Thẻ SEO đến từ `@include('core.head')` (partial `core.partials.seo-head`): `robots`, canonical,
   hreflang, Open Graph/Twitter, JSON-LD `Organization` và mã **Cài đặt → Embed** phần header. Phần
-  footer của Embed đến từ `@include('core.editor')`. Layout theme **không** include partial SEO nào
+  footer của Embed đến từ `@include('core.editor')`. Embed là script thô chạy cả trong editor của admin,
+  nên **chỉ superadmin** sửa được; `settings.update` không chạm tới hai khoá này. Layout theme **không** include partial SEO nào
   khác và không có composer riêng: mọi thứ nằm sau hai dòng `core.*`, nên site đang chạy nhận bản
   sửa qua cập nhật core (`resources/views/client/**` thuộc website, cập nhật không bao giờ chạm tới).
 - `<title>` và meta description vẫn do layout theme in (`@yield('title')`,

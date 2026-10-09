@@ -166,6 +166,7 @@ return array (
     'download_template' => 'Tải tệp mẫu',
     'import_success' => 'Đã nhập thành công :count sản phẩm.',
     'import_failed' => 'Nhập sản phẩm thất bại. Vui lòng kiểm tra lại tệp CSV.',
+    'import_existing_needs_update' => 'SKU :sku đã tồn tại; cần quyền sửa sản phẩm để cập nhật sản phẩm có sẵn.',
     'import_summary' => 'Kết quả: Nhập thành công :success sản phẩm, bỏ qua/lỗi :failed sản phẩm.',
   ),
   'variants' => 

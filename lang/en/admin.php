@@ -857,6 +857,7 @@ return [
             'header' => 'Header Embed Code (Inserted before </head>)',
             'footer' => 'Footer Embed Code (Inserted before </body>)',
             'placeholder' => 'Paste your script tag (e.g. <script>...</script>) here',
+            'superadmin_only' => 'Only a superadmin can change embed code: it runs on every page and inside the inline editor admins use.',
         ],
         'save_settings' => 'Save Website Settings',
         'saving' => 'Saving configuration...',

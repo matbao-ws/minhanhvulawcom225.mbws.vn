@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicUserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
+use App\Support\PasswordCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -64,7 +65,7 @@ class PublicAuthController extends Controller
 
         $user = User::query()->where('email', $request->email)->first();
 
-        if (! $user || ! $user->is_active || $user->role_id !== null || ! Hash::check($request->password, $user->password)) {
+        if (! PasswordCheck::matches($user, (string) $request->password) || ! $user->is_active || $user->role_id !== null) {
             return ApiResponse::error(__('controller.auth.invalid_credentials'), 401);
         }
 
