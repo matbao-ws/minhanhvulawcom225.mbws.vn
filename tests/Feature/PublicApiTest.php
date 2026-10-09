@@ -233,6 +233,29 @@ class PublicApiTest extends TestCase
         $response->assertJsonFragment(['success' => false]);
     }
 
+    /** Telling unknown, locked and upcoming codes apart confirms private codes to a guesser. */
+    public function test_unknown_locked_and_upcoming_vouchers_answer_alike(): void
+    {
+        \App\Models\Voucher::query()->create(['code' => 'LOCKED', 'name' => ['vi' => 'Khoá'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => false]);
+        \App\Models\Voucher::query()->create(['code' => 'SOON', 'name' => ['vi' => 'Sắp tới'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => true, 'start_date' => now()->addWeek()]);
+
+        $messages = collect(['NOSUCHCODE', 'LOCKED', 'SOON'])->map(fn (string $code) => $this->postJson('/api/public/vouchers/apply', [
+            'code' => $code,
+            'subtotal' => 600000,
+        ])->assertStatus(422)->json('message'));
+
+        $this->assertCount(1, $messages->unique());
+    }
+
+    public function test_voucher_guessing_is_rate_limited(): void
+    {
+        foreach (range(1, 10) as $attempt) {
+            $this->postJson('/api/public/vouchers/apply', ['code' => 'GUESS'.$attempt, 'subtotal' => 1000])->assertStatus(422);
+        }
+
+        $this->postJson('/api/public/vouchers/apply', ['code' => 'GUESS11', 'subtotal' => 1000])->assertStatus(429);
+    }
+
     public function test_guest_checkout_creation(): void
     {
         Mail::fake();

@@ -617,7 +617,8 @@
               }
             }
           },
-          "422": { "description": "Mã giảm giá không hợp lệ hoặc không đủ điều kiện tối thiểu" }
+          "422": { "description": "Mã giảm giá không hợp lệ (không tồn tại, đã khoá và chưa bắt đầu trả cùng một thông báo), hết hạn, hết lượt hoặc không đủ điều kiện tối thiểu" },
+          "429": { "description": "Quá 10 lần/phút hoặc 60 lần/giờ từ cùng IP" }
         }
       }
     },

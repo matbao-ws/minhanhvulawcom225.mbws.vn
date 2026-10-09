@@ -196,6 +196,11 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay((int) config('contact.per_day', 20))->by('contact-day:'.$request->ip()),
         ]);
         RateLimiter::for('public-checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        // Voucher codes are short words an admin picked; without a ceiling the endpoint is a guessing oracle.
+        RateLimiter::for('public-voucher', fn (Request $request) => [
+            Limit::perMinute(10)->by('voucher-minute:'.$request->ip()),
+            Limit::perHour(60)->by('voucher-hour:'.$request->ip()),
+        ]);
         RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
         RateLimiter::for('public-review', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));

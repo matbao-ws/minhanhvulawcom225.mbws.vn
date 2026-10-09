@@ -308,17 +308,11 @@ class PublicController extends Controller
 
         $voucher = Voucher::query()->where('code', $code)->first();
 
-        if (! $voucher) {
-            return ApiResponse::error('Mã giảm giá không tồn tại.', 422);
-        }
-
-        if (! $voucher->is_active) {
-            return ApiResponse::error('Mã giảm giá đã bị khóa.', 422);
-        }
-
+        // Unknown, locked and not-yet-started codes answer alike: telling them apart
+        // would confirm private and upcoming campaign codes to anyone guessing.
         $now = now();
-        if ($voucher->start_date && $voucher->start_date->isAfter($now)) {
-            return ApiResponse::error('Chương trình giảm giá chưa bắt đầu.', 422);
+        if (! $voucher || ! $voucher->is_active || ($voucher->start_date && $voucher->start_date->isAfter($now))) {
+            return ApiResponse::error('Mã giảm giá không hợp lệ.', 422);
         }
         if ($voucher->end_date && $voucher->end_date->isBefore($now)) {
             return ApiResponse::error('Mã giảm giá đã hết hạn sử dụng.', 422);

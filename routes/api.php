@@ -38,7 +38,7 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
         ->middleware(['feature:catalog', 'feature:review', 'throttle:public-review']);
 
     // Vouchers
-    Route::post('/vouchers/apply', [PublicController::class, 'applyVoucher'])->middleware('feature:voucher');
+    Route::post('/vouchers/apply', [PublicController::class, 'applyVoucher'])->middleware(['feature:voucher', 'throttle:public-voucher']);
 
     // Checkout & Tracking
     Route::post('/orders/checkout', [PublicController::class, 'checkout'])
