@@ -420,7 +420,7 @@
         "summary": "Danh sách sản phẩm kèm bộ lọc",
         "description": "Trả về danh sách sản phẩm có phân trang. Hỗ trợ tìm kiếm và lọc theo danh mục, thương hiệu, khoảng giá và sắp xếp.",
         "parameters": [
-          { "name": "search", "in": "query", "description": "Từ khóa tìm kiếm theo tên sản phẩm", "required": false, "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "description": "Từ khóa tìm theo tên, mô tả, SKU (tối đa 100 ký tự; % và _ được hiểu là ký tự thường)", "required": false, "schema": { "type": "string", "maxLength": 100 } },
           { "name": "category", "in": "query", "description": "Slug của danh mục sản phẩm", "required": false, "schema": { "type": "string" } },
           { "name": "brand", "in": "query", "description": "Slug của thương hiệu", "required": false, "schema": { "type": "string" } },
           { "name": "min_price", "in": "query", "description": "Giá tối thiểu", "required": false, "schema": { "type": "number" } },
@@ -958,7 +958,7 @@
         "parameters": [
           { "name": "locale", "in": "query", "required": false, "schema": { "type": "string", "example": "vi" } },
           { "name": "category", "in": "query", "required": false, "schema": { "type": "string" } },
-          { "name": "q", "in": "query", "required": false, "schema": { "type": "string" } }
+          { "name": "q", "in": "query", "description": "Từ khóa tìm theo tiêu đề, tóm tắt (tối đa 100 ký tự)", "required": false, "schema": { "type": "string", "maxLength": 100 } }
         ],
         "responses": {
           "200": {

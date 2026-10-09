@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Services\LocalizedSlugService;
 use App\Support\FeatureGate;
+use App\Support\SearchTerm;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -52,12 +53,12 @@ class ProductQueryService
             $query->where('brand_id', $brand?->id ?? 0);
         }
 
-        if (filled($filters['q'] ?? null)) {
-            $keyword = (string) $filters['q'];
-            $query->where(function (Builder $sub) use ($keyword, $locale): void {
-                $sub->where("name->{$locale}", 'like', "%{$keyword}%")
-                    ->orWhere("description->{$locale}", 'like', "%{$keyword}%")
-                    ->orWhere('sku', 'like', "%{$keyword}%");
+        if (($keyword = SearchTerm::from($filters['q'] ?? null)) !== null) {
+            $pattern = SearchTerm::contains($keyword);
+            $query->where(function (Builder $sub) use ($pattern, $locale): void {
+                $sub->where("name->{$locale}", 'like', $pattern)
+                    ->orWhere("description->{$locale}", 'like', $pattern)
+                    ->orWhere('sku', 'like', $pattern);
             });
         }
 

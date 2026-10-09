@@ -208,6 +208,7 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by('voucher-minute:'.$request->ip()),
             Limit::perHour(60)->by('voucher-hour:'.$request->ip()),
         ]);
+        RateLimiter::for('public-read', fn (Request $request) => Limit::perMinute((int) config('app.public_read_per_minute', 300))->by('read:'.$request->ip()));
         RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
         RateLimiter::for('public-review', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));

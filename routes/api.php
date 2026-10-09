@@ -15,7 +15,9 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
 
     Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:public-contact');
 
-    Route::middleware('feature:catalog')->group(function () {
+    // Catalogue and content reads. Generous (a headless storefront renders from one server IP) but
+    // bounded, since search scans JSON columns on every row.
+    Route::middleware(['feature:catalog', 'throttle:public-read'])->group(function () {
         Route::get('/categories', [PublicController::class, 'categories']);
         Route::get('/brands', [PublicController::class, 'brands']);
         Route::get('/products', [PublicController::class, 'products']);
@@ -26,7 +28,7 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
         Route::get('/menus/{key}', [PublicController::class, 'menu'])->where('key', '[a-z0-9-]+');
     });
 
-    Route::middleware('feature:cms_page')->group(function () {
+    Route::middleware(['feature:cms_page', 'throttle:public-read'])->group(function () {
         Route::get('/post-categories', [PublicController::class, 'postCategories']);
         Route::get('/posts', [PublicController::class, 'posts']);
         Route::get('/posts/{id_or_slug}', [PublicController::class, 'postDetail']);

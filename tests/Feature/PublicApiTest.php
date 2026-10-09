@@ -272,6 +272,27 @@ class PublicApiTest extends TestCase
             ->assertStatus(429);
     }
 
+    public function test_public_search_treats_the_keyword_as_plain_text(): void
+    {
+        // An array used to end in a 500; wildcards used to match everything.
+        $this->getJson('/api/public/products?q[]=x')->assertOk();
+        $this->getJson('/api/public/posts?q[]=x')->assertOk();
+
+        $this->getJson('/api/public/products?q=_')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/public/products?q=%25')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_public_reads_are_rate_limited(): void
+    {
+        config(['app.public_read_per_minute' => 3]);
+
+        foreach (range(1, 3) as $attempt) {
+            $this->getJson('/api/public/categories')->assertOk();
+        }
+
+        $this->getJson('/api/public/categories')->assertStatus(429);
+    }
+
     public function test_guest_checkout_creation(): void
     {
         Mail::fake();

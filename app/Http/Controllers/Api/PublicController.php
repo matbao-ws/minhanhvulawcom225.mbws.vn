@@ -44,6 +44,7 @@ use App\Services\VNPAYService;
 use App\Support\ApiResponse;
 use App\Support\FeatureGate;
 use App\Support\NotificationHelper;
+use App\Support\SearchTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -220,11 +221,11 @@ class PublicController extends Controller
             $category = $this->localizedSlugs->find(PostCategory::class, $request->input('category'), app()->getLocale());
             $query->where('category_id', $category?->id ?? 0);
         }
-        if ($request->filled('q')) {
-            $keyword = $request->input('q');
+        if (($keyword = SearchTerm::from($request->input('q'))) !== null) {
+            $pattern = SearchTerm::contains($keyword);
             $locale = app()->getLocale();
-            $query->where(fn ($query) => $query->where("title->{$locale}", 'like', "%{$keyword}%")
-                ->orWhere("summary->{$locale}", 'like', "%{$keyword}%"));
+            $query->where(fn ($query) => $query->where("title->{$locale}", 'like', $pattern)
+                ->orWhere("summary->{$locale}", 'like', $pattern));
         }
 
         $posts = $query->latest('published_at')->paginate(12)->withQueryString();
