@@ -40,7 +40,26 @@ class ErrorPageThemeHomeTest extends TestCase
 
         $this->get('/ja/a-definitely-missing-page-12345')
             ->assertStatus(404)
-            ->assertSee(url('/ja'), false);
+            ->assertSee(url('/ja'), false)
+            ->assertSee(trans('errors.404.heading', [], 'ja'));
+    }
+
+    /** A key added to the error pages without its Japanese text would show the raw key. */
+    public function test_the_japanese_error_texts_cover_every_key(): void
+    {
+        $flatten = function (array $lines, string $prefix = '') use (&$flatten): array {
+            $keys = [];
+            foreach ($lines as $key => $value) {
+                $keys = is_array($value) ? [...$keys, ...$flatten($value, "{$prefix}{$key}.")] : [...$keys, "{$prefix}{$key}"];
+            }
+
+            return $keys;
+        };
+
+        $this->assertEqualsCanonicalizing(
+            $flatten(require lang_path('en/errors.php')),
+            $flatten(require lang_path('ja/errors.php')),
+        );
     }
 
     public function test_the_error_views_render_without_a_request_locale(): void
