@@ -247,6 +247,9 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Checkout phải tính lại toàn bộ giá từ database.
 - Promotion tự động áp dụng trước; voucher tính trên subtotal sau promotion.
 - Voucher phải kiểm tra thời gian, trạng thái, số lượng và giới hạn mỗi khách trong transaction.
+  "Một khách" = khớp **bất kỳ** định danh nào: `user_id`, email chuẩn hoá (`Voucher::emailKey`, bỏ
+  `+tag`, bỏ dấu chấm Gmail) hoặc số điện thoại chuẩn hoá (`Voucher::phoneKey`). Ghi `voucher_usages`
+  phải kèm hai khoá này.
 - Checkout/stock/payment cần `DB::transaction()` và row lock khi cạnh tranh dữ liệu.
 
 ### Đơn hàng và tồn kho

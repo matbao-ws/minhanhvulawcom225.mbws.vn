@@ -443,7 +443,7 @@ class PublicController extends Controller
                         ->where('code', strtoupper($request->input('voucher_code')))
                         ->lockForUpdate()
                         ->first();
-                    if (! $voucher || ! $voucher->isValidForOrder($discountableSubtotal, $customerId, $request->input('customer_email'))) {
+                    if (! $voucher || ! $voucher->isValidForOrder($discountableSubtotal, $customerId, $request->input('customer_email'), $request->input('customer_phone'))) {
                         throw new \DomainException('Mã giảm giá không hợp lệ cho đơn hàng này.');
                     }
                     $voucherDiscount = $voucher->calculateDiscount($discountableSubtotal);
@@ -477,6 +477,8 @@ class PublicController extends Controller
                         'user_id' => $customerId,
                         'order_id' => $order->id,
                         'customer_email' => $order->customer_email,
+                        'customer_email_key' => Voucher::emailKey($order->customer_email),
+                        'customer_phone_key' => Voucher::phoneKey($order->customer_phone),
                         'used_at' => now(),
                     ]);
                 }
