@@ -130,6 +130,8 @@ class VnpayReturnTest extends TestCase
 
     public function test_return_redirects_to_validated_client_url_with_sanitized_status(): void
     {
+        // The allowed hosts come from config, not from whatever APP_URL this checkout's .env holds.
+        config(['app.url' => 'http://localhost', 'app.payment_return_hosts' => []]);
         $order = $this->makeOrder();
         $params = $this->signedVnpayParams($order);
         $params['redirect_url'] = 'http://localhost/checkout/result';
