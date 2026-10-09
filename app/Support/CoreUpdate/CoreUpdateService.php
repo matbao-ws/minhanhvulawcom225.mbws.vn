@@ -122,7 +122,7 @@ class CoreUpdateService
             'stale' => $since !== null && now()->diffInMinutes($since, true) >= ($phase === 'running' ? 30 : 5),
             'version' => $this->manifest->version(),
             // No error text: pages (and this JSON) show the reference, the log holds the detail.
-            'last' => array_intersect_key($state, array_flip(['status', 'from', 'to', 'ref', 'updated_at'])),
+            'last' => array_intersect_key($this->updater->displayState(), array_flip(['status', 'from', 'to', 'ref', 'updated_at'])),
             'now' => now()->toIso8601String(),
         ];
     }

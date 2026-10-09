@@ -188,6 +188,27 @@ class CoreUpdater
         return is_file($file) ? (array) json_decode((string) file_get_contents($file), true) : [];
     }
 
+    /**
+     * The last run as the update page shows it. A run that was blocked or failed on its way to a
+     * version the website now runs (or has passed) — because it got there another way, such as a
+     * deploy, which never touches state.json — is history, not a problem: showing its error next
+     * to the new version number reads as "the update is broken". A failed install that rolled
+     * back still shows, since the website runs below its target.
+     *
+     * @return array{status?: string, from?: string, to?: string, step?: ?string, error?: ?string, updated_at?: string}
+     */
+    public function displayState(): array
+    {
+        $state = $this->state();
+        $target = $state['to'] ?? null;
+
+        $superseded = in_array($state['status'] ?? null, ['blocked', 'failed'], true)
+            && is_string($target) && $target !== ''
+            && Semver::compare($this->manifest->version(), $target) >= 0;
+
+        return $superseded ? [] : $state;
+    }
+
     private function install(string $dir, array $release, string $from): array
     {
         $to = $release['version'];
