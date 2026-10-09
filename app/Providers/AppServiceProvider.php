@@ -195,7 +195,14 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute((int) config('contact.per_minute', 5))->by('contact-minute:'.$request->ip()),
             Limit::perDay((int) config('contact.per_day', 20))->by('contact-day:'.$request->ip()),
         ]);
-        RateLimiter::for('public-checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        // Per email too: every order mails its customer_email, so checkout could otherwise flood
+        // any inbox with shop-branded mail and burn the site's monthly mail quota.
+        RateLimiter::for('public-checkout', fn (Request $request) => array_filter([
+            Limit::perMinute(10)->by($request->ip()),
+            ($emailKey = \App\Models\Voucher::emailKey($request->input('customer_email')))
+                ? Limit::perHour(5)->by('checkout-email:'.$emailKey)
+                : null,
+        ]));
         // Voucher codes are short words an admin picked; without a ceiling the endpoint is a guessing oracle.
         RateLimiter::for('public-voucher', fn (Request $request) => [
             Limit::perMinute(10)->by('voucher-minute:'.$request->ip()),

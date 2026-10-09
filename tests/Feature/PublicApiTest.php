@@ -256,6 +256,22 @@ class PublicApiTest extends TestCase
         $this->postJson('/api/public/vouchers/apply', ['code' => 'GUESS11', 'subtotal' => 1000])->assertStatus(429);
     }
 
+    /** Every order mails its customer_email: checkout must not be a free mail cannon. */
+    public function test_checkout_is_rate_limited_per_email_across_ips(): void
+    {
+        Mail::fake();
+
+        foreach (range(1, 5) as $attempt) {
+            $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
+                ->postJson('/api/public/orders/checkout', $this->checkoutPayload('victim+'.$attempt.'@gmail.com'))
+                ->assertOk();
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
+            ->postJson('/api/public/orders/checkout', $this->checkoutPayload('victim@gmail.com'))
+            ->assertStatus(429);
+    }
+
     public function test_guest_checkout_creation(): void
     {
         Mail::fake();
