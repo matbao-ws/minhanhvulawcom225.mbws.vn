@@ -767,10 +767,17 @@ class PublicController extends Controller
             return ApiResponse::error('Không tìm thấy đơn hàng.', 404, ['payment' => $outcome]);
         }
 
+        // A signed return URL never expires and ends up in browser history, screenshots and
+        // referrers: whoever holds it learns the outcome, not the customer's name, phone or address.
         return ApiResponse::success([
             'payment' => $outcome,
             'response_code' => $responseCode,
-            'order' => new PublicOrderResource($order),
+            'order' => [
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+                'grand_total' => $order->grand_total,
+            ],
         ], $outcome === 'success' ? 'Thanh toán thành công.' : 'Thanh toán chưa hoàn tất hoặc đã bị hủy.');
     }
 
