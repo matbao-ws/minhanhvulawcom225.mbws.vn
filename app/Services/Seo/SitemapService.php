@@ -9,6 +9,7 @@ use App\Models\PostCategory;
 use App\Services\Catalog\ProductQueryService;
 use App\Services\LanguageRegistry;
 use App\Support\FeatureGate;
+use App\Support\Seo\RecordLocales;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -22,10 +23,18 @@ use Illuminate\Support\Facades\Route;
  * exist once a theme is cut, so they join the sitemap as soon as the theme
  * registers `client.products.show` / `client.posts.show` — a sitemap must never
  * point at a 404.
+ *
+ * A theme's own pages (home, about, contact… in routes/theme.php) are listed too: every
+ * GET route named `client.*` whose only parameter is {locale}, except redirects and
+ * private pages (cart, checkout, account, search…). A theme leaves one out with
+ * `->defaults('sitemap', false)`.
  */
 class SitemapService
 {
-    public const CACHE_KEY = 'seo.sitemap.v1';
+    public const CACHE_KEY = 'seo.sitemap.v2';
+
+    /** Route names (after `client.`) that are never worth crawling. */
+    private const PRIVATE_PAGES = '/(^|[.\-_])(cart|checkout|account|login|register|password|logout|search|orders?|thank|track|wishlist|compare|profile|payment|gio-hang|thanh-toan|tai-khoan|dang-nhap|dang-ky|tim-kiem|don-hang)([.\-_]|$)/i';
 
     /** The protocol's ceiling for one sitemap file. */
     public const MAX_URLS = 50000;
@@ -72,7 +81,7 @@ class SitemapService
         }
 
         $codes = $this->languages->codes();
-        $entries = [];
+        $entries = $this->themePages($codes);
 
         foreach ($sources as [$routeName, $query]) {
             if (! Route::has($routeName)) {
@@ -94,6 +103,46 @@ class SitemapService
     }
 
     /**
+     * The theme's pages without a record behind them, home first. Written in Blade per
+     * language, so they exist in every language of the site.
+     *
+     * @param  list<string>  $codes
+     * @return list<array{loc: string, lastmod: ?string, alternates: array<string, string>}>
+     */
+    private function themePages(array $codes): array
+    {
+        $names = [];
+        foreach (Route::getRoutes() as $route) {
+            $name = (string) $route->getName();
+            if (! str_starts_with($name, 'client.')
+                || ! in_array('GET', $route->methods(), true)
+                || $route->parameterNames() !== ['locale']
+                || ($route->defaults['sitemap'] ?? true) === false
+                || str_contains($route->getActionName(), 'RedirectController')
+                || preg_match(self::PRIVATE_PAGES, substr($name, strlen('client.')))) {
+                continue;
+            }
+            $names[$name] = true;
+        }
+        $names = array_keys($names);
+        usort($names, fn (string $a, string $b) => [$a !== 'client.home', $a] <=> [$b !== 'client.home', $b]);
+
+        $entries = [];
+        foreach ($names as $name) {
+            $urls = [];
+            foreach ($codes as $code) {
+                $urls[$code] = route($name, ['locale' => $code]);
+            }
+            $alternates = count($urls) > 1 ? $urls : [];
+            foreach ($urls as $loc) {
+                $entries[] = ['loc' => $loc, 'lastmod' => null, 'alternates' => $alternates];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
      * @param  list<string>  $codes
      * @return list<array{loc: string, lastmod: ?string, alternates: array<string, string>}>
      */
@@ -101,7 +150,8 @@ class SitemapService
     {
         $urls = [];
 
-        foreach ($codes as $code) {
+        // A language the record has no text in only shows the fallback's: not a page to list.
+        foreach (RecordLocales::of($model, $codes, $this->languages->fallbackLocale()) as $code) {
             $urls[$code] = route($routeName, ['locale' => $code, 'slug' => $model->canonicalSlug($code)]);
         }
 

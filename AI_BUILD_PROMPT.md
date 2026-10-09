@@ -604,6 +604,13 @@ Kiểm kê toàn bộ theme/
 - Route chi tiết của theme đặt tên `client.products.show` / `client.posts.show` với tham số `{slug}`:
   khi đó chúng có canonical/hreflang đúng và tự vào `sitemap.xml`. Đặt tên khác thì trang vẫn có thẻ
   (canonical là URL đang mở) nhưng không vào sitemap.
+- Trang tĩnh của theme (route GET tên `client.*` chỉ có tham số `{locale}`: trang chủ, giới thiệu, liên
+  hệ…) tự vào sitemap ở mọi ngôn ngữ, trừ route chuyển hướng và trang riêng tư (giỏ hàng, thanh toán,
+  tài khoản, đăng nhập, tìm kiếm, đơn hàng…). Loại thêm bằng `->defaults('sitemap', false)`. Không viết
+  sitemap riêng trong theme.
+- Bản ghi chỉ khai báo những ngôn ngữ nó **có chữ** (`App\Support\Seo\RecordLocales`, theo title/name):
+  hreflang và sitemap bỏ ngôn ngữ chưa dịch; mở bản ghi ở ngôn ngữ chưa dịch thì canonical trỏ về ngôn
+  ngữ fallback đang hiển thị.
 - Chỉ **production** được index (`SeoMetaFactory::indexable()`): staging/local trả `noindex` trong
   meta và `Disallow: /` trong `robots.txt`.
 - JSON-LD chỉ dựng từ dữ liệu có thật qua `App\Support\Seo\StructuredData`, in bằng
