@@ -185,7 +185,9 @@ app(\App\Support\FeatureGate::class)->require('voucher');
 - `FoundationSeeder` tạo superadmin theo `ADMIN_EMAIL` **chỉ khi tài khoản chưa tồn tại**. Seeder
   chạy lại trên shop đang sống (sửa chữa, deploy có tick seed) nên không được ghi đè mật khẩu, tên
   hay `is_active` của tài khoản đó — làm vậy là trả login về giá trị `ADMIN_PASSWORD` cũ và khoá
-  chủ shop khỏi chính admin của họ.
+  chủ shop khỏi chính admin của họ. Cả seeder đều **chỉ tạo khi chưa có** (`firstOrCreate`, không
+  `updateOrCreate`): cài đặt shop, ngôn ngữ, menu chính, danh mục mặc định, vai trò Admin đã có thì
+  giữ nguyên — upsert từng đưa tên shop, logo, liên hệ, SEO về mặc định mỗi lần deploy có seed.
 - Khi vô hiệu hóa user hoặc thay đổi quyền nhạy cảm, xem xét thu hồi token/session qua
   `UserAccessService`.
 

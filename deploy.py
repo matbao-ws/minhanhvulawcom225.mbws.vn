@@ -1369,8 +1369,9 @@ def main():
         want_seed = prompt_yes_no(
             'Seed dữ liệu nền (tạo superadmin, quyền, feature)?', True, args)
     else:
-        print('[!] Site đã cài rồi: seed sẽ BẬT LẠI toàn bộ feature flag.')
-        print('    (Superadmin đã tồn tại thì seed không đụng tới mật khẩu.)')
+        print('[i] Site đã cài rồi: seed chỉ tạo lại dữ liệu nền còn THIẾU (superadmin, quyền,')
+        print('    feature, cài đặt, ngôn ngữ, menu chính). Cài đặt và nội dung đã có trên website')
+        print('    được giữ nguyên. Thường không cần seed lại.')
         want_seed = prompt_yes_no('Vẫn seed?', False, args)
 
     if want_seed:
