@@ -14,6 +14,7 @@ return [
         'logged_out' => 'You have signed out successfully.',
         'password_reset' => 'Your password has been reset successfully.',
         'address_created' => 'The address has been added successfully.',
+        'address_limit' => 'An account can keep at most :max addresses.',
         'address_updated' => 'The address has been updated successfully.',
         'address_deleted' => 'The address has been deleted successfully.',
         'address_defaulted' => 'The default address has been updated successfully.',

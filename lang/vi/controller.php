@@ -14,6 +14,7 @@ return [
         'logged_out' => 'Đăng xuất thành công.',
         'password_reset' => 'Đổi mật khẩu mới thành công.',
         'address_created' => 'Thêm địa chỉ mới thành công.',
+        'address_limit' => 'Mỗi tài khoản lưu tối đa :max địa chỉ.',
         'address_updated' => 'Cập nhật địa chỉ thành công.',
         'address_deleted' => 'Xóa địa chỉ thành công.',
         'address_defaulted' => 'Đặt làm địa chỉ mặc định thành công.',
