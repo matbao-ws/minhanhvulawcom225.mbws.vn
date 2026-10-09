@@ -93,11 +93,19 @@ class AppServiceProvider extends ServiceProvider
             'errors.*',
             'errors::*',
         ], function ($view) {
+            // An error page is rendered outside the locale middleware: read the language from
+            // the URL here, against the site's own languages (a /ja page errs in Japanese).
+            $segment = (string) request()->segment(1);
+            if ($segment !== '' && app(\App\Services\LanguageRegistry::class)->supports($segment)) {
+                app()->setLocale($segment);
+            }
             $currentLocale = app()->getLocale();
             $isAdminContext = request()->is('*/admin*') || request()->is('admin*') || (request()->is('error-preview*') && request()->query('context') !== 'client');
             $adminDashboardUrl = route('admin.dashboard', ['locale' => $currentLocale]);
+            // Themes name their home `client.home` under {locale}; without the parameter the
+            // URL cannot be built and the error page itself throws (a blank 500 for a 404).
             $clientHomeUrl = \Illuminate\Support\Facades\Route::has('client.home')
-                ? route('client.home')
+                ? route('client.home', ['locale' => $currentLocale])
                 : (is_file(base_path('routes/theme.php')) ? url('/' . $currentLocale) : null);
 
             $view->with([

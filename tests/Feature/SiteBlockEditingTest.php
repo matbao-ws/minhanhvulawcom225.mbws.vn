@@ -85,6 +85,55 @@ class SiteBlockEditingTest extends TestCase
             ->assertDontSee('Danh mục này chưa có sản phẩm nào.');
     }
 
+    /**
+     * Blade needed whitespace between `@endif` and `@else`, and it rendered inside
+     * every saved region as a trailing space.
+     */
+    public function test_a_saved_region_renders_without_a_trailing_space(): void
+    {
+        $this->actingWith(['pages.update']);
+        $this->patchJson('/vi/admin/site-blocks', [
+            'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_TEXT, 'content_locale' => 'vi', 'value' => 'Sắp có hàng',
+        ])->assertOk();
+
+        $html = $this->get('/vi/danh-muc/dien-thoai')->assertOk()->getContent();
+
+        $this->assertStringContainsString('>Sắp có hàng</', $html);
+    }
+
+    /**
+     * A theme already translated per language must keep its own text in a language
+     * nobody edited; a theme written in one language shows the edit everywhere.
+     */
+    public function test_an_edit_in_one_language_reaches_the_others_only_when_configured(): void
+    {
+        $this->actingWith(['pages.update']);
+        $this->patchJson('/vi/admin/site-blocks', [
+            'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_TEXT, 'content_locale' => 'vi', 'value' => 'Bản sửa tiếng Việt',
+        ])->assertOk();
+
+        $this->get('/en/danh-muc/dien-thoai')->assertOk()->assertSee('Bản sửa tiếng Việt');
+
+        config(['multilingual.inline_edit_fallback' => false]);
+        $this->site();
+        $this->get('/en/danh-muc/dien-thoai')->assertOk()
+            ->assertDontSee('Bản sửa tiếng Việt')
+            ->assertSee('Danh mục này chưa có sản phẩm nào.');
+    }
+
+    /** Un-bolding a theme-bold heading is stored as a class: inline styles do not survive. */
+    public function test_a_weight_reset_class_survives_the_sanitizer(): void
+    {
+        $this->actingWith(['pages.update']);
+
+        $this->patchJson('/vi/admin/site-blocks', [
+            'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_HTML, 'content_locale' => 'vi',
+            'value' => '<span class="client-weight-normal">CÔNG TY</span> <span style="font-weight:normal">X</span>',
+        ])->assertOk()
+            ->assertJsonPath('data.value', fn (string $value) => str_contains($value, '<span class="client-weight-normal">CÔNG TY</span>')
+                && ! str_contains($value, 'style='));
+    }
+
     public function test_text_regions_are_stripped_of_markup(): void
     {
         $this->actingWith(['pages.update']);

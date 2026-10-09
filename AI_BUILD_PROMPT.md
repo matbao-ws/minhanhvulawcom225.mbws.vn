@@ -706,6 +706,14 @@ Ngoài CMS Page, template storefront có thể đánh dấu từng vùng tĩnh c
   `null` cho cả hai nên phải hỏi `isCleared()`. Đọc/ghi locale phải qua cột thô
   (`SiteBlock::rawTranslations()`), vì `getTranslations()` của spatie lọc mất chuỗi rỗng còn
   `setTranslations()` không xoá được locale.
+- Vùng mới sửa ở một ngôn ngữ: ngôn ngữ khác hiện bản sửa đó (mặc định, cho theme viết một ngôn
+  ngữ) hay chữ template của chính nó (`INLINE_EDIT_FALLBACK=false`, cho theme đã dịch sẵn từng ngôn
+  ngữ — khách `/ja` không được đọc chữ tiếng Việt vừa sửa). Đặt theo theme, trong `.env` của website.
+- Editor là JavaScript viết trong Blade: `EditorScriptSyntaxTest` chạy `node --check` mọi script
+  inline của trang đang sửa. Vùng chữ thuần lưu `textContent`; vùng định dạng lưu qua
+  `cleanEditedHtml()` (bỏ `<span style>` trình duyệt tự chèn, bỏ đậm/nghiêng/gạch chân thành class
+  `client-weight-normal`/`client-style-normal`/`client-decoration-none`, CSS ở `core.head`). Panel
+  mới của editor phải thêm id vào `EDITOR_CHROME` và quy tắc chống in hoa trong `admin-bar`.
 - `ConvertEmptyStringsToNull` biến `""` thành `null` trước validation; FormRequest phải hoàn nguyên.
 - Lưu qua `admin.site-blocks.update`, khôi phục qua `admin.site-blocks.restore` — cùng quyền
   `pages.update` và throttle `admin-page-inline` với inline page. Ảnh cần thêm `media.view`.

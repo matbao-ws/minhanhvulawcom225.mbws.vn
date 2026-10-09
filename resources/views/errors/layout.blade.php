@@ -8,7 +8,7 @@
 
     @php
         $segments = request()->segments();
-        if (!empty($segments) && in_array($segments[0], ['vi', 'en'])) {
+        if (!empty($segments) && app(\App\Services\LanguageRegistry::class)->supports($segments[0])) {
             app()->setLocale($segments[0]);
         }
         $currentLocale = app()->getLocale();
@@ -36,7 +36,7 @@
         $isAdminContext = $isAdminContext ?? (request()->is('*/admin*') || request()->is('admin*') || (request()->is('error-preview*') && request()->query('context') !== 'client'));
         $adminDashboardUrl = $adminDashboardUrl ?? route('admin.dashboard', ['locale' => $currentLocale]);
         $clientHomeUrl = $clientHomeUrl ?? (\Illuminate\Support\Facades\Route::has('client.home')
-            ? route('client.home')
+            ? route('client.home', ['locale' => $currentLocale])
             : (is_file(base_path('routes/theme.php')) ? url('/' . $currentLocale) : null));
 
         $favicon = $siteBranding['favicon_url'] ?? asset('admin-assets/images/logos/favicon.png');
