@@ -235,9 +235,6 @@
                           </li>
 
                           {{-- Bán hàng --}}
-                          @if($sidebarAny('orders', 'customers', 'contacts', 'products', 'vouchers', 'promotions', 'reviews'))
-                          <li class="nav-small-cap"><span class="hide-menu">{{ __('admin.sidebar.section_sales') }}</span></li>
-                          @endif
                           @if($sidebarShow['orders'])
                           <li class="sidebar-item">
                               <a class="sidebar-link" href="{{ route('admin.orders.index') }}" aria-expanded="false">
@@ -301,9 +298,6 @@
                           @endif
 
                           {{-- Nội dung & SEO --}}
-                          @if($sidebarAny('posts', 'pages', 'banners', 'menus', 'media', 'seo_tasks', 'seo_research', 'seo_bulk', 'seo_draft'))
-                          <li class="nav-small-cap"><span class="hide-menu">{{ __('admin.sidebar.section_content') }}</span></li>
-                          @endif
                           @if($sidebarShow['posts'])
                           <li class="sidebar-item">
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
@@ -372,9 +366,6 @@
                           @endif
 
                           {{-- Hệ thống --}}
-                          @if($sidebarAny('users', 'roles', 'settings', 'activity_logs') || $sidebarExtensionItems !== [])
-                          <li class="nav-small-cap"><span class="hide-menu">{{ __('admin.sidebar.section_system') }}</span></li>
-                          @endif
                           @if($sidebarAny('users', 'roles'))
                           <li class="sidebar-item">
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">

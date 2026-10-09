@@ -871,9 +871,6 @@ return [
     'notifications' => 'Thông báo',
     'see_all_notifications' => 'Xem tất cả thông báo',
     'sidebar' => [
-        'section_sales' => 'Bán hàng',
-        'section_content' => 'Nội dung & SEO',
-        'section_system' => 'Hệ thống',
         'seo' => 'SEO',
         'contacts' => 'Liên hệ',
         'ecommerce' => 'E-Commerce / Cửa hàng',

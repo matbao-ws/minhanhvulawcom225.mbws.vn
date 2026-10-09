@@ -122,24 +122,16 @@ class SidebarNavigationTest extends TestCase
         // Nowhere else in the menu: grouped, not duplicated (the dashboard links it too, outside the menu).
         $this->assertSame(1, $xpath->query('//ul[@id="sidebarnav"]//a[@href="'.route('admin.ai.seo-tasks.index').'"]')->length);
 
-        $headings = [];
-        foreach ($xpath->query('//ul[@id="sidebarnav"]/li[contains(@class, "nav-small-cap")]') as $heading) {
-            $headings[] = trim($heading->textContent);
-        }
-        $this->assertSame(['Bán hàng', 'Nội dung & SEO', 'Hệ thống'], $headings);
+        // The items keep their grouped order, without section headings.
+        $this->assertSame(0, $xpath->query('//ul[@id="sidebarnav"]/li[contains(@class, "nav-small-cap")]')->length);
     }
 
-    public function test_a_section_with_nothing_the_admin_may_open_has_no_heading(): void
+    public function test_the_seo_dropdown_is_absent_when_the_admin_may_open_none_of_it(): void
     {
         $admin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Settings only', 'permissions' => ['settings.view']])->id]);
 
         $html = $this->actingAs($admin)->get('/vi/admin')->assertOk()->getContent();
 
-        $headings = [];
-        foreach ($this->xpath($html)->query('//ul[@id="sidebarnav"]/li[contains(@class, "nav-small-cap")]') as $heading) {
-            $headings[] = trim($heading->textContent);
-        }
-        $this->assertSame(['Hệ thống'], $headings);
         $this->assertStringNotContainsString('data-sidebar-seo-menu', $html);
     }
 
