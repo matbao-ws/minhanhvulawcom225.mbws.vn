@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\Orders\OrderCancellationService;
 use App\Services\Orders\OrderCreationService;
 use App\Services\Orders\OrderDraft;
 use App\Services\OrderStateTransitionService;
@@ -32,6 +33,7 @@ class OrderController extends Controller
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
         private readonly OrderCreationService $orderCreation,
+        private readonly OrderCancellationService $cancellations,
     ) {}
 
     /**
@@ -134,7 +136,7 @@ class OrderController extends Controller
                 ]);
 
                 if ($lockedOrder->status === 'cancelled' && $oldStatus !== 'cancelled') {
-                    $this->orderStockService->restore($lockedOrder);
+                    $this->cancellations->releaseReservations($lockedOrder);
                 }
                 $this->paymentTransactionService->syncInitialTransaction($lockedOrder);
 
@@ -266,7 +268,7 @@ class OrderController extends Controller
             'shipping_fee' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.config('orders.max_lines'),
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant_id' => 'nullable|exists:product_variants,id',
             'items.*.quantity' => 'required|integer|min:1',

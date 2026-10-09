@@ -32,6 +32,7 @@ use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
 use App\Services\MultilingualSettings;
 use App\Services\OrderStateTransitionService;
+use App\Services\Orders\OrderCancellationService;
 use App\Services\Orders\OrderCreationService;
 use App\Services\Orders\OrderDraft;
 use App\Services\OrderStockService;
@@ -359,12 +360,12 @@ class PublicController extends Controller
             'shipping_address' => 'required|string|max:500',
             'payment_method' => 'required|string|max:100',
             'notes' => 'nullable|string|max:500',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.config('orders.max_lines'),
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant_id' => 'nullable|exists:product_variants,id',
             'items.*.option_value_ids' => 'nullable|array|max:8',
             'items.*.option_value_ids.*' => 'integer|distinct|exists:product_option_values,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:1|max:'.config('orders.max_line_quantity'),
             'voucher_code' => 'nullable|string',
             // GHN master-data codes of the address, when the form offers GHN's province/district/ward
             // pickers: an admin then ships the order with one click (or automatically on confirm).
@@ -503,27 +504,10 @@ class PublicController extends Controller
 
             if (! $paymentUrl) {
                 try {
-                    DB::transaction(function () use ($order, $request) {
+                    DB::transaction(function () use ($order) {
                         $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-                        $oldStatus = $lockedOrder->status;
-                        $lockedOrder->update(['status' => 'cancelled', 'notes' => $lockedOrder->notes.' (Khởi tạo thanh toán VNPAY thất bại)']);
-                        $this->orderStockService->restore($lockedOrder, 'Hoàn kho do khởi tạo thanh toán VNPAY thất bại');
-                        OrderStatusHistory::query()->create([
-                            'order_id' => $lockedOrder->id,
-                            'from_status' => $oldStatus,
-                            'to_status' => 'cancelled',
-                            'from_payment_status' => $lockedOrder->payment_status,
-                            'to_payment_status' => $lockedOrder->payment_status,
-                            'note' => 'Khởi tạo thanh toán VNPAY thất bại',
-                            'created_at' => now(),
-                        ]);
-                        if ($request->filled('voucher_code')) {
-                            Voucher::query()
-                                ->where('code', strtoupper($request->input('voucher_code')))
-                                ->where('used_count', '>', 0)
-                                ->decrement('used_count');
-                            VoucherUsage::query()->where('order_id', $lockedOrder->id)->delete();
-                        }
+                        $lockedOrder->update(['notes' => $lockedOrder->notes.' (Khởi tạo thanh toán VNPAY thất bại)']);
+                        app(OrderCancellationService::class)->cancel($lockedOrder, 'Khởi tạo thanh toán VNPAY thất bại');
                     });
                 } catch (\Throwable $ex) {
                     Log::error('Could not roll back failed VNPAY checkout: '.$ex->getMessage());

@@ -57,6 +57,7 @@ Admin URLs are locale-prefixed: `/{locale}/admin`. Public storefront APIs use `/
 - Checkout: `Api/PublicController::checkout`.
 - State policy: `OrderStateTransitionService`.
 - Stock ledger: `OrderStockService`, `InventoryMovement`.
+- Cancellation (stock + voucher use + promotion quota back): `Orders\OrderCancellationService`.
 - Payment ledger: `PaymentTransactionService`, `PaymentTransaction`.
 - Refunds: admin `OrderController`, refund models, lifecycle tests.
 
@@ -103,7 +104,8 @@ does not prevent IDOR.
 - Foundation installation is idempotent through `core:install`.
 - `FoundationSeeder` is production-safe; `DemoSeeder` is disposable-environment only.
 - Queue workers deliver order/invoice/notification jobs.
-- Scheduler expires vouchers daily.
+- Scheduler expires vouchers daily and cancels unpaid online orders every five minutes
+  (`orders:expire-unpaid`, through `Orders\OrderCancellationService`).
 - Web document root must point at `public/`.
 
 ## Source discovery commands

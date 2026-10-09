@@ -259,6 +259,13 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   biến thể (`option_value_ids` ở public, SKU đã chọn ở admin), nguồn giảm giá thứ hai (voucher hay
   thủ công) và nguồn phí vận chuyển.
 - Chuyển trạng thái qua `OrderStateTransitionService`.
+- Huỷ đơn trả lại **cả ba** thứ đơn đã giữ: tồn kho, lượt voucher và suất khuyến mãi — qua
+  `Orders\OrderCancellationService` (`cancel()` hoặc `releaseReservations()` khi caller đã tự đổi
+  status). Không tự gọi `OrderStockService::restore()` cho đơn bị huỷ. Webhook lặp an toàn nhờ
+  `orders.reservations_released_at`.
+- Đơn VNPAY/SePay chưa thanh toán tự huỷ sau TTL (`config/orders.php`, mặc định 30 phút / 24 giờ) bởi
+  `orders:expire-unpaid` mỗi 5 phút; COD không bao giờ tự huỷ. Checkout giới hạn số dòng và số lượng
+  mỗi dòng (`orders.max_lines`, `orders.max_line_quantity`).
 - Trừ/hoàn kho qua `OrderStockService`.
 - Inventory movement phải idempotent; không cập nhật stock trực tiếp ở controller.
 - `completed` và `cancelled` là trạng thái đơn hàng kết thúc theo policy hiện tại.
