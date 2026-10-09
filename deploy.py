@@ -14,6 +14,9 @@ import secrets
 import getpass
 import argparse
 import json
+import glob
+import shutil
+import subprocess
 
 EXCLUDE_FILES = {
     'deploy.py',
@@ -94,6 +97,13 @@ PHP_MINIMUM = '8.2'
 # not our trigger, and must not be mistaken for a successful run.
 DEPLOY_MARKER = 'DEPLOY-SCRIPT-START'
 
+# First-deploy content export (`php artisan content:export`): written here, uploaded next to the
+# app (never under public/, the trigger URLs are guessable), deleted on both sides after import.
+CONTENT_DIR = 'storage/app/deploy-content'
+
+# The body of the last remote script run, so a step can read its own result markers.
+LAST_TRIGGER_OUTPUT = ''
+
 # Masked whenever a summary is printed.
 SECRET_KEY_HINTS = ('PASS', 'SECRET', 'KEY', 'TOKEN')
 
@@ -128,6 +138,11 @@ def parse_args(argv=None):
     seed = p.add_mutually_exclusive_group()
     seed.add_argument('--seed', action='store_true', help="Chạy DatabaseSeeder, không hỏi.")
     seed.add_argument('--no-seed', action='store_true', help="Không seed, không hỏi.")
+    content = p.add_mutually_exclusive_group()
+    content.add_argument('--push-content', action='store_true',
+                         help="Lần deploy đầu: đẩy nội dung từ DB máy này lên website, không hỏi.")
+    content.add_argument('--no-push-content', action='store_true',
+                         help="Lần deploy đầu: không đẩy nội dung local, không hỏi.")
 
     p.add_argument('--keep-zip', action='store_true',
                    help="Giữ deploy.zip trên server sau khi giải nén (mặc định là xoá).")
@@ -754,6 +769,58 @@ def probe_secret_exposure(domain, remote_dir):
     print("!" * 60)
 
 
+def find_local_php():
+    """The first local PHP 8.2+ (PATH, then every Laragon install, newest first), or None."""
+    candidates = [shutil.which('php')]
+    for drive in [f'{d}:\\' for d in 'CDEFGHIJ' if os.path.exists(f'{d}:\\')]:
+        candidates += sorted(glob.glob(os.path.join(drive, 'laragon', 'bin', 'php', '*', 'php.exe')), reverse=True)
+    for php in [c for c in candidates if c]:
+        try:
+            version = subprocess.run([php, '-r', 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'],
+                                     capture_output=True, text=True, timeout=20).stdout.strip()
+            major, minor = (int(x) for x in version.split('.')[:2])
+        except Exception:
+            continue
+        if (major, minor) >= (8, 2):
+            return php
+    return None
+
+
+def export_local_content():
+    """
+    Run `php artisan content:export` on this machine. Returns the relative path of the export,
+    or exits before anything is written to the server.
+    """
+    php = find_local_php()
+    if not php:
+        print('[-] Không tìm thấy PHP 8.2+ trên máy này để xuất nội dung local.')
+        sys.exit(1)
+
+    rel_path = f'{CONTENT_DIR}/{secrets.token_hex(16)}.json.gz'
+    print('[*] Xuất nội dung từ DB máy này (php artisan content:export)...')
+    result = subprocess.run([php, 'artisan', 'content:export', rel_path], capture_output=True, text=True)
+    print(result.stdout.rstrip())
+    if result.returncode != 0 or 'CONTENT_EXPORT_OK' not in result.stdout:
+        print(result.stderr.rstrip())
+        print('[-] Không xuất được nội dung local. Chưa có gì được ghi lên server.')
+        if os.path.exists(rel_path):
+            os.remove(rel_path)
+        sys.exit(1)
+    return rel_path
+
+
+def report_content_import(output):
+    """Say plainly what became of the content export, from content:import's markers."""
+    refused = re.search(r'CONTENT_IMPORT_REFUSED: (.+)', output)
+    if 'CONTENT_IMPORT_OK' in output:
+        print('[+] Đã đẩy nội dung local lên website.')
+    elif refused:
+        print(f'[!] Website KHÔNG nhận nội dung local: {refused.group(1).strip()}')
+        print('    (Chỉ website mới, chưa có sản phẩm/bài viết/đơn hàng/tài khoản, mới nhận được.)')
+    else:
+        print('[!] Không rõ bước đẩy nội dung có chạy không: xem REMOTE EXECUTION OUTPUT phía trên.')
+
+
 def should_exclude(rel_path):
     path_parts = rel_path.replace('\\', '/').split('/')
     
@@ -767,6 +834,16 @@ def should_exclude(rel_path):
     # The website's own record of its core: installed.json (the baseline), update state, history,
     # backups, extension state. This machine's copy must never land on the website.
     if normalized == 'storage/app/core' or normalized.startswith('storage/app/core/'):
+        return 'entirely'
+
+    # Content exports are uploaded on their own, only on the deploy that made them.
+    if normalized == CONTENT_DIR or normalized.startswith(CONTENT_DIR + '/'):
+        return 'entirely'
+
+    # `storage:link` on Windows makes a junction, which os.walk follows: without this the media
+    # would ship twice, and the server would find a real public/storage directory instead of
+    # making its own link to storage/app/public.
+    if normalized == 'public/storage' or normalized.startswith('public/storage/'):
         return 'entirely'
 
     # Directories where we keep the folder structure but skip files inside
@@ -940,8 +1017,20 @@ def upload_file(ftp, local_file, remote_file):
     ftp_store(ftp, remote_file, source, callback=progress_callback)
     print("\n[+] Upload complete.")
 
-def generate_extractor_php(run_migrate=False, seed_type='none', keep_zip=False):
+def generate_extractor_php(run_migrate=False, seed_type='none', keep_zip=False, content_file=None):
     migrate_val = "true" if run_migrate else "false"
+
+    # After migrate and seed: the import needs the schema, and the package the seed syncs (its
+    # caps apply). content:import refuses a website that is not new; the export is deleted
+    # whatever happens.
+    content_block = ""
+    if content_file:
+        content_block = f"""
+echo "Importing local content...\\n";
+$contentFile = $baseDir . '/{content_file}';
+echo shell_exec("cd " . escapeshellarg($baseDir) . " && $phpBin artisan content:import " . escapeshellarg($contentFile) . " 2>&1") . "\\n";
+@unlink($contentFile);
+"""
 
     # Keeping the package lets the next run skip re-uploading tens of megabytes with
     # --reuse-zip; deleting it keeps a full copy of the source off the server.
@@ -1096,6 +1185,7 @@ if ({migrate_val}) {{
 }}
 
 {seed_block}
+{content_block}
 
 // The core files are now exactly what this deploy shipped: record them, so the updater
 // (which refuses a website without a baseline, or with core files edited by hand) can run.
@@ -1290,6 +1380,8 @@ def trigger_http_url(url, remote_dir, script_name):
                 print("=" * 60)
                 print(content)
                 print("=" * 60)
+                global LAST_TRIGGER_OUTPUT
+                LAST_TRIGGER_OUTPUT = content
                 return "SUCCESS:" in content or "completed" in content.lower()
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -1369,9 +1461,25 @@ def main():
         want_seed = prompt_yes_no(
             'Seed dữ liệu nền (tạo superadmin, quyền, feature)?', True, args)
     else:
-        print('[!] Site đã cài rồi: seed sẽ BẬT LẠI toàn bộ feature flag.')
-        print('    (Superadmin đã tồn tại thì seed không đụng tới mật khẩu.)')
+        print('[i] Site đã cài rồi: seed chỉ tạo lại dữ liệu nền còn THIẾU (superadmin, quyền,')
+        print('    feature, cài đặt, ngôn ngữ, menu chính). Cài đặt và nội dung đã có trên website')
+        print('    được giữ nguyên. Thường không cần seed lại.')
         want_seed = prompt_yes_no('Vẫn seed?', False, args)
+
+    # 3b. Content entered on this machine, carried only by a first deploy: on a live website it
+    # would overwrite what the owner built (content:import refuses that on the server anyway).
+    push_content = False
+    if first_deploy and migrate and not incremental and not args.no_push_content:
+        push_content = args.push_content or prompt_yes_no(
+            'Đẩy nội dung đã nhập ở máy này (sản phẩm, bài viết, trang, banner, menu, cài đặt shop) lên website?',
+            True, args)
+    elif args.push_content:
+        print('[!] --push-content chỉ dùng cho lần deploy đầu (server chưa có mã nguồn, có migration,')
+        print('    đẩy ZIP). Lần này không đẩy nội dung.')
+    if push_content and not want_seed:
+        # The import runs after the seed: superadmin, package and its caps come first.
+        print('[i] Đẩy nội dung cần seed dữ liệu nền trước: bật seed.')
+        want_seed = True
 
     if want_seed:
         seed_type = 'full'
@@ -1393,6 +1501,8 @@ def main():
           f"{' (dùng lại zip có sẵn)' if args.reuse_zip and not incremental else ''}")
     print(f"      Migration {'có' if migrate else 'không'}")
     print(f"      Seed      {'có' if want_seed else 'không'}")
+    if first_deploy:
+        print(f"      Nội dung  {'đẩy từ DB máy này (không có tài khoản, đơn hàng, khoá bí mật)' if push_content else 'không đẩy (website trống)'}")
     if not incremental:
         print(f"      deploy.zip{'giữ lại trên server' if keep_zip else ' xoá sau khi giải nén'}")
     print(f"      .env      dựng từ .env.example + hồ sơ site (production), giữ APP_KEY của server")
@@ -1404,6 +1514,9 @@ def main():
         print('[-] Đã huỷ. Chưa có gì được ghi lên server.')
         ftp.quit()
         sys.exit(0)
+
+    # Before anything is written: an export that fails stops the deploy here.
+    content_file = export_local_content() if push_content else None
 
     # 4. The .env must be right before the trigger runs migrate/seed, and it is kept
     # out of the package so it can never clobber the server's own credentials.
@@ -1427,12 +1540,22 @@ def main():
         if not args.reuse_zip:
             zip_name = build_zip_package()
             upload_file(ftp, zip_name, 'deploy.zip')
+        if content_file:
+            print('[*] Uploading the content export...')
+            ftp_upload_file_path(ftp, remote_dir, content_file)
 
         print('[*] Generating extractor script...')
-        success = upload_and_trigger(
-            ftp, remote_dir, 'unzip.php',
-            generate_extractor_php(migrate, seed_type, keep_zip=keep_zip), domain,
-        )
+        try:
+            success = upload_and_trigger(
+                ftp, remote_dir, 'unzip.php',
+                generate_extractor_php(migrate, seed_type, keep_zip=keep_zip, content_file=content_file), domain,
+            )
+        finally:
+            if content_file and os.path.exists(content_file):
+                os.remove(content_file)
+
+        if content_file:
+            report_content_import(LAST_TRIGGER_OUTPUT)
 
         if zip_name and os.path.exists(zip_name):
             os.remove(zip_name)

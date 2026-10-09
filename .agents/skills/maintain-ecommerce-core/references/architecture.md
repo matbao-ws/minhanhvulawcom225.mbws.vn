@@ -81,7 +81,11 @@ Admin URLs are locale-prefixed: `/{locale}/admin`. Public storefront APIs use `/
   hook in `AppServiceProvider`, and authorization middleware.
 - Session/token revocation: `UserAccessService`.
 - Audit: `ActivityLogger`, `AdminActivityLog`.
-- Installation health: `InstallCore`, `CheckCore`, `FoundationSeeder`.
+- Installation health: `InstallCore`, `CheckCore`, `FoundationSeeder` (create-only: re-seeding a
+  live shop never overwrites its rows).
+- First-deploy content: `App\Support\Deploy\ContentTables` (allowlist of what travels),
+  `ContentTransfer`, `content:export` (developer machine) / `content:import` (website, refuses one
+  that is not new); orchestrated by `deploy.py`.
 
 ## Authentication and authorization
 

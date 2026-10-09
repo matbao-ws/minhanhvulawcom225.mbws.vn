@@ -213,6 +213,25 @@ chối và hỏi key mới. Không có kết nối này thì website không gử
 
 Cuối quá trình deploy, script tự kiểm tra kết nối: dòng `Kết nối gateway OK` là đạt.
 
+**Mang nội dung đã nhập ở máy bạn lên website (chỉ lần đầu).** Script hỏi *"Đẩy nội dung đã nhập ở máy
+này … lên website?"*. Chọn có thì sản phẩm, danh mục, thương hiệu, biến thể, ảnh, bài viết, trang chính
+sách, banner, menu, nội dung các vùng sửa trực tiếp, khuyến mãi, voucher, ngôn ngữ và cài đặt shop (tên,
+logo, liên hệ, SEO, mạng xã hội, mã nhúng) được chép lên. Những thứ **không bao giờ** được chép:
+
+| Không chép | Vì sao |
+|---|---|
+| Tài khoản (admin thử, khách thử), đơn hàng, đánh giá, liên hệ | Dữ liệu thử của bạn, không phải của khách. Website dùng tài khoản `ADMIN_EMAIL` của nó |
+| Cấu hình thanh toán, vận chuyển, email/SMTP, Cloudinary | Mã hoá bằng khoá riêng của máy bạn, website không đọc được — nhập lại trong admin website |
+| Feature, quyền, vai trò | Do gói dịch vụ và seed quyết định |
+
+- Máy bạn phải đã chạy `php artisan migrate` (cùng phiên bản core với lần deploy), nếu không script dừng
+  trước khi ghi gì lên server. Số lượt dùng voucher/khuyến mãi bắt đầu lại từ 0.
+- Website chỉ nhận khi **còn mới** (chưa có sản phẩm, bài viết, trang, đơn hàng hay tài khoản ngoài
+  superadmin) và không vượt hạn mức gói. Nếu không, script báo `Website KHÔNG nhận nội dung local` và
+  không ghi gì vào database.
+- **Các lần deploy sau không chép dữ liệu nữa**: từ đó nội dung do chủ shop nhập trong admin website.
+- Seed chạy lại (nếu chọn) chỉ tạo dữ liệu nền còn thiếu, không bao giờ ghi đè cài đặt hay nội dung đã có.
+
 Website trên máy chủ Plesk 252 **không cần tạo cron riêng**: cron chung của máy chủ (phụ lục A) tự
 nhận website mới trong vòng 10 phút. Website ở hosting khác thì phải có cron chạy
 `php artisan schedule:run` mỗi phút, nếu không, bấm "Cập nhật" trong admin sẽ không chạy.

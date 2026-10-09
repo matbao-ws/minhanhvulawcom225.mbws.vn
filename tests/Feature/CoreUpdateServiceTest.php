@@ -388,6 +388,40 @@ class CoreUpdateServiceTest extends TestCase
         return trim(file_get_contents($this->site.'/VERSION'));
     }
 
+    /**
+     * A deploy can bring the website to the version a run was blocked on, and it never touches
+     * state.json: that old error must not sit next to the new version number.
+     */
+    public function test_a_blocked_run_the_website_has_since_passed_no_longer_shows(): void
+    {
+        $admin = $this->superadmin();
+        $page = fn () => $this->actingAs($admin)->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk();
+        $this->write($this->site, ['storage/app/core/state.json' => json_encode([
+            'status' => 'blocked', 'from' => '1.0.0', 'to' => '1.0.1', 'step' => 'check',
+            'error' => 'drift: 1 core file(s) edited on this website (routes/web.php); move the change into the theme or core first',
+        ])]);
+
+        // Still on 1.0.0: the block is current, and it shows.
+        $page()->assertViewHas('problems', fn (array $problems) => array_column($problems, 'code') === ['DRIFT']);
+
+        // Deployed to 1.0.1 since: history.
+        $this->write($this->site, ['VERSION' => "1.0.1\n"]);
+        $page()->assertViewHas('problems', [])->assertViewHas('state', []);
+        $this->actingAs($admin)->getJson(route('admin.core-update.status', ['locale' => 'vi']))
+            ->assertOk()->assertJsonPath('problems', [])->assertJsonPath('last', []);
+    }
+
+    public function test_a_failed_install_that_rolled_back_still_shows(): void
+    {
+        $this->write($this->site, ['storage/app/core/state.json' => json_encode([
+            'status' => 'failed', 'from' => '1.0.0', 'to' => '1.0.1', 'step' => 'migrate', 'error' => 'SQLSTATE[42S01]',
+        ])]);
+
+        $this->actingAs($this->superadmin())->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()
+            ->assertViewHas('state', fn (array $state) => ($state['status'] ?? null) === 'failed')
+            ->assertViewHas('problems', fn (array $problems) => $problems !== []);
+    }
+
     public function test_the_page_shows_what_the_running_version_brought(): void
     {
         $this->write($this->site, ['docs/release-notes/1.0.0.md' => "## Tính năng mới
