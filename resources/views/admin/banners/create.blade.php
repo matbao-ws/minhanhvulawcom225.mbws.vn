@@ -34,7 +34,7 @@
                         @csrf
 
                         <!-- Banner Image Upload -->
-                        <div class="mb-4">
+                        <div data-tour="banner-form.image" class="mb-4">
                             <label for="image_file" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.image') }} <span class="text-danger">*</span></label>
                             <div class="p-4 border border-2 border-dashed rounded-4 text-center bg-light-subtle position-relative hover-bg-light transition-all">
                                 <i class="ti ti-photo-plus text-muted fs-9 mb-2 d-inline-block"></i>
@@ -48,20 +48,20 @@
                         </div>
 
                         <!-- Title -->
-                        <div class="mb-3">
+                        <div data-tour="banner-form.title" class="mb-3">
                             <label for="title" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.title') }}</label>
                             <input type="text" class="form-control rounded-pill" id="title" name="title" value="{{ old('title') }}" placeholder="Nhập tiêu đề hoặc mô tả ngắn">
                         </div>
 
                         <!-- Destination URL Link -->
-                        <div class="mb-3">
+                        <div data-tour="banner-form.link" class="mb-3">
                             <label for="link_url" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.link') }}</label>
                             <input type="url" class="form-control rounded-pill" id="link_url" name="link_url" value="{{ old('link_url') }}" placeholder="https://example.com/san-pham">
                         </div>
 
                         <div class="row">
                             <!-- Position -->
-                            <div class="col-md-6 mb-3">
+                            <div data-tour="banner-form.position" class="col-md-6 mb-3">
                                 <label for="position" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.position') }} <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-pill" id="position" name="position" required>
                                     <option value="home_main" @selected(old('position') === 'home_main')>{{ __('admin.banners.positions.home_main') }}</option>
@@ -71,14 +71,14 @@
                             </div>
 
                             <!-- Sort Order -->
-                            <div class="col-md-6 mb-3">
+                            <div data-tour="banner-form.sort-order" class="col-md-6 mb-3">
                                 <label for="sort_order" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.sort_order') }} <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control rounded-pill" id="sort_order" name="sort_order" value="{{ old('sort_order', 0) }}" min="0" required>
                             </div>
                         </div>
 
                         <!-- Active status -->
-                        <div class="mb-4 mt-2">
+                        <div data-tour="banner-form.status" class="mb-4 mt-2">
                             <div class="form-check form-switch fs-4">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', '1') == '1' ? 'checked' : '' }}>
                                 <label class="form-check-label fw-bold text-dark" for="is_active">{{ __('admin.banners.fields.status') }}: {{ __('admin.banners.fields.active') }}</label>
@@ -90,7 +90,7 @@
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-end gap-2 mt-4">
                             <x-admin.action-button :href="route('admin.banners.index')" variant="light" class="rounded-pill px-4 fw-semibold">{{ __('catalog.actions.cancel') }}</x-admin.action-button>
-                            <x-admin.action-button type="submit" icon="device-floppy" class="rounded-pill px-4 fw-semibold">{{ __('admin.banners.create') }}</x-admin.action-button>
+                            <x-admin.action-button data-tour="banner-form.save" type="submit" icon="device-floppy" class="rounded-pill px-4 fw-semibold">{{ __('admin.banners.create') }}</x-admin.action-button>
                         </div>
                     </form>
                 </div>

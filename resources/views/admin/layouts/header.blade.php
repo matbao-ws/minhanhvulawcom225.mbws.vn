@@ -33,7 +33,7 @@
                               <span class="site-name">{{ $siteBranding['name'] }}</span>
                           </a>
                       </li>
-                      <li class="nav-item d-none d-xl-flex nav-icon-hover-bg rounded-circle">
+                      <li data-tour="layout.search" class="nav-item d-none d-xl-flex nav-icon-hover-bg rounded-circle">
                           <a class="nav-link" href="javascript:void(0)" data-bs-toggle="modal"
                               data-bs-target="#exampleModal">
                               <iconify-icon icon="solar:magnifer-linear" class="fs-6"></iconify-icon>
@@ -167,18 +167,26 @@
                                       <iconify-icon icon="solar:sort-line-duotone" class="fs-6"></iconify-icon>
                                   </a>
                               </li>
-                              <li class="nav-item d-block d-xl-none">
+                              <li data-tour="layout.search" class="nav-item d-block d-xl-none">
                                   <a class="nav-link nav-icon-hover-bg rounded-circle" href="javascript:void(0)"
                                       data-bs-toggle="modal" data-bs-target="#exampleModal">
                                       <iconify-icon icon="solar:magnifer-line-duotone" class="fs-6"></iconify-icon>
                                   </a>
                               </li>
 
+                              @if(! empty($adminTour))
+                                  <li class="nav-item nav-icon-hover-bg rounded-circle" data-tour="layout.help">
+                                      <a class="nav-link" href="javascript:void(0)" data-admin-tour-start
+                                          title="{{ __('tours.ui.start') }}" aria-label="{{ __('tours.ui.start') }}">
+                                          <iconify-icon icon="solar:question-circle-line-duotone" class="fs-6"></iconify-icon>
+                                      </a>
+                                  </li>
+                              @endif
                               @include('admin.layouts.core-version')
                               <!-- ------------------------------- -->
                               <!-- start notification Dropdown -->
                               <!-- ------------------------------- -->
-                              <li class="nav-item dropdown nav-icon-hover-bg rounded-circle">
+                              <li data-tour="layout.notifications" class="nav-item dropdown nav-icon-hover-bg rounded-circle">
                                   <a class="nav-link position-relative" href="javascript:void(0)" id="drop2"
                                       aria-expanded="false">
                                       <iconify-icon icon="solar:bell-bing-line-duotone" class="fs-6"></iconify-icon>
@@ -459,7 +467,7 @@
                               <span class="site-name">{{ $siteBranding['name'] }}</span>
                           </a>
                       </li>
-                      <li class="nav-item d-none d-xl-flex align-items-center nav-icon-hover-bg rounded-circle">
+                      <li data-tour="layout.search" class="nav-item d-none d-xl-flex align-items-center nav-icon-hover-bg rounded-circle">
                           <a class="nav-link" href="javascript:void(0)" data-bs-toggle="modal"
                               data-bs-target="#exampleModal">
                               <iconify-icon icon="solar:magnifer-linear" class="fs-6"></iconify-icon>
@@ -597,18 +605,26 @@
                                       <iconify-icon icon="solar:sort-line-duotone" class="fs-6"></iconify-icon>
                                   </a>
                               </li>
-                              <li class="nav-item d-block d-xl-none">
+                              <li data-tour="layout.search" class="nav-item d-block d-xl-none">
                                   <a class="nav-link nav-icon-hover-bg rounded-circle" href="javascript:void(0)"
                                       data-bs-toggle="modal" data-bs-target="#exampleModal">
                                       <iconify-icon icon="solar:magnifer-line-duotone" class="fs-6"></iconify-icon>
                                   </a>
                               </li>
 
+                              @if(! empty($adminTour))
+                                  <li class="nav-item nav-icon-hover-bg rounded-circle" data-tour="layout.help">
+                                      <a class="nav-link" href="javascript:void(0)" data-admin-tour-start
+                                          title="{{ __('tours.ui.start') }}" aria-label="{{ __('tours.ui.start') }}">
+                                          <iconify-icon icon="solar:question-circle-line-duotone" class="fs-6"></iconify-icon>
+                                      </a>
+                                  </li>
+                              @endif
                               @include('admin.layouts.core-version')
                               <!-- ------------------------------- -->
                               <!-- start notification Dropdown -->
                               <!-- ------------------------------- -->
-                              <li class="nav-item dropdown nav-icon-hover-bg rounded-circle">
+                              <li data-tour="layout.notifications" class="nav-item dropdown nav-icon-hover-bg rounded-circle">
                                   <a class="nav-link position-relative" href="javascript:void(0)" id="drop2"
                                       aria-expanded="false">
                                       <iconify-icon icon="solar:bell-bing-line-duotone" class="fs-6"></iconify-icon>

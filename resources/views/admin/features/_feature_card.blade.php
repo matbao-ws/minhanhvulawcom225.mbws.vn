@@ -43,7 +43,7 @@
     $colorClass = $colorMap[$feature->feature_code] ?? 'bg-light text-dark';
 @endphp
 
-<div class="col-md-6 col-lg-4 mb-4" data-feature-card data-feature-group="{{ $groupKey }}">
+<div data-tour="features.card" class="col-md-6 col-lg-4 mb-4" data-feature-card data-feature-group="{{ $groupKey }}">
     <div class="card h-100 shadow-sm border border-light-subtle rounded-4 overflow-hidden position-relative feature-card">
         <!-- Top Status Badge -->
         <span class="position-absolute top-0 end-0 {{ $feature->is_enabled ? 'bg-success text-white' : 'bg-secondary-subtle text-muted' }} px-3 py-1 small fw-semibold d-flex align-items-center gap-1" 
@@ -64,7 +64,7 @@
 
                 <h5 class="fw-bold text-dark mb-2">{{ $displayName }}</h5>
                 @if($feature->package_enabled !== null)
-                    <div class="d-flex align-items-center gap-2 mb-2" data-feature-source="{{ $feature->feature_code }}">
+                    <div data-tour="features.source" class="d-flex align-items-center gap-2 mb-2" data-feature-source="{{ $feature->feature_code }}">
                         <span class="badge bg-warning-subtle text-warning {{ $feature->is_overridden ? '' : 'd-none' }}" data-source-override>{{ __('admin.package.badge_override') }}</span>
                         <button type="submit" form="feature-reset-form" name="feature_code" value="{{ $feature->feature_code }}" class="btn btn-link btn-sm p-0 {{ $feature->is_overridden ? '' : 'd-none' }}" data-source-override>{{ __('admin.package.reset_one') }}</button>
                         <span class="badge bg-primary-subtle text-primary {{ $feature->is_overridden ? 'd-none' : '' }}" data-source-package>{{ __('admin.package.badge_package') }}</span>

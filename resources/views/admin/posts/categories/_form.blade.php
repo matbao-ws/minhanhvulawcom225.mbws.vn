@@ -9,7 +9,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-12 mb-4">
-                <ul class="nav nav-tabs mb-4" role="tablist">
+                <ul data-tour="post-category-form.languages" class="nav nav-tabs mb-4" role="tablist">
                     @foreach($contentLanguages as $language)
                         <li class="nav-item" role="presentation">
                             <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
@@ -23,7 +23,7 @@
                         </li>
                     @endforeach
                 </ul>
-                <div class="tab-content">
+                <div data-tour="post-category-form.content" class="tab-content">
                     @foreach($contentLanguages as $language)
                         @php
                             $code = $language->code;
@@ -38,7 +38,7 @@
                     @endforeach
                 </div>
             </div>
-            <div class="col-md-6 mb-3">
+            <div data-tour="post-category-form.parent" class="col-md-6 mb-3">
                 <label class="form-label" for="parent_id">{{ __('catalog.fields.parent_category') }}</label>
                 <select class="form-select" id="parent_id" name="parent_id">
                     <option value="">{{ __('catalog.common.none') }}</option>
@@ -52,7 +52,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-12 mb-3">
+            <div data-tour="post-category-form.draft" class="col-12 mb-3">
                 <input type="hidden" name="is_active" value="1">
                 <div class="form-check">
                     <input class="form-check-input primary" type="checkbox" name="is_active" value="0" id="is_active" @checked(! (bool) old('is_active', $category->is_active))>

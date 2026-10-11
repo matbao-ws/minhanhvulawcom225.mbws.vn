@@ -19,18 +19,18 @@
 
     <div class="card">
         <div class="card-body">
-            <div class="alert alert-info small mb-4">
+            <div data-tour="ai-draft.notice" class="alert alert-info small mb-4">
                 <i class="ti ti-info-circle me-1"></i>{{ __('ai.draft.intro') }}
             </div>
 
             <ul class="nav nav-tabs mb-4" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link @if($mode === 'draft') active @endif" data-bs-toggle="tab" data-bs-target="#ai-draft-brief" type="button" role="tab">
+                    <button data-tour="ai-draft.tab-brief" class="nav-link @if($mode === 'draft') active @endif" data-bs-toggle="tab" data-bs-target="#ai-draft-brief" type="button" role="tab">
                         <i class="ti ti-file-pencil me-1"></i>{{ __('ai.draft.tab_brief') }}
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link @if($mode === 'notes') active @endif" data-bs-toggle="tab" data-bs-target="#ai-draft-notes" type="button" role="tab">
+                    <button data-tour="ai-draft.tab-notes" class="nav-link @if($mode === 'notes') active @endif" data-bs-toggle="tab" data-bs-target="#ai-draft-notes" type="button" role="tab">
                         <i class="ti ti-notes me-1"></i>{{ __('ai.draft.tab_notes') }}
                     </button>
                 </li>
@@ -42,7 +42,7 @@
                         @csrf
                         <input type="hidden" name="mode" value="draft">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div data-tour="ai-draft.keyword" class="col-md-6 mb-3">
                                 <label class="form-label" for="keyword">{{ __('ai.draft.keyword') }} <span class="text-danger">*</span></label>
                                 <input class="form-control @error('keyword') is-invalid @enderror" id="keyword" name="keyword" maxlength="120" value="{{ old('keyword', is_string(request()->query('keyword')) ? \Illuminate\Support\Str::limit(request()->query('keyword'), 120, '') : '') }}" placeholder="{{ __('ai.draft.keyword_hint') }}" required>
                                 <div class="form-text">{{ __('ai.draft.keyword_help') }}</div>
@@ -54,12 +54,12 @@
                                 @error('audience')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div data-tour="ai-draft.business" class="mb-3">
                             <label class="form-label" for="business_info">{{ __('ai.draft.business') }} <span class="text-danger">*</span></label>
                             <textarea class="form-control @error('business_info') is-invalid @enderror" id="business_info" name="business_info" rows="3" maxlength="3000" placeholder="{{ __('ai.draft.business_hint') }}" required>{{ old('business_info', $businessInfo) }}</textarea>
                             @error('business_info')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="mb-3">
+                        <div data-tour="ai-draft.key-points" class="mb-3">
                             <label class="form-label" for="key_points">{{ __('ai.draft.key_points') }} <span class="text-danger">*</span></label>
                             <textarea class="form-control @error('key_points') is-invalid @enderror" id="key_points" name="key_points" rows="4" maxlength="4000" placeholder="{{ __('ai.draft.key_points_hint') }}" required>{{ old('key_points') }}</textarea>
                             @error('key_points')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -74,7 +74,7 @@
                                 <textarea class="form-control" id="sources" name="sources" rows="3" maxlength="3000" placeholder="{{ __('ai.draft.sources_hint') }}">{{ old('sources') }}</textarea>
                             </div>
                         </div>
-                        <div class="row">
+                        <div data-tour="ai-draft.style" class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label" for="tone">{{ __('ai.draft.tone') }} <span class="text-danger">*</span></label>
                                 <select class="form-select" id="tone" name="tone" required>
@@ -89,7 +89,7 @@
                                 @error('target_words')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary js-ai-draft-submit">
+                        <button data-tour="ai-draft.submit" type="submit" class="btn btn-primary js-ai-draft-submit">
                             <i class="ti ti-sparkles me-1"></i>{{ __('ai.draft.submit') }} <span class="small opacity-75">({{ __('ai.draft.cost_brief') }})</span>
                         </button>
                     </form>

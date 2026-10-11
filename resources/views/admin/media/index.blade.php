@@ -350,7 +350,7 @@
 
                     <div class="collapse d-md-block" id="mediaSidebarCollapse">
                         <div class="media-sidebar-collapse-body pt-2 pt-md-0">
-                            <nav aria-label="{{ __('catalog.media.cloud_folders') }}">
+                            <nav data-tour="media.folders" aria-label="{{ __('catalog.media.cloud_folders') }}">
                                 <a href="{{ route('admin.media.index', ['folder' => 'all']) }}" class="media-folder-link {{ $activeFolder === 'all' ? 'is-active' : '' }}">
                                     <span class="folder-name"><i class="ti ti-folders"></i>{{ __('catalog.media.all_folders') }}</span>
                                     @if ($activeFolder === 'all')<span class="media-folder-count">{{ $resources->total() }}</span>@endif
@@ -362,7 +362,7 @@
                                     </a>
                                 @endforeach
                             </nav>
-                            <div class="media-storage-card">
+                            <div data-tour="media.storage" class="media-storage-card">
                                 <i class="ti ti-database media-storage-icon"></i>
                                 <div class="media-storage-content">
                                     <p class="media-storage-label">{{ __('catalog.media.storage_used') }}</p>
@@ -378,7 +378,7 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="media-cloud-card">
+                            <div data-tour="media.cloud" class="media-cloud-card">
                                 <div class="media-cloud-status {{ $cloudinaryConnection['configured'] ? '' : 'is-local' }}">
                                     <i class="ti {{ $cloudinaryConnection['configured'] ? 'ti-cloud-check' : 'ti-cloud-off' }}"></i>
                                     <div class="flex-grow-1 min-w-0">
@@ -400,7 +400,7 @@
             </aside>
 
             <main class="col-lg-9 col-md-8">
-                <section class="media-library-panel media-upload-panel mb-3">
+                <section data-tour="media.upload" class="media-library-panel media-upload-panel mb-3">
                     <div class="media-panel-heading"><i class="ti ti-upload"></i>{{ __('catalog.media.upload_to_folder', ['folder' => ucfirst($uploadFolder)]) }}</div>
                     <form method="POST" action="{{ route('admin.media.upload') }}" enctype="multipart/form-data" id="mediaUploadForm">
                         @csrf
@@ -444,12 +444,12 @@
                     </form>
                 </section>
 
-                <section class="media-library-panel media-files-panel">
+                <section data-tour="media.files" class="media-library-panel media-files-panel">
                     <div class="media-toolbar">
                         <div class="d-flex align-items-center justify-content-between w-100 w-lg-auto gap-2">
                             <h5 class="media-toolbar-title"><i class="ti ti-photo me-1 text-danger"></i>{{ __('catalog.media.files') }} ({{ $resources->total() }})</h5>
                             @if ($resources->isNotEmpty())
-                                <div class="media-toolbar-actions d-flex d-lg-none align-items-center gap-2">
+                                <div data-tour="media.view" class="media-toolbar-actions d-flex d-lg-none align-items-center gap-2">
                                     <form method="GET" class="m-0">
                                         <input type="hidden" name="folder" value="{{ $activeFolder }}">
                                         <select class="media-sort-label" name="sort" onchange="this.form.submit()" aria-label="{{ __('catalog.media.sort') }}">
@@ -470,7 +470,7 @@
                         @if ($resources->isNotEmpty())
                             <div class="media-toolbar-controls">
                                 <div class="media-bulk-bar">
-                                    <label class="media-bulk-select-all">
+                                    <label data-tour="media.select-all" class="media-bulk-select-all">
                                         <input type="checkbox" class="form-check-input" id="mediaSelectAll">
                                         <span>{{ __('catalog.media.select_all') }}</span>
                                     </label>
@@ -480,7 +480,7 @@
                                         </button>
                                     @endcan
                                 </div>
-                                <div class="media-toolbar-actions d-none d-lg-flex align-items-center gap-2">
+                                <div data-tour="media.view" class="media-toolbar-actions d-none d-lg-flex align-items-center gap-2">
                                     <form method="GET" class="m-0">
                                         <input type="hidden" name="folder" value="{{ $activeFolder }}">
                                         <select class="media-sort-label" name="sort" onchange="this.form.submit()" aria-label="{{ __('catalog.media.sort') }}">

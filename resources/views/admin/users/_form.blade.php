@@ -5,7 +5,7 @@
 
 <div class="row">
     <div class="col-lg-8">
-        <div class="card">
+        <div data-tour="user-form.account" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('admin.users.sections.general') }}</h4>
 
@@ -34,7 +34,7 @@
                 </div>
 
                 <!-- Password Field -->
-                <div class="mb-4">
+                <div data-tour="user-form.password" class="mb-4">
                     <label class="form-label" for="password">{{ __('admin.users.fields.password') }} @if (!$user->exists)
                             <span class="text-danger">*</span>
                         @endif
@@ -65,7 +65,7 @@
     <!-- Sidebar Card Info -->
     <div class="col-lg-4">
         <!-- Avatar card -->
-        <div class="card">
+        <div data-tour="user-form.avatar" class="card">
             <div class="card-body text-center">
                 <h4 class="card-title mb-7 text-start">{{ __('admin.users.fields.avatar') }}</h4>
 
@@ -103,7 +103,7 @@
                 <h4 class="card-title mb-7">{{ __('admin.users.sections.role_status') }}</h4>
 
                 <!-- Role Select -->
-                <div class="mb-3">
+                <div data-tour="user-form.role" class="mb-3">
                     <label class="form-label" for="role_id">{{ __('admin.users.fields.role') }} <span
                             class="text-danger">*</span></label>
                     <select class="form-select @error('role_id') is-invalid @enderror" id="role_id" name="role_id"
@@ -120,7 +120,7 @@
                 </div>
 
                 <!-- Status Checkbox -->
-                <div class="mt-4">
+                <div data-tour="user-form.status" class="mt-4">
                     <input type="hidden" name="is_active" value="0">
                     <div class="form-check">
                         <input class="form-check-input primary" type="checkbox" name="is_active" value="1"
@@ -139,7 +139,7 @@
 @if (!empty($overrideModules ?? []))
     {{-- Exceptions layered on top of the role. Only permissions the signed-in
          admin holds are listed, and the controller re-checks that on submit. --}}
-    <div class="card mt-4">
+    <div data-tour="user-form.overrides" class="card mt-4">
         <div class="card-header bg-transparent border-bottom">
             <h5 class="card-title mb-1 fw-semibold">{{ __('admin.roles.overrides_title') }}</h5>
             <p class="fs-2 text-muted mb-0">{{ __('admin.roles.overrides_hint') }}</p>

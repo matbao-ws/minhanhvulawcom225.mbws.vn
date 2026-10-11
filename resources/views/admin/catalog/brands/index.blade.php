@@ -14,13 +14,13 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.brands.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button :href="route('admin.brands.create')" icon="plus">{{ __('catalog.brands.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="brands.create" :href="route('admin.brands.create')" icon="plus">{{ __('catalog.brands.create') }}</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" data-responsive-filters class="row g-2">
+            <form data-tour="brands.filters" method="GET" data-responsive-filters class="row g-2">
                 <div class="col-md-10">
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="{{ __('catalog.placeholders.brand_name') }}">
                 </div>
@@ -34,11 +34,11 @@
             'bulkActionUrl' => route('admin.brands.bulk'),
             'bulkItemLabel' => 'thương hiệu',
         ])
-        <div class="table-responsive">
+        <div data-tour="brands.table" class="table-responsive">
             <table class="table text-nowrap mb-0 align-middle">
                 <thead class="text-dark fs-4">
                 <tr>
-                    <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-brands-form" aria-label="Chọn tất cả thương hiệu"></th>
+                    <th data-tour="brands.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-brands-form" aria-label="Chọn tất cả thương hiệu"></th>
                     <th>
                         <h6 class="fs-4 fw-semibold mb-0">{{ __('catalog.fields.name') }}</h6>
                     </th>
@@ -84,7 +84,7 @@
                             <p class="mb-0 fw-bold text-primary">{{ $brand->products_count }}</p>
                         </td>
                         <td>
-                            <div class="dropdown dropstart">
+                            <div data-tour="brands.row-actions" class="dropdown dropstart">
                                 <a href="javascript:void(0)" class="text-muted" id="brandAction{{ $brand->id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ti ti-dots fs-5"></i>
                                 </a>

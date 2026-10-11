@@ -50,18 +50,18 @@
                             <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                         @endif
                     @endforeach
-                    <x-admin.action-button type="submit" variant="danger" icon="trash">Xóa tất cả ({{ number_format($logs->total()) }})</x-admin.action-button>
+                    <x-admin.action-button data-tour="activity.delete-all" type="submit" variant="danger" icon="trash">Xóa tất cả ({{ number_format($logs->total()) }})</x-admin.action-button>
                 </form>
             </x-slot:actions>
         @endif
     </x-admin.page-header>
 
     <div class="card mb-4"><div class="card-body">
-        <form class="row g-3" method="GET">
+        <form data-tour="activity.filters" class="row g-3" method="GET">
             <div class="col-md-3"><select name="user_id" class="form-select"><option value="">Tất cả người thực hiện</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected(request('user_id') == $user->id)>{{ $user->name }} — {{ $user->email }}</option>@endforeach</select></div>
             <div class="col-md-2"><select name="action" class="form-select"><option value="">Tất cả thao tác</option>@foreach($actions as $action)<option value="{{ $action }}" @selected(request('action') === $action)>{{ \App\Models\AdminActivityLog::actionLabelFor($action) }}</option>@endforeach</select></div>
             <div class="col-md-2"><select name="subject_type" class="form-select"><option value="">Tất cả đối tượng</option>@foreach($subjectTypes as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ \App\Models\AdminActivityLog::subjectLabelFor($type) }}</option>@endforeach</select></div>
-            <div class="col-md-2"><input type="date" name="from" value="{{ request('from') }}" class="form-control"></div>
+            <div data-tour="activity.dates" class="col-md-2"><input type="date" name="from" value="{{ request('from') }}" class="form-control"></div>
             <div class="col-md-2"><input type="date" name="to" value="{{ request('to') }}" class="form-control"></div>
             <div class="col-md-1"><x-admin.action-button type="submit" icon="filter" class="w-100">Lọc</x-admin.action-button></div>
         </form>
@@ -87,8 +87,8 @@
             <button type="button" class="btn btn-sm btn-link text-secondary ms-auto" data-activity-bulk-clear>Bỏ chọn</button>
         </div>
     @endif
-    <div class="table-responsive activity-log-table-wrap"><table class="table table-hover align-middle mb-0 activity-log-table">
-        <thead><tr>@if($canDelete)<th class="ps-4" style="width: 48px;"><input type="checkbox" class="form-check-input" data-activity-select-all aria-label="Chọn tất cả trên trang"></th>@endif<th class="{{ $canDelete ? '' : 'ps-4' }}">Thời gian</th><th>Người thực hiện</th><th>Thao tác</th><th>Đối tượng</th><th>Mô tả</th><th class="pe-4">Thay đổi</th></tr></thead>
+    <div data-tour="activity.table" class="table-responsive activity-log-table-wrap"><table class="table table-hover align-middle mb-0 activity-log-table">
+        <thead><tr>@if($canDelete)<th class="ps-4" style="width: 48px;"><input data-tour="activity.select-all" type="checkbox" class="form-check-input" data-activity-select-all aria-label="Chọn tất cả trên trang"></th>@endif<th class="{{ $canDelete ? '' : 'ps-4' }}">Thời gian</th><th>Người thực hiện</th><th>Thao tác</th><th>Đối tượng</th><th>Mô tả</th><th data-tour="activity.changes" class="pe-4">Thay đổi</th></tr></thead>
         <tbody>@forelse($logs as $log)<tr>
             @if($canDelete)<td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $log->id }}" form="activity-bulk-form" data-activity-select aria-label="Chọn bản ghi #{{ $log->id }}"></td>@endif
             <td class="{{ $canDelete ? '' : 'ps-4' }} text-nowrap">{{ $log->created_at?->format('d/m/Y H:i') }}</td>

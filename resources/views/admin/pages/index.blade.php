@@ -9,14 +9,14 @@
         <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Trang chính sách</li>
     </x-slot:breadcrumbs>
     <x-slot:actions>
-        <x-admin.action-button :href="route('admin.pages.create')" icon="plus">Tạo trang chính sách</x-admin.action-button>
+        <x-admin.action-button data-tour="pages.create" :href="route('admin.pages.create')" icon="plus">Tạo trang chính sách</x-admin.action-button>
     </x-slot:actions>
 </x-admin.page-header>
 
 
 <div class="card">
     <div class="card-body">
-        <form method="GET" data-responsive-filters class="row g-2 mb-4">
+        <form data-tour="pages.filters" method="GET" data-responsive-filters class="row g-2 mb-4">
             <div class="col-md-6"><input class="form-control" name="q" value="{{ request('q') }}" placeholder="Tìm theo tiêu đề hoặc slug"></div>
             <div class="col-md-3">
                 <select class="form-select" name="status">
@@ -28,7 +28,7 @@
             <div class="col-md-3"><x-admin.action-button type="submit" variant="outline-primary" icon="filter" class="w-100">Lọc</x-admin.action-button></div>
         </form>
 
-        <div class="table-responsive">
+        <div data-tour="pages.table" class="table-responsive">
             <table class="table align-middle">
                 <thead><tr><th>Tiêu đề</th><th>Slug</th><th>Trạng thái</th><th>Cập nhật</th><th class="text-end">Thao tác</th></tr></thead>
                 <tbody>
@@ -40,7 +40,7 @@
                         <td>{{ $page->updated_at?->format('d/m/Y H:i') }}</td>
                         <td class="text-end">
                             @if($page->is_active && $page->published_at && !$page->published_at->isFuture())
-                                <a
+                                <a data-tour="pages.view"
                                     class="btn btn-sm btn-outline-secondary"
                                     href="{{ route('client.pages.show', ['locale' => app()->getLocale(), 'slug' => $page->canonicalSlug(app()->getLocale())]) }}"
                                     target="_blank"

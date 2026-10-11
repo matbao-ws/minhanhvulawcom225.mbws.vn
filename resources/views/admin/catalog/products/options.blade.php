@@ -9,15 +9,15 @@
     @endphp
     <x-admin.page-header :title="'Thuộc tính biến thể: ' . $product->name" subtitle="Khai báo các giá trị trước, sau đó tạo các tổ hợp SKU.">
         <x-slot:actions>
-            <x-admin.action-button :href="route('admin.products.show', $product)" variant="light">Quay lại sản phẩm</x-admin.action-button>
+            <x-admin.action-button data-tour="product-options.back" :href="route('admin.products.show', $product)" variant="light">Quay lại sản phẩm</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
     <form method="POST" action="{{ route('admin.products.options.update', $product) }}" class="admin-form-with-sticky-actions">
         @csrf
         @method('PUT')
-        <div class="card"><div class="card-body d-flex align-items-center justify-content-between gap-3"><div class="nav nav-pills content-language-tabs">@foreach($contentLanguages as $language)<button type="button" class="nav-link option-locale-switch @if($language->code === $defaultContentLocale) active @endif" data-option-locale="{{ $language->code }}">{{ $language->native_name }}</button>@endforeach</div><div>@foreach($contentLanguages as $language)@if($language->code !== $defaultContentLocale)<button type="button" class="btn btn-sm btn-outline-primary js-translate-locale option-translate-button d-none" data-option-translation-target="{{ $language->code }}" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $language->code }}">Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($language->code) }}</button>@endif @endforeach</div></div></div>
-        <div id="option-groups" class="d-flex flex-column gap-3">
+        <div data-tour="product-options.languages" class="card"><div class="card-body d-flex align-items-center justify-content-between gap-3"><div class="nav nav-pills content-language-tabs">@foreach($contentLanguages as $language)<button type="button" class="nav-link option-locale-switch @if($language->code === $defaultContentLocale) active @endif" data-option-locale="{{ $language->code }}">{{ $language->native_name }}</button>@endforeach</div><div>@foreach($contentLanguages as $language)@if($language->code !== $defaultContentLocale)<button type="button" class="btn btn-sm btn-outline-primary js-translate-locale option-translate-button d-none" data-option-translation-target="{{ $language->code }}" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $language->code }}">Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($language->code) }}</button>@endif @endforeach</div></div></div>
+        <div data-tour="product-options.groups" id="option-groups" class="d-flex flex-column gap-3">
             @forelse($product->optionGroups as $groupIndex => $group)
                 <div class="card option-group" data-group-index="{{ $groupIndex }}">
                     <div class="card-body">
@@ -61,7 +61,7 @@
                 </div>
             @endforelse
         </div>
-        <button type="button" id="add-group" class="btn btn-outline-primary mt-3">+ Thêm nhóm thuộc tính</button>
+        <button data-tour="product-options.add-group" type="button" id="add-group" class="btn btn-outline-primary mt-3">+ Thêm nhóm thuộc tính</button>
         @include('admin.shared.form-actions', ['cancelUrl' => route('admin.products.show', $product)])
     </form>
 

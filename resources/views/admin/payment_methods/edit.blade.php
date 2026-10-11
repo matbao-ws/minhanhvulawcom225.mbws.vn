@@ -20,22 +20,22 @@
                 @csrf
                 @method('PUT')
                 <div class="row">
-                    <div class="col-md-12 mb-3">
+                    <div data-tour="payment-method-form.name" class="col-md-12 mb-3">
                         <label class="form-label fw-semibold text-dark" for="name">{{ __('admin.payment_methods.name') }} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control text-dark" id="name" name="name" 
                             value="{{ old('name', $method->name) }}" required>
                     </div>
-                    <div class="col-md-12 mb-3">
+                    <div data-tour="payment-method-form.description" class="col-md-12 mb-3">
                         <label class="form-label fw-semibold text-dark" for="description">{{ __('admin.payment_methods.fee') }} <span class="text-danger">*</span></label>
                         <textarea class="form-control text-dark" id="description" name="description" rows="4" required>{{ old('description', $method->settings['description'] ?? '') }}</textarea>
                     </div>
                 </div>
 
                 <div class="mt-4 pt-2 border-top d-flex gap-2">
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                    <button data-tour="payment-method-form.submit" type="submit" class="btn btn-primary px-4 fw-semibold">
                         {{ __('admin.payment_methods.update') }}
                     </button>
-                    <a href="{{ route('admin.payment-methods.index') }}" class="btn btn-outline-secondary px-4">
+                    <a data-tour="payment-method-form.back" href="{{ route('admin.payment-methods.index') }}" class="btn btn-outline-secondary px-4">
                         {{ __('admin.payment_methods.back') }}
                     </a>
                 </div>
