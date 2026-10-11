@@ -35,7 +35,8 @@ use Symfony\Component\Finder\Finder;
 class AuditEditableRegions extends Command
 {
     protected $signature = 'client:editable-audit
-        {--fix : Wrap what can be wrapped safely and rewrite the files}';
+        {--fix : Wrap what can be wrapped safely and rewrite the files}
+        {--path= : Audit another folder of Blade views instead of resources/views/client (a theme benchmark); skips the section and menu wiring checks}';
 
     protected $description = 'Classify every piece of storefront content as editable, dynamic or ignored, and fail on anything left over';
 
@@ -52,22 +53,34 @@ class AuditEditableRegions extends Command
         'data-background' => 'ảnh nền qua data-bg — editor chưa hỗ trợ thay ảnh nền',
         'poster' => 'poster của <video> — editor chưa hỗ trợ',
         'image-manual' => 'bọc tay bằng editable-image (alt đang lấy từ biến, hoặc src không đọc được)',
+        'untranslated' => 'chữ tĩnh bọc trong __()/@lang nhưng key không có trong file ngôn ngữ nào — khách không sửa được: bọc bằng <x-client::editable>, hoặc thêm key vào lang/ nếu đây thật là chuỗi giao diện đa ngôn ngữ',
+        'layered' => 'ảnh nền nhiều lớp (gradient hoặc nhiều url) — editor chưa hỗ trợ',
+        'style-block' => 'ảnh nền khai báo trong <style> — gắn vào phần tử bằng style inline hoặc sửa tay; editor chưa hỗ trợ',
     ];
 
     public function handle(EditableRegionScanner $scanner, SectionRegistry $registry): int
     {
-        $root = resource_path('views/client');
+        $custom = $this->option('path');
+        $root = $custom ? $this->absolute((string) $custom) : resource_path('views/client');
 
         if (! is_dir($root)) {
+            if ($custom) {
+                $this->components->error("Không có thư mục {$root}.");
+
+                return self::FAILURE;
+            }
+
             $this->components->warn('No storefront views at resources/views/client — nothing to audit.');
 
             return self::SUCCESS;
         }
 
+        $scanner = $scanner->withAppTranslations();
         $audit = $this->auditViews($scanner, $root);
-        $sectionErrors = array_merge($this->auditSections($registry), $this->auditMenuTargets());
+        // The wiring checks describe this application's sections and menus, not a folder audited on its own.
+        $sectionErrors = $custom ? [] : array_merge($this->auditSections($registry), $this->auditMenuTargets());
 
-        if ($this->option('fix') && $this->applyFixes($audit['findings'])) {
+        if ($this->option('fix') && $this->applyFixes($audit['findings'], $root)) {
             // Report what is on disk now, not what was there before the fix:
             // the summary is the thing an agent reads to decide it is done.
             $audit = $this->auditViews($scanner, $root);
@@ -76,6 +89,11 @@ class AuditEditableRegions extends Command
         $this->report($audit, $sectionErrors);
 
         return $this->passes($audit, $sectionErrors) ? self::SUCCESS : self::FAILURE;
+    }
+
+    private function absolute(string $path): string
+    {
+        return preg_match('/^(?:[A-Za-z]:)?[\\\\\/]/', $path) ? $path : base_path($path);
     }
 
     /**
@@ -284,12 +302,12 @@ class AuditEditableRegions extends Command
      * @param  array<string, array<int, array<string, mixed>>>  $grouped
      * @return bool whether any file was written
      */
-    private function applyFixes(array $grouped): bool
+    private function applyFixes(array $grouped, string $root): bool
     {
         $written = false;
 
         foreach ($grouped as $relative => $findings) {
-            $path = resource_path('views/client/'.$relative);
+            $path = $root.'/'.$relative;
             $source = (string) file_get_contents($path);
             $wrapped = 0;
 
@@ -551,6 +569,10 @@ class AuditEditableRegions extends Command
         $this->summaryRow('ignored', $counts['image']['ignored'] ?? 0);
         $this->summaryRow('unsupported', $counts['image']['unsupported'] ?? 0, true);
         $this->summaryRow('unknown', $counts['image']['unknown'] ?? 0, true);
+        $this->line('  Set aside (not content images, listed for review)');
+        $this->summaryRow('icon / inline svg', $counts['image']['icon'] ?? 0);
+        $this->summaryRow('decorative (alt rỗng)', $counts['image']['decorative'] ?? 0);
+        $this->summaryRow('video / audio', $counts['image']['media'] ?? 0);
 
         $this->summaryRow('Ignored without reason', $invalid, true, 0);
         $this->summaryRow('Section/menu wiring errors', count($sectionErrors), true, 0);
