@@ -233,7 +233,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('public-auth', fn (Request $request) => [
             Limit::perMinute(10)->by($request->ip()),
-            Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
+            Limit::perMinute(5)->by(self::loginThrottleKey($request)),
         ]);
         // Contact form: a burst per minute and a ceiling per day, per IP (config/contact.php).
         RateLimiter::for('public-contact', fn (Request $request) => [
@@ -259,7 +259,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
         RateLimiter::for('admin-login', fn (Request $request) => [
             Limit::perMinute(10)->by($request->ip()),
-            Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
+            Limit::perMinute(5)->by(self::loginThrottleKey($request)),
         ]);
         // Each request spends an AI credit; the gateway enforces the monthly quota itself.
         RateLimiter::for('admin-ai', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->user()?->id ?: $request->ip())));
@@ -429,5 +429,17 @@ class AppServiceProvider extends ServiceProvider
 
         // The monthly mail quota is enforced by the MatBao relay on the gateway,
         // where this website's code cannot reach it; PackageLimits only reads it.
+    }
+
+    /**
+     * The per-account login limit, keyed like the stored email (trimmed, lowercase) so case or
+     * spaces cannot dodge it. A non-string email (an array) must not crash the limiter, which
+     * runs before validation.
+     */
+    private static function loginThrottleKey(Request $request): string
+    {
+        $email = $request->input('email');
+
+        return 'login-email:'.(is_string($email) ? strtolower(trim($email)) : '');
     }
 }
