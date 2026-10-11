@@ -10,9 +10,7 @@ use DomainException;
 
 class ProductOptionController extends Controller
 {
-    public function __construct(private readonly ProductOptionService $options)
-    {
-    }
+    public function __construct(private readonly ProductOptionService $options) {}
 
     public function edit(string $locale, Product $product)
     {

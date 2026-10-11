@@ -8,7 +8,7 @@ use Spatie\Translatable\HasTranslations;
 
 class ProductOptionValue extends Model
 {
-    use HasTranslations, HasMediaUrls;
+    use HasMediaUrls, HasTranslations;
 
     public array $translatable = ['label'];
 

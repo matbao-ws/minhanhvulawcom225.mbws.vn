@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Order;
+use App\Services\SiteBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -16,9 +17,7 @@ class OrderStatusMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public Order $order)
-    {
-    }
+    public function __construct(public Order $order) {}
 
     /**
      * Get the message envelope.
@@ -38,7 +37,7 @@ class OrderStatusMail extends Mailable
         return new Content(
             view: 'emails.order-status',
             with: [
-                'siteBranding' => app(\App\Services\SiteBranding::class)->current(),
+                'siteBranding' => app(SiteBranding::class)->current(),
             ],
         );
     }

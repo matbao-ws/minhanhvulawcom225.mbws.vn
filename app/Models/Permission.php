@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PermissionRegistry;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -27,7 +28,7 @@ class Permission extends Model
         if ($missing === []) {
             return;
         }
-        foreach (\App\Support\PermissionRegistry::definitions() as $definition) {
+        foreach (PermissionRegistry::definitions() as $definition) {
             if (in_array($definition['code'], $missing, true)) {
                 static::query()->firstOrCreate(['code' => $definition['code']], $definition);
             }

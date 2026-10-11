@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Brand;
 use App\Models\Category;
 use App\Models\FeatureSetting;
 use App\Models\Product;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -38,10 +38,10 @@ class ProductImportExportTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         $response = $this->get('/vi/admin/products/export');
-        
+
         $response->assertOk();
-        $response->assertHeader('Content-Disposition', 'attachment; filename=products_export_' . date('Y-m-d') . '.csv');
-        
+        $response->assertHeader('Content-Disposition', 'attachment; filename=products_export_'.date('Y-m-d').'.csv');
+
         $content = $response->streamedContent();
         $this->assertStringContainsString('EXP-SKU-1', $content);
         $this->assertStringContainsString('Sản phẩm Test', $content);
@@ -70,7 +70,7 @@ class ProductImportExportTest extends TestCase
     public function test_can_import_standard_csv(): void
     {
         $csvContent = "\xEF\xBB\xBFName_VI,Name_EN,Slug,SKU,Category,Brand,Price,Compare_At_Price,Cost_Price,Stock_Quantity,Manage_Stock,Is_Active,Short_Description_VI,Short_Description_EN,Description_VI,Description_EN,Image_URL\n"
-            . "Laptop Dell,Dell Laptop,laptop-dell,DELL-999,Laptops,Dell,15000,20000,,10,1,1,Mô tả ngắn,Short desc,Mô tả chi tiết,Long desc,http://example.com/dell.png\n";
+            ."Laptop Dell,Dell Laptop,laptop-dell,DELL-999,Laptops,Dell,15000,20000,,10,1,1,Mô tả ngắn,Short desc,Mô tả chi tiết,Long desc,http://example.com/dell.png\n";
 
         $tempFile = tempnam(sys_get_temp_dir(), 'import_test');
         file_put_contents($tempFile, $csvContent);
@@ -125,7 +125,7 @@ class ProductImportExportTest extends TestCase
             ."Hàng mới,,hang-moi,NEW-1,,,90000,,,3,1,1,,,,,\n";
         $path = tempnam(sys_get_temp_dir(), 'import_test');
         file_put_contents($path, $csv);
-        $role = \App\Models\Role::query()->create(['name' => 'Nhập hàng', 'permissions' => ['products.view', 'products.create']]);
+        $role = Role::query()->create(['name' => 'Nhập hàng', 'permissions' => ['products.view', 'products.create']]);
         $this->actingAs(User::factory()->create(['role_id' => $role->id]));
 
         $this->post('/vi/admin/products/import', [
@@ -144,7 +144,7 @@ class ProductImportExportTest extends TestCase
     public function test_can_import_wordpress_woocommerce_csv(): void
     {
         $csvContent = "\xEF\xBB\xBF\"SKU\",\"Name\",\"Published\",\"Short description\",\"Description\",\"Regular price\",\"Sale price\",\"Manage stock?\",\"Stock\",\"Categories\",\"Images\"\n"
-            . "\"WP-123\",\"WP Keyboard\",\"1\",\"Classic clicky keyboard\",\"Awesome mechanical keyboard\",\"100000\",\"90000\",\"yes\",\"15\",\"Computers > Keyboards\",\"https://example.com/kbd.png\"\n";
+            ."\"WP-123\",\"WP Keyboard\",\"1\",\"Classic clicky keyboard\",\"Awesome mechanical keyboard\",\"100000\",\"90000\",\"yes\",\"15\",\"Computers > Keyboards\",\"https://example.com/kbd.png\"\n";
 
         $tempFile = tempnam(sys_get_temp_dir(), 'import_test');
         file_put_contents($tempFile, $csvContent);

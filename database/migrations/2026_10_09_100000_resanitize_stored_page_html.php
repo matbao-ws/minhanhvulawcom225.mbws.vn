@@ -16,7 +16,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $sanitizer = new PageHtmlSanitizer();
+        $sanitizer = new PageHtmlSanitizer;
 
         foreach (['pages', 'page_revisions'] as $table) {
             DB::table($table)->select(['id', 'published_html'])->orderBy('id')->each(function (object $row) use ($table, $sanitizer): void {

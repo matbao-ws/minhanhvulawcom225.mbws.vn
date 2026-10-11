@@ -16,7 +16,7 @@ return new class extends Migration
         foreach (['analytics.service_account', 'analytics.service_account_last_good', 'analytics.access_token'] as $key) {
             try {
                 Cache::forget($key);
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // A cache store that is not reachable during deploy holds nothing to purge here.
             }
         }

@@ -35,7 +35,7 @@ class MediaController extends Controller
         $activeFolder = $request->query('folder', 'general');
         $folders = $this->cloudinaryService->listFolders();
 
-        if (!in_array($activeFolder, $folders) && $activeFolder !== 'all') {
+        if (! in_array($activeFolder, $folders) && $activeFolder !== 'all') {
             $activeFolder = 'general';
         }
 
@@ -237,11 +237,11 @@ class MediaController extends Controller
             return redirect()->back()->with('success', __('catalog.media.upload_success'));
         } catch (\Exception $e) {
             Log::error('Media upload failed.', ['exception' => $e::class]);
-            
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('catalog.media.upload_failed')
+                    'message' => __('catalog.media.upload_failed'),
                 ], 500);
             }
 
@@ -267,13 +267,14 @@ class MediaController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => $deleted,
-                    'message' => $deleted ? __('catalog.media.delete_success') : __('catalog.media.delete_failed')
+                    'message' => $deleted ? __('catalog.media.delete_success') : __('catalog.media.delete_failed'),
                 ]);
             }
 
             if ($deleted) {
                 return redirect()->back()->with('success', __('catalog.media.delete_success'));
             }
+
             return redirect()->back()->withErrors(['public_id' => __('catalog.media.delete_failed')]);
         } catch (\Throwable $e) {
             Log::error('Media deletion failed.', ['exception' => $e::class]);
@@ -281,7 +282,7 @@ class MediaController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('catalog.media.delete_failed')
+                    'message' => __('catalog.media.delete_failed'),
                 ], 500);
             }
 

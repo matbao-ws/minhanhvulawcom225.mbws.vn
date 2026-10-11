@@ -104,7 +104,7 @@ class Role extends Model
             }
 
             $this->permissionRecords()->detach();
-            $this->setRelation('permissionRecords', new Collection());
+            $this->setRelation('permissionRecords', new Collection);
 
             return;
         }

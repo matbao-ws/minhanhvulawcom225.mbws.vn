@@ -14,6 +14,7 @@ class JwtService
         if (str_starts_with($key, 'base64:')) {
             return base64_decode(substr($key, 7));
         }
+
         return $key;
     }
 
@@ -36,6 +37,7 @@ class JwtService
         try {
             $key = self::getKey();
             $decoded = JWT::decode($token, new Key($key, 'HS256'));
+
             return (array) $decoded;
         } catch (\Exception $e) {
             return null;

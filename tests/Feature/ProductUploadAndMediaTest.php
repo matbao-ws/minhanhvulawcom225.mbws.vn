@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Brand;
 use App\Models\Category;
 use App\Models\FeatureSetting;
 use App\Models\Product;
@@ -317,7 +316,7 @@ class ProductUploadAndMediaTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        
+
         $product = Product::query()->where('sku', 'IP-15')->firstOrFail();
         $this->assertNotNull($product->image_url);
         $this->assertStringContainsString('products/', $product->image_url);
@@ -374,7 +373,7 @@ class ProductUploadAndMediaTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        
+
         $product = Product::query()->where('sku', 'IP-DRAFT')->firstOrFail();
         $this->assertFalse($product->is_active);
     }

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Brand;
 use App\Models\FeatureSetting;
-use App\Models\Product;
 use App\Models\User;
 use App\Services\Catalog\BrandService;
 use App\Services\Catalog\ProductService;

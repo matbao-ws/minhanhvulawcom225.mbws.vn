@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\WordPressPostImportRequest;
@@ -11,6 +12,7 @@ use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
+use App\Services\Packages\PackageLimits;
 use App\Services\PostSeoAnalyzer;
 use App\Services\WordPressPostImportService;
 use App\Support\HtmlSanitizer;
@@ -272,8 +274,8 @@ class PostController extends Controller
             ]);
 
             // Posts refused by the package limit get the blocking dialog, not just a line in the error list.
-            if ($limitHit = app(\App\Services\Packages\PackageLimits::class)->lastExceeded()) {
-                $response->with(\App\Exceptions\PackageLimitExceeded::FLASH_KEY, $limitHit->getMessage());
+            if ($limitHit = app(PackageLimits::class)->lastExceeded()) {
+                $response->with(PackageLimitExceeded::FLASH_KEY, $limitHit->getMessage());
             }
 
             return $response;

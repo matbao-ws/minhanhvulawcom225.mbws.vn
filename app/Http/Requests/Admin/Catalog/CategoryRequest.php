@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Catalog;
 
 use App\Http\Requests\Concerns\NormalizesLocalizedInput;
+use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,7 @@ class CategoryRequest extends FormRequest
                 Rule::notIn(array_filter([$categoryId])),
                 function ($attribute, $value, $fail) {
                     if ($value) {
-                        $parent = \App\Models\Category::find($value);
+                        $parent = Category::find($value);
                         if ($parent && $parent->slug === 'chua-phan-loai') {
                             $fail(__('catalog.categories.uncategorized_cannot_have_children'));
                         }
@@ -38,10 +39,10 @@ class CategoryRequest extends FormRequest
                                 $fail('Danh mục cha không thể là danh mục con của chính nó.');
                                 break;
                             }
-                            $parent = $parent->parent_id ? \App\Models\Category::find($parent->parent_id) : null;
+                            $parent = $parent->parent_id ? Category::find($parent->parent_id) : null;
                         }
                     }
-                }
+                },
             ],
             ...$this->localizedStringRules('name', true, 255),
             ...$this->localizedStringRules('slug', false, 255),

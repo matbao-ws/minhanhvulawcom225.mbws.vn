@@ -2,12 +2,49 @@
 
 namespace App\Providers;
 
+use App\Contracts\TranslationProvider;
+use App\Mail\Transport\MatbaoGatewayTransport;
+use App\Models\Banner;
+use App\Models\Order;
+use App\Models\Post;
+use App\Models\Product;
+use App\Models\Review;
 use App\Models\User;
+use App\Models\Voucher;
+use App\Services\AiGateway\AiUsage;
+use App\Services\AiGateway\GatewayClient;
+use App\Services\AiGateway\PostDraftService;
+use App\Services\Analytics\AnalyticsReport;
+use App\Services\CloudinaryCredentials;
+use App\Services\LanguageRegistry;
+use App\Services\MailSettings;
+use App\Services\Packages\PackageLimits;
+use App\Services\Packages\PackageUsageAlerts;
+use App\Services\Seo\SeoMetaFactory;
+use App\Services\Seo\SiteEmbeds;
+use App\Services\SiteBranding;
+use App\Services\SiteContentService;
+use App\Services\SiteListService;
+use App\Services\SiteSectionService;
+use App\Services\Translation\GoogleTranslationProvider;
+use App\Services\WordPressImageImportService;
+use App\Support\ClientEditorChrome;
+use App\Support\CoreUpdate\ArtisanRunner;
+use App\Support\CoreUpdate\ReleaseVerifier;
+use App\Support\ErrorReporting\GatewayErrorReporter;
+use App\Support\FeatureGate;
+use App\Support\Seo\SeoMeta;
+use App\Support\Seo\StructuredData;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,34 +54,34 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->scoped(\App\Services\SiteBranding::class);
+        $this->app->scoped(SiteBranding::class);
         // Holds the request's error summaries until the response is out (one flush per request).
-        $this->app->scoped(\App\Support\ErrorReporting\GatewayErrorReporter::class);
-        $this->app->bind(\App\Support\CoreUpdate\ReleaseVerifier::class, fn () => new \App\Support\CoreUpdate\ReleaseVerifier(
+        $this->app->scoped(GatewayErrorReporter::class);
+        $this->app->bind(ReleaseVerifier::class, fn () => new ReleaseVerifier(
             array_values(array_filter((array) config('core_update.public_keys'))),
         ));
-        $this->app->bind(\App\Support\CoreUpdate\ArtisanRunner::class, fn () => new \App\Support\CoreUpdate\ArtisanRunner(base_path()));
+        $this->app->bind(ArtisanRunner::class, fn () => new ArtisanRunner(base_path()));
         // One image downloader per import run: posts, pages and products share its cache and report.
-        $this->app->scoped(\App\Services\WordPressImageImportService::class);
+        $this->app->scoped(WordPressImageImportService::class);
         // Scoped: a storefront page renders dozens of regions and must not
         // issue a query per region.
-        $this->app->scoped(\App\Services\SiteContentService::class);
+        $this->app->scoped(SiteContentService::class);
         // Same reason: a repeatable region asks for its item ids once per render,
         // and a page can hold many of them.
-        $this->app->scoped(\App\Services\SiteListService::class);
+        $this->app->scoped(SiteListService::class);
         // Same again: every section on the page asks how it should render.
-        $this->app->scoped(\App\Services\SiteSectionService::class);
+        $this->app->scoped(SiteSectionService::class);
         // Read by both the <head> partial and the footer partial of one page.
-        $this->app->scoped(\App\Services\Seo\SiteEmbeds::class);
+        $this->app->scoped(SiteEmbeds::class);
         // Media pages and upload services consult the same encrypted
         // Cloudinary setting several times in one request.
-        $this->app->scoped(\App\Services\CloudinaryCredentials::class);
+        $this->app->scoped(CloudinaryCredentials::class);
         // Scoped so an importer can ask, after the loop, whether any row hit the limit.
-        $this->app->scoped(\App\Services\Packages\PackageLimits::class);
+        $this->app->scoped(PackageLimits::class);
 
         $this->app->bind(
-            \App\Contracts\TranslationProvider::class,
-            \App\Services\Translation\GoogleTranslationProvider::class,
+            TranslationProvider::class,
+            GoogleTranslationProvider::class,
         );
     }
 
@@ -62,12 +99,12 @@ class AppServiceProvider extends ServiceProvider
         // mail is actually used, which keeps the settings lookup off every web
         // request and out of `migrate` on a database that has no settings table yet.
         $this->app->resolving('mail.manager', function ($manager) {
-            app(\App\Services\MailSettings::class)->apply();
+            app(MailSettings::class)->apply();
 
             // The MatBao relay transport; registered on resolution, like the settings
             // above, so requests that send no mail never touch the mailer.
-            $manager->extend(\App\Services\MailSettings::GATEWAY_MAILER, fn () => new \App\Mail\Transport\MatbaoGatewayTransport(
-                app(\App\Services\AiGateway\GatewayClient::class),
+            $manager->extend(MailSettings::GATEWAY_MAILER, fn () => new MatbaoGatewayTransport(
+                app(GatewayClient::class),
             ));
         });
 
@@ -86,7 +123,7 @@ class AppServiceProvider extends ServiceProvider
             'errors.*',
             'errors::*',
         ], function ($view) {
-            $view->with('siteBranding', app(\App\Services\SiteBranding::class)->current());
+            $view->with('siteBranding', app(SiteBranding::class)->current());
         });
 
         view()->composer([
@@ -96,7 +133,7 @@ class AppServiceProvider extends ServiceProvider
             // An error page is rendered outside the locale middleware: read the language from
             // the URL here, against the site's own languages (a /ja page errs in Japanese).
             $segment = (string) request()->segment(1);
-            if ($segment !== '' && app(\App\Services\LanguageRegistry::class)->supports($segment)) {
+            if ($segment !== '' && app(LanguageRegistry::class)->supports($segment)) {
                 app()->setLocale($segment);
             }
             $currentLocale = app()->getLocale();
@@ -104,9 +141,9 @@ class AppServiceProvider extends ServiceProvider
             $adminDashboardUrl = route('admin.dashboard', ['locale' => $currentLocale]);
             // Themes name their home `client.home` under {locale}; without the parameter the
             // URL cannot be built and the error page itself throws (a blank 500 for a 404).
-            $clientHomeUrl = \Illuminate\Support\Facades\Route::has('client.home')
+            $clientHomeUrl = Route::has('client.home')
                 ? route('client.home', ['locale' => $currentLocale])
-                : (is_file(base_path('routes/theme.php')) ? url('/' . $currentLocale) : null);
+                : (is_file(base_path('routes/theme.php')) ? url('/'.$currentLocale) : null);
 
             $view->with([
                 'isAdminContext' => $isAdminContext,
@@ -118,15 +155,15 @@ class AppServiceProvider extends ServiceProvider
         // Shown to staff who can use AI; the gateway is asked at most every five minutes.
         view()->composer('admin.dashboard._ai-usage', function ($view) {
             $user = auth()->user();
-            $visible = $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo');
-            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(\App\Services\AiGateway\AiUsage::class)->current() : null]);
+            $visible = $user && $user->can('ai.use') && app(FeatureGate::class)->availableTo($user, 'ai_seo');
+            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(AiUsage::class)->current() : null]);
         });
 
         // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
         view()->composer('admin.dashboard._seo-tasks', function ($view) {
             $user = auth()->user();
             $view->with([
-                'seoTasksVisible' => $user && $user->can('ai.use') && app(\App\Support\FeatureGate::class)->availableTo($user, 'ai_seo'),
+                'seoTasksVisible' => $user && $user->can('ai.use') && app(FeatureGate::class)->availableTo($user, 'ai_seo'),
                 // A connection changes shared settings, so only expose this shortcut
                 // to staff who can both open and save that screen.
                 'seoTasksSettingsUrl' => $user && $user->can('settings.view') && $user->can('settings.update')
@@ -137,14 +174,14 @@ class AppServiceProvider extends ServiceProvider
 
         view()->composer('admin.shared.ai-draft-review', function ($view) {
             $post = $view->getData()['post'] ?? null;
-            $view->with('aiDraftReview', $post instanceof \App\Models\Post ? app(\App\Services\AiGateway\PostDraftService::class)->review($post) : null);
+            $view->with('aiDraftReview', $post instanceof Post ? app(PostDraftService::class)->review($post) : null);
         });
 
         // On the core partials, not a layout: every theme layout reaches them through
         // @include('core.head') / @include('core.editor') and needs no composer of its own.
         view()->composer(['core.partials.seo-head', 'core.partials.embed-footer'], function ($view) {
-            $branding = app(\App\Services\SiteBranding::class)->current();
-            $view->with('siteEmbeds', app(\App\Services\Seo\SiteEmbeds::class)->current());
+            $branding = app(SiteBranding::class)->current();
+            $view->with('siteEmbeds', app(SiteEmbeds::class)->current());
 
             if ($view->name() !== 'core.partials.seo-head') {
                 return;
@@ -152,12 +189,12 @@ class AppServiceProvider extends ServiceProvider
 
             $seo = $view->getData()['seo'] ?? null;
 
-            if (! $seo instanceof \App\Support\Seo\SeoMeta) {
+            if (! $seo instanceof SeoMeta) {
                 // A page that passes no $seo still declared its title and description
                 // as sections, which the layout has captured before this partial renders.
                 // Inline sections arrive already escaped; the partial escapes again.
                 $section = fn (string $name) => trim(html_entity_decode($view->getFactory()->yieldContent($name), ENT_QUOTES | ENT_HTML5));
-                $seo = app(\App\Services\Seo\SeoMetaFactory::class)->fallback(
+                $seo = app(SeoMetaFactory::class)->fallback(
                     $section('title') ?: $branding['name'],
                     $section('meta_description') ?: null,
                 );
@@ -166,7 +203,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'seo' => $seo,
                 'seoSiteName' => $branding['name'],
-                'seoOrganization' => \App\Support\Seo\StructuredData::script(\App\Support\Seo\StructuredData::organization(
+                'seoOrganization' => StructuredData::script(StructuredData::organization(
                     $branding,
                     config('app.public_frontend_url') ?: url('/'),
                 )),
@@ -179,9 +216,9 @@ class AppServiceProvider extends ServiceProvider
             try {
                 // role_id marks staff (customers have none); the preview frame is staff too.
                 if (auth()->user()?->role_id === null
-                    && ! \App\Support\ClientEditorChrome::suppressed()
-                    && app(\App\Support\FeatureGate::class)->enabled('analytics')) {
-                    $id = app(\App\Services\Analytics\AnalyticsReport::class)->settings()['measurement_id'];
+                    && ! ClientEditorChrome::suppressed()
+                    && app(FeatureGate::class)->enabled('analytics')) {
+                    $id = app(AnalyticsReport::class)->settings()['measurement_id'];
                 }
             } catch (\Throwable) {
                 // Tracking must never break a storefront page.
@@ -191,7 +228,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         view()->composer('admin.layouts.app', function ($view) {
-            $view->with('packageLimitAlerts', app(\App\Services\Packages\PackageUsageAlerts::class)->forAdmin());
+            $view->with('packageLimitAlerts', app(PackageUsageAlerts::class)->forAdmin());
         });
 
         RateLimiter::for('public-auth', fn (Request $request) => [
@@ -207,7 +244,7 @@ class AppServiceProvider extends ServiceProvider
         // any inbox with shop-branded mail and burn the site's monthly mail quota.
         RateLimiter::for('public-checkout', fn (Request $request) => array_filter([
             Limit::perMinute(10)->by($request->ip()),
-            ($emailKey = \App\Models\Voucher::emailKey($request->input('customer_email')))
+            ($emailKey = Voucher::emailKey($request->input('customer_email')))
                 ? Limit::perHour(5)->by('checkout-email:'.$emailKey)
                 : null,
         ]));
@@ -248,14 +285,13 @@ class AppServiceProvider extends ServiceProvider
         // Storefront editing components (<x-client::editable> …) are core: they live in
         // views/core/components and are updated with core. A theme may add its own
         // components in views/client/components under the same prefix.
-        \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/core/components'), 'client');
+        Blade::anonymousComponentPath(resource_path('views/core/components'), 'client');
         if (is_dir(resource_path('views/client/components'))) {
-            \Illuminate\Support\Facades\Blade::anonymousComponentPath(resource_path('views/client/components'), 'client');
+            Blade::anonymousComponentPath(resource_path('views/client/components'), 'client');
         }
         // Themes written before the editor moved to views/core still include
         // client.partials.admin-bar & co. Searched after views/, so a theme's own file wins.
-        \Illuminate\Support\Facades\View::addLocation(resource_path('views/core/legacy'));
-
+        View::addLocation(resource_path('views/core/legacy'));
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
             if ($notifiable instanceof User && $notifiable->role_id === null) {
@@ -277,7 +313,7 @@ class AppServiceProvider extends ServiceProvider
         // override decides in either direction, and only then does the role
         // speak. Returning false here is a hard denial, which is exactly what a
         // revocation must be.
-        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+        Gate::before(function ($user, $ability) {
             if ($user->isSuperAdmin()) {
                 return true;
             }
@@ -300,12 +336,12 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
 
             // Fetch recent orders
-            if ($user?->can('orders.view') && \Illuminate\Support\Facades\Schema::hasTable('orders')) {
-                $orders = \App\Models\Order::query()->latest()->limit(5)->get();
+            if ($user?->can('orders.view') && Schema::hasTable('orders')) {
+                $orders = Order::query()->latest()->limit(5)->get();
                 foreach ($orders as $order) {
                     $notifications->push([
-                        'title' => 'Đơn hàng mới #' . $order->order_number,
-                        'message' => 'Khách hàng: ' . $order->customer_name . '. Tổng cộng: ' . number_format($order->grand_total, 0, ',', '.') . ' ₫.',
+                        'title' => 'Đơn hàng mới #'.$order->order_number,
+                        'message' => 'Khách hàng: '.$order->customer_name.'. Tổng cộng: '.number_format($order->grand_total, 0, ',', '.').' ₫.',
                         'time' => $order->created_at ? $order->created_at->diffForHumans() : '',
                         'timestamp' => $order->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:cart-3-line-duotone',
@@ -316,8 +352,8 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Fetch recent reviews
-            if ($user?->can('reviews.view') && \Illuminate\Support\Facades\Schema::hasTable('reviews')) {
-                $reviews = \App\Models\Review::query()->latest()->limit(5)->get();
+            if ($user?->can('reviews.view') && Schema::hasTable('reviews')) {
+                $reviews = Review::query()->latest()->limit(5)->get();
                 foreach ($reviews as $review) {
                     $prodName = 'Sản phẩm';
                     if ($review->product) {
@@ -325,8 +361,8 @@ class AppServiceProvider extends ServiceProvider
                         $prodName = is_array($name) ? ($name['vi'] ?? array_values($name)[0] ?? 'Sản phẩm') : $name;
                     }
                     $notifications->push([
-                        'title' => 'Đánh giá mới từ ' . ($review->customer_name ?? 'Khách hàng'),
-                        'message' => 'Đánh giá ' . $review->rating . ' sao cho ' . $prodName,
+                        'title' => 'Đánh giá mới từ '.($review->customer_name ?? 'Khách hàng'),
+                        'message' => 'Đánh giá '.$review->rating.' sao cho '.$prodName,
                         'time' => $review->created_at ? $review->created_at->diffForHumans() : '',
                         'timestamp' => $review->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:chat-round-line-line-duotone',
@@ -342,8 +378,8 @@ class AppServiceProvider extends ServiceProvider
             // `users.view`, titled "Thành viên mới" and links to the staff edit form,
             // so listing customers here both mislabelled them and pointed the admin
             // at a form that does not manage them. Customers have their own screen.
-            if ($user?->can('users.view') && \Illuminate\Support\Facades\Schema::hasTable('users')) {
-                $staffAccounts = \App\Models\User::query()
+            if ($user?->can('users.view') && Schema::hasTable('users')) {
+                $staffAccounts = User::query()
                     ->whereNotNull('role_id')
                     ->latest()
                     ->limit(5)
@@ -354,8 +390,8 @@ class AppServiceProvider extends ServiceProvider
                 // would silently break the permission check of any block added after.
                 foreach ($staffAccounts as $staff) {
                     $notifications->push([
-                        'title' => 'Thành viên mới: ' . $staff->name,
-                        'message' => 'Email: ' . $staff->email,
+                        'title' => 'Thành viên mới: '.$staff->name,
+                        'message' => 'Email: '.$staff->email,
                         'time' => $staff->created_at ? $staff->created_at->diffForHumans() : '',
                         'timestamp' => $staff->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:shield-user-line-duotone',
@@ -385,11 +421,11 @@ class AppServiceProvider extends ServiceProvider
      */
     private function enforcePackageLimits(): void
     {
-        $limits = fn () => app(\App\Services\Packages\PackageLimits::class);
+        $limits = fn () => app(PackageLimits::class);
 
-        \App\Models\Product::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::DATA_UNIT));
-        \App\Models\Post::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::DATA_UNIT));
-        \App\Models\Banner::creating(fn () => $limits()->ensureCanCreate(\App\Services\Packages\PackageLimits::BANNER));
+        Product::creating(fn () => $limits()->ensureCanCreate(PackageLimits::DATA_UNIT));
+        Post::creating(fn () => $limits()->ensureCanCreate(PackageLimits::DATA_UNIT));
+        Banner::creating(fn () => $limits()->ensureCanCreate(PackageLimits::BANNER));
 
         // The monthly mail quota is enforced by the MatBao relay on the gateway,
         // where this website's code cannot reach it; PackageLimits only reads it.

@@ -25,8 +25,7 @@ class SendOrderStatusEmail implements ShouldQueue
     public function __construct(
         public readonly int $orderId,
         public readonly string $recipient,
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {

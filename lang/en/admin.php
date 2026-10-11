@@ -660,8 +660,8 @@ return [
                 'headings' => 'Content contains structural headings (H2/H3).',
                 'image_alts' => 'All images contain descriptive alt attributes.',
                 'internal_links' => 'Content contains at least one internal link.',
-            ]
-        ]
+            ],
+        ],
     ],
     'vouchers' => [
         'title' => 'Vouchers & Coupons',
@@ -1089,7 +1089,7 @@ return [
         'placeholder_enter' => 'Enter :field...',
         'sound_test_fail_title' => 'Audio Alert Warning',
         'sound_test_fail_msg' => 'Cannot play the test sound due to browser security policies. Please click anywhere on the page and try again.',
-        
+
         // Zalo OA
         'zalo_oa' => [
             'title' => 'Zalo Official Account (OA) Notifications',
@@ -1181,7 +1181,7 @@ return [
             'create_success' => 'New banner created successfully.',
             'update_success' => 'Banner updated successfully.',
             'delete_success' => 'Banner deleted successfully.',
-        ]
+        ],
     ],
     'dashboard_page' => [
         'welcome_greeting' => 'Hello,',
@@ -1273,7 +1273,7 @@ return [
         ],
         'stats' => ['total' => 'Total', 'running' => 'Running', 'attention' => 'Need attention', 'disabled' => 'Disabled'],
         'commands_title' => 'On the server',
-        'commands_hint' => "Run in the website folder. These commands keep working while an extension breaks the admin.",
+        'commands_hint' => 'Run in the website folder. These commands keep working while an extension breaks the admin.',
         'commands' => [
             'list' => 'Status of every extension',
             'disable' => 'Switch an extension off (not removed)',

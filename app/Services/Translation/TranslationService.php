@@ -11,12 +11,11 @@ class TranslationService
     public function __construct(
         private readonly TranslationProvider $provider,
         private readonly HtmlSanitizer $htmlSanitizer,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, string> $fields
-     * @param array<string, string> $formats
+     * @param  array<string, string>  $fields
+     * @param  array<string, string>  $formats
      * @return array<string, string>
      */
     public function preview(array $fields, string $sourceLocale, string $targetLocale, array $formats = []): array
@@ -27,6 +26,7 @@ class TranslationService
         foreach ($fields as $key => $value) {
             if (trim($value) === '') {
                 $result[$key] = '';
+
                 continue;
             }
 

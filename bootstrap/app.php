@@ -1,9 +1,32 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveAdminApiUser;
+use App\Http\Middleware\EnsureActiveApiUser;
+use App\Http\Middleware\EnsureCoreUpdateAccess;
+use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\EnsurePackageLimit;
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsSuperadmin;
+use App\Http\Middleware\ResolveApiLocale;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetLocaleFromRoute;
+use App\Http\Middleware\SyncPackageInfo;
+use App\Http\Middleware\ValidateLocalizedAdminPath;
+use App\Services\LanguageRegistry;
+use App\Support\ErrorReference;
+use App\Support\ErrorReporting\GatewayErrorReporter;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
+use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter;
+use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes;
+use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath;
+use Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect;
+use Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::get('/admin', fn () => redirect('/'.app(\App\Services\LanguageRegistry::class)->adminLocale(null).'/admin'));
+            Route::get('/admin', fn () => redirect('/'.app(LanguageRegistry::class)->adminLocale(null).'/admin'));
 
             Route::middleware(['web', 'setLocale'])
                 ->prefix('{locale}')
@@ -37,31 +60,31 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Trusted proxies: config/trustedproxy.php (TRUSTED_PROXIES), read per request.
 
-        $middleware->prepend(\App\Http\Middleware\ValidateLocalizedAdminPath::class);
-        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request): string {
+        $middleware->prepend(ValidateLocalizedAdminPath::class);
+        $middleware->redirectGuestsTo(function (Request $request): string {
             return route('admin.login', [
-                'locale' => app(\App\Services\LanguageRegistry::class)->adminLocale($request->route('locale')),
+                'locale' => app(LanguageRegistry::class)->adminLocale($request->route('locale')),
             ]);
         });
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(SecurityHeaders::class);
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-            'active-api' => \App\Http\Middleware\EnsureActiveApiUser::class,
-            'active-admin-api' => \App\Http\Middleware\EnsureActiveAdminApiUser::class,
-            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
-            'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
-            'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
-            'core-update.access' => \App\Http\Middleware\EnsureCoreUpdateAccess::class,
-            'feature' => \App\Http\Middleware\EnsureFeatureEnabled::class,
-            'package.sync' => \App\Http\Middleware\SyncPackageInfo::class,
-            'package.limit' => \App\Http\Middleware\EnsurePackageLimit::class,
-            'setLocale' => \App\Http\Middleware\SetLocaleFromRoute::class,
-            'apiLocale' => \App\Http\Middleware\ResolveApiLocale::class,
-            'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,
-            'localizationRedirect' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter::class,
-            'localeSessionRedirect' => \Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect::class,
-            'localeCookieRedirect' => \Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect::class,
-            'localeViewPath' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath::class,
+            'admin' => EnsureUserIsAdmin::class,
+            'active-api' => EnsureActiveApiUser::class,
+            'active-admin-api' => EnsureActiveAdminApiUser::class,
+            'abilities' => CheckAbilities::class,
+            'ability' => CheckForAnyAbility::class,
+            'superadmin' => EnsureUserIsSuperadmin::class,
+            'core-update.access' => EnsureCoreUpdateAccess::class,
+            'feature' => EnsureFeatureEnabled::class,
+            'package.sync' => SyncPackageInfo::class,
+            'package.limit' => EnsurePackageLimit::class,
+            'setLocale' => SetLocaleFromRoute::class,
+            'apiLocale' => ResolveApiLocale::class,
+            'localize' => LaravelLocalizationRoutes::class,
+            'localizationRedirect' => LaravelLocalizationRedirectFilter::class,
+            'localeSessionRedirect' => LocaleSessionRedirect::class,
+            'localeCookieRedirect' => LocaleCookieRedirect::class,
+            'localeViewPath' => LaravelLocalizationViewPath::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -70,10 +93,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->dontFlash(['cloudinary_url', 'cloud_name', 'api_key', 'api_secret']);
 
         // The error page shows only this code; the log line carries it next to the detail.
-        $exceptions->context(fn () => ['error_ref' => \App\Support\ErrorReference::current()]);
+        $exceptions->context(fn () => ['error_ref' => ErrorReference::current()]);
 
         // The same code reaches the internal console, so it is found without this hosting's log.
-        $exceptions->reportable(function (\Throwable $e): void {
-            app(\App\Support\ErrorReporting\GatewayErrorReporter::class)->capture($e);
+        $exceptions->reportable(function (Throwable $e): void {
+            app(GatewayErrorReporter::class)->capture($e);
         });
     })->create();

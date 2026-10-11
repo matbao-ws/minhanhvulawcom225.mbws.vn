@@ -2,11 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Order;
 use App\Models\AdminActivityLog;
+use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -180,12 +181,12 @@ class DashboardTest extends TestCase
         $response->assertOk();
         $response->assertViewIs('admin.notifications.index');
         $response->assertViewHas('notifications');
-        
+
         $notifications = $response->viewData('notifications');
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $notifications);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $notifications);
         $this->assertCount(15, $notifications->items());
         $this->assertEquals(21, $notifications->total());
-        
+
         // Fetch page 2
         $responsePage2 = $this->actingAs($this->adminUser)->get('/vi/admin/notifications?page=2');
         $responsePage2->assertOk();
@@ -219,12 +220,12 @@ class DashboardTest extends TestCase
         $response = $this->actingAs($this->adminUser)->get('/vi/admin/notifications?type=orders');
         $response->assertOk();
         $notifications = $response->viewData('notifications');
-        
-        $this->assertTrue($notifications->contains(function($notif) {
+
+        $this->assertTrue($notifications->contains(function ($notif) {
             return str_contains($notif->title, 'ORD-999');
         }));
-        
-        $this->assertFalse($notifications->contains(function($notif) {
+
+        $this->assertFalse($notifications->contains(function ($notif) {
             return str_contains($notif->title, 'Thành viên mới');
         }));
 
@@ -232,12 +233,12 @@ class DashboardTest extends TestCase
         $response = $this->actingAs($this->adminUser)->get('/vi/admin/notifications?type=users');
         $response->assertOk();
         $notifications = $response->viewData('notifications');
-        
-        $this->assertTrue($notifications->contains(function($notif) {
+
+        $this->assertTrue($notifications->contains(function ($notif) {
             return str_contains($notif->title, 'Thành viên mới');
         }));
-        
-        $this->assertFalse($notifications->contains(function($notif) {
+
+        $this->assertFalse($notifications->contains(function ($notif) {
             return str_contains($notif->title, 'ORD-999');
         }));
     }
@@ -276,11 +277,11 @@ class DashboardTest extends TestCase
         $response->assertOk();
         $notifications = $response->viewData('notifications');
 
-        $this->assertTrue($notifications->contains(function($notif) {
+        $this->assertTrue($notifications->contains(function ($notif) {
             return str_contains($notif->message, 'Unique Customer Name');
         }));
 
-        $this->assertFalse($notifications->contains(function($notif) {
+        $this->assertFalse($notifications->contains(function ($notif) {
             return str_contains($notif->message, 'Regular Person');
         }));
     }

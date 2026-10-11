@@ -1,18 +1,28 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\AiBulkController;
+use App\Http\Controllers\Admin\AiContentController;
+use App\Http\Controllers\Admin\AiMetaController;
+use App\Http\Controllers\Admin\AiPostDraftController;
+use App\Http\Controllers\Admin\AiResearchController;
+use App\Http\Controllers\Admin\AiSeoTasksController;
+use App\Http\Controllers\Admin\AiToolsController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\Catalog\BrandController;
 use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
 use App\Http\Controllers\Admin\Catalog\ProductOptionController;
 use App\Http\Controllers\Admin\Catalog\ProductVariantController;
+use App\Http\Controllers\Admin\CheckoutTestController;
 use App\Http\Controllers\Admin\ContactSubmissionController;
+use App\Http\Controllers\Admin\CoreUpdateController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\CoreUpdateController;
 use App\Http\Controllers\Admin\ExtensionController;
 use App\Http\Controllers\Admin\FeatureController;
+use App\Http\Controllers\Admin\GhnLookupController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\MenuController;
@@ -58,15 +68,15 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
     // Place a test order through the public checkout API; look up GHN address codes.
-    Route::get('checkout-test', \App\Http\Controllers\Admin\CheckoutTestController::class)
+    Route::get('checkout-test', CheckoutTestController::class)
         ->middleware('can:orders.create')
         ->name('checkout.test');
     // GHN connection check and address lookups (order "Tạo vận đơn" dialog, checkout test page).
     Route::middleware(['can:orders.view', 'feature:shipping', 'throttle:60,1'])->prefix('shipping/ghn')->name('shipping.ghn.')->group(function () {
-        Route::get('status', [\App\Http\Controllers\Admin\GhnLookupController::class, 'status'])->name('status');
-        Route::get('provinces', [\App\Http\Controllers\Admin\GhnLookupController::class, 'provinces'])->name('provinces');
-        Route::get('provinces/{provinceId}/districts', [\App\Http\Controllers\Admin\GhnLookupController::class, 'districts'])->whereNumber('provinceId')->name('districts');
-        Route::get('districts/{districtId}/wards', [\App\Http\Controllers\Admin\GhnLookupController::class, 'wards'])->whereNumber('districtId')->name('wards');
+        Route::get('status', [GhnLookupController::class, 'status'])->name('status');
+        Route::get('provinces', [GhnLookupController::class, 'provinces'])->name('provinces');
+        Route::get('provinces/{provinceId}/districts', [GhnLookupController::class, 'districts'])->whereNumber('provinceId')->name('districts');
+        Route::get('districts/{districtId}/wards', [GhnLookupController::class, 'wards'])->whereNumber('districtId')->name('wards');
     });
     // Each click may call the internal tool; keep it to a handful per minute.
     Route::post('dashboard/package-usage/refresh', [DashboardController::class, 'refreshPackageUsage'])
@@ -74,9 +84,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->name('dashboard.package-usage.refresh');
     // Google Analytics: loaded after the dashboard renders; each call may reach Google.
     Route::middleware(['can:analytics.view', 'feature:analytics'])->group(function () {
-        Route::get('dashboard/analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'show'])
+        Route::get('dashboard/analytics', [AnalyticsController::class, 'show'])
             ->middleware('throttle:30,1')->name('dashboard.analytics');
-        Route::post('dashboard/analytics/refresh', [\App\Http\Controllers\Admin\AnalyticsController::class, 'refresh'])
+        Route::post('dashboard/analytics/refresh', [AnalyticsController::class, 'refresh'])
             ->middleware('throttle:6,1')->name('dashboard.analytics.refresh');
     });
     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
@@ -88,21 +98,21 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     // AI SEO Copilot. ai.use asks for suggestions; ai.apply writes them, and applying also checks
     // the record's own update permission (MetaSuggestionService).
     Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
-        Route::post('meta-suggestions', [\App\Http\Controllers\Admin\AiMetaController::class, 'suggest'])
+        Route::post('meta-suggestions', [AiMetaController::class, 'suggest'])
             ->middleware('throttle:admin-ai')->name('meta.suggest');
-        Route::post('meta-suggestions/{suggestion}/apply', [\App\Http\Controllers\Admin\AiMetaController::class, 'apply'])
+        Route::post('meta-suggestions/{suggestion}/apply', [AiMetaController::class, 'apply'])
             ->whereNumber('suggestion')->middleware('can:ai.apply')->name('meta.apply');
-        Route::post('meta-suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\AiMetaController::class, 'reject'])
+        Route::post('meta-suggestions/{suggestion}/reject', [AiMetaController::class, 'reject'])
             ->whereNumber('suggestion')->name('meta.reject');
-        Route::post('content-edits', [\App\Http\Controllers\Admin\AiContentController::class, 'suggest'])
+        Route::post('content-edits', [AiContentController::class, 'suggest'])
             ->middleware('throttle:admin-ai')->name('content.suggest');
-        Route::post('content-edits/{suggestion}/apply', [\App\Http\Controllers\Admin\AiContentController::class, 'apply'])
+        Route::post('content-edits/{suggestion}/apply', [AiContentController::class, 'apply'])
             ->whereNumber('suggestion')->middleware('can:ai.apply')->name('content.apply');
-        Route::post('content-edits/{suggestion}/reject', [\App\Http\Controllers\Admin\AiContentController::class, 'reject'])
+        Route::post('content-edits/{suggestion}/reject', [AiContentController::class, 'reject'])
             ->whereNumber('suggestion')->name('content.reject');
 
         // FAQ, alt text, SEO fixes, product descriptions (AiToolsController).
-        Route::controller(\App\Http\Controllers\Admin\AiToolsController::class)->group(function () {
+        Route::controller(AiToolsController::class)->group(function () {
             Route::post('faq', 'faqSuggest')->middleware('throttle:admin-ai')->name('faq.suggest');
             Route::post('faq/{suggestion}/apply', 'faqApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('faq.apply');
             Route::post('alt/missing', 'altMissing')->name('alt.missing');
@@ -118,15 +128,15 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         });
 
         // Bulk SEO: one gateway job, results reviewed here (AiBulkController).
-        Route::get('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'index'])->name('bulk.index');
-        Route::post('bulk/estimate', [\App\Http\Controllers\Admin\AiBulkController::class, 'estimate'])->middleware('throttle:admin-ai')->name('bulk.estimate');
-        Route::post('bulk', [\App\Http\Controllers\Admin\AiBulkController::class, 'store'])->middleware('throttle:admin-ai')->name('bulk.store');
-        Route::get('bulk/{job}', [\App\Http\Controllers\Admin\AiBulkController::class, 'show'])->whereNumber('job')->middleware('throttle:admin-gateway-read')->name('bulk.show');
-        Route::post('bulk/{job}/apply', [\App\Http\Controllers\Admin\AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
+        Route::get('bulk', [AiBulkController::class, 'index'])->name('bulk.index');
+        Route::post('bulk/estimate', [AiBulkController::class, 'estimate'])->middleware('throttle:admin-ai')->name('bulk.estimate');
+        Route::post('bulk', [AiBulkController::class, 'store'])->middleware('throttle:admin-ai')->name('bulk.store');
+        Route::get('bulk/{job}', [AiBulkController::class, 'show'])->whereNumber('job')->middleware('throttle:admin-gateway-read')->name('bulk.show');
+        Route::post('bulk/{job}/apply', [AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
         // Keywords & competitors (Hero 4+). Data from a paid provider, limited on the gateway.
         Route::middleware('feature:ai_research')->prefix('research')->name('research.')
-            ->controller(\App\Http\Controllers\Admin\AiResearchController::class)->group(function () {
+            ->controller(AiResearchController::class)->group(function () {
                 Route::get('/', 'index')->middleware('throttle:admin-gateway-read')->name('index');
                 Route::get('status', 'status')->middleware('throttle:admin-gateway-read')->name('status');
                 Route::post('competitors', 'storeCompetitor')->middleware('throttle:admin-ai')->name('competitors.store');
@@ -139,17 +149,17 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             });
 
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
-        Route::get('seo-tasks', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'index'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.index');
-        Route::get('seo-tasks/summary', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'summary'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.summary');
-        Route::post('seo-tasks/{task}/advice', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'advice'])
+        Route::get('seo-tasks', [AiSeoTasksController::class, 'index'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.index');
+        Route::get('seo-tasks/summary', [AiSeoTasksController::class, 'summary'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.summary');
+        Route::post('seo-tasks/{task}/advice', [AiSeoTasksController::class, 'advice'])
             ->where('task', '[a-f0-9]{16}')->middleware('throttle:admin-ai')->name('seo-tasks.advice');
-        Route::post('seo-tasks/{task}/status', [\App\Http\Controllers\Admin\AiSeoTasksController::class, 'mark'])
+        Route::post('seo-tasks/{task}/status', [AiSeoTasksController::class, 'mark'])
             ->where('task', '[a-f0-9]{16}')->name('seo-tasks.status');
 
         Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
-            Route::get('post-drafts/create', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'create'])->name('post-drafts.create');
+            Route::get('post-drafts/create', [AiPostDraftController::class, 'create'])->name('post-drafts.create');
             // A draft is a new post: it counts against the package's data units like any other.
-            Route::post('post-drafts', [\App\Http\Controllers\Admin\AiPostDraftController::class, 'store'])
+            Route::post('post-drafts', [AiPostDraftController::class, 'store'])
                 ->middleware(['package.limit:data_unit', 'throttle:admin-ai'])->name('post-drafts.store');
         });
     });
@@ -310,9 +320,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
     Route::get('settings', [SettingController::class, 'index'])->middleware('can:settings.view')->name('settings.index');
     Route::post('settings', [SettingController::class, 'update'])->middleware('can:settings.update')->name('settings.update');
-    Route::post('settings/analytics/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'check'])
+    Route::post('settings/analytics/check', [AnalyticsController::class, 'check'])
         ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.analytics.check');
-    Route::post('settings/search-console/check', [\App\Http\Controllers\Admin\AnalyticsController::class, 'checkSearchConsole'])
+    Route::post('settings/search-console/check', [AnalyticsController::class, 'checkSearchConsole'])
         ->middleware(['can:settings.update', 'throttle:6,1'])->name('settings.search-console.check');
 
     Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');

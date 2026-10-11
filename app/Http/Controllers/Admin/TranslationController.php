@@ -19,8 +19,7 @@ class TranslationController extends Controller
         TranslationService $translations,
         LanguageRegistry $languages,
         MultilingualSettings $multilingual,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         if (! $multilingual->usesManualContent()) {
             return response()->json([
                 'message' => 'Dịch nội dung thủ công không hoạt động trong chế độ đa ngôn ngữ hiện tại.',

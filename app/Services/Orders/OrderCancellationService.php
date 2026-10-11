@@ -27,8 +27,7 @@ class OrderCancellationService
         private readonly PromotionService $promotions,
         private readonly OrderStateTransitionService $transitions,
         private readonly PaymentTransactionService $payments,
-    ) {
-    }
+    ) {}
 
     /**
      * Cancel a locked order that is not cancelled yet and record why.

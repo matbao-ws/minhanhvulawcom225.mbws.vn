@@ -6,8 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Models\FeatureSetting;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Review;
+use App\Models\User;
+use App\Services\CloudinaryService;
+use App\Services\MailSettings;
+use App\Services\Packages\PackageInfo;
+use App\Services\Packages\PackageLimits;
+use App\Services\Packages\PackageSync;
+use App\Support\FeatureGate;
 use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -53,8 +67,8 @@ class DashboardController extends Controller
 
         // 3. Top Selling Products (Top 5)
         $topProducts = collect();
-        if (\Illuminate\Support\Facades\Schema::hasTable('order_items')) {
-            $topProducts = \App\Models\OrderItem::query()
+        if (Schema::hasTable('order_items')) {
+            $topProducts = OrderItem::query()
                 ->select(
                     'product_id',
                     'product_name',
@@ -203,7 +217,7 @@ class DashboardController extends Controller
                     __('admin.orders.statuses.processing'),
                     __('admin.orders.statuses.completed'),
                     __('admin.orders.statuses.cancelled'),
-                ]
+                ],
             ],
             'recentOrders' => $recentOrders,
             'topProducts' => $topProducts,
@@ -228,21 +242,21 @@ class DashboardController extends Controller
         $user = request()->user();
 
         // Fetch recent orders
-        if ($user->can('orders.view') && \Illuminate\Support\Facades\Schema::hasTable('orders') && (!$type || $type === 'orders')) {
-            $ordersQuery = \App\Models\Order::query()->latest();
-            if (!empty($q)) {
-                $ordersQuery->where(function($query) use ($q) {
+        if ($user->can('orders.view') && Schema::hasTable('orders') && (! $type || $type === 'orders')) {
+            $ordersQuery = Order::query()->latest();
+            if (! empty($q)) {
+                $ordersQuery->where(function ($query) use ($q) {
                     $query->where('order_number', 'like', "%{$q}%")
-                          ->orWhere('customer_name', 'like', "%{$q}%")
-                          ->orWhere('customer_phone', 'like', "%{$q}%")
-                          ->orWhere('status', 'like', "%{$q}%");
+                        ->orWhere('customer_name', 'like', "%{$q}%")
+                        ->orWhere('customer_phone', 'like', "%{$q}%")
+                        ->orWhere('status', 'like', "%{$q}%");
                 });
             }
             $orders = $ordersQuery->limit(200)->get();
             foreach ($orders as $order) {
                 $notifications->push((object) [
-                    'title' => 'Đơn hàng mới #' . $order->order_number,
-                    'message' => 'Khách hàng: ' . $order->customer_name . '. Tổng cộng: ' . number_format($order->grand_total, 0, ',', '.') . ' ₫. Trạng thái: ' . $order->status,
+                    'title' => 'Đơn hàng mới #'.$order->order_number,
+                    'message' => 'Khách hàng: '.$order->customer_name.'. Tổng cộng: '.number_format($order->grand_total, 0, ',', '.').' ₫. Trạng thái: '.$order->status,
                     'time' => $order->created_at,
                     'icon' => 'solar:cart-3-line-duotone',
                     'bg_color' => 'bg-primary-subtle text-primary',
@@ -252,13 +266,13 @@ class DashboardController extends Controller
         }
 
         // Fetch recent reviews
-        if ($user->can('reviews.view') && \Illuminate\Support\Facades\Schema::hasTable('reviews') && (!$type || $type === 'reviews')) {
-            $reviewsQuery = \App\Models\Review::query()->latest();
-            if (!empty($q)) {
-                $reviewsQuery->where(function($query) use ($q) {
+        if ($user->can('reviews.view') && Schema::hasTable('reviews') && (! $type || $type === 'reviews')) {
+            $reviewsQuery = Review::query()->latest();
+            if (! empty($q)) {
+                $reviewsQuery->where(function ($query) use ($q) {
                     $query->where('customer_name', 'like', "%{$q}%")
-                          ->orWhere('comment', 'like', "%{$q}%")
-                          ->orWhere('rating', 'like', "%{$q}%");
+                        ->orWhere('comment', 'like', "%{$q}%")
+                        ->orWhere('rating', 'like', "%{$q}%");
                 });
             }
             $reviews = $reviewsQuery->limit(200)->get();
@@ -269,8 +283,8 @@ class DashboardController extends Controller
                     $prodName = is_array($name) ? ($name['vi'] ?? array_values($name)[0] ?? 'Sản phẩm') : $name;
                 }
                 $notifications->push((object) [
-                    'title' => 'Đánh giá mới từ ' . ($review->customer_name ?? 'Khách hàng'),
-                    'message' => 'Đánh giá ' . $review->rating . ' sao cho ' . $prodName . ': "' . \Illuminate\Support\Str::limit($review->comment, 80) . '"',
+                    'title' => 'Đánh giá mới từ '.($review->customer_name ?? 'Khách hàng'),
+                    'message' => 'Đánh giá '.$review->rating.' sao cho '.$prodName.': "'.Str::limit($review->comment, 80).'"',
                     'time' => $review->created_at,
                     'icon' => 'solar:chat-round-line-line-duotone',
                     'bg_color' => 'bg-info-subtle text-info',
@@ -280,19 +294,19 @@ class DashboardController extends Controller
         }
 
         // Fetch recent registered users
-        if ($user->can('users.view') && \Illuminate\Support\Facades\Schema::hasTable('users') && (!$type || $type === 'users')) {
-            $usersQuery = \App\Models\User::query()->latest();
-            if (!empty($q)) {
-                $usersQuery->where(function($query) use ($q) {
+        if ($user->can('users.view') && Schema::hasTable('users') && (! $type || $type === 'users')) {
+            $usersQuery = User::query()->latest();
+            if (! empty($q)) {
+                $usersQuery->where(function ($query) use ($q) {
                     $query->where('name', 'like', "%{$q}%")
-                          ->orWhere('email', 'like', "%{$q}%");
+                        ->orWhere('email', 'like', "%{$q}%");
                 });
             }
             $users = $usersQuery->limit(200)->get();
             foreach ($users as $user) {
                 $notifications->push((object) [
                     'title' => 'Thành viên mới đăng ký',
-                    'message' => 'Họ tên: ' . $user->name . ' (Email: ' . $user->email . ')',
+                    'message' => 'Họ tên: '.$user->name.' (Email: '.$user->email.')',
                     'time' => $user->created_at,
                     'icon' => 'solar:shield-user-line-duotone',
                     'bg_color' => 'bg-success-subtle text-success',
@@ -306,22 +320,22 @@ class DashboardController extends Controller
 
         // Paginate the collection manually (15 items per page)
         $perPage = 15;
-        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $currentPage = Paginator::resolveCurrentPage() ?: 1;
         $currentPageItems = $notifications->slice(($currentPage - 1) * $perPage, $perPage)->values();
 
-        $paginatedNotifications = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginatedNotifications = new LengthAwarePaginator(
             $currentPageItems,
             $notifications->count(),
             $perPage,
             $currentPage,
             [
-                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'path' => Paginator::resolveCurrentPath(),
                 'query' => request()->query(),
             ]
         );
 
         return view('admin.notifications.index', [
-            'notifications' => $paginatedNotifications
+            'notifications' => $paginatedNotifications,
         ]);
     }
 
@@ -336,11 +350,11 @@ class DashboardController extends Controller
     {
         $rows = [];
 
-        foreach (app(\App\Services\Packages\PackageLimits::class)->summary() as $metric => $row) {
+        foreach (app(PackageLimits::class)->summary() as $metric => $row) {
             // The monthly mail quota only means something on the shared relay.
-            if ($metric === \App\Services\Packages\PackageLimits::EMAIL_MONTHLY
+            if ($metric === PackageLimits::EMAIL_MONTHLY
                 && $row['limit'] === null
-                && app(\App\Services\MailSettings::class)->source() !== \App\Services\MailSettings::SOURCE_REMOTE) {
+                && app(MailSettings::class)->source() !== MailSettings::SOURCE_REMOTE) {
                 continue;
             }
 
@@ -354,9 +368,9 @@ class DashboardController extends Controller
 
         // Walking the local disk is expensive and Cloudinary is rate-limited; a
         // ten-minute-old figure is fine for a dashboard.
-        $storage = \Illuminate\Support\Facades\Cache::remember('dashboard.storage_usage', 600, function (): array {
+        $storage = Cache::remember('dashboard.storage_usage', 600, function (): array {
             try {
-                return app(\App\Services\CloudinaryService::class)->storageUsage();
+                return app(CloudinaryService::class)->storageUsage();
             } catch (\Throwable) {
                 return ['used' => null, 'limit' => null];
             }
@@ -372,7 +386,7 @@ class DashboardController extends Controller
         }
 
         return [
-            'package' => app(\App\Services\Packages\PackageSync::class)->snapshot()['name'] ?? null,
+            'package' => app(PackageSync::class)->snapshot()['name'] ?? null,
             'rows' => $rows,
         ];
     }
@@ -383,18 +397,18 @@ class DashboardController extends Controller
      */
     public function refreshPackageUsage()
     {
-        \Illuminate\Support\Facades\Cache::forget('dashboard.storage_usage');
+        Cache::forget('dashboard.storage_usage');
 
-        if (! app(\App\Services\Packages\PackageInfo::class)->configured()) {
+        if (! app(PackageInfo::class)->configured()) {
             return redirect()->route('admin.dashboard')->with('success', __('admin.package.usage_refreshed'));
         }
 
-        $result = app(\App\Services\Packages\PackageSync::class)->sync();
+        $result = app(PackageSync::class)->sync();
 
         return match ($result['status']) {
-            \App\Services\Packages\PackageInfo::OK => redirect()->route('admin.dashboard')
+            PackageInfo::OK => redirect()->route('admin.dashboard')
                 ->with('success', __('admin.package.synced', ['package' => $result['package']['name']])),
-            \App\Services\Packages\PackageInfo::NOT_FOUND => redirect()->route('admin.dashboard')
+            PackageInfo::NOT_FOUND => redirect()->route('admin.dashboard')
                 ->with('error', __('admin.package.not_found', ['domain' => config('packages.domain')])),
             default => redirect()->route('admin.dashboard')->with('error', __('admin.package.unreachable')),
         };
@@ -403,7 +417,7 @@ class DashboardController extends Controller
     private function analyticsEnabled(): bool
     {
         return (bool) request()->user()?->can('analytics.view')
-            && app(\App\Support\FeatureGate::class)->enabled('analytics');
+            && app(FeatureGate::class)->enabled('analytics');
     }
 
     private function formatBytes(int $bytes): string

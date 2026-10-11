@@ -2,12 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Product;
 use App\Services\LocalizedContent;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Product */
+/** @mixin Product */
 class PublicProductResource extends JsonResource
 {
     public function toArray(Request $request): array

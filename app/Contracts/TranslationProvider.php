@@ -5,7 +5,7 @@ namespace App\Contracts;
 interface TranslationProvider
 {
     /**
-     * @param list<string> $texts
+     * @param  list<string>  $texts
      * @return list<string>
      */
     public function translate(array $texts, string $sourceLocale, string $targetLocale, string $format = 'text'): array;

@@ -2,14 +2,20 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\FeatureSetting;
+use App\Models\Language;
+use App\Models\Menu;
 use App\Models\ProjectSetting;
-use App\Support\PermissionRegistry;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Packages\PackageInfo;
+use App\Services\Packages\PackageSync;
+use App\Support\PermissionRegistry;
 use Illuminate\Database\Seeder;
-use RuntimeException;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * The rows a shop cannot run without: features, permissions, the superadmin, default roles,
@@ -29,7 +35,7 @@ class FoundationSeeder extends Seeder
             PermissionSeeder::class,
         ]);
 
-        \App\Models\Category::query()->firstOrCreate(
+        Category::query()->firstOrCreate(
             ['slug' => 'chua-phan-loai'],
             [
                 'name' => [
@@ -60,8 +66,8 @@ class FoundationSeeder extends Seeder
         }
 
         // With PACKAGE_INFO_DOMAIN set, a fresh install starts on its package.
-        if (app(\App\Services\Packages\PackageInfo::class)->configured()) {
-            $result = app(\App\Services\Packages\PackageSync::class)->sync();
+        if (app(PackageInfo::class)->configured()) {
+            $result = app(PackageSync::class)->sync();
             $this->command?->info('Package sync: '.$result['status'].($result['package'] ? ' ('.$result['package']['code'].')' : ''));
         }
 
@@ -92,7 +98,7 @@ class FoundationSeeder extends Seeder
 
         // The client layout asks for the `primary` menu, so the install always
         // has one to fill in rather than a missing key.
-        \App\Models\Menu::query()->firstOrCreate(
+        Menu::query()->firstOrCreate(
             ['key' => 'primary'],
             ['name' => 'Menu chính', 'is_active' => true],
         );
@@ -124,12 +130,12 @@ class FoundationSeeder extends Seeder
             ]);
         }
 
-        if (\Illuminate\Support\Facades\Schema::hasTable('languages')) {
-            \App\Models\Language::query()->firstOrCreate(
+        if (Schema::hasTable('languages')) {
+            Language::query()->firstOrCreate(
                 ['code' => 'vi'],
                 ['name' => 'Vietnamese', 'native_name' => 'Tiếng Việt', 'regional' => 'vi_VN', 'flag_path' => 'admin-assets/images/flag/Flag_of_Vietnam.svg.png', 'is_active' => true, 'is_default' => true, 'is_content_fallback' => true, 'sort_order' => 0],
             );
-            \App\Models\Language::query()->firstOrCreate(
+            Language::query()->firstOrCreate(
                 ['code' => 'en'],
                 ['name' => 'English', 'native_name' => 'English', 'regional' => 'en_US', 'flag_path' => 'admin-assets/images/flag/icon-flag-en.svg', 'is_active' => true, 'is_default' => false, 'is_content_fallback' => false, 'sort_order' => 10],
             );

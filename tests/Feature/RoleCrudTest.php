@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\FeatureSetting;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +19,7 @@ class RoleCrudTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
 
         FeatureSetting::query()->create([
             'feature_code' => 'multi_admin',

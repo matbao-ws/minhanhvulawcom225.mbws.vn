@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('post_categories', 'parent_id')) {
+        if (! Schema::hasColumn('post_categories', 'parent_id')) {
             Schema::table('post_categories', function (Blueprint $table) {
                 $table->foreignId('parent_id')->nullable()->after('id')->constrained('post_categories')->nullOnDelete();
-                
+
                 $table->index(['parent_id', 'sort_order']);
             });
         }

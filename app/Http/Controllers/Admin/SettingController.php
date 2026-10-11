@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Language;
 use App\Models\ProjectSetting;
 use App\Services\ActivityLogger;
+use App\Services\Analytics\AnalyticsReport;
 use App\Services\CloudinaryCredentials;
 use App\Services\CloudinaryService;
-use App\Support\MediaUrl;
 use App\Services\LanguageRegistry;
 use App\Services\MultilingualSettings;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -46,9 +47,9 @@ class SettingController extends Controller
             'settings' => $settings,
             'activeTab' => $activeTab,
             'multilingualSettings' => $this->multilingual->get(),
-            'analyticsSettings' => app(\App\Services\Analytics\AnalyticsReport::class)->settings(),
+            'analyticsSettings' => app(AnalyticsReport::class)->settings(),
             // The address a property owner adds as Viewer; the key itself never reaches a view.
-            'analyticsServiceEmail' => app(\App\Services\Analytics\AnalyticsReport::class)->readerEmail(),
+            'analyticsServiceEmail' => app(AnalyticsReport::class)->readerEmail(),
             'contentLanguages' => auth()->user()?->isSuperAdmin()
                 ? Language::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
                 : collect(),
@@ -169,7 +170,7 @@ class SettingController extends Controller
 
         if ($request->has('google_analytics')) {
             // Through the report service so cached statistics of an old property are dropped.
-            app(\App\Services\Analytics\AnalyticsReport::class)->saveSettings($validated['google_analytics'] ?? []);
+            app(AnalyticsReport::class)->saveSettings($validated['google_analytics'] ?? []);
         }
 
         // Upload logo if uploaded

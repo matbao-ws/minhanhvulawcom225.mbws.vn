@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Services\SiteBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -15,9 +16,7 @@ class ContactInquiryMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public array $inquiry)
-    {
-    }
+    public function __construct(public array $inquiry) {}
 
     /**
      * Get the message envelope.
@@ -25,7 +24,7 @@ class ContactInquiryMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Yêu cầu báo giá mới từ khách hàng: ' . ($this->inquiry['name'] ?? ''),
+            subject: 'Yêu cầu báo giá mới từ khách hàng: '.($this->inquiry['name'] ?? ''),
         );
     }
 
@@ -37,7 +36,7 @@ class ContactInquiryMail extends Mailable
         return new Content(
             view: 'emails.contact-inquiry',
             with: [
-                'siteBranding' => app(\App\Services\SiteBranding::class)->current(),
+                'siteBranding' => app(SiteBranding::class)->current(),
             ],
         );
     }

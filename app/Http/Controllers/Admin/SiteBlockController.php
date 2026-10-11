@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\SiteListReorderRequest;
 use App\Models\SiteBlock;
 use App\Models\SiteBlockRevision;
 use App\Services\ActivityLogger;
+use App\Services\LanguageRegistry;
 use App\Services\SiteContentService;
 use App\Services\SiteListService;
 use Illuminate\Http\JsonResponse;
@@ -190,7 +191,7 @@ class SiteBlockController extends Controller
     {
         $data = $request->validate([
             'key' => ['required', 'string', 'max:191'],
-            'content_locale' => ['required', 'string', Rule::in(app(\App\Services\LanguageRegistry::class)->codes())],
+            'content_locale' => ['required', 'string', Rule::in(app(LanguageRegistry::class)->codes())],
         ]);
 
         $this->site->restoreLocale($data['key'], $data['content_locale'], $request->user()?->id);

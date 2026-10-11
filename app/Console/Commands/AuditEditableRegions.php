@@ -156,13 +156,13 @@ class AuditEditableRegions extends Command
         $directory = resource_path('views/client/sections');
 
         foreach (array_keys($registry->sections()) as $section) {
-            if (! is_file($directory . '/' . $section . '.blade.php')) {
+            if (! is_file($directory.'/'.$section.'.blade.php')) {
                 $errors[] = "SectionRegistry khai báo section `{$section}` nhưng không có views/client/sections/{$section}.blade.php";
             }
         }
 
         foreach ($this->sectionsNamedInTemplates() as $section => $where) {
-            if (! is_file($directory . '/' . $section . '.blade.php')) {
+            if (! is_file($directory.'/'.$section.'.blade.php')) {
                 $errors[] = "{$where} gọi section `{$section}` nhưng không có Blade tương ứng — @includeIf sẽ render rỗng, không báo lỗi";
             }
         }
@@ -273,7 +273,6 @@ class AuditEditableRegions extends Command
 
         return $named;
     }
-
 
     /**
      * Rewrite each file, wrapping its fixable findings.

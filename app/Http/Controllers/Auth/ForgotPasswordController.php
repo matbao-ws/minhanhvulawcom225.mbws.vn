@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Password;
 
@@ -16,7 +17,7 @@ class ForgotPasswordController extends Controller
 
     public function store(ForgotPasswordRequest $request)
     {
-        $user = \App\Models\User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->first();
+        $user = User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->first();
         if ($user) {
             Password::sendResetLink(['email' => $user->email]);
         }

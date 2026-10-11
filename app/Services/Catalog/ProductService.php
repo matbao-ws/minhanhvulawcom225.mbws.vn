@@ -2,12 +2,13 @@
 
 namespace App\Services\Catalog;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
-use App\Support\HtmlSanitizer;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
+use App\Support\HtmlSanitizer;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,8 +19,7 @@ class ProductService
         private readonly HtmlSanitizer $htmlSanitizer,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LanguageRegistry $languages,
-    ) {
-    }
+    ) {}
 
     public function create(array $data): Product
     {
@@ -147,7 +147,7 @@ class ProductService
 
         $categoryId = $data['category_id'] ?? null;
         if (empty($categoryId)) {
-            $defaultCategory = \App\Models\Category::query()->firstOrCreate(
+            $defaultCategory = Category::query()->firstOrCreate(
                 ['slug' => 'chua-phan-loai'],
                 [
                     'name' => ['vi' => 'Chưa phân loại', 'en' => 'Uncategorized'],
@@ -306,10 +306,10 @@ class ProductService
                 }
             }
         } else {
-        $value = is_string($value) ? trim($value) : '';
-        if (in_array($attribute, ['short_description', 'description'], true)) {
-            $value = $this->htmlSanitizer->clean($value);
-        }
+            $value = is_string($value) ? trim($value) : '';
+            if (in_array($attribute, ['short_description', 'description'], true)) {
+                $value = $this->htmlSanitizer->clean($value);
+            }
             if ($value !== '') {
                 $translations[$locale] = $value;
             }

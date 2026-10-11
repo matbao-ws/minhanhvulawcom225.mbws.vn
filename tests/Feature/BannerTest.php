@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Banner;
+use App\Models\FeatureSetting;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\FeatureGate;
 use App\Support\MediaUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -26,7 +28,7 @@ class BannerTest extends TestCase
             'permissions' => ['*'], // Superadmin or Admin roles have '*'
         ]);
 
-        \App\Models\FeatureSetting::query()->create([
+        FeatureSetting::query()->create([
             'feature_code' => 'banner',
             'is_enabled' => true,
         ]);
@@ -88,7 +90,7 @@ class BannerTest extends TestCase
         ]);
 
         $response->assertRedirect('/vi/admin/banners');
-        
+
         $this->assertDatabaseHas('banners', [
             'title' => 'New Summer Sale',
             'link_url' => 'https://example.com/summer-sale',
@@ -99,7 +101,7 @@ class BannerTest extends TestCase
 
         $banner = Banner::where('title', 'New Summer Sale')->first();
         $this->assertNotNull($banner->image_path);
-        
+
         // Assert that the image file was stored
         $path = MediaUrl::publicDiskPath($banner->image_path);
         Storage::disk('public')->assertExists($path);
@@ -159,7 +161,7 @@ class BannerTest extends TestCase
         ]);
 
         $response->assertRedirect('/vi/admin/banners');
-        
+
         $banner->refresh();
         $this->assertEquals('Updated Title', $banner->title);
         $this->assertEquals('https://example.com/new', $banner->link_url);
@@ -204,7 +206,7 @@ class BannerTest extends TestCase
     public function test_admin_is_directed_to_support_when_banner_feature_is_disabled(): void
     {
         // Disable banner feature
-        \App\Models\FeatureSetting::query()->where('feature_code', 'banner')->update([
+        FeatureSetting::query()->where('feature_code', 'banner')->update([
             'is_enabled' => false,
         ]);
 
@@ -214,6 +216,6 @@ class BannerTest extends TestCase
         $response = $this->get('/vi/admin/banners');
         $response
             ->assertRedirect('/vi/admin')
-            ->assertSessionHas('error', \App\Support\FeatureGate::SUPPORT_MESSAGE);
+            ->assertSessionHas('error', FeatureGate::SUPPORT_MESSAGE);
     }
 }

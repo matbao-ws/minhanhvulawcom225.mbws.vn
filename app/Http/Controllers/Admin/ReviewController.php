@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Review;
 use App\Models\Product;
+use App\Models\Review;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -37,8 +37,8 @@ class ReviewController extends Controller
             $keyword = $request->input('q');
             $query->where(function ($q) use ($keyword) {
                 $q->where('customer_name', 'like', "%{$keyword}%")
-                  ->orWhere('customer_email', 'like', "%{$keyword}%")
-                  ->orWhere('comment', 'like', "%{$keyword}%");
+                    ->orWhere('customer_email', 'like', "%{$keyword}%")
+                    ->orWhere('comment', 'like', "%{$keyword}%");
             });
         }
 
@@ -73,7 +73,7 @@ class ReviewController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => __('admin.reviews.updated'),
-                'review' => $review
+                'review' => $review,
             ]);
         }
 
@@ -88,14 +88,14 @@ class ReviewController extends Controller
     public function toggleVisibility(Request $request, string $locale, Review $review)
     {
         $review->update([
-            'is_visible' => !$review->is_visible,
+            'is_visible' => ! $review->is_visible,
         ]);
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => __('admin.reviews.updated'),
-                'is_visible' => $review->is_visible
+                'is_visible' => $review->is_visible,
             ]);
         }
 
@@ -112,7 +112,7 @@ class ReviewController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => __('admin.reviews.deleted')
+                'message' => __('admin.reviews.deleted'),
             ]);
         }
 

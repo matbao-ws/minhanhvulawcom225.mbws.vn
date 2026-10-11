@@ -75,7 +75,7 @@ class SeoFixService
      * @param  array<string, string>  $values  subset of FIELDS
      * @return array{before: int, after: int}
      */
-    public function apply(\App\Models\AiSuggestion $suggestion, array $values, User $user): array
+    public function apply(AiSuggestion $suggestion, array $values, User $user): array
     {
         abort_unless($suggestion->task === self::TASK, 404, __('ai.errors.not_found'));
         [$definition, $post] = $this->resolve('post', $suggestion->entity_id, $user);

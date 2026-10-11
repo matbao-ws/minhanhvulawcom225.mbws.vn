@@ -10,15 +10,13 @@ use Illuminate\Support\Str;
 
 class LocalizedSlugService
 {
-    public function __construct(private readonly LanguageRegistry $languages)
-    {
-    }
+    public function __construct(private readonly LanguageRegistry $languages) {}
 
     /**
      * Synchronize canonical slugs without deleting aliases that may already be indexed.
      *
-     * @param array<string, string|null> $slugs
-     * @param array<string, string|null> $names
+     * @param  array<string, string|null>  $slugs
+     * @param  array<string, string|null>  $names
      */
     public function sync(Model $model, array $slugs, array $names = []): void
     {
@@ -78,7 +76,7 @@ class LocalizedSlugService
         }
 
         if (Schema::hasTable('localized_slugs')) {
-            $type = (new $modelClass())->getMorphClass();
+            $type = (new $modelClass)->getMorphClass();
             $localized = LocalizedSlug::query()
                 ->where('sluggable_type', $type)
                 ->where('locale', $locale)

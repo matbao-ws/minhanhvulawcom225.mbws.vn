@@ -14,10 +14,11 @@ use App\Jobs\SendOrderStatusEmail;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\FeatureSetting;
+use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
-use App\Models\PaymentMethod;
 use App\Models\Page;
+use App\Models\PaymentMethod;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Product;
@@ -30,11 +31,12 @@ use App\Services\Catalog\ProductVariantResolver;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
+use App\Services\MenuService;
 use App\Services\MultilingualSettings;
-use App\Services\OrderStateTransitionService;
 use App\Services\Orders\OrderCancellationService;
 use App\Services\Orders\OrderCreationService;
 use App\Services\Orders\OrderDraft;
+use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\PromotionService;
@@ -258,9 +260,9 @@ class PublicController extends Controller
      */
     public function menu(string $key)
     {
-        $items = app(\App\Services\MenuService::class)->tree($key);
+        $items = app(MenuService::class)->tree($key);
 
-        abort_if($items->isEmpty() && ! \App\Models\Menu::query()->where('key', $key)->where('is_active', true)->exists(), 404);
+        abort_if($items->isEmpty() && ! Menu::query()->where('key', $key)->where('is_active', true)->exists(), 404);
 
         return ApiResponse::success(['key' => $key, 'items' => $items]);
     }

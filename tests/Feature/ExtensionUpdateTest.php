@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\User;
 use App\Support\CoreManifest;
 use App\Support\CoreUpdate\CoreUpdater;
 use App\Support\CoreUpdate\ReleaseBuilder;
@@ -155,7 +156,7 @@ class ExtensionUpdateTest extends TestCase
             'error' => 'extensions: Quản lý đại lý (dealers) 1.4.0 needs core >=1.0.0 <2.0.0, this update is 2.0.0',
         ]));
         $role = Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_system' => true]);
-        $superadmin = \App\Models\User::factory()->create(['role_id' => $role->id]);
+        $superadmin = User::factory()->create(['role_id' => $role->id]);
 
         $this->actingAs($superadmin)->get(route('admin.core-update.index', ['locale' => 'vi']))
             ->assertOk()->assertSee('Bị chặn')->assertSee('Một tiện ích mở rộng chưa tương thích với bản mới.')

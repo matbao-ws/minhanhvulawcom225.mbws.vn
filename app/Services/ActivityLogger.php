@@ -39,6 +39,7 @@ class ActivityLogger
             $normalizedKey = strtolower((string) $key);
             if (is_array($value)) {
                 $values[$key] = self::redact($value);
+
                 continue;
             }
 

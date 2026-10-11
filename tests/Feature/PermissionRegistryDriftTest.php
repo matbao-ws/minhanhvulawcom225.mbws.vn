@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Permission;
 use App\Support\PermissionRegistry;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -96,7 +97,7 @@ class PermissionRegistryDriftTest extends TestCase
 
     public function test_seeder_projects_the_registry_exactly(): void
     {
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
 
         $this->assertEqualsCanonicalizing(
             PermissionRegistry::codes(),

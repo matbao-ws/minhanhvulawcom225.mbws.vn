@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Models\User;
+use App\Services\UserAccessService;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use App\Services\UserAccessService;
 
 class ResetPasswordController extends Controller
 {
@@ -23,7 +24,7 @@ class ResetPasswordController extends Controller
 
     public function store(ResetPasswordRequest $request)
     {
-        if (! \App\Models\User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->exists()) {
+        if (! User::query()->where('email', $request->input('email'))->whereNotNull('role_id')->exists()) {
             return $request->expectsJson()
                 ? ApiResponse::error(__('controller.auth.invalid_reset_token'), 422)
                 : back()->withErrors(['email' => __('controller.auth.invalid_reset_token')]);

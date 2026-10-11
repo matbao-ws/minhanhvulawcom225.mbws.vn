@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\FeatureSetting;
-use App\Models\Product;
-use App\Models\Review;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -18,8 +18,11 @@ class PublicReviewApiTest extends TestCase
     use RefreshDatabase;
 
     private Category $category;
+
     private Brand $brand;
+
     private Product $product;
+
     private Product $inactiveProduct;
 
     protected function setUp(): void
@@ -75,7 +78,7 @@ class PublicReviewApiTest extends TestCase
     private function createOrderForProduct(Product $product, array $attributes = []): Order
     {
         $order = Order::query()->create(array_merge([
-            'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(10)),
+            'order_number' => 'ORD-'.strtoupper(Str::random(10)),
             'customer_name' => 'John Doe',
             'customer_email' => 'john@example.com',
             'customer_phone' => '0988776655',
@@ -103,7 +106,7 @@ class PublicReviewApiTest extends TestCase
     {
         // Purchase first
         $order = $this->createOrderForProduct($this->product, [
-            'customer_email' => 'guest@example.com'
+            'customer_email' => 'guest@example.com',
         ]);
 
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
@@ -135,7 +138,7 @@ class PublicReviewApiTest extends TestCase
     {
         // Purchase first
         $order = $this->createOrderForProduct($this->product, [
-            'customer_email' => 'guest.slug@example.com'
+            'customer_email' => 'guest.slug@example.com',
         ]);
 
         $response = $this->postJson("/api/public/products/{$this->product->slug}/reviews", [
@@ -158,7 +161,7 @@ class PublicReviewApiTest extends TestCase
     {
         // Purchase first
         $this->createOrderForProduct($this->product, [
-            'customer_email' => 'email@test.com'
+            'customer_email' => 'email@test.com',
         ]);
 
         // Missing name and email
@@ -196,7 +199,7 @@ class PublicReviewApiTest extends TestCase
 
         // Purchase first
         $this->createOrderForProduct($this->product, [
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         Sanctum::actingAs($user, ['customer']);
@@ -230,7 +233,7 @@ class PublicReviewApiTest extends TestCase
 
         // Purchase first
         $this->createOrderForProduct($this->product, [
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         Sanctum::actingAs($user, ['customer']);
@@ -350,7 +353,7 @@ class PublicReviewApiTest extends TestCase
         // Purchase, but cancelled
         $order = $this->createOrderForProduct($this->product, [
             'customer_email' => 'cancelled@example.com',
-            'status' => 'cancelled'
+            'status' => 'cancelled',
         ]);
 
         $response = $this->postJson("/api/public/products/{$this->product->id}/reviews", [
@@ -366,7 +369,7 @@ class PublicReviewApiTest extends TestCase
 
     public function test_cannot_submit_review_for_non_existent_product(): void
     {
-        $response = $this->postJson("/api/public/products/999999/reviews", [
+        $response = $this->postJson('/api/public/products/999999/reviews', [
             'customer_name' => 'Name',
             'customer_email' => 'guest@example.com',
             'rating' => 5,

@@ -5,16 +5,14 @@ namespace App\Services\Catalog;
 use App\Models\Product;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductOptionValue;
+use App\Services\LanguageRegistry;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\Services\LanguageRegistry;
 
 class ProductOptionService
 {
-    public function __construct(private readonly LanguageRegistry $languages)
-    {
-    }
+    public function __construct(private readonly LanguageRegistry $languages) {}
 
     /**
      * Synchronise the product option catalogue. Values already used by a SKU can
@@ -80,6 +78,7 @@ class ProductOptionService
     {
         if (is_string($value)) {
             $value = trim($value);
+
             return [...$existing, ...collect($this->languages->codes())->mapWithKeys(fn (string $locale) => [$locale => $value])->all()];
         }
 
@@ -90,7 +89,10 @@ class ProductOptionService
 
     private function defaultValue(string|array $value): string
     {
-        if (is_string($value)) return $value;
+        if (is_string($value)) {
+            return $value;
+        }
+
         return (string) ($value[$this->languages->defaultLocale()] ?? collect($value)->first() ?? '');
     }
 

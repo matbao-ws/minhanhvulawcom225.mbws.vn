@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Mail\OrderStatusMail;
 use App\Jobs\SendOrderStatusEmail;
+use App\Mail\OrderStatusMail;
 use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -20,6 +20,7 @@ class EmailNotificationTest extends TestCase
     use RefreshDatabase;
 
     private Role $adminRole;
+
     private Order $order;
 
     protected function setUp(): void
@@ -100,7 +101,7 @@ class EmailNotificationTest extends TestCase
         $response->assertRedirect("/vi/admin/orders/{$this->order->id}");
 
         Mail::assertSent(OrderStatusMail::class, function ($mail) {
-            return $mail->hasTo($this->order->customer_email) && 
+            return $mail->hasTo($this->order->customer_email) &&
                    $mail->order->id === $this->order->id &&
                    $mail->order->status === 'processing';
         });

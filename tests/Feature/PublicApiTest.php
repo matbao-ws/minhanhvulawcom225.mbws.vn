@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\OrderStatusMail;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\FeatureSetting;
 use App\Models\Order;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductOptionValue;
@@ -14,7 +16,6 @@ use App\Models\Review;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Voucher;
-use App\Mail\OrderStatusMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
@@ -25,10 +26,15 @@ class PublicApiTest extends TestCase
     use RefreshDatabase;
 
     private Category $category;
+
     private Brand $brand;
+
     private Product $product;
+
     private ProductVariant $variant;
+
     private ProductOptionValue $optionValue;
+
     private Voucher $voucher;
 
     protected function setUp(): void
@@ -42,7 +48,7 @@ class PublicApiTest extends TestCase
             );
         }
 
-        \App\Models\PaymentMethod::query()
+        PaymentMethod::query()
             ->where('method_code', 'bank_transfer')
             ->update(['status' => 'active']);
 
@@ -221,7 +227,7 @@ class PublicApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment([
             'code' => 'DISCOUNT100K',
-            'discount_amount' => 100000.00
+            'discount_amount' => 100000.00,
         ]);
 
         // Below minimum order amount
@@ -236,8 +242,8 @@ class PublicApiTest extends TestCase
     /** Telling unknown, locked and upcoming codes apart confirms private codes to a guesser. */
     public function test_unknown_locked_and_upcoming_vouchers_answer_alike(): void
     {
-        \App\Models\Voucher::query()->create(['code' => 'LOCKED', 'name' => ['vi' => 'Khoá'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => false]);
-        \App\Models\Voucher::query()->create(['code' => 'SOON', 'name' => ['vi' => 'Sắp tới'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => true, 'start_date' => now()->addWeek()]);
+        Voucher::query()->create(['code' => 'LOCKED', 'name' => ['vi' => 'Khoá'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => false]);
+        Voucher::query()->create(['code' => 'SOON', 'name' => ['vi' => 'Sắp tới'], 'type' => 'fixed', 'value' => 1000, 'min_order_amount' => 0, 'is_active' => true, 'start_date' => now()->addWeek()]);
 
         $messages = collect(['NOSUCHCODE', 'LOCKED', 'SOON'])->map(fn (string $code) => $this->postJson('/api/public/vouchers/apply', [
             'code' => $code,
@@ -308,7 +314,7 @@ class PublicApiTest extends TestCase
                     'product_id' => $this->product->id,
                     'option_value_ids' => [$this->optionValue->id],
                     'quantity' => 2,
-                ]
+                ],
             ],
             'voucher_code' => 'DISCOUNT100K',
         ]);
@@ -345,7 +351,7 @@ class PublicApiTest extends TestCase
             'status' => 'pending',
         ]);
 
-        Mail::assertSent(OrderStatusMail::class, function ($mail) use ($order) {
+        Mail::assertSent(OrderStatusMail::class, function ($mail) {
             return $mail->hasTo('guest@example.com');
         });
     }
@@ -420,8 +426,8 @@ class PublicApiTest extends TestCase
                     'product_id' => $this->product->id,
                     'option_value_ids' => [$this->optionValue->id],
                     'quantity' => 1,
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $response->assertStatus(200);
@@ -499,7 +505,7 @@ class PublicApiTest extends TestCase
     {
         $filePath = public_path('docs/openapi.json');
         $this->assertFileExists($filePath);
-        
+
         $jsonContent = file_get_contents($filePath);
         $this->assertJson($jsonContent);
     }
@@ -507,7 +513,7 @@ class PublicApiTest extends TestCase
     public function test_vnpay_checkout_needs_its_own_feature(): void
     {
         // online_payment alone covers bank transfer and SePay; VNPAY is sold separately.
-        \App\Models\PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
+        PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
             'name' => 'VNPAY',
             'type' => 'connected',
             'status' => 'active',

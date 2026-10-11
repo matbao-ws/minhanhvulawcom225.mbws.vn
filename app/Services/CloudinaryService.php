@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
-use Cloudinary\Configuration\Configuration;
-use Cloudinary\Api\Upload\UploadApi;
-use Cloudinary\Api\Admin\AdminApi;
-use Illuminate\Http\UploadedFile;
 use App\Support\MediaUrl;
+use Cloudinary\Api\Admin\AdminApi;
+use Cloudinary\Api\Upload\UploadApi;
+use Cloudinary\Configuration\Configuration;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CloudinaryService
@@ -42,12 +43,12 @@ class CloudinaryService
             Configuration::instance([
                 'cloud' => [
                     'cloud_name' => $credentials['cloud_name'],
-                    'api_key'    => $credentials['api_key'],
+                    'api_key' => $credentials['api_key'],
                     'api_secret' => $credentials['api_secret'],
                 ],
                 'url' => [
-                    'secure' => true
-                ]
+                    'secure' => true,
+                ],
             ]);
         }
     }
@@ -97,7 +98,7 @@ class CloudinaryService
         // Generate clean, SEO-friendly filename from original file name
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $extension = $this->storedExtension($file);
-        $slug = \Illuminate\Support\Str::slug($originalName);
+        $slug = Str::slug($originalName);
         if (empty($slug)) {
             $slug = 'file';
         }
@@ -105,14 +106,15 @@ class CloudinaryService
         $friendlyFilename = "{$slug}-{$suffix}.{$extension}";
         $publicId = "{$slug}-{$suffix}";
 
-        if (!$this->isConfigured()) {
-            Log::info("Cloudinary is not configured. Falling back to local storage.");
+        if (! $this->isConfigured()) {
+            Log::info('Cloudinary is not configured. Falling back to local storage.');
             $path = $file->storeAs($folder, $friendlyFilename, 'public');
+
             return $this->localUrl($path);
         }
 
         try {
-            $uploadApi = new UploadApi();
+            $uploadApi = new UploadApi;
             $response = $uploadApi->upload($file->getRealPath(), [
                 'folder' => $folder,
                 'public_id' => $publicId,
@@ -128,6 +130,7 @@ class CloudinaryService
             Log::error('Cloudinary upload failed.', ['exception' => $e::class]);
             // Fallback to local storage in case of API failure
             $path = $file->storeAs($folder, $friendlyFilename, 'public');
+
             return $this->localUrl($path);
         }
     }
@@ -177,7 +180,7 @@ class CloudinaryService
         try {
             $cacheKey = $this->credentials->usageCacheKey();
             $usage = Cache::remember($cacheKey, now()->addMinutes(30), function (): array {
-                $response = (new AdminApi())->usage();
+                $response = (new AdminApi)->usage();
 
                 return [
                     'storage' => $response['storage'] ?? [],
@@ -217,7 +220,7 @@ class CloudinaryService
     {
         $local = $this->filterManaged($this->tagSource($this->listLocalFallbackResources($folder), 'local'));
 
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return $local;
         }
 
@@ -225,6 +228,7 @@ class CloudinaryService
             $cloud = $this->filterManaged($this->tagSource($this->fetchCloudResources($folder), 'cloudinary'));
         } catch (\Throwable $e) {
             Log::error('Cloudinary resource listing failed.', ['exception' => $e::class]);
+
             return $local;
         }
 
@@ -259,7 +263,7 @@ class CloudinaryService
                         $options['next_cursor'] = $cursor;
                     }
 
-                    $results = (new AdminApi())->assets($options);
+                    $results = (new AdminApi)->assets($options);
 
                     foreach ($results['resources'] ?? [] as $resource) {
                         $resources[] = [
@@ -327,7 +331,7 @@ class CloudinaryService
      * that {@see deleteResource()} can never validate, surfacing a raw
      * items.*.public_id validation error instead of a usable action.
      *
-     * @param array<int, array<string, mixed>> $resources
+     * @param  array<int, array<string, mixed>>  $resources
      */
     private function filterManaged(array $resources): array
     {
@@ -365,7 +369,7 @@ class CloudinaryService
 
             return [
                 'resources' => array_slice($resources, $offset, $limit),
-                'next_cursor' => $offset + $limit < count($resources) ? 'local:' . ($page + 1) : null,
+                'next_cursor' => $offset + $limit < count($resources) ? 'local:'.($page + 1) : null,
             ];
         }
 
@@ -376,9 +380,11 @@ class CloudinaryService
                 'prefix' => $folder === 'all' ? '' : $folder,
                 'max_results' => $limit,
             ];
-            if ($cursor) $options['next_cursor'] = $cursor;
+            if ($cursor) {
+                $options['next_cursor'] = $cursor;
+            }
 
-            $results = (new AdminApi())->assets($options);
+            $results = (new AdminApi)->assets($options);
             $resources = array_map(fn (array $resource) => [
                 'secure_url' => $resource['secure_url'],
                 'public_id' => $resource['public_id'],
@@ -392,6 +398,7 @@ class CloudinaryService
             return ['resources' => $resources, 'next_cursor' => $results['next_cursor'] ?? null];
         } catch (\Throwable $e) {
             Log::error('Cloudinary image listing failed.', ['exception' => $e::class]);
+
             return $this->listImageResourcePageFromLocalFallback($folder, $cursor, $limit);
         }
     }
@@ -421,11 +428,12 @@ class CloudinaryService
             if (Storage::disk('public')->exists($publicId)) {
                 return Storage::disk('public')->delete($publicId);
             }
+
             return true;
         }
 
         try {
-            $uploadApi = new UploadApi();
+            $uploadApi = new UploadApi;
             $result = $uploadApi->destroy($publicId, ['resource_type' => $resourceType]);
             $deleted = isset($result['result']) && $result['result'] === 'ok';
 
@@ -436,6 +444,7 @@ class CloudinaryService
             return $deleted;
         } catch (\Throwable $e) {
             Log::error('Cloudinary delete failed.', ['exception' => $e::class]);
+
             return false;
         }
     }
@@ -446,7 +455,7 @@ class CloudinaryService
     private function listLocalFallbackResources(string $folder): array
     {
         $dir = $folder === 'all' ? '' : $folder;
-        if (!Storage::disk('public')->exists($dir)) {
+        if (! Storage::disk('public')->exists($dir)) {
             Storage::disk('public')->makeDirectory($dir);
         }
 
@@ -492,7 +501,7 @@ class CloudinaryService
 
         return [
             'resources' => array_slice($resources, $offset, $limit),
-            'next_cursor' => $offset + $limit < count($resources) ? 'local:' . ($page + 1) : null,
+            'next_cursor' => $offset + $limit < count($resources) ? 'local:'.($page + 1) : null,
         ];
     }
 

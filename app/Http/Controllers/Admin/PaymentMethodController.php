@@ -61,7 +61,7 @@ class PaymentMethodController extends Controller
             'description' => 'required|string|max:1000',
         ]);
 
-        $methodCode = 'PM_' . strtoupper(Str::random(8));
+        $methodCode = 'PM_'.strtoupper(Str::random(8));
 
         PaymentMethod::create([
             'method_code' => $methodCode,
@@ -116,7 +116,7 @@ class PaymentMethodController extends Controller
             'name' => $validated['name'],
             'settings' => [
                 'description' => $validated['description'],
-            ]
+            ],
         ]);
 
         return redirect()
@@ -174,14 +174,14 @@ class PaymentMethodController extends Controller
                 if (empty($settings['tmn_code']) || empty($settings['hash_secret']) || empty($settings['api_url'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.payment_methods.config_required_vnpay')
+                        'message' => __('admin.payment_methods.config_required_vnpay'),
                     ]);
                 }
             } elseif ($payment_method->method_code === 'bank_transfer') {
                 if (empty($settings['bank_name']) || empty($settings['account_number']) || empty($settings['account_holder'])) {
                     return response()->json([
                         'success' => false,
-                        'message' => __('admin.payment_methods.config_required_bank')
+                        'message' => __('admin.payment_methods.config_required_bank'),
                     ]);
                 }
             }
@@ -192,7 +192,7 @@ class PaymentMethodController extends Controller
         return response()->json([
             'success' => true,
             'status' => $newStatus,
-            'message' => __('admin.payment_methods.toggle_success', ['name' => $payment_method->name])
+            'message' => __('admin.payment_methods.toggle_success', ['name' => $payment_method->name]),
         ]);
     }
 
@@ -232,7 +232,7 @@ class PaymentMethodController extends Controller
                     'tmn_code' => $validated['tmn_code'],
                     'hash_secret' => $validated['hash_secret'],
                     'api_url' => $validated['api_url'],
-                ]
+                ],
             ]);
         } elseif ($payment_method->method_code === 'stripe') {
             $validated = $request->validate([
@@ -247,7 +247,7 @@ class PaymentMethodController extends Controller
                     'publishable_key' => $validated['publishable_key'],
                     'secret_key' => $validated['secret_key'],
                     'webhook_secret' => $validated['webhook_secret'] ?? '',
-                ]
+                ],
             ]);
         } elseif ($payment_method->method_code === SePayService::METHOD_CODE) {
             $validated = $request->validate([
@@ -284,7 +284,7 @@ class PaymentMethodController extends Controller
                     'payment_prefix' => strtoupper((string) ($validated['payment_prefix'] ?? '')),
                     'qr_template' => $validated['qr_template'] ?? 'compact',
                     'instructions' => $validated['instructions'] ?? '',
-                ]
+                ],
             ]);
         } elseif ($payment_method->method_code === 'bank_transfer') {
             $validated = $request->validate([
@@ -295,13 +295,13 @@ class PaymentMethodController extends Controller
             ]);
 
             $payment_method->update([
-                'account_name' => $validated['bank_name'] . ' - ' . $validated['account_number'],
+                'account_name' => $validated['bank_name'].' - '.$validated['account_number'],
                 'settings' => [
                     'bank_name' => $validated['bank_name'],
                     'account_number' => $validated['account_number'],
                     'account_holder' => $validated['account_holder'],
                     'instructions' => $validated['instructions'] ?? '',
-                ]
+                ],
             ]);
         } elseif ($payment_method->method_code === 'cod') {
             $validated = $request->validate([
@@ -311,7 +311,7 @@ class PaymentMethodController extends Controller
             $payment_method->update([
                 'settings' => [
                     'description' => $validated['description'],
-                ]
+                ],
             ]);
         }
 

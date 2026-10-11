@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Language;
 use App\Models\ProjectSetting;
+use App\Support\FeatureGate;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -40,7 +41,7 @@ class MultilingualSettings
             'enabled' => (bool) ($settings['enabled'] ?? false),
             'mode' => $mode,
             'gtranslate' => [
-                'source_locale' => is_string(data_get($settings, 'gtranslate.source_locale')) && !empty(data_get($settings, 'gtranslate.source_locale'))
+                'source_locale' => is_string(data_get($settings, 'gtranslate.source_locale')) && ! empty(data_get($settings, 'gtranslate.source_locale'))
                     ? data_get($settings, 'gtranslate.source_locale')
                     : $this->defaultSystemSourceLocale(),
                 'target_locales' => collect(data_get($settings, 'gtranslate.target_locales', []))
@@ -102,7 +103,7 @@ class MultilingualSettings
         if ($this->featureAllowed === null) {
             try {
                 $this->featureAllowed = ! Schema::hasTable('feature_settings')
-                    || app(\App\Support\FeatureGate::class)->enabled('multilingual');
+                    || app(FeatureGate::class)->enabled('multilingual');
             } catch (\Throwable) {
                 $this->featureAllowed = true;
             }
@@ -131,7 +132,7 @@ class MultilingualSettings
         $settings = $this->get();
         if (($settings['mode'] ?? null) === self::MODE_GTRANSLATE) {
             $configured = data_get($settings, 'gtranslate.source_locale');
-            if (is_string($configured) && !empty($configured)) {
+            if (is_string($configured) && ! empty($configured)) {
                 return $configured;
             }
         }
@@ -186,6 +187,7 @@ class MultilingualSettings
 
         $targetLocales = $rawTargetLocales->map(function (string $locale) use ($activeLocales) {
             $regional = $activeLocales->get($locale);
+
             return $this->toGTranslateLocale($locale, $regional);
         });
 
