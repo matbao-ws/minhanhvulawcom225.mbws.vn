@@ -1,0 +1,68 @@
+/* Guided tours (admin-tour.js): driver.js popovers in the admin theme. */
+.driver-popover.admin-tour-popover {
+    font-family: 'Quicksand', sans-serif;
+    max-width: 340px;
+    border-radius: 12px;
+    padding: 18px 18px 14px;
+    color: var(--bs-body-color, #2a3547);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+}
+
+.admin-tour-popover .driver-popover-title {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.admin-tour-popover .driver-popover-description {
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color, #5a6a85);
+}
+
+.admin-tour-popover .driver-popover-progress-text {
+    font-family: inherit;
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color, #5a6a85);
+}
+
+.admin-tour-popover .driver-popover-footer {
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.admin-tour-popover .driver-popover-footer button {
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-shadow: none;
+    border-radius: 8px;
+    padding: 5px 12px;
+    border: 1px solid var(--bs-border-color, #dfe5ef);
+    background: #fff;
+    color: var(--bs-body-color, #2a3547);
+}
+
+.admin-tour-popover .driver-popover-footer .driver-popover-next-btn {
+    background: var(--bs-primary, #5d87ff);
+    border-color: var(--bs-primary, #5d87ff);
+    color: #fff;
+}
+
+.admin-tour-popover .driver-popover-footer button:hover,
+.admin-tour-popover .driver-popover-footer button:focus-visible {
+    filter: brightness(0.95);
+}
+
+.admin-tour-popover .driver-popover-footer button:disabled {
+    opacity: 0.45;
+}
+
+.admin-tour-popover .driver-popover-footer .admin-tour-skip {
+    margin-right: auto;
+    border-color: transparent;
+    background: transparent;
+    color: var(--bs-secondary-color, #5a6a85);
+}

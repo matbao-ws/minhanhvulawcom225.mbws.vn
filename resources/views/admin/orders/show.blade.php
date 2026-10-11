@@ -64,7 +64,7 @@
 
 @section('content')
     <!-- Print & Navigation Header (hidden when printing) -->
-    <div class="d-flex align-items-center justify-content-between mb-4 print-btn-header">
+    <div data-tour="order.toolbar" class="d-flex align-items-center justify-content-between mb-4 print-btn-header">
         <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
             <i class="ti ti-arrow-left fs-4"></i>{{ __('catalog.actions.back') }}
         </a>
@@ -87,7 +87,7 @@
     @endif
 
     <!-- Update Status Card (hidden when printing) -->
-    <div class="card mb-4 status-card border border-opacity-10 border-primary shadow-none">
+    <div data-tour="order.status" class="card mb-4 status-card border border-opacity-10 border-primary shadow-none">
         <div class="card-body p-4">
             <h5 class="fw-semibold mb-3 text-primary d-flex align-items-center gap-2">
                 <i class="ti ti-edit fs-5"></i>{{ __('admin.orders.update_status') }}
@@ -174,7 +174,7 @@
                 @endif
             </div></div>
         </div>
-        <div class="col-lg-5">
+        <div data-tour="order.history" class="col-lg-5">
             <div class="card h-100"><div class="card-body"><h5 class="fw-bold mb-3">Lịch sử đơn hàng</h5>
                 @forelse($order->historyEntries as $entry)<div class="border-start border-primary ps-3 pb-3 mb-2"><div class="small fw-bold text-dark">{{ $entry->to_status }} / {{ $entry->to_payment_status }}</div><div class="small text-muted fw-semibold">{{ $entry->created_at?->format('d/m/Y H:i') }} · {{ $entry->changedBy?->name ?? 'Hệ thống' }}</div>@if($entry->note)<div class="small fw-semibold">{{ $entry->note }}</div>@endif</div>@empty<p class="text-muted small fw-semibold">Chưa có lịch sử thay đổi.</p>@endforelse
             </div></div>
@@ -182,7 +182,7 @@
     </div>
 
     <!-- Order Sheet -->
-    <div class="card order-print-area border border-opacity-10 border-primary" style="box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);">
+    <div data-tour="order.sheet" class="card order-print-area border border-opacity-10 border-primary" style="box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);">
         <div class="card-body p-4 p-md-5">
             <!-- Header Section -->
             <div class="row align-items-start mb-5 gap-4 gap-md-0">
@@ -241,7 +241,7 @@
                     @else
                         <p class="text-muted mb-2 fs-3">{{ __('admin.orders.not_shipped') }}</p>
                         @if($order->status !== 'cancelled' && ($isGhtkEnabled || $isGhnEnabled))
-                            <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 mt-1 fw-semibold py-2 px-3" data-bs-toggle="modal" data-bs-target="#pushShippingModal">
+                            <button data-tour="order.ship" type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 mt-1 fw-semibold py-2 px-3" data-bs-toggle="modal" data-bs-target="#pushShippingModal">
                                 <i class="ti ti-truck fs-4"></i> Tạo vận đơn
                             </button>
                         @endif

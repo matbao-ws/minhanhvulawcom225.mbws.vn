@@ -9,14 +9,14 @@
                 <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.vouchers.title') }}</li>
             </x-slot:breadcrumbs>
             <x-slot:actions>
-                <x-admin.action-button :href="route('admin.vouchers.create')" icon="plus">{{ __('admin.vouchers.create') }}</x-admin.action-button>
+                <x-admin.action-button data-tour="vouchers.create" :href="route('admin.vouchers.create')" icon="plus">{{ __('admin.vouchers.create') }}</x-admin.action-button>
             </x-slot:actions>
         </x-admin.page-header>
 
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="vouchers.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-6">
                     <label class="form-label small fw-bold text-dark mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -42,11 +42,11 @@
                 'bulkActionUrl' => route('admin.vouchers.bulk'),
                 'bulkItemLabel' => 'mã giảm giá',
             ])
-            <div class="table-responsive">
+            <div data-tour="vouchers.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
-                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-vouchers-form" aria-label="Chọn tất cả mã giảm giá"></th>
+                            <th data-tour="vouchers.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-vouchers-form" aria-label="Chọn tất cả mã giảm giá"></th>
                             <th class="ps-4">{{ __('admin.vouchers.fields.code') }}</th>
                             <th>{{ __('admin.vouchers.fields.name') }}</th>
                             <th>{{ __('admin.vouchers.fields.type') }}</th>

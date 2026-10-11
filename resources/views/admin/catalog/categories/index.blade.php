@@ -25,7 +25,7 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.categories.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button :href="route('admin.categories.create')" icon="plus">{{ __('catalog.categories.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="categories.create" :href="route('admin.categories.create')" icon="plus">{{ __('catalog.categories.create') }}</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
@@ -33,7 +33,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="categories.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1" for="filter_q">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" id="filter_q" class="form-control" value="{{ request('q') }}" placeholder="{{ __('catalog.categories.search_placeholder') }}">
@@ -86,11 +86,11 @@
             'bulkActionUrl' => route('admin.categories.bulk'),
             'bulkItemLabel' => 'danh mục',
         ])
-        <div class="table-responsive">
+        <div data-tour="categories.table" class="table-responsive">
             <table class="table text-nowrap mb-0 align-middle" id="category-table-sortable" data-start-order="{{ max(0, ($categories->firstItem() ?? 1) - 1) }}">
                 <thead class="text-dark fs-4">
                 <tr>
-                    <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-categories-form" aria-label="Chọn tất cả danh mục"></th>
+                    <th data-tour="categories.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-categories-form" aria-label="Chọn tất cả danh mục"></th>
                     <th>
                         <h6 class="fs-4 fw-semibold mb-0">{{ __('catalog.fields.category') }}</h6>
                     </th>

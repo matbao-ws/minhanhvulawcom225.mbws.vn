@@ -15,7 +15,7 @@
                     </button>
                 </div>
 
-                <ul class="nav nav-tabs mb-4" role="tablist">
+                <ul data-tour="product-form.languages" class="nav nav-tabs mb-4" role="tablist">
                     @foreach($contentLanguages as $language)
                         <li class="nav-item" role="presentation">
                             <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
@@ -70,7 +70,7 @@
             // "images" column on products, which would shadow the relation and yield null.
             $galleryImages = old('gallery_images', $product->exists ? $product->images()->get()->pluck('image_url')->all() : []);
         @endphp
-        <div class="card">
+        <div data-tour="product-form.media" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-1">{{ __('catalog.products.sections.media') }}</h4>
                 <p class="fs-2 mb-3">Thêm nhiều ảnh phụ để hiển thị trong thư viện ảnh chi tiết sản phẩm.</p>
@@ -110,7 +110,7 @@
             $variantGroups ??= [];
             $hasVariants = (bool) old('has_variants', ! empty($variantGroups));
         @endphp
-            <div class="card">
+            <div data-tour="product-form.variants" class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                         <div>
@@ -147,7 +147,7 @@
                 </div>
             </div>
 
-        <div class="card">
+        <div data-tour="product-form.pricing" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('catalog.products.sections.pricing') }}</h4>
                 <div class="mb-7">
@@ -177,7 +177,7 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="offcanvas-md offcanvas-end overflow-auto" tabindex="-1" id="productSidePanel" aria-labelledby="productSidePanelLabel">
+        <div data-tour="product-form.side" class="offcanvas-md offcanvas-end overflow-auto" tabindex="-1" id="productSidePanel" aria-labelledby="productSidePanelLabel">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title mb-7" id="productSidePanelLabel">{{ __('catalog.products.sections.thumbnail') }}</h4>
