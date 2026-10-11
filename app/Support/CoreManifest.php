@@ -61,8 +61,10 @@ class CoreManifest
         // is drift and blocks the next update, so a glob would turn any note a developer drops
         // at the root into a stuck site. Project notes belong outside these paths.
         '.agents/skills/**',
+        'AGENTS.md',
         'AI_BUILD_PROMPT.md',
         'CLAUDE.md',
+        'GEMINI.md',
         'README.md',
         'docs/**',
     ];

@@ -1,7 +1,12 @@
 ---
 name: build-inline-storefront-editing
-description: Add front-of-site inline editing to a Laravel storefront — an authenticated admin hovers a heading, paragraph or image on the public page and edits it in place, while sections rendered from the database keep their single source of truth in the admin. Use when asked for "sửa nội dung trực tiếp trên client", front-end/on-page/in-place editing, hover-to-edit text, hover-to-upload images, editable static theme regions, or a key/value content-block table behind a cut HTML theme.
+description: Internal design notes of the inline storefront editing that this core ALREADY ships (site_blocks, x-client::editable, the admin bar). Read only to maintain or debug that built-in feature in the core itself. Do NOT use it to cut a theme, mark editable regions or add editing to a site — use connect-ecommerce-frontend for that — and never build a second editing system, table or endpoint.
 ---
+
+> **Tính năng này đã có sẵn trong core.** Skill này chỉ là tài liệu thiết kế nội bộ để bảo trì nó.
+> Cắt theme, đánh dấu vùng sửa hay làm cho một trang sửa được: dùng
+> `.agents/skills/connect-ecommerce-frontend/SKILL.md` và `references/editable-markup-standard.md`.
+> Không tạo migration, bảng, service hay endpoint chỉnh sửa mới theo hướng dẫn bên dưới.
 
 # Build Inline Storefront Editing
 

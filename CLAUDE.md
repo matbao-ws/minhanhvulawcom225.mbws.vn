@@ -17,7 +17,11 @@ Mỗi skill có thư mục `references/` với chi tiết bắt buộc đọc th
 `AI_BUILD_PROMPT.md` nói rõ trường hợp nào cần file nào.
 
 Không suy diễn nội dung hợp đồng từ file này. Đây chỉ là con trỏ; bản đầy đủ nằm trong
-`AI_BUILD_PROMPT.md` và các skill.
+`AI_BUILD_PROMPT.md` và các skill. `AGENTS.md` (Codex, Antigravity) và `GEMINI.md` là con trỏ cùng
+định tuyến cho công cụ khác; sửa định tuyến thì sửa cả ba.
+
+`.agents/skills/build-inline-storefront-editing/` là tài liệu nội bộ của tính năng đã có sẵn. Cắt theme
+và đánh dấu vùng sửa dùng `connect-ecommerce-frontend`; không dựng hệ thống chỉnh sửa thứ hai.
 
 ## Vài điều dễ sai nhất
 
@@ -44,8 +48,12 @@ php artisan test --compact tests/Feature/RelevantTest.php   # test mục tiêu t
 php artisan test --compact                                  # rồi mới regression
 vendor/bin/pint --test                                      # CI chặn nếu sai format
 vendor/bin/phpstan analyse --memory-limit=1G                # CI chặn lỗi mới ngoài baseline
+php artisan client:editable-audit                           # bắt buộc khi đụng resources/views/client
 php -l path/to/changed.php
 ```
+
+Cắt theme hay sửa view storefront: không báo xong khi `client:editable-audit` chưa `RESULT: PASS`.
+Checklist nghiệm thu và mẫu báo cáo nằm ở mục Verify/Report của `connect-ecommerce-frontend/SKILL.md`.
 
 Không chạy `migrate:fresh`, `migrate:reset`, `db:wipe` hoặc seeder có truncate trên database không
 xác định. Không in giá trị secret trong `.env`.
