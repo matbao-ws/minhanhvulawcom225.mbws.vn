@@ -1,10 +1,13 @@
-/* Guided tours (admin-tour.js): driver.js popovers in the admin theme. */
+/* Guided tours (admin-tour.js): driver.js popovers in the admin theme.
+ * Fixed colours, not the theme's --bs-* variables: those are a light grey (#98a4ae) meant for
+ * the admin's own text, unreadable here, and driver.js always draws the popover on white. */
 .driver-popover.admin-tour-popover {
     font-family: 'Quicksand', sans-serif;
     max-width: 340px;
     border-radius: 12px;
     padding: 18px 18px 14px;
-    color: var(--bs-body-color, #2a3547);
+    background: #fff;
+    color: #1f2a37;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
 }
 
@@ -13,19 +16,22 @@
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.35;
+    color: #1f2a37;
 }
 
 .admin-tour-popover .driver-popover-description {
     font-family: inherit;
     font-size: 0.875rem;
-    line-height: 1.5;
-    color: var(--bs-secondary-color, #5a6a85);
+    font-weight: 500;
+    line-height: 1.55;
+    color: #3b4757;
 }
 
 .admin-tour-popover .driver-popover-progress-text {
     font-family: inherit;
     font-size: 0.75rem;
-    color: var(--bs-secondary-color, #5a6a85);
+    font-weight: 600;
+    color: #5b6776;
 }
 
 .admin-tour-popover .driver-popover-footer {
@@ -40,9 +46,9 @@
     text-shadow: none;
     border-radius: 8px;
     padding: 5px 12px;
-    border: 1px solid var(--bs-border-color, #dfe5ef);
+    border: 1px solid #cfd6e0;
     background: #fff;
-    color: var(--bs-body-color, #2a3547);
+    color: #1f2a37;
 }
 
 .admin-tour-popover .driver-popover-footer .driver-popover-next-btn {
@@ -57,12 +63,16 @@
 }
 
 .admin-tour-popover .driver-popover-footer button:disabled {
-    opacity: 0.45;
+    opacity: 0.5;
+}
+
+.admin-tour-popover .driver-popover-close-btn {
+    color: #5b6776;
 }
 
 .admin-tour-popover .driver-popover-footer .admin-tour-skip {
     margin-right: auto;
     border-color: transparent;
     background: transparent;
-    color: var(--bs-secondary-color, #5a6a85);
+    color: #3b4757;
 }
