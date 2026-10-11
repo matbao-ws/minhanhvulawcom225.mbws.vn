@@ -1,0 +1,1687 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method SplFileInfo\:\:getRelativePathname\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Console/Commands/AuditEditableRegions.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Routing\\RouteCollectionInterface\:\:count\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Console/Commands/CoreHealth.php
+
+		-
+			message: '#^Comparison operation "\<\=" between 1\|2 and 2 is always true\.$#'
+			identifier: smallerOrEqual.alwaysTrue
+			count: 1
+			path: app/Console/Commands/SampleLinkCandidates.php
+
+		-
+			message: '#^Relation ''role'' is not found in App\\Models\\User model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/ActivityLogController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Http/Controllers/Admin/AiToolsController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Banner\:\:\$image_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/BannerController.php
+
+		-
+			message: '#^Relation ''products'' is not found in App\\Models\\Brand model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/Catalog/BrandController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Category\:\:\$depth\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/CategoryController.php
+
+		-
+			message: '#^Relation ''children'' is not found in App\\Models\\Category model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/CategoryController.php
+
+		-
+			message: '#^Relation ''parent'' is not found in App\\Models\\Category model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/CategoryController.php
+
+		-
+			message: '#^Relation ''products'' is not found in App\\Models\\Category model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/Catalog/CategoryController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Relation ''brand'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 3
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Relation ''category'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 3
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Relation ''images'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Relation ''optionGroups'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Relation ''variants'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 3
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/Admin/Catalog/ProductController.php
+
+		-
+			message: '#^Relation ''optionGroups'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/ProductOptionController.php
+
+		-
+			message: '#^Relation ''optionGroups'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/Catalog/ProductVariantController.php
+
+		-
+			message: '#^Relation ''optionValues'' is not found in App\\Models\\ProductVariant model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/Catalog/ProductVariantController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$optionGroups\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CheckoutTestController.php
+
+		-
+			message: '#^Relation ''optionGroups'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/CheckoutTestController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$completed_orders\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$customer_email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$customer_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$customer_phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$last_order_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$registered_user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total_orders\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total_spent\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/CustomerController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$total_spent\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Review\:\:\$product\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Relation ''order'' is not found in App\\Models\\OrderItem model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sort_order" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Admin/MenuItemController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/NotificationSettingController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$addresses\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Relation ''addresses'' is not found in App\\Models\\User model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Relation ''historyEntries'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Relation ''refunds'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Relation ''variants'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Post\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Relation ''category'' is not found in App\\Models\\Post model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Relation ''product'' is not found in App\\Models\\ProductVariant model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/PromotionController.php
+
+		-
+			message: '#^Relation ''targets'' is not found in App\\Models\\Promotion model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/PromotionController.php
+
+		-
+			message: '#^Relation ''product'' is not found in App\\Models\\Review model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/ReviewController.php
+
+		-
+			message: '#^Relation ''reviews'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/ReviewController.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\Review model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/ReviewController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Role\:\:\$permissions\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/RoleController.php
+
+		-
+			message: '#^Parameter \#1 \$array of function array_diff expects array, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/RoleController.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$arrays of function array_diff expects array, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/RoleController.php
+
+		-
+			message: '#^Relation ''users'' is not found in App\\Models\\Role model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/RoleController.php
+
+		-
+			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Admin/SearchController.php
+
+		-
+			message: '#^Relation ''role'' is not found in App\\Models\\User model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Admin/SearchController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Role\:\:\$permissions\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Admin/UserController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\Role\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/UserController.php
+
+		-
+			message: '#^Relation ''role'' is not found in App\\Models\\User model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Admin/UserController.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Controllers/Api/ContactController.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/PublicAuthController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Parameter \#1 \$num of function round expects float\|int, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\Api\\PublicController\:\:\$orderStockService is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Property App\\Http\\Controllers\\Api\\PublicController\:\:\$promotionService is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Relation ''children'' is not found in App\\Models\\Category model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 6
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/PublicController.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Api/WebhookController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/CategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/CategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_draft\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/CategoryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Client/CategoryController.php
+
+		-
+			message: '#^Parameter \#4 \$visible of method App\\Services\\Seo\\SeoMetaFactory\:\:ancestorTrail\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model\)\: bool, Closure\(App\\Models\\Category\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Client/CategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/PageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/PageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/PostCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Client/PostCategoryController.php
+
+		-
+			message: '#^Parameter \#4 \$visible of method App\\Services\\Seo\\SeoMetaFactory\:\:ancestorTrail\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model\)\: bool, Closure\(App\\Models\\PostCategory\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Client/PostCategoryController.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$address\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$customer_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$customer_phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$is_default\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicAddressResource\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicAddressResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicBrandResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicBrandResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicBrandResource\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicBrandResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\PublicBrandResource\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/PublicBrandResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicCategoryResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicCategoryResource\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicCategoryResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\PublicCategoryResource\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/PublicCategoryResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicOrderResource\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicOrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPageResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPageResource\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPageResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\PublicPageResource\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/PublicPageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$canonical_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$robots_follow\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPostResource\:\:\$robots_index\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\PublicPostResource\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\PublicPostResource\:\:relationLoaded\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/PublicPostResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductResource\:\:\$brand\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/PublicProductResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductResource\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/PublicProductResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductResource\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicProductResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductResource\:\:\$optionGroups\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicProductResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductVariantResource\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicProductVariantResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductVariantResource\:\:\$optionValues\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/PublicProductVariantResource.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Jobs/SendOrderStatusEmail.php
+
+		-
+			message: '#^Parameter \#1 \$message of static method Symfony\\Component\\Mime\\MessageConverter\:\:toEmail\(\) expects Symfony\\Component\\Mime\\Message, Symfony\\Component\\Mime\\RawMessage given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Mail/Transport/MatbaoGatewayTransport.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\AdminActivityLog model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Models/AdminActivityLog.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Banner\:\:\$image_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Banner.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Brand.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:first\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\LocalizedSlug\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Brand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Category.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:first\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\LocalizedSlug\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Category.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Page.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:first\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\LocalizedSlug\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Page.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Post.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:first\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\LocalizedSlug\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Post.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/PostCategory.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:first\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\LocalizedSlug\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/PostCategory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$optionGroups\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:first\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\LocalizedSlug\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Role\:\:\$permissions\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Role.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/User.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>permissions" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Review\:\:\$product\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AiGateway/AltTextService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/AltTextService.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 2
+			path: app/Services/AiGateway/BulkSeoService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\>\|Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/ContentEditService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\>\|Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/ContentEditService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AiGateway/ContentEditService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/ContentEditService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AiGateway/FaqService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/FaqService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AiGateway/InternalLinkService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/InternalLinkService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Services/AiGateway/KeywordResearchService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\MetaSuggestionService\:\:\$htmlSanitizer\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/AiGateway/MetaSuggestionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\MetaSuggestionService\:\:\$pageSanitizer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/MetaSuggestionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\MetaSuggestionService\:\:\$pages\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/MetaSuggestionService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\>\|Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AiGateway/MetaSuggestionService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: app/Services/AiGateway/MetaSuggestionService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/MetaSuggestionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\PostDraftService\:\:\$pageSanitizer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/PostDraftService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\PostDraftService\:\:\$pages\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/PostDraftService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/PostDraftService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/PostDraftService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$brand\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$optionGroups\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Method App\\Services\\AiGateway\\ProductDescriptionService\:\:apply\(\) should return App\\Models\\Product but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Relation ''brand'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Relation ''category'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Relation ''optionGroups'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/AiGateway/ProductDescriptionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\SeoFixService\:\:\$pageSanitizer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\AiGateway\\SeoFixService\:\:\$pages\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:setTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Parameter \#1 \$post of method App\\Services\\AiGateway\\SeoFixService\:\:analyze\(\) expects App\\Models\\Post, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Parameter \#1 \$post of method App\\Services\\AiGateway\\SeoFixService\:\:current\(\) expects App\\Models\\Post, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Parameter \#1 \$post of method App\\Services\\AiGateway\\SeoFixService\:\:taskInput\(\) expects App\\Models\\Post, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/AiGateway/SeoFixService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/SiteIndexPublisher.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$parent\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/SiteIndexPublisher.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AiGateway/SiteIndexPublisher.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AiGateway/SiteIndexPublisher.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslation\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Services/AiGateway/SiteIndexPublisher.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Analytics/AnalyticsReport.php
+
+		-
+			message: '#^Offset ''gsc_site_url'' on array\{measurement_id\?\: string\|null, property_id\?\: string\|null\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Analytics/AnalyticsReport.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Brand\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Catalog/BrandService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sort_order" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Catalog/BrandService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Category\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Catalog/CategoryService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sort_order" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Catalog/CategoryService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Catalog/ProductImportService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProductOptionGroup\:\:\$values\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Catalog/ProductOptionService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProductOptionValue\:\:\$variants\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Catalog/ProductOptionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Catalog/ProductQueryService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Catalog/ProductQueryService.php
+
+		-
+			message: '#^Method App\\Services\\Catalog\\ProductQueryService\:\:findActiveDetail\(\) should return App\\Models\\Product\|null but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Catalog/ProductQueryService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Catalog/ProductQueryService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$optionGroups\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Catalog/ProductService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProductVariant\:\:\$product\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/Catalog/ProductService.php
+
+		-
+			message: '#^Relation ''optionGroup'' is not found in App\\Models\\ProductOptionValue model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Catalog/ProductService.php
+
+		-
+			message: '#^Relation ''optionGroups'' is not found in App\\Models\\Product model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Catalog/ProductService.php
+
+		-
+			message: '#^Relation ''product'' is not found in App\\Models\\ProductVariant model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Catalog/ProductService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/CloudinaryCredentials.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/LanguageRegistry.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Services/LanguageRegistry.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:localizedSlugs\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: app/Services/LocalizedSlugService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/MailSettings.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Services/MenuService.php
+
+		-
+			message: '#^Method App\\Services\\MenuService\:\:branch\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{id\: int, label\: string, url\: string\|null, target_blank\: bool, children\: Illuminate\\Support\\Collection\<int, array\<string, mixed\>\>\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/MenuService.php
+
+		-
+			message: '#^Method App\\Services\\MenuService\:\:tree\(\) should return Illuminate\\Support\\Collection\<int, array\{label\: string, url\: string\|null, target_blank\: bool, children\: Illuminate\\Support\\Collection\}\> but returns Illuminate\\Support\\Collection\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/MenuService.php
+
+		-
+			message: '#^Parameter \#2 \$grouped of method App\\Services\\MenuService\:\:branch\(\) expects Illuminate\\Support\\Collection\<int\|null, Illuminate\\Support\\Collection\<int, App\\Models\\MenuItem\>\>, Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/MenuService.php
+
+		-
+			message: '#^Type int\|null in generic type Illuminate\\Support\\Collection\<int\|null, Illuminate\\Support\\Collection\<int, App\\Models\\MenuItem\>\> in PHPDoc tag @param for parameter \$grouped is not subtype of template type TKey of \(int\|string\) of class Illuminate\\Support\\Collection\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Services/MenuService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/MultilingualSettings.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/OrderStockService.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Services/OrderStockService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Orders/OrderCancellationService.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Orders/OrderCancellationService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Packages/PackageSync.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PageRevision\:\:\$creator\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/PageContentService.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Carbon\\Carbon\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/PageContentService.php
+
+		-
+			message: '#^Offset 2 on array\{list\<string\>, list\<non\-empty\-string\>, list\<string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/PostSeoAnalyzer.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Promotion\:\:\$targets\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/PromotionService.php
+
+		-
+			message: '#^Relation ''targets'' is not found in App\\Models\\Promotion model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Services/PromotionService.php
+
+		-
+			message: '#^Parameter \#1 \$num of function round expects float\|int, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/SePayService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>settings" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/SePayService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Post\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Post\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$brand\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$image_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$reviews\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$variants\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$parent\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Parameter \#4 \$visible of method App\\Services\\Seo\\SeoMetaFactory\:\:ancestorTrail\(\) expects Closure\(Illuminate\\Database\\Eloquent\\Model\)\: bool, Closure\(App\\Models\\Category\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Seo/SeoMetaFactory.php
+
+		-
+			message: '#^Argument of an invalid type Illuminate\\Routing\\RouteCollectionInterface supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: app/Services/Seo/SitemapService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:canonicalSlug\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Seo/SitemapService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Shipping/ShipmentDispatcher.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Services/Shipping/ShipmentDispatcher.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>weight_grams" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Shipping/ShipmentDispatcher.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/ShippingService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/SiteContentService.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Services/SiteContentService.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Services/SiteContentService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/SiteContentService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, created_at\: string\|null, author\: mixed, has_locale\: bool, preview\: string\|null\}, Closure\(App\\Models\\SiteBlockRevision\)\: array\{id\: int\<0, max\>, created_at\: string\|null, author\: mixed, has_locale\: bool, preview\: string\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/SiteContentService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, created_at\: string\|null, author\: mixed, preview\: string\}, Closure\(App\\Models\\SiteSectionRevision\)\: array\{id\: int\<0, max\>, created_at\: string\|null, author\: mixed, preview\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>settings" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/SiteSectionService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Services/Translation/GoogleTranslationProvider.php
+
+		-
+			message: '#^Parameter \#1 \$num of function round expects float\|int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/VNPAYService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>attachment_url" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>encoded" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>post_date" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>post_date_gmt" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>post_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>post_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>post_password" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>post_type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>status" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressPostImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>published_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/WordPressSiteImportService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/CoreManifest.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/CoreUpdate/CoreUpdateAccess.php
+
+		-
+			message: '#^Offset ''ref'' on array\{status\?\: string, from\?\: string, to\?\: string, step\?\: string\|null, error\?\: string\|null, updated_at\?\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/CoreUpdate/CoreUpdateService.php
+
+		-
+			message: '#^Offset ''ref'' on array\{status\?\: string, from\?\: string, to\?\: string, step\?\: string\|null, error\?\: string\|null, updated_at\?\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/CoreUpdate/CoreUpdater.php
+
+		-
+			message: '#^Offset 2 on array\{0\: string, 1\: non\-falsy\-string, 2\: string, 3\: string, 4\?\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/MigrationSafety.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/NotificationHelper.php
+
+		-
+			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/NotificationHelper.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getTranslations\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Support/Seo/RecordLocales.php
+
+		-
+			message: '#^Offset ''name'' on array\{name\: string, url\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/Seo/StructuredData.php
+
+		-
+			message: '#^Offset ''url'' on array\{name\: string, url\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/Seo/StructuredData.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{name\: string, url\: string\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/Seo/StructuredData.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array\{''@type''\: ''Organization'', name\?\: non\-falsy\-string, logo\?\: array\{''@type''\: ''ImageObject'', url\: string\}\}\|array\{string\}\|non\-empty\-string and array\{\} will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Seo/StructuredData.php
+
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 2
+			path: database/migrations/2026_06_25_122139_create_superadmin_role_and_assign_to_admin.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: database/migrations/2026_07_18_070000_replace_legacy_product_variants_with_v2.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<mixed\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: database/migrations/2026_08_15_000000_create_granular_permission_structures.php
+
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 3
+			path: database/seeders/FoundationSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: database/seeders/FoundationSeeder.php

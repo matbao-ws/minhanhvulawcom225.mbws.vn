@@ -532,7 +532,12 @@ php artisan test --compact
 php -l path/to/changed.php
 php composer.phar validate --no-check-publish
 php composer.phar audit --locked --no-interaction
+vendor/bin/pint --test                                  # CI chặn nếu sai format; sửa bằng vendor/bin/pint
+vendor/bin/phpstan analyse --memory-limit=1G            # CI chặn lỗi mới ngoài phpstan-baseline.neon
 ```
+
+`phpstan-baseline.neon` chỉ được thu nhỏ: sửa xong lỗi thì xoá entry tương ứng, không tự sinh lại
+baseline để che lỗi mới.
 
 Nếu full suite đã lỗi do thay đổi có sẵn, không sửa file ngoài scope để “làm xanh”. Báo chính xác:
 test nào lỗi, lỗi có liên quan hay không và test mục tiêu đã đạt gì.

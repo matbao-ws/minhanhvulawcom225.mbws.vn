@@ -1,0 +1,5 @@
+# Formatting-only commits, skipped by `git blame` (GitHub reads this file;
+# locally: git config blame.ignoreRevsFile .git-blame-ignore-revs).
+
+# style: apply Laravel Pint to the whole codebase
+83ca491a3d3458e6e226ce2f27213be7334d3dce

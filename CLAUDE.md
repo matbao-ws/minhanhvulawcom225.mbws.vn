@@ -40,6 +40,8 @@ Không suy diễn nội dung hợp đồng từ file này. Đây chỉ là con t
 ```bash
 php artisan test --compact tests/Feature/RelevantTest.php   # test mục tiêu trước
 php artisan test --compact                                  # rồi mới regression
+vendor/bin/pint --test                                      # CI chặn nếu sai format
+vendor/bin/phpstan analyse --memory-limit=1G                # CI chặn lỗi mới ngoài baseline
 php -l path/to/changed.php
 ```
 
