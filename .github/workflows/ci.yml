@@ -57,6 +57,10 @@ jobs:
       - name: Code style (Pint)
         run: vendor/bin/pint --test
 
+      # team.py edits customers' CI files (ci-audit): its text edits are tested here.
+      - name: Team script tests (Python)
+        run: python3 -m unittest discover -s tests/python
+
       # Larastan boots the application to read models and config.
       - name: Prepare environment
         run: cp .env.example .env && php artisan key:generate

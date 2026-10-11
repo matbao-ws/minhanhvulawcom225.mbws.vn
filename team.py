@@ -6,6 +6,7 @@ and Python; it finds or installs php and composer itself.
     python team.py                       # menu
     python team.py new [name] [options]  # create a customer project (python team.py new -h)
     python team.py doctor                # check the machine's tools
+    python team.py ci-audit --all        # add the editable audit to existing projects' CI (dry run; --apply)
 
 In the core repository: set up the machine, create a customer project. In a customer project:
 start a task, save and push it with a PR, take a new core release, deploy (through deploy.py).
@@ -400,9 +401,133 @@ jobs:
       - name: Check extensions
         run: php artisan extension:check
 
+      - name: Editable coverage audit
+        run: php artisan client:editable-audit
+
       - name: Run tests
         run: php artisan test --compact
 """
+
+# The editable audit step for customer projects that already exist (`python team.py ci-audit`).
+# Their .github/workflows/ci.yml is neither core nor site-owned in CoreManifest: a core update never
+# rewrites it, so the step is added by a pull request to each project, never by the updater.
+AUDIT_COMMAND = 'php artisan client:editable-audit'
+AUDIT_STEP_NAME = 'Editable coverage audit'
+# The job a project's CI runs both the audit and the tests in; the check branch protection requires.
+CI_JOB = 'test'
+
+
+def add_audit_step(ci_text):
+    """('present' | 'added' | 'unknown', new text). Adds the audit step right before the step that
+    runs the test suite, with that step's indentation, and changes nothing else. A workflow it
+    cannot read that way ('unknown') is left alone: its owner adds the step by hand."""
+    if AUDIT_COMMAND in ci_text:
+        return 'present', ci_text
+    lines = ci_text.split('\n')
+    for i, line in enumerate(lines):
+        if not re.match(r'^\s*(- )?run:\s*php artisan test\b', line):
+            continue
+        start = i
+        while start >= 0 and not re.match(r'^\s*- ', lines[start]):
+            start -= 1
+        if start < 0:
+            break
+        indent = re.match(r'^(\s*)- ', lines[start]).group(1)
+        step = [f'{indent}- name: {AUDIT_STEP_NAME}', f'{indent}  run: {AUDIT_COMMAND}', '']
+        return 'added', '\n'.join(lines[:start] + step + lines[start:])
+    return 'unknown', ci_text
+
+
+def gh_json(*args):
+    """`gh api` as JSON, or None when the call fails (404, no access)."""
+    import json
+    text = out(['gh', 'api', *args])
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
+
+
+def protection_report(repo, require=False):
+    """What branch protection says about the CI job on main; with require=True, adds the job to the
+    required checks when required checks are already on. Never turns protection on, never removes
+    or rewrites another rule."""
+    branch = gh_json(f'repos/{repo}/branches/main') or {}
+    if not branch.get('protected'):
+        return ('main CHƯA bật branch protection: CI đỏ vẫn merge được. Bật trong Settings → Branches '
+                f'(require status check "{CI_JOB}") để audit thật sự chặn merge.')
+    checks = gh_json(f'repos/{repo}/branches/main/protection/required_status_checks')
+    if checks is None:
+        return ('main có branch protection nhưng chưa có required status checks, hoặc tài khoản này không có '
+                f'quyền admin để xem: kiểm tra tay check "{CI_JOB}".')
+    contexts = set(checks.get('contexts') or []) | {c.get('context') for c in (checks.get('checks') or [])}
+    if CI_JOB in contexts:
+        return f'check "{CI_JOB}" đã là bắt buộc: audit fail sẽ chặn merge.'
+    if not require:
+        return f'check "{CI_JOB}" CHƯA bắt buộc (chạy lại với --require để thêm, các check khác giữ nguyên).'
+    code = run(['gh', 'api', '-X', 'POST', f'repos/{repo}/branches/main/protection/required_status_checks/contexts',
+                '-f', f'contexts[]={CI_JOB}'], check=False)
+    return f'đã thêm "{CI_JOB}" vào required checks.' if code == 0 else 'không thêm được required check (thiếu quyền admin repo?).'
+
+
+def ci_audit(argv=None):
+    """Adds the editable audit to the CI of existing customer projects, one pull request each."""
+    import base64
+    p = argparse.ArgumentParser(prog='python team.py ci-audit',
+                                description='Thêm bước client:editable-audit vào CI của các project khách đã có.')
+    p.add_argument('--repo', action='append', default=[], help='OWNER/REPO, lặp lại được')
+    p.add_argument('--all', action='store_true', help=f'mọi repo của {DEFAULT_OWNER} có file VERSION')
+    p.add_argument('--apply', action='store_true', help='mở PR (mặc định chỉ in việc sẽ làm)')
+    p.add_argument('--require', action='store_true', help=f'thêm "{CI_JOB}" vào required checks khi đã bật')
+    args = p.parse_args(argv)
+    if not has('gh'):
+        raise Stop('Cần GitHub CLI (gh) đã đăng nhập.')
+
+    repos = list(args.repo)
+    if args.all:
+        listed = out(['gh', 'repo', 'list', DEFAULT_OWNER, '--limit', '500', '--json', 'nameWithOwner', '-q', '.[].nameWithOwner'])
+        repos += [r for r in listed.split('\n') if r]
+    if not repos:
+        raise Stop('Chỉ định --repo OWNER/REPO hoặc --all.')
+
+    for repo in dict.fromkeys(repos):
+        say(f'\n== {repo}')
+        if gh_json(f'repos/{repo}/contents/VERSION') is None:
+            say('  bỏ qua: không có file VERSION, không phải project dựng từ core.')
+            continue
+        if gh_json(f'repos/{repo}/contents/.github/workflows/release.yml') is not None:
+            say('  bỏ qua: đây là repo core (có release.yml); core chạy audit qua EditableCoverageDriftTest.')
+            continue
+        ci = gh_json(f'repos/{repo}/contents/.github/workflows/ci.yml?ref=main')
+        if ci is None:
+            say('  không có .github/workflows/ci.yml trên main: thêm tay (xem PROJECT_CI trong team.py).')
+            continue
+        text = base64.b64decode(ci['content']).decode('utf-8')
+        status, new_text = add_audit_step(text)
+        if status == 'present':
+            say('  CI đã có bước audit.')
+        elif status == 'unknown':
+            say('  ci.yml đã được tuỳ biến, không chèn tự động. Thêm tay vào job chạy test:')
+            say(f'      - name: {AUDIT_STEP_NAME}\n        run: {AUDIT_COMMAND}')
+        elif not args.apply:
+            say('  sẽ thêm bước audit ngay trước bước chạy test (chạy lại với --apply để mở PR).')
+        else:
+            branch = 'ci/editable-audit'
+            base_sha = gh_json(f'repos/{repo}/git/ref/heads/main')['object']['sha']
+            run(['gh', 'api', '-X', 'POST', f'repos/{repo}/git/refs', '-f', f'ref=refs/heads/{branch}', '-f', f'sha={base_sha}'], check=False)
+            encoded = base64.b64encode(new_text.encode('utf-8')).decode('ascii')
+            run(['gh', 'api', '-X', 'PUT', f'repos/{repo}/contents/.github/workflows/ci.yml',
+                 '-f', 'message=ci: run the editable coverage audit', '-f', f'content={encoded}',
+                 '-f', f'sha={ci["sha"]}', '-f', f'branch={branch}'])
+            run(['gh', 'pr', 'create', '--repo', repo, '--base', 'main', '--head', branch,
+                 '--title', 'ci: run the editable coverage audit',
+                 '--body', f'Adds `{AUDIT_COMMAND}` before the test suite, so storefront copy that is not editable '
+                           'fails CI instead of reaching the customer. Only that step is added; the rest of the '
+                           'workflow is unchanged. Generated by `python team.py ci-audit`.'], check=False)
+        say('  ' + protection_report(repo, require=args.require))
+
 
 # Files of the core repository that make no sense in a customer project.
 CORE_ONLY_FILES = ['.github/workflows/release.yml', '.deploy_url', '.deploy_timestamp']
@@ -837,6 +962,8 @@ def main():
             new_project(rest)
         elif command == 'doctor':
             sys.exit(0 if doctor(offer_install='--install' in rest) else 1)
+        elif command == 'ci-audit':
+            ci_audit(rest)
         elif command in ('', 'menu'):
             menu()
         else:
