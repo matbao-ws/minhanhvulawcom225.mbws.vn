@@ -281,4 +281,14 @@ Run through this per page after cutting, before calling the cut done.
       `Ignored without reason` must all be 0. `--fix` wraps only text-level tags and plain `<img>`;
       everything marked `[sửa tay]` or `[chưa hỗ trợ]` is resolved by hand — never by changing the
       layout to dodge the scanner. Read the "Vùng cố ý để tĩnh" list: every reason must be true.
+      - The audit sets aside, and lists without failing: icons and inline SVG, decorative images
+        (`alt=""` with `aria-hidden="true"` or `role="presentation"`), and video/audio sources. Fonts,
+        `mask`/`cursor`/`filter` URLs, `url(#id)`, gradient-only backgrounds, class names in `data-bg`
+        and `#target` values in `data-src` are not pictures and are not counted.
+      - A translation call whose key exists in no language file (`{{ __('Mua ngay') }}`, `@lang('…')`)
+        is reported as `untranslated`: it is static copy the shop cannot edit. Mark it with
+        `<x-client::editable>`, or add the key to `lang/` if it really is an interface string.
+      - Backgrounds in a `<style>` block (`style-block`) and layered backgrounds (`layered`) are
+        reported; resolve them by hand.
 - [ ] `php artisan test --compact` passes.
+- [ ] To compare how different tools cut the same theme, use `docs/THEME_CUTTING_BENCHMARK.md`.
