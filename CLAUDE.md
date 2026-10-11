@@ -33,6 +33,8 @@ Không suy diễn nội dung hợp đồng từ file này. Đây chỉ là con t
 - Truy vấn đọc phục vụ cả API và Blade phải nằm trong service dùng chung
   (`Catalog\ProductQueryService`), không viết inline trong controller.
 - Tạo đơn đi qua `Orders\OrderCreationService`; không tự tính lại tiền ở controller.
+- Hai quy tắc trên và ranh giới `app/Extension` được `tests/Feature/ArchitectureTest.php` kiểm.
+  Ngoại lệ chỉ thêm sau review, kèm lý do, trong `tests/Support/Architecture/ArchitectureRules.php`.
 - Code và test có thẩm quyền cao hơn tài liệu. Khi lệch, tin code và sửa tài liệu.
 
 ## Lệnh kiểm chứng
