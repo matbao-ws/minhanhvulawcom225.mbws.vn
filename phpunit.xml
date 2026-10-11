@@ -12,6 +12,12 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
+    <!-- MySQL-only concurrency tests, selected only by the CI job mysql-concurrency (.github/workflows/ci.yml). -->
+    <groups>
+        <exclude>
+            <group>mysql</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>
