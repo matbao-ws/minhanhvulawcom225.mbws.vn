@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/core-update.response.json",
+  "title": "GET v1/core/update: the release this website may install next, or null",
+  "type": "object",
+  "required": ["ok", "update"],
+  "properties": {
+    "ok": { "const": true },
+    "update": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["version", "channel", "level", "auto", "requires", "database", "released_at", "notes", "base_url"],
+          "properties": {
+            "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$" },
+            "channel": { "enum": ["dev", "beta", "stable"] },
+            "level": { "enum": ["major", "minor", "patch"] },
+            "auto": { "type": "boolean", "description": "true only when not a major, rollback-safe and no backup needed" },
+            "requires": {
+              "type": "object",
+              "properties": { "php": { "type": "string" }, "min_from": { "type": "string" } }
+            },
+            "database": {
+              "type": "object",
+              "properties": {
+                "migration": { "type": "boolean" },
+                "rollback_safe": { "type": "boolean" },
+                "backup_required": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            },
+            "released_at": { "type": ["string", "null"] },
+            "notes": { "type": ["string", "null"] },
+            "base_url": { "type": "string", "pattern": "^https?://.+/v1/core/releases/[^/]+$" }
+          }
+        }
+      ]
+    }
+  }
+}

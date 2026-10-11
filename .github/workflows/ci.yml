@@ -30,6 +30,18 @@ jobs:
       - name: Run tests
         run: php artisan test --compact
 
+      # GatewayContractTest checks against a pinned copy of the gateway's contracts/v1; this
+      # checks the copy is exact. The token only needs read access to the gateway repo.
+      - name: Gateway contract copy matches its pinned commit
+        env:
+          GH_TOKEN: ${{ secrets.GATEWAY_CONTRACT_READ_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::GATEWAY_CONTRACT_READ_TOKEN is not set: the gateway contract copy was not compared with the gateway repository."
+            exit 0
+          fi
+          bash tests/Support/check-gateway-contract.sh
+
   quality:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "update": {
+    "version": "1.4.0",
+    "channel": "stable",
+    "level": "patch",
+    "auto": true,
+    "requires": { "php": "^8.2", "min_from": "1.0.0" },
+    "database": { "migration": false, "rollback_safe": true, "backup_required": false },
+    "released_at": "2026-10-11T10:00:00+00:00",
+    "notes": "Sửa lỗi và cải thiện hiệu năng.",
+    "base_url": "https://gateway.example/v1/core/releases/1.4.0"
+  }
+}
