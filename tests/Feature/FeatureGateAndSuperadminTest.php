@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Catalog\ProductService;
+use App\Support\FeatureGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,6 +16,7 @@ class FeatureGateAndSuperadminTest extends TestCase
     use RefreshDatabase;
 
     private Role $superadminRole;
+
     private Role $adminRole;
 
     protected function setUp(): void
@@ -87,7 +89,7 @@ class FeatureGateAndSuperadminTest extends TestCase
         $response = $this->post('/vi/admin/features', [
             'features' => [
                 'multi_admin' => '0',
-            ]
+            ],
         ]);
 
         $response->assertRedirect();
@@ -115,7 +117,7 @@ class FeatureGateAndSuperadminTest extends TestCase
 
         $response = $this->get('/vi/admin/users');
         $response->assertRedirect();
-        $response->assertSessionHas('error', \App\Support\FeatureGate::SUPPORT_MESSAGE);
+        $response->assertSessionHas('error', FeatureGate::SUPPORT_MESSAGE);
     }
 
     public function test_superadmin_can_access_users_management_even_when_multi_admin_disabled(): void
@@ -149,7 +151,7 @@ class FeatureGateAndSuperadminTest extends TestCase
 
         $response = $this->get('/vi/admin/users');
         $response->assertOk();
-        
+
         // Assert superadmin is NOT in the view data 'users' list
         $usersList = $response->viewData('users');
         $this->assertFalse($usersList->contains($superadmin));
@@ -168,10 +170,10 @@ class FeatureGateAndSuperadminTest extends TestCase
 
         $this->actingAs($admin);
 
-        $responseGet = $this->get('/vi/admin/users/' . $superadmin->id . '/edit');
+        $responseGet = $this->get('/vi/admin/users/'.$superadmin->id.'/edit');
         $responseGet->assertStatus(403);
 
-        $responsePut = $this->put('/vi/admin/users/' . $superadmin->id, [
+        $responsePut = $this->put('/vi/admin/users/'.$superadmin->id, [
             'name' => 'Hacked Name',
             'email' => 'hacked@example.com',
             'role_id' => $this->adminRole->id,
@@ -201,19 +203,19 @@ class FeatureGateAndSuperadminTest extends TestCase
         $this->actingAs($superadmin);
 
         // Initially multi_admin is true
-        $this->assertTrue(\App\Models\FeatureSetting::where('feature_code', 'multi_admin')->first()->is_enabled);
+        $this->assertTrue(FeatureSetting::where('feature_code', 'multi_admin')->first()->is_enabled);
 
         $response = $this->postJson('/vi/admin/features/toggle', [
             'feature_code' => 'multi_admin',
-            'is_enabled' => 0
+            'is_enabled' => 0,
         ]);
 
         $response->assertOk();
         $response->assertJson([
-            'success' => true
+            'success' => true,
         ]);
 
-        $this->assertFalse(\App\Models\FeatureSetting::where('feature_code', 'multi_admin')->first()->is_enabled);
+        $this->assertFalse(FeatureSetting::where('feature_code', 'multi_admin')->first()->is_enabled);
     }
 
     public function test_superadmin_can_toggle_an_entire_feature_group_without_changing_another_group(): void

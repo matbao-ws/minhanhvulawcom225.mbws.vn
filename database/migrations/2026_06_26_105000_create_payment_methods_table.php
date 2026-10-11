@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -32,7 +32,7 @@ return new class extends Migration
             'type' => 'custom',
             'status' => 'active',
             'settings' => json_encode([
-                'description' => 'Thanh toán bằng tiền mặt khi nhận hàng.'
+                'description' => 'Thanh toán bằng tiền mặt khi nhận hàng.',
             ]),
             'logo_url' => null,
             'created_at' => now(),
@@ -50,14 +50,12 @@ return new class extends Migration
                 'bank_name' => '',
                 'account_number' => '',
                 'account_holder' => '',
-                'instructions' => 'Vui lòng chuyển khoản đúng số tiền và ghi rõ mã đơn hàng làm nội dung chuyển khoản.'
+                'instructions' => 'Vui lòng chuyển khoản đúng số tiền và ghi rõ mã đơn hàng làm nội dung chuyển khoản.',
             ]),
             'logo_url' => null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-
-
 
         // Seed Sepay
         DB::table('payment_methods')->insert([
@@ -68,7 +66,7 @@ return new class extends Migration
             'status' => 'inactive',
             'settings' => json_encode([
                 'api_key' => '',
-                'webhook_token' => ''
+                'webhook_token' => '',
             ]),
             'logo_url' => 'sepay-logo.png',
             'created_at' => now(),
@@ -85,7 +83,7 @@ return new class extends Migration
             'settings' => json_encode([
                 'publishable_key' => '',
                 'secret_key' => '',
-                'webhook_secret' => ''
+                'webhook_secret' => '',
             ]),
             'logo_url' => 'stripe-logo.png',
             'created_at' => now(),

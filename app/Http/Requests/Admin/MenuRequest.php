@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class MenuRequest extends FormRequest
@@ -16,7 +17,7 @@ class MenuRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if ($this->filled('key')) {
-            $this->merge(['key' => \Illuminate\Support\Str::slug((string) $this->input('key'))]);
+            $this->merge(['key' => Str::slug((string) $this->input('key'))]);
         }
     }
 

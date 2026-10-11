@@ -20,7 +20,7 @@ class EncryptedJson implements CastsAttributes
             return $decoded;
         }
 
-        if (!is_string($decoded) || $decoded === '') {
+        if (! is_string($decoded) || $decoded === '') {
             return [];
         }
 

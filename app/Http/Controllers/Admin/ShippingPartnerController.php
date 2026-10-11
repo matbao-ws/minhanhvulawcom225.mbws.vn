@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShippingPartner;
+use App\Services\ShippingService;
 use App\Support\SecretMask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -251,7 +252,7 @@ class ShippingPartnerController extends Controller
         } elseif ($shipping_partner->partner_code === 'DTGH000013') { // GHN
             $validated = $request->validate([
                 'api_token' => 'required|string|max:255',
-                'api_url' => ['required', 'url', Rule::in([\App\Services\ShippingService::GHN_PRODUCTION_URL, \App\Services\ShippingService::GHN_DEVELOPMENT_URL])],
+                'api_url' => ['required', 'url', Rule::in([ShippingService::GHN_PRODUCTION_URL, ShippingService::GHN_DEVELOPMENT_URL])],
                 'shop_id' => 'required|integer|min:1|max:2147483647',
                 'realtime_tracking_enabled' => 'nullable|boolean',
                 'webhook_token' => 'nullable|string|min:20|max:255',
@@ -282,7 +283,7 @@ class ShippingPartnerController extends Controller
                 ],
             ]);
             // Saved either way (GHN may be briefly down), but say at once what GHN thinks of it.
-            $ghnCheck = app(\App\Services\ShippingService::class)->ghnVerify();
+            $ghnCheck = app(ShippingService::class)->ghnVerify();
         } elseif ($shipping_partner->partner_code === 'DTGH000014') { // J&T
             $validated = $request->validate([
                 'customerid' => 'required|string|max:255',

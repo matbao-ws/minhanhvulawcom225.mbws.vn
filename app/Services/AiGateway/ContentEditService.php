@@ -17,6 +17,7 @@ use App\Support\PageHtmlSanitizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * "AI copy edit" of a record's saved body (product description, post content,
@@ -96,7 +97,7 @@ class ContentEditService
     /**
      * Write the edited body to the record.
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 409 when the body changed since, 410 when closed
+     * @throws HttpException 409 when the body changed since, 410 when closed
      */
     public function apply(AiSuggestion $suggestion, User $user): Model
     {

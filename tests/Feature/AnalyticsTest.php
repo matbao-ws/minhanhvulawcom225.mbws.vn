@@ -8,11 +8,11 @@ use App\Models\Order;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AiGateway\GatewayClient;
 use App\Services\Analytics\AnalyticsReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -333,7 +333,7 @@ class AnalyticsTest extends TestCase
     private function configure(): void
     {
         app(AnalyticsReport::class)->saveSettings(['measurement_id' => 'G-TEST123', 'property_id' => '345678901']);
-        \App\Services\AiGateway\GatewayClient::forgetProject();
+        GatewayClient::forgetProject();
     }
 
     private function admin(): User

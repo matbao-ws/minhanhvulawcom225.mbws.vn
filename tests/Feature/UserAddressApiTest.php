@@ -13,6 +13,7 @@ class UserAddressApiTest extends TestCase
     use RefreshDatabase;
 
     private User $user1;
+
     private User $user2;
 
     protected function setUp(): void

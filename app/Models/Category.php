@@ -9,7 +9,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Category extends Model
 {
-    use HasLocalizedSlugs, HasTranslations, HasMediaUrls;
+    use HasLocalizedSlugs, HasMediaUrls, HasTranslations;
 
     public array $translatable = [
         'name',

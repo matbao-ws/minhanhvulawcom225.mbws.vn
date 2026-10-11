@@ -16,6 +16,7 @@ class UserControllerTest extends TestCase
     use RefreshDatabase;
 
     protected Role $adminRole;
+
     protected Role $editorRole;
 
     protected function setUp(): void
@@ -144,7 +145,7 @@ class UserControllerTest extends TestCase
         $this->assertCount(1, $responseKeyword->viewData('users'));
 
         // Filter by role
-        $responseRole = $this->get('/vi/admin/users?role_id=' . $this->editorRole->id);
+        $responseRole = $this->get('/vi/admin/users?role_id='.$this->editorRole->id);
         $responseRole->assertOk();
         $this->assertCount(1, $responseRole->viewData('users'));
     }
@@ -200,7 +201,7 @@ class UserControllerTest extends TestCase
         $this->actingAs($admin);
 
         // Update details without updating password
-        $response = $this->put('/vi/admin/users/' . $userToEdit->id, [
+        $response = $this->put('/vi/admin/users/'.$userToEdit->id, [
             'name' => 'New Name',
             'email' => 'new@example.com',
             'role_id' => $this->adminRole->id,
@@ -209,7 +210,7 @@ class UserControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        
+
         $userToEdit->refresh();
         $this->assertEquals('New Name', $userToEdit->name);
         $this->assertEquals('new@example.com', $userToEdit->email);
@@ -270,7 +271,7 @@ class UserControllerTest extends TestCase
 
         $this->actingAs($admin);
 
-        $response = $this->delete('/vi/admin/users/' . $userToDelete->id);
+        $response = $this->delete('/vi/admin/users/'.$userToDelete->id);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -288,7 +289,7 @@ class UserControllerTest extends TestCase
 
         $this->actingAs($admin);
 
-        $response = $this->delete('/vi/admin/users/' . $admin->id);
+        $response = $this->delete('/vi/admin/users/'.$admin->id);
 
         $response->assertRedirect();
         $response->assertSessionHas('error'); // Error message instead of success
@@ -310,9 +311,9 @@ class UserControllerTest extends TestCase
 
         $this->actingAs($admin);
 
-        $response = $this->get('/vi/admin/users/' . $user->id);
+        $response = $this->get('/vi/admin/users/'.$user->id);
 
-        $response->assertRedirect('/vi/admin/users/' . $user->id . '/edit');
+        $response->assertRedirect('/vi/admin/users/'.$user->id.'/edit');
     }
 
     public function test_non_superadmin_cannot_see_superadmin_role_or_assign_it(): void

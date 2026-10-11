@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Csv;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -76,7 +77,7 @@ class CustomerController extends Controller
                         (int) $customer->completed_orders,
                         (int) $customer->total_spent,
                         $customer->last_order_at
-                            ? \Carbon\Carbon::parse($customer->last_order_at)->format('d/m/Y H:i')
+                            ? Carbon::parse($customer->last_order_at)->format('d/m/Y H:i')
                             : '',
                     ]);
                 }

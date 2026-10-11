@@ -47,7 +47,7 @@ class RoleController extends Controller
 
     public function create()
     {
-        $role = new Role();
+        $role = new Role;
 
         return view('admin.roles.create', [
             'role' => $role,
@@ -77,7 +77,7 @@ class RoleController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Đã tạo vai trò mới thành công.'
+                'message' => 'Đã tạo vai trò mới thành công.',
             ]);
         }
 
@@ -109,7 +109,7 @@ class RoleController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
+            'name' => 'required|string|max:255|unique:roles,name,'.$role->id,
             'permissions' => 'nullable|array',
             'permissions.*' => $this->permissionRule(),
         ]);
@@ -138,7 +138,7 @@ class RoleController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Đã cập nhật vai trò thành công.'
+                'message' => 'Đã cập nhật vai trò thành công.',
             ]);
         }
 

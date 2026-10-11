@@ -9,6 +9,7 @@ use App\Services\AiGateway\AltTextService;
 use App\Services\AiGateway\FaqService;
 use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\AiGateway\InternalLinkService;
+use App\Services\AiGateway\MetaSuggestionService;
 use App\Services\AiGateway\ProductDescriptionService;
 use App\Services\AiGateway\SeoFixService;
 use Illuminate\Http\JsonResponse;
@@ -49,7 +50,7 @@ class AiToolsController extends Controller
         $record = $this->faq->apply($suggestion, array_values($data['items']), $request->user());
 
         return $this->applied(__('ai.faq.applied'), $suggestion, $record->getTranslation(
-            \App\Services\AiGateway\MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
+            MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
         ));
     }
 
@@ -76,7 +77,7 @@ class AiToolsController extends Controller
         $record = $this->alt->apply($suggestion, trim($data['alt']), $request->user());
 
         return $this->applied(__('ai.alt.applied'), $suggestion, $record->getTranslation(
-            \App\Services\AiGateway\MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
+            MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
         ));
     }
 
@@ -148,7 +149,7 @@ class AiToolsController extends Controller
         [$record, $inserted] = $this->links->apply($suggestion, array_map('intval', $data['chosen']), $request->user());
 
         return $this->applied(__('ai.links.applied', ['count' => $inserted]), $suggestion, $record->getTranslation(
-            \App\Services\AiGateway\MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
+            MetaSuggestionService::ENTITIES[$suggestion->entity_type]['content'], $suggestion->locale, false,
         ));
     }
 

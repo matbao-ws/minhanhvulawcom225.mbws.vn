@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Order;
-use App\Models\ProjectSetting;
+use App\Models\ShippingPartner;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -12,12 +14,13 @@ class ShippingService
     public const GHN_PRODUCTION_URL = 'https://online-gateway.ghn.vn';
 
     public const GHN_DEVELOPMENT_URL = 'https://dev-online-gateway.ghn.vn';
+
     /**
      * Get the active shipping configurations.
      */
     public function getSettings()
     {
-        $partners = \App\Models\ShippingPartner::query()->get();
+        $partners = ShippingPartner::query()->get();
 
         $ghtk = $partners->firstWhere('partner_code', 'DTGH000012');
         $ghn = $partners->firstWhere('partner_code', 'DTGH000013');
@@ -125,6 +128,7 @@ class ShippingService
             ]);
             if ($created->failed() || ! $created->json('data.order_code')) {
                 Log::warning('GHN order creation failed.', ['order_id' => $order->id, 'status' => $created->status(), 'code' => $created->json('code')]);
+
                 return ['success' => false, 'message' => 'GHN từ chối tạo vận đơn. Vui lòng kiểm tra địa chỉ và cấu hình shop.'];
             }
 
@@ -136,6 +140,7 @@ class ShippingService
             ];
         } catch (\Throwable $exception) {
             Log::error('GHN order creation failed.', ['order_id' => $order->id, 'message' => $exception->getMessage()]);
+
             return ['success' => false, 'message' => 'Không thể kết nối GHN. Vui lòng thử lại sau.'];
         }
     }
@@ -151,7 +156,7 @@ class ShippingService
         try {
             $response = $this->ghnRequest($baseUrl, (string) data_get($settings, 'api_token'), (string) data_get($settings, 'shop_id'))
                 ->post($baseUrl.'/shiip/public-api/master-data/'.$resource, $payload);
-        } catch (\Illuminate\Http\Client\ConnectionException) {
+        } catch (ConnectionException) {
             throw new \DomainException('Không kết nối được GHN. Vui lòng thử lại sau.');
         }
         if ($response->status() === 401) {
@@ -162,6 +167,7 @@ class ShippingService
             Log::warning('GHN master-data request failed.', ['resource' => $resource, 'status' => $response->status()]);
             throw new \DomainException('Không thể lấy dữ liệu địa chỉ từ GHN.');
         }
+
         return $response->json('data');
     }
 
@@ -172,7 +178,7 @@ class ShippingService
      * token the other environment is tried to say so.
      *
      * @return array{ok: bool, status: string, message: string, shop_name?: string}
-     *   status: ok | not_configured | wrong_environment | invalid_token | shop_not_found | unreachable
+     *                                                                              status: ok | not_configured | wrong_environment | invalid_token | shop_not_found | unreachable
      */
     public function ghnVerify(): array
     {
@@ -206,7 +212,7 @@ class ShippingService
             if (! $response->successful()) {
                 return ['ok' => false, 'status' => 'unreachable', 'message' => 'GHN trả lỗi '.$response->status().'. Vui lòng thử lại sau.'];
             }
-        } catch (\Illuminate\Http\Client\ConnectionException) {
+        } catch (ConnectionException) {
             return ['ok' => false, 'status' => 'unreachable', 'message' => 'Không kết nối được GHN. Vui lòng thử lại sau.'];
         }
 
@@ -218,7 +224,7 @@ class ShippingService
         return ['ok' => true, 'status' => 'ok', 'message' => 'Kết nối GHN '.$environments[$baseUrl].' hợp lệ.', 'shop_name' => (string) data_get($shop, 'name')];
     }
 
-    private function ghnRequest(string $baseUrl, string $token, ?string $shopId = null): \Illuminate\Http\Client\PendingRequest
+    private function ghnRequest(string $baseUrl, string $token, ?string $shopId = null): PendingRequest
     {
         return Http::timeout(15)->connectTimeout(5)->acceptJson()
             ->withHeaders(array_filter(['Token' => trim($token), 'ShopId' => $shopId !== null ? trim($shopId) : null]));
@@ -232,10 +238,10 @@ class ShippingService
         $settings = $this->getSettings();
         $ghtkSettings = data_get($settings, 'ghtk');
 
-        if (!data_get($ghtkSettings, 'enabled')) {
+        if (! data_get($ghtkSettings, 'enabled')) {
             return [
                 'success' => false,
-                'message' => 'Phương thức Giao Hàng Tiết Kiệm chưa được kích hoạt.'
+                'message' => 'Phương thức Giao Hàng Tiết Kiệm chưa được kích hoạt.',
             ];
         }
 
@@ -244,7 +250,7 @@ class ShippingService
 
         if ($apiToken === 'mock' && app()->environment(['local', 'testing'])) {
             Log::info("Using mock integration for GHTK. Order ID: {$order->id}");
-            
+
             $mockFee = 35000;
             if ($order->subtotal > 1000000) {
                 $mockFee = 0; // Free ship for order over 1M
@@ -252,9 +258,9 @@ class ShippingService
 
             return [
                 'success' => true,
-                'tracking_number' => 'GHTK.MOCK.' . strtoupper(bin2hex(random_bytes(6))),
+                'tracking_number' => 'GHTK.MOCK.'.strtoupper(bin2hex(random_bytes(6))),
                 'fee' => $mockFee,
-                'message' => 'Đẩy đơn hàng sang GHTK thành công (Môi trường giả lập).'
+                'message' => 'Đẩy đơn hàng sang GHTK thành công (Môi trường giả lập).',
             ];
         }
 
@@ -303,19 +309,20 @@ class ShippingService
                     'weight_option' => 'gram',
                     'total_weight' => $params['weight'] ?? 500, // weight in grams
                     'value' => (int) $order->grand_total,
-                ]
+                ],
             ];
 
             $response = Http::timeout(15)->retry(2, 200)->withHeaders([
                 'Token' => $apiToken,
                 'Content-Type' => 'application/json',
-            ])->post(rtrim($apiUrl, '/') . '/services/shipment/order', $payload);
+            ])->post(rtrim($apiUrl, '/').'/services/shipment/order', $payload);
 
             if ($response->failed()) {
-                Log::error("GHTK API connection failed: " . $response->body());
+                Log::error('GHTK API connection failed: '.$response->body());
+
                 return [
                     'success' => false,
-                    'message' => 'Không thể kết nối với hệ thống GHTK. Vui lòng thử lại sau.'
+                    'message' => 'Không thể kết nối với hệ thống GHTK. Vui lòng thử lại sau.',
                 ];
             }
 
@@ -325,19 +332,20 @@ class ShippingService
                     'success' => true,
                     'tracking_number' => data_get($data, 'order.label'),
                     'fee' => (float) data_get($data, 'order.fee', 0),
-                    'message' => 'Đẩy đơn hàng sang GHTK thành công.'
+                    'message' => 'Đẩy đơn hàng sang GHTK thành công.',
                 ];
             }
 
             return [
                 'success' => false,
-                'message' => data_get($data, 'message', 'Có lỗi xảy ra khi đẩy đơn hàng sang GHTK.')
+                'message' => data_get($data, 'message', 'Có lỗi xảy ra khi đẩy đơn hàng sang GHTK.'),
             ];
         } catch (\Exception $e) {
-            Log::error("GHTK push error: " . $e->getMessage());
+            Log::error('GHTK push error: '.$e->getMessage());
+
             return [
                 'success' => false,
-                'message' => 'Lỗi kết nối dịch vụ vận chuyển. Vui lòng thử lại sau.'
+                'message' => 'Lỗi kết nối dịch vụ vận chuyển. Vui lòng thử lại sau.',
             ];
         }
     }

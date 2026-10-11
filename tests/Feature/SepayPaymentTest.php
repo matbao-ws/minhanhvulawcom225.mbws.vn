@@ -2,10 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\PaymentMethod;
 use App\Models\PaymentTransaction;
+use App\Models\Product;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\PaymentTransactionService;
 use App\Services\SePayService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -292,8 +298,8 @@ class SepayPaymentTest extends TestCase
     public function test_admin_cannot_activate_sepay_until_it_is_configured(): void
     {
         $this->enableFeatures();
-        $role = \App\Models\Role::query()->create(['name' => 'Admin', 'permissions' => ['payments.view', 'payments.update']]);
-        $admin = \App\Models\User::factory()->create(['role_id' => $role->id]);
+        $role = Role::query()->create(['name' => 'Admin', 'permissions' => ['payments.view', 'payments.update']]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
         $method = $this->configureSepay(['status' => 'inactive', 'bank_code' => '', 'account_number' => '', 'webhook_token' => '']);
 
         $this->actingAs($admin)
@@ -313,16 +319,16 @@ class SepayPaymentTest extends TestCase
     private function enableFeatures(): void
     {
         foreach (['catalog', 'cart', 'cod_order', 'online_payment'] as $featureCode) {
-            \App\Models\FeatureSetting::query()->updateOrCreate(
+            FeatureSetting::query()->updateOrCreate(
                 ['feature_code' => $featureCode],
                 ['is_enabled' => true],
             );
         }
     }
 
-    private function createProduct(): \App\Models\Product
+    private function createProduct(): Product
     {
-        return \App\Models\Product::query()->create([
+        return Product::query()->create([
             'name' => ['vi' => 'Sản phẩm SePay', 'en' => 'SePay Product'],
             'slug' => 'san-pham-sepay',
             'sku' => 'SEPAY-PROD',
@@ -334,7 +340,7 @@ class SepayPaymentTest extends TestCase
     }
 
     /** Only the rows the webhook wrote; checkout opens a pending one on the same gateway. */
-    private function webhookTransactions(): \Illuminate\Database\Eloquent\Builder
+    private function webhookTransactions(): Builder
     {
         return PaymentTransaction::query()->where('idempotency_key', 'like', 'sepay:webhook:%');
     }
@@ -378,7 +384,7 @@ class SepayPaymentTest extends TestCase
             'grand_total' => $total,
         ]);
 
-        app(\App\Services\PaymentTransactionService::class)->createPending($order, 'test');
+        app(PaymentTransactionService::class)->createPending($order, 'test');
 
         return $order;
     }

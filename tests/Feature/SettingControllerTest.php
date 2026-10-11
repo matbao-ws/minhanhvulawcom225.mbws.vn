@@ -189,7 +189,7 @@ class SettingControllerTest extends TestCase
 
         // Assert database values
         $this->assertEquals('Updated Shop Name', ProjectSetting::where('setting_key', 'shop_name')->first()->setting_value);
-        
+
         $contact = ProjectSetting::where('setting_key', 'contact')->first()->setting_value;
         $this->assertEquals('987654321', $contact['phone']);
         $this->assertEquals('updated@test.com', $contact['email']);

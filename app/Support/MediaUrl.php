@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Concerns\HasMediaUrls;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * external assets such as Cloudinary or a third-party CDN.
  *
  * Models normalise their media columns through
- * {@see \App\Models\Concerns\HasMediaUrls}. That works on Eloquent writes only:
+ * {@see HasMediaUrls}. That works on Eloquent writes only:
  * a query-builder `DB::table(...)->update()`, `->insert()` or `Model::query()
  * ->update()` bypasses the mutator, so pass such values through
  * {@see toStorable()} explicitly.

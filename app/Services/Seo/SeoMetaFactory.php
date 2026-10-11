@@ -6,14 +6,15 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Product;
 use App\Services\LanguageRegistry;
-use App\Support\MediaUrl;
-use Illuminate\Support\Facades\Route;
 use App\Services\LocalizedContent;
 use App\Services\SiteBranding;
+use App\Support\FeatureGate;
+use App\Support\MediaUrl;
 use App\Support\Seo\RecordLocales;
 use App\Support\Seo\SeoMeta;
 use App\Support\Seo\StructuredData;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 /**
@@ -189,7 +190,7 @@ class SeoMetaFactory
     /** @return array{average: float, count: int}|null visible reviews, only when reviews are switched on */
     private function rating(Product $product): ?array
     {
-        if (! app(\App\Support\FeatureGate::class)->enabled('review')) {
+        if (! app(FeatureGate::class)->enabled('review')) {
             return null;
         }
 

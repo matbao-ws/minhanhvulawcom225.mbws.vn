@@ -77,6 +77,7 @@ class PageHtmlSanitizer
             }
             if (! in_array(strtolower($element->tagName), self::ALLOWED_TAGS, true)) {
                 $this->unwrap($element);
+
                 continue;
             }
 
@@ -98,7 +99,9 @@ class PageHtmlSanitizer
         }
 
         $root = $document->getElementById('page-builder-root');
-        if (! $root) return '';
+        if (! $root) {
+            return '';
+        }
 
         $output = '';
         foreach ($root->childNodes as $child) {
@@ -111,7 +114,9 @@ class PageHtmlSanitizer
     private function unwrap(DOMNode $node): void
     {
         $parent = $node->parentNode;
-        if (! $parent) return;
+        if (! $parent) {
+            return;
+        }
         while ($node->firstChild) {
             $parent->insertBefore($node->firstChild, $node);
         }
@@ -121,7 +126,9 @@ class PageHtmlSanitizer
     private function safeUrl(string $url): bool
     {
         $url = trim($url);
-        if ($url === '' || str_starts_with($url, '/') || str_starts_with($url, '#')) return true;
+        if ($url === '' || str_starts_with($url, '/') || str_starts_with($url, '#')) {
+            return true;
+        }
         $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
 
         return in_array($scheme, ['http', 'https', 'mailto', 'tel'], true);

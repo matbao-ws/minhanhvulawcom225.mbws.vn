@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\FeatureSetting;
 use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\MailSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -39,7 +42,7 @@ class NotificationSettingTest extends TestCase
             'role_id' => $guestRole->id,
         ]);
 
-        \App\Models\FeatureSetting::query()->create([
+        FeatureSetting::query()->create([
             'feature_code' => 'zalo_oa',
             'is_enabled' => true,
         ]);
@@ -60,7 +63,7 @@ class NotificationSettingTest extends TestCase
     /** The HTTP client's error names the URL, and the Zalo bot token is part of that URL. */
     public function test_a_failed_zalo_lookup_does_not_echo_the_bot_token(): void
     {
-        \Illuminate\Support\Facades\Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException(
+        Http::fake(fn () => throw new ConnectionException(
             'cURL error 28: Operation timed out for https://bot-api.zaloplatforms.com/botSECRET-BOT-TOKEN-123/getUpdates',
         ));
 
@@ -81,14 +84,14 @@ class NotificationSettingTest extends TestCase
     public function test_settings_page_tells_the_admin_that_mail_uses_the_shared_smtp(): void
     {
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_secret_token']);
-        \Illuminate\Support\Facades\Http::fake(['gw.test/v1/project' => \Illuminate\Support\Facades\Http::response(['ok' => true, 'project' => [
+        Http::fake(['gw.test/v1/project' => Http::response(['ok' => true, 'project' => [
             'mail_from' => 'noreply@mail.relay.test',
         ]])]);
 
         $response = $this->actingAs($this->adminUser)->get('/vi/admin/notification-settings');
 
         $response->assertOk();
-        $response->assertViewHas('mailSource', \App\Services\MailSettings::SOURCE_REMOTE);
+        $response->assertViewHas('mailSource', MailSettings::SOURCE_REMOTE);
         $response->assertSee('mail.relay.test');
         $response->assertDontSee('mbp_secret_token');
     }
@@ -254,7 +257,7 @@ class NotificationSettingTest extends TestCase
     public function test_admin_cannot_enable_notifications_without_active_subscription(): void
     {
         // Disable zalo_oa feature setting
-        \App\Models\FeatureSetting::query()->where('feature_code', 'zalo_oa')->update(['is_enabled' => false]);
+        FeatureSetting::query()->where('feature_code', 'zalo_oa')->update(['is_enabled' => false]);
 
         $response = $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
             'zalo_oa' => [
@@ -269,7 +272,7 @@ class NotificationSettingTest extends TestCase
     public function test_admin_cannot_enable_notifications_without_active_subscription_ajax(): void
     {
         // Disable zalo_oa feature setting
-        \App\Models\FeatureSetting::query()->where('feature_code', 'zalo_oa')->update(['is_enabled' => false]);
+        FeatureSetting::query()->where('feature_code', 'zalo_oa')->update(['is_enabled' => false]);
 
         $response = $this->actingAs($this->adminUser)->postJson('/vi/admin/notification-settings', [
             'zalo_oa' => [
@@ -280,14 +283,14 @@ class NotificationSettingTest extends TestCase
         $response->assertStatus(403);
         $response->assertJson([
             'success' => false,
-            'message' => __('admin.notification_settings.no_package')
+            'message' => __('admin.notification_settings.no_package'),
         ]);
     }
 
     public function test_admin_can_enable_smtp_without_active_subscription(): void
     {
         // Disable zalo_oa feature setting
-        \App\Models\FeatureSetting::query()->where('feature_code', 'zalo_oa')->update(['is_enabled' => false]);
+        FeatureSetting::query()->where('feature_code', 'zalo_oa')->update(['is_enabled' => false]);
 
         $response = $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
             'zalo_oa' => [

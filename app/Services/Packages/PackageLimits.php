@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\Product;
 use App\Services\AiGateway\GatewayClient;
 use App\Services\AiGateway\GatewayUnavailable;
+use App\Services\MailSettings;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -114,7 +115,7 @@ class PackageLimits
     private function emailUsage(): array
     {
         // A shop sending through its own SMTP is not on the relay's quota.
-        if (app(\App\Services\MailSettings::class)->source() !== \App\Services\MailSettings::SOURCE_REMOTE) {
+        if (app(MailSettings::class)->source() !== MailSettings::SOURCE_REMOTE) {
             return [];
         }
 

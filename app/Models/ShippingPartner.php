@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\EncryptedJson;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,6 +22,6 @@ class ShippingPartner extends Model
     ];
 
     protected $casts = [
-        'settings' => \App\Casts\EncryptedJson::class,
+        'settings' => EncryptedJson::class,
     ];
 }

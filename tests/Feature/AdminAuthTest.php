@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Role;
 use App\Models\ProjectSetting;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +14,9 @@ class AdminAuthTest extends TestCase
     use RefreshDatabase;
 
     private Role $adminRole;
+
     private User $admin;
+
     private User $customer;
 
     protected function setUp(): void

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicAddressResource;
-use App\Models\UserAddress;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -74,7 +73,7 @@ class UserAddressController extends Controller
         $user = $request->user();
         $address = $user->addresses()->find($id);
 
-        if (!$address) {
+        if (! $address) {
             return ApiResponse::error(__('controller.api.address_not_editable'), 403);
         }
 
@@ -91,7 +90,7 @@ class UserAddressController extends Controller
 
         $isDefault = (bool) $request->input('is_default');
 
-        if ($isDefault && !$address->is_default) {
+        if ($isDefault && ! $address->is_default) {
             // Reset other default addresses
             $user->addresses()->update(['is_default' => false]);
         }
@@ -114,7 +113,7 @@ class UserAddressController extends Controller
         $user = $request->user();
         $address = $user->addresses()->find($id);
 
-        if (!$address) {
+        if (! $address) {
             return ApiResponse::error(__('controller.api.address_not_deletable'), 403);
         }
 
@@ -140,7 +139,7 @@ class UserAddressController extends Controller
         $user = $request->user();
         $address = $user->addresses()->find($id);
 
-        if (!$address) {
+        if (! $address) {
             return ApiResponse::error(__('controller.api.address_not_actionable'), 403);
         }
 

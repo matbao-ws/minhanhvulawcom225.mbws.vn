@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class AiBulkJob extends Model
 {
@@ -25,7 +26,7 @@ class AiBulkJob extends Model
     /** meta | seo_fix | alt, from the gateway job type (bulk.meta …). */
     public function kind(): string
     {
-        return (string) \Illuminate\Support\Str::after($this->type, 'bulk.');
+        return (string) Str::after($this->type, 'bulk.');
     }
 
     public function isFinished(): bool

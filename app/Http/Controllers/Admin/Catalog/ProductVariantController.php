@@ -11,9 +11,7 @@ use DomainException;
 
 class ProductVariantController extends Controller
 {
-    public function __construct(private readonly ProductService $products)
-    {
-    }
+    public function __construct(private readonly ProductService $products) {}
 
     public function create(string $locale, Product $product)
     {

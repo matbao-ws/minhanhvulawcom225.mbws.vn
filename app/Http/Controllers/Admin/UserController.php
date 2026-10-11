@@ -10,9 +10,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\CloudinaryService;
+use App\Services\UserAccessService;
 use App\Support\MediaUrl;
 use App\Support\PermissionRegistry;
-use App\Services\UserAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -23,9 +23,7 @@ class UserController extends Controller
     public function __construct(
         private readonly CloudinaryService $cloudinaryService,
         private readonly UserAccessService $userAccessService,
-    )
-    {
-    }
+    ) {}
 
     private function getAvailableRoles()
     {
@@ -100,7 +98,7 @@ class UserController extends Controller
      * either direction.
      *
      * @param  array<string, string>  $submitted  code => grant|revoke|inherit
-     * @return bool  whether the effective access changed
+     * @return bool whether the effective access changed
      */
     private function syncPermissionOverrides(User $user, array $submitted): bool
     {
@@ -210,7 +208,7 @@ class UserController extends Controller
         $this->assertCanAssignRole(Role::find($request->input('role_id')));
 
         $data = $request->validated();
-        
+
         if ($request->hasFile('avatar_file')) {
             $data['avatar_url'] = $this->cloudinaryService->uploadFile($request->file('avatar_file'), 'avatars');
         }
@@ -255,7 +253,7 @@ class UserController extends Controller
 
         if ($request->hasFile('avatar_file')) {
             // Delete old avatar if it exists (optional)
-            if (!empty($user->avatar_url) && !$this->cloudinaryService->isConfigured()) {
+            if (! empty($user->avatar_url) && ! $this->cloudinaryService->isConfigured()) {
                 // local fallback path parsing and deletion
                 $path = MediaUrl::publicDiskPath($user->avatar_url);
                 if ($path !== null) {
@@ -265,7 +263,7 @@ class UserController extends Controller
             $data['avatar_url'] = $this->cloudinaryService->uploadFile($request->file('avatar_file'), 'avatars');
         }
 
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);
@@ -304,7 +302,7 @@ class UserController extends Controller
         }
 
         // Delete avatar if it exists
-        if (!empty($user->avatar_url)) {
+        if (! empty($user->avatar_url)) {
             $path = MediaUrl::publicDiskPath($user->avatar_url);
             if ($path !== null) {
                 $this->cloudinaryService->deleteResource($path);
@@ -345,8 +343,8 @@ class UserController extends Controller
             'new' => ['is_active' => $user->is_active],
         ]);
 
-        $message = $user->is_active 
-            ? __('admin.users.unlocked') 
+        $message = $user->is_active
+            ? __('admin.users.unlocked')
             : __('admin.users.locked');
 
         return redirect()
@@ -376,7 +374,7 @@ class UserController extends Controller
 
         return redirect()
             ->route('admin.dashboard')
-            ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò ' . $user->name);
+            ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò '.$user->name);
     }
 
     public function leaveImpersonate(Request $request)

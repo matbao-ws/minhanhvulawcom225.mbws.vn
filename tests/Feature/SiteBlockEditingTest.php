@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\SiteBlock;
 use App\Models\User;
 use App\Services\SiteContentService;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,7 +28,7 @@ class SiteBlockEditingTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
         foreach (['catalog', 'cms_page', 'menu'] as $feature) {
             FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);
         }

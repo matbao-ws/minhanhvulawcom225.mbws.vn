@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AiGateway\GatewayClient;
 use App\Services\Analytics\AnalyticsReport;
+use App\Services\LanguageRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -143,7 +144,7 @@ class SearchConsoleSiteIndexTest extends TestCase
         foreach (range(1, 510) as $i) {
             Product::query()->create(['name' => ['vi' => 'Ống '.$i], 'slug' => 'ong-'.$i, 'sku' => 'S-'.$i, 'price' => 1, 'is_active' => true]);
         }
-        $locales = count(app(\App\Services\LanguageRegistry::class)->codes());
+        $locales = count(app(LanguageRegistry::class)->codes());
 
         $this->artisan('ai:site-index')->assertSuccessful();
 

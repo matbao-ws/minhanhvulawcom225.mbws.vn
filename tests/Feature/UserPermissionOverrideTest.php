@@ -6,6 +6,7 @@ use App\Models\FeatureSetting;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,7 @@ class UserPermissionOverrideTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
 
         foreach (['catalog', 'cms_page', 'multi_admin'] as $feature) {
             FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);

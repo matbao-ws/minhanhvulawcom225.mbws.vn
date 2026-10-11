@@ -9,8 +9,8 @@ use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PostCategoryController extends Controller
 {
@@ -18,8 +18,7 @@ class PostCategoryController extends Controller
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly HtmlSanitizer $htmlSanitizer,
-    ) {
-    }
+    ) {}
 
     /**
      * Display a listing of categories.
@@ -30,9 +29,9 @@ class PostCategoryController extends Controller
         $rootCategories = PostCategory::query()
             ->whereNull('parent_id')
             ->when($request->query('q'), function ($query, $keyword) {
-                $query->where(function($q) use ($keyword) {
+                $query->where(function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%")
-                      ->orWhere('slug', 'like', "%{$keyword}%");
+                        ->orWhere('slug', 'like', "%{$keyword}%");
                 });
             })
             ->orderBy('sort_order')
@@ -86,6 +85,7 @@ class PostCategoryController extends Controller
             'is_active' => true,
             'sort_order' => 0,
         ]);
+
         return view('admin.posts.categories.create', [
             'category' => $category,
             'parentOptions' => $this->parentOptions(),
@@ -209,12 +209,12 @@ class PostCategoryController extends Controller
     {
         // Reassign posts belonging to this category to null
         $postCategory->posts()->update(['category_id' => null]);
-        
+
         // Unparent direct children
         $postCategory->children()->update(['parent_id' => null]);
 
         $postCategory->delete();
-        
+
         return redirect()
             ->route('admin.post-categories.index')
             ->with('success', __('admin.blog_categories.deleted'));
@@ -283,7 +283,10 @@ class PostCategoryController extends Controller
         $base = Str::slug($value) ?: Str::lower(Str::random(8));
         $slug = $base;
         $counter = 2;
-        while (PostCategory::query()->where('slug', $slug)->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))->exists()) $slug = $base.'-'.$counter++;
+        while (PostCategory::query()->where('slug', $slug)->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))->exists()) {
+            $slug = $base.'-'.$counter++;
+        }
+
         return $slug;
     }
 }

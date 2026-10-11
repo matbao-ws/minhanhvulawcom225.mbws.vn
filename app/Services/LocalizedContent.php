@@ -2,13 +2,9 @@
 
 namespace App\Services;
 
-use Spatie\Translatable\HasTranslations;
-
 class LocalizedContent
 {
-    public function __construct(private readonly LanguageRegistry $languages)
-    {
-    }
+    public function __construct(private readonly LanguageRegistry $languages) {}
 
     public function get(object $model, string $attribute, ?string $locale = null): mixed
     {

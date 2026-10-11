@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\FeatureSetting;
 use App\Models\Product;
@@ -94,7 +95,7 @@ class CatalogCrudTest extends TestCase
             'is_active' => true,
         ]);
 
-        $brand = \App\Models\Brand::query()->create([
+        $brand = Brand::query()->create([
             'name' => ['vi' => 'Intel'],
             'slug' => 'intel',
             'is_active' => true,
@@ -135,8 +136,8 @@ class CatalogCrudTest extends TestCase
             ->assertSee('(bỏ trống để tự tạo từ tên)')
             ->assertSee('<span class="text-danger">*</span>', false);
         $this->get('/vi/admin/products')->assertOk();
-        $this->get('/vi/admin/products?category_id=' . $category->id)->assertOk();
-        $this->get('/vi/admin/products?brand_id=' . $brand->id)->assertOk();
+        $this->get('/vi/admin/products?category_id='.$category->id)->assertOk();
+        $this->get('/vi/admin/products?brand_id='.$brand->id)->assertOk();
         $this->get('/vi/admin/products?status=1')->assertOk();
         $this->get('/vi/admin/products?status=0')->assertOk();
         $this->get("/vi/admin/products/{$product->id}")

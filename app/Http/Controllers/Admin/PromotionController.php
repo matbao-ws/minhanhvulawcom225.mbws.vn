@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Promotion;
 use App\Models\PromotionTarget;
+use App\Services\LanguageRegistry;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -156,7 +157,8 @@ class PromotionController extends Controller
 
     private function translations(array $values): array
     {
-        $languages = app(\App\Services\LanguageRegistry::class);
+        $languages = app(LanguageRegistry::class);
+
         return collect($values)->filter(fn ($value, $locale) => $languages->supports((string) $locale) && is_string($value) && trim($value) !== '')->map(fn (string $value) => trim($value))->all();
     }
 }

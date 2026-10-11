@@ -16,7 +16,7 @@ return new class extends Migration
         foreach (['mail_settings.remote', 'mail_settings.remote_last_good'] as $key) {
             try {
                 Cache::forget($key);
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // A cache store that is not reachable during deploy holds nothing to purge here.
             }
         }

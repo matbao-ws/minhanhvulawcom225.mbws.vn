@@ -20,7 +20,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Mime\Email;
 use Tests\TestCase;
@@ -189,9 +191,10 @@ class PackageLimitsTest extends TestCase
     {
         $this->package(['data_unit' => 1]);
 
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.features.limits'));
+        $this->assertFalse(Route::has('admin.features.limits'));
         $this->assertSame(1, app(PackageLimits::class)->limit(PackageLimits::DATA_UNIT));
     }
+
     public function test_email_quota_is_read_from_the_relay_only_while_the_shop_uses_it(): void
     {
         // Shop on .env: no relay, no relay quota.
@@ -212,8 +215,9 @@ class PackageLimitsTest extends TestCase
         $this->useSharedSmtp(used: 200, limit: 200);
 
         $this->assertNull(event(new MessageSending($this->email()), [], true));
-        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('package_usage_counters')->count());
+        $this->assertSame(0, DB::table('package_usage_counters')->count());
     }
+
     public function test_dashboard_shows_package_usage(): void
     {
         $this->package(['data_unit' => 10, 'banner' => null, 'email_monthly' => null]);
@@ -344,11 +348,12 @@ class PackageLimitsTest extends TestCase
     {
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_test']);
         MailSettings::flush();
-        \Illuminate\Support\Facades\Cache::forget(PackageLimits::EMAIL_USAGE_CACHE_KEY);
+        Cache::forget(PackageLimits::EMAIL_USAGE_CACHE_KEY);
         Http::fake(['gw.test/v1/mail/usage' => Http::response(['ok' => true, 'usage' => ['used' => $used, 'limit' => $limit]])]);
     }
+
     private function email(): Email
     {
-        return (new Email())->from('a@mail.relay.test')->to('b@example.com')->subject('Hi')->text('Hi');
+        return (new Email)->from('a@mail.relay.test')->to('b@example.com')->subject('Hi')->text('Hi');
     }
 }

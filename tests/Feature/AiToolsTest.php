@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductOptionGroup;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\PostSeoAnalyzer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -225,7 +226,7 @@ class AiToolsTest extends TestCase
         $post = Post::query()->create($attributes + [
             'title' => ['vi' => 'Thi công nhà phố'], 'slug' => 'thi-cong-nha-pho', 'content' => ['vi' => $html], 'is_active' => true,
         ]);
-        app(\App\Services\PostSeoAnalyzer::class);
+        app(PostSeoAnalyzer::class);
 
         return $post;
     }

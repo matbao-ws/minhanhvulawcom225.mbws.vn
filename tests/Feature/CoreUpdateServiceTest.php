@@ -12,6 +12,7 @@ use App\Support\CoreUpdate\ReleaseBuilder;
 use App\Support\CoreUpdate\ReleaseDownloader;
 use App\Support\CoreUpdate\ReleaseSigner;
 use App\Support\CoreUpdate\ReleaseVerifier;
+use App\Support\CoreUpdate\UpdateProblems;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -154,7 +155,7 @@ class CoreUpdateServiceTest extends TestCase
         $this->assertSame('1.0.0', $this->version());
         // The code the update page shows reaches the gateway, so the console finds the report by it.
         $this->assertMatchesRegularExpression('/^UPD-\d{14}-[A-Z0-9]{4}$/', end($this->reports)['ref'] ?? '');
-        $this->assertSame(app(\App\Support\CoreUpdate\CoreUpdater::class)->state()['ref'], end($this->reports)['ref']);
+        $this->assertSame(app(CoreUpdater::class)->state()['ref'], end($this->reports)['ref']);
     }
 
     public function test_the_website_admin_updates_and_needs_a_backup_confirmation_when_asked(): void
@@ -285,14 +286,14 @@ class CoreUpdateServiceTest extends TestCase
 
     public function test_reasons_become_plain_sentences_with_a_code(): void
     {
-        $problems = \App\Support\CoreUpdate\UpdateProblems::explain(
+        $problems = UpdateProblems::explain(
             'drift: 3 core file(s) edited | extensions: Quản lý đại lý (dealers) 1.4.0 needs core <2 — run `php artisan extension:disable dealers` | migrate: artisan migrate failed: x | something odd'
         );
 
         $this->assertSame(['DRIFT', 'EXTENSIONS', 'INSTALL_FAILED', 'UNKNOWN'], array_column($problems, 'code'));
         $this->assertSame('Cài đặt gặp lỗi ở bước cập nhật dữ liệu; website đã tự quay về bản đang chạy.', $problems[2]['message']);
         $this->assertStringNotContainsString('php artisan', implode(' ', array_column($problems, 'message')));
-        $this->assertSame([], \App\Support\CoreUpdate\UpdateProblems::explain(null));
+        $this->assertSame([], UpdateProblems::explain(null));
     }
 
     public function test_the_page_shows_no_server_command_and_records_a_missing_baseline(): void
@@ -424,8 +425,8 @@ class CoreUpdateServiceTest extends TestCase
 
     public function test_the_page_shows_what_the_running_version_brought(): void
     {
-        $this->write($this->site, ['docs/release-notes/1.0.0.md' => "## Tính năng mới
-- Tạo vận đơn <b>ngay</b>."]);
+        $this->write($this->site, ['docs/release-notes/1.0.0.md' => '## Tính năng mới
+- Tạo vận đơn <b>ngay</b>.']);
 
         // No offer yet: the running version's own notes, shipped with the core, still show.
         $this->actingAs($this->websiteAdmin())->get(route('admin.core-update.index', ['locale' => 'vi']))->assertOk()

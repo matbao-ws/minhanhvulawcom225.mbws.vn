@@ -3,6 +3,7 @@
 namespace App\Services\AiGateway\Concerns;
 
 use App\Models\AiSuggestion;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\User;
 use App\Services\AiGateway\GatewayUnavailable;
@@ -71,7 +72,7 @@ trait HandlesAiSuggestions
      */
     protected function writeBody(Model $record, array $definition, string $locale, string $html, User $user): void
     {
-        if ($record instanceof \App\Models\Page) {
+        if ($record instanceof Page) {
             // Same path as the inline editor: sanitizer + revision checkpoint.
             $this->pages->updateLocale($record, $locale, $html, $user->id);
 
@@ -87,7 +88,7 @@ trait HandlesAiSuggestions
 
     protected function sanitizeBody(Model $record, string $html): string
     {
-        return $record instanceof \App\Models\Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->clean($html);
+        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->clean($html);
     }
 
     /** Every href/src in order: an AI edit must leave this list exactly as it was. */

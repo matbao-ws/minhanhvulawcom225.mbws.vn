@@ -5,15 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicUserResource;
 use App\Models\User;
+use App\Services\UserAccessService;
 use App\Support\ApiResponse;
 use App\Support\PasswordCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Support\Str;
-use App\Services\UserAccessService;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class PublicAuthController extends Controller
 {

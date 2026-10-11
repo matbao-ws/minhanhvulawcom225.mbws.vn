@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\MenuService;
 use App\Support\SectionRegistry;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -45,7 +46,7 @@ class SiteSectionUpdateRequest extends FormRequest
      * The service checks them too, because it also serves callers that never went
      * through HTTP. Doing it here as well is what turns "invalid" into a 422
      * naming the offending field, the same two-layer treatment
-     * {@see \App\Services\MenuService} gives a self-entered URL.
+     * {@see MenuService} gives a self-entered URL.
      */
     public function withValidator(Validator $validator): void
     {

@@ -15,7 +15,9 @@ class ReviewManagementTest extends TestCase
     use RefreshDatabase;
 
     private Role $adminRole;
+
     private User $admin;
+
     private Product $product;
 
     protected function setUp(): void

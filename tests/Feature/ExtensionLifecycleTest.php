@@ -130,7 +130,7 @@ class ExtensionLifecycleTest extends TestCase
     public function test_extensions_enabled_false_boots_past_a_badly_broken_extension(): void
     {
         $id = $this->uniqueExtensionId();
-        $this->makeExtension($id, files: ["src/Broken.php" => '<?php this is not php']);
+        $this->makeExtension($id, files: ['src/Broken.php' => '<?php this is not php']);
         file_put_contents($this->extensionSite.'/extensions/'.$id.'/src/'.ucfirst($id).'ServiceProvider.php', '<?php class {');
         $this->makeExtension('zzbroken');
         file_put_contents($this->extensionSite.'/extensions/zzbroken/extension.json', '{ not json');

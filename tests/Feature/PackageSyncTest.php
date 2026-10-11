@@ -11,6 +11,7 @@ use App\Support\FeatureGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PackageSyncTest extends TestCase
@@ -50,8 +51,8 @@ class PackageSyncTest extends TestCase
         $migration->up();
         $migration->up();
 
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumns('feature_settings', ['package_enabled', 'is_overridden']));
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('package_usage_counters'));
+        $this->assertTrue(Schema::hasColumns('feature_settings', ['package_enabled', 'is_overridden']));
+        $this->assertTrue(Schema::hasTable('package_usage_counters'));
         $this->assertSame(1, FeatureSetting::query()->where('feature_code', 'payment_vnpay')->count());
     }
 

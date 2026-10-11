@@ -113,63 +113,63 @@ return new class extends Migration
             ->select('product_variants.*')
             ->orderBy('product_variants.id')
             ->chunkById(100, function ($variants): void {
-            foreach ($variants as $variant) {
-                $legacyOptions = $this->decodeJson($variant->option_values ?? null);
-                $optionValueIds = [];
+                foreach ($variants as $variant) {
+                    $legacyOptions = $this->decodeJson($variant->option_values ?? null);
+                    $optionValueIds = [];
 
-                foreach ($legacyOptions as $groupName => $valueLabel) {
-                    $groupName = trim(is_string($groupName) ? $groupName : '');
-                    $valueLabel = trim(is_scalar($valueLabel) ? (string) $valueLabel : '');
+                    foreach ($legacyOptions as $groupName => $valueLabel) {
+                        $groupName = trim(is_string($groupName) ? $groupName : '');
+                        $valueLabel = trim(is_scalar($valueLabel) ? (string) $valueLabel : '');
 
-                    if ($groupName === '' || $valueLabel === '') {
-                        continue;
+                        if ($groupName === '' || $valueLabel === '') {
+                            continue;
+                        }
+
+                        $groupId = $this->findOrCreateGroup((int) $variant->product_id, $groupName, count($optionValueIds));
+                        $optionValueIds[] = $this->findOrCreateValue($groupId, $valueLabel, count($optionValueIds));
                     }
 
-                    $groupId = $this->findOrCreateGroup((int) $variant->product_id, $groupName, count($optionValueIds));
-                    $optionValueIds[] = $this->findOrCreateValue($groupId, $valueLabel, count($optionValueIds));
-                }
+                    // Old variants without JSON options remain selectable as a one-value "Variant" group.
+                    if ($optionValueIds === []) {
+                        $groupId = $this->findOrCreateGroup((int) $variant->product_id, 'Variant', 0);
+                        $optionValueIds[] = $this->findOrCreateValue(
+                            $groupId,
+                            $this->legacyVariantLabel($variant),
+                            0,
+                        );
+                    }
 
-                // Old variants without JSON options remain selectable as a one-value "Variant" group.
-                if ($optionValueIds === []) {
-                    $groupId = $this->findOrCreateGroup((int) $variant->product_id, 'Variant', 0);
-                    $optionValueIds[] = $this->findOrCreateValue(
-                        $groupId,
-                        $this->legacyVariantLabel($variant),
-                        0,
-                    );
-                }
+                    sort($optionValueIds);
+                    foreach ($optionValueIds as $optionValueId) {
+                        DB::table('product_variant_option_values')->insertOrIgnore([
+                            'product_variant_id' => $variant->id,
+                            'product_option_value_id' => $optionValueId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
 
-                sort($optionValueIds);
-                foreach ($optionValueIds as $optionValueId) {
-                    DB::table('product_variant_option_values')->insertOrIgnore([
-                        'product_variant_id' => $variant->id,
-                        'product_option_value_id' => $optionValueId,
-                        'created_at' => now(),
+                    $signature = hash('sha256', implode(',', $optionValueIds));
+                    $signatureTaken = DB::table('product_variants')
+                        ->where('product_id', $variant->product_id)
+                        ->where('option_signature', $signature)
+                        ->where('id', '!=', $variant->id)
+                        ->exists();
+
+                    // Preserve duplicate historical SKUs without allowing new duplicate combinations.
+                    if ($signatureTaken) {
+                        $signature = hash('sha256', implode(',', $optionValueIds).'|legacy:'.$variant->id);
+                    }
+
+                    DB::table('product_variants')->where('id', $variant->id)->update([
+                        'option_signature' => $signature,
+                        'is_default' => ! DB::table('product_variants')
+                            ->where('product_id', $variant->product_id)
+                            ->where('is_default', true)
+                            ->exists(),
                         'updated_at' => now(),
                     ]);
                 }
-
-                $signature = hash('sha256', implode(',', $optionValueIds));
-                $signatureTaken = DB::table('product_variants')
-                    ->where('product_id', $variant->product_id)
-                    ->where('option_signature', $signature)
-                    ->where('id', '!=', $variant->id)
-                    ->exists();
-
-                // Preserve duplicate historical SKUs without allowing new duplicate combinations.
-                if ($signatureTaken) {
-                    $signature = hash('sha256', implode(',', $optionValueIds).'|legacy:'.$variant->id);
-                }
-
-                DB::table('product_variants')->where('id', $variant->id)->update([
-                    'option_signature' => $signature,
-                    'is_default' => ! DB::table('product_variants')
-                        ->where('product_id', $variant->product_id)
-                        ->where('is_default', true)
-                        ->exists(),
-                    'updated_at' => now(),
-                ]);
-            }
             }, 'product_variants.id', 'id');
     }
 

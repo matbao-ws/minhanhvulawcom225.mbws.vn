@@ -128,7 +128,7 @@ class PostCrudTest extends TestCase
 
         $html = $this->get('/vi/admin/posts')->assertOk()->getContent();
 
-        $document = new \DOMDocument();
+        $document = new \DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML('<?xml encoding="utf-8" ?>'.$html);
         libxml_clear_errors();

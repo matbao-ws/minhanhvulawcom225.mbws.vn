@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Support\ErrorReference;
 use App\Support\ErrorReporting\GatewayErrorReporter;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -70,7 +71,7 @@ class GatewayErrorReportingTest extends TestCase
 
     public function test_an_unreachable_gateway_changes_nothing_for_the_visitor(): void
     {
-        Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('timed out'));
+        Http::fake(fn () => throw new ConnectionException('timed out'));
 
         $this->get('/__boom')->assertStatus(500)->assertSee(ErrorReference::current());
     }
