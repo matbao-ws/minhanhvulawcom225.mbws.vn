@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/core-report.request.json",
+  "title": "POST v1/core/report body: how an update went",
+  "type": "object",
+  "required": ["event"],
+  "properties": {
+    "event": { "enum": ["installed", "failed", "rolled_back", "blocked"] },
+    "version": { "type": ["string", "null"], "maxLength": 50 },
+    "from": { "type": ["string", "null"], "maxLength": 50 },
+    "to": { "type": ["string", "null"], "maxLength": 50 },
+    "step": { "type": ["string", "null"], "maxLength": 30 },
+    "error": { "type": ["string", "null"], "maxLength": 5000 },
+    "php": { "type": ["string", "null"], "maxLength": 20 },
+    "ref": { "type": ["string", "null"], "maxLength": 40 }
+  },
+  "additionalProperties": false
+}

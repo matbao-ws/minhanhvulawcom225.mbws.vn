@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/webhook.request.json",
+  "title": "POST {website}/api/ai/webhook: a signal only; the website reads the job with its token",
+  "type": "object",
+  "required": ["headers", "body"],
+  "properties": {
+    "headers": {
+      "type": "object",
+      "required": ["X-MB-Timestamp", "X-MB-Signature"],
+      "properties": {
+        "X-MB-Timestamp": { "type": "string", "pattern": "^\\d{10}$" },
+        "X-MB-Signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "hex HMAC-SHA256 of timestamp + '.' + the raw body, keyed with the project's webhook secret"
+        }
+      }
+    },
+    "body": {
+      "type": "object",
+      "required": ["event", "job_id", "status"],
+      "properties": {
+        "event": { "const": "job.finished" },
+        "job_id": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" }
+      }
+    }
+  }
+}

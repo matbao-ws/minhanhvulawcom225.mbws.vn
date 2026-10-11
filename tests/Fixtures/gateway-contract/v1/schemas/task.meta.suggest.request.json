@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/task.meta.suggest.request.json",
+  "title": "POST v1/tasks/meta.suggest body: public page text only, no customer data",
+  "type": "object",
+  "required": ["locale", "entity_type", "entity_id", "title"],
+  "properties": {
+    "locale": { "type": "string", "pattern": "^[a-z]{2,3}$" },
+    "entity_type": { "enum": ["product", "post", "category", "page"] },
+    "entity_id": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "maxLength": 300 },
+    "content_text": { "type": ["string", "null"], "maxLength": 20000 },
+    "current_meta_title": { "type": ["string", "null"], "maxLength": 300 },
+    "current_meta_description": { "type": ["string", "null"], "maxLength": 1000 },
+    "site_name": { "type": ["string", "null"], "maxLength": 120 },
+    "focus_keyword": { "type": ["string", "null"], "maxLength": 120 }
+  },
+  "additionalProperties": false
+}
