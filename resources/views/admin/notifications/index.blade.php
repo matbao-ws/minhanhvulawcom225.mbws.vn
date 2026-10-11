@@ -18,7 +18,7 @@
                     <h5 class="fw-semibold text-dark mb-0">Tất cả thông báo</h5>
                 </div>
                 <form method="GET" action="{{ route('admin.notifications.index') }}" class="row g-3 align-items-end">
-                    <div class="col-md-6">
+                    <div data-tour="notifications.search" class="col-md-6">
                         <label class="form-label small fw-bold text-muted mb-1">Tìm kiếm</label>
                         <div class="input-group">
                             <span class="input-group-text bg-transparent border-end-0">
@@ -28,7 +28,7 @@
                                 placeholder="Tìm theo tiêu đề, nội dung, mã đơn hàng, email...">
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div data-tour="notifications.type" class="col-md-3">
                         <label class="form-label small fw-bold text-muted mb-1">Loại thông báo</label>
                         <select name="type" class="form-select">
                             <option value="">Tất cả loại</option>
@@ -48,7 +48,7 @@
                 </form>
             </div>
             
-            <div class="list-group list-group-flush">
+            <div data-tour="notifications.list" class="list-group list-group-flush">
                 @forelse($notifications as $notification)
                     <a href="{{ $notification->link }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3 px-4 transition-all">
                         <span class="flex-shrink-0 {{ $notification->bg_color }} rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">

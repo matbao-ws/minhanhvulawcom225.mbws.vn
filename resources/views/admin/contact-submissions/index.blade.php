@@ -21,7 +21,7 @@
         ];
     @endphp
 
-    <ul class="nav nav-tabs mb-3">
+    <ul data-tour="contacts.tabs" class="nav nav-tabs mb-3">
         <li class="nav-item">
             <a @class(['nav-link', 'active' => ! $spamBox]) href="{{ route('admin.contact-submissions.index') }}">Hộp thư</a>
         </li>
@@ -39,11 +39,11 @@
             @endif
             <form method="GET" data-responsive-filters class="row g-2 align-items-end">
                 @if($spamBox)<input type="hidden" name="box" value="spam">@endif
-                <div class="col-md-6 col-lg-4">
+                <div data-tour="contacts.search" class="col-md-6 col-lg-4">
                     <label class="form-label small fw-bold text-dark mb-1">Tìm kiếm</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="Tên, SĐT, email, nội dung...">
                 </div>
-                <div class="col-md-3 col-lg-2">
+                <div data-tour="contacts.read-filter" class="col-md-3 col-lg-2">
                     <label class="form-label small fw-bold text-dark mb-1">Trạng thái</label>
                     <select name="is_read" class="form-select">
                         <option value="">Tất cả</option>
@@ -58,7 +58,7 @@
         </div>
 
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div data-tour="contacts.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
@@ -66,8 +66,8 @@
                             <th>Liên hệ</th>
                             <th style="min-width: 320px;">Nội dung</th>
                             <th>Thời gian</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end pe-4">Hành động</th>
+                            <th data-tour="contacts.read">Trạng thái</th>
+                            <th data-tour="contacts.actions" class="text-end pe-4">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>

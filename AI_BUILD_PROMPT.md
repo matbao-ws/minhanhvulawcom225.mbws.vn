@@ -406,8 +406,8 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) được phép cho riêng tính năng này:
 `public/admin-assets/libs/driver.js/` là file tĩnh vendor sẵn, không npm, không bước build.
 
-- Trang nào có hướng dẫn, các bước theo thứ tự, và nội dung đều khai báo ở **một nơi duy nhất**
-  là `App\Support\AdminTours`. Chữ hiển thị nằm ở `lang/{vi,en}/tours.php`, là văn bản thuần và
+- Trang nào có hướng dẫn và các bước theo thứ tự khai báo ở **một nơi duy nhất** là
+  `app/Support/AdminTours/tours.php`, do `App\Support\AdminTours` đọc. Chữ hiển thị nằm ở `lang/{vi,en}/tours.php`, là văn bản thuần và
   được escape trước khi đưa vào driver.js (thư viện này render bằng `innerHTML`).
 - Mỗi bước trỏ tới phần tử có `data-tour="<target>"` trong view. Đổi hoặc xoá phần tử đó thì phải
   sửa bước tương ứng: `AdminToursTest` render từng trang và fail khi thiếu target bắt buộc. Phần tử
@@ -416,8 +416,9 @@ Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) đư�
 - Chỉ trang có hướng dẫn mới nạp driver.js. Hướng dẫn tự bật một lần cho mỗi trang trên mỗi trình
   duyệt (localStorage), rồi chỉ chạy khi bấm nút "?" trên header. Tăng `AdminTours::VERSION` khi
   muốn mọi admin xem lại.
-- Thêm hướng dẫn cho một trang mới: thêm route và các bước vào `AdminTours`, thêm text cho cả hai
-  ngôn ngữ, gắn `data-tour` vào view. Không viết hướng dẫn bằng JS riêng trong từng view.
+- **Mọi trang trong sidebar phải có hướng dẫn** (`AdminToursTest` fail nếu thiếu). Thêm trang mới:
+  thêm route và các bước vào `AdminTours/tours.php`, thêm text cho cả hai ngôn ngữ, gắn `data-tour`
+  vào view. Không viết hướng dẫn bằng JS riêng trong từng view.
 
 ## 7. An toàn dữ liệu và deployment
 

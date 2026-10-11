@@ -81,14 +81,14 @@
         <a href="{{ route('admin.customers.index') }}" class="btn btn-light">
             <i class="ti ti-arrow-left me-1"></i>{{ __('admin.customers.back_to_list') }}
         </a>
-        <span class="badge {{ $registeredCustomer ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} px-3 py-2 fs-2">
+        <span data-tour="customer.account" class="badge {{ $registeredCustomer ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} px-3 py-2 fs-2">
             {{ $registeredCustomer ? __('admin.customers.has_account') : __('admin.customers.no_account') }}
         </span>
     </div>
 
     <div class="row g-4 mb-4">
         <div class="col-xl-4">
-            <div class="card h-100">
+            <div data-tour="customer.contact" class="card h-100">
                 <div class="card-body border-bottom p-3 p-md-4">
                     <h5 class="fw-semibold mb-1">{{ __('admin.customers.contact_info') }}</h5>
                     <p class="text-muted mb-0 fs-2">{{ __('admin.customers.contact_hint') }}</p>
@@ -119,7 +119,7 @@
         </div>
 
         <div class="col-xl-8">
-            <div class="card h-100">
+            <div data-tour="customer.metrics" class="card h-100">
                 <div class="card-body border-bottom p-3 p-md-4">
                     <h5 class="fw-semibold mb-1">{{ __('admin.customers.spend_overview') }}</h5>
                     <p class="text-muted mb-0 fs-2">{{ __('admin.customers.spend_hint') }}</p>
@@ -146,7 +146,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div data-tour="customer.orders" class="card">
         <div class="card-body border-bottom p-3 p-md-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
                 <h5 class="fw-semibold mb-1">{{ __('admin.customers.order_history') }}</h5>
@@ -194,7 +194,7 @@
                                         <span class="fs-3 text-muted">{{ $order->created_at->format('d-m-Y H:i') }}</span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                        <a data-tour="customer.order-details" href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary fw-semibold">
                                             <i class="ti ti-eye me-1 fs-4"></i>{{ __('admin.customers.details') }}
                                         </a>
                                     </td>

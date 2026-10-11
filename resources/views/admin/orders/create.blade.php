@@ -11,23 +11,23 @@
     <form method="POST" action="{{ route('admin.orders.store') }}">
         @csrf
         <div class="card mb-4"><div class="card-body"><div class="row g-3 position-relative">
-            <div class="col-md-6"><label class="form-label" for="customer_name">Tên khách hàng <span class="text-danger">*</span></label><input id="customer_name" name="customer_name" value="{{ old('customer_name') }}" class="form-control js-customer-lookup" placeholder="Nhập tên khách hàng..." autocomplete="off" required></div>
+            <div data-tour="order-form.customer" class="col-md-6"><label class="form-label" for="customer_name">Tên khách hàng <span class="text-danger">*</span></label><input id="customer_name" name="customer_name" value="{{ old('customer_name') }}" class="form-control js-customer-lookup" placeholder="Nhập tên khách hàng..." autocomplete="off" required></div>
             <div class="col-md-3"><label class="form-label" for="customer_email">Email <span class="text-danger">*</span></label><input id="customer_email" type="email" name="customer_email" value="{{ old('customer_email') }}" class="form-control js-customer-lookup" placeholder="Nhập email..." autocomplete="off" required></div>
             <div class="col-md-3"><label class="form-label" for="customer_phone">Số điện thoại <span class="text-danger">*</span></label><input id="customer_phone" type="tel" name="customer_phone" value="{{ old('customer_phone') }}" class="form-control js-customer-lookup" placeholder="Nhập số điện thoại..." autocomplete="off" required></div>
             <div class="col-12 position-relative mt-0">
                 <div id="customer-suggestions" class="list-group position-absolute start-0 end-0 mx-3 shadow d-none" style="z-index: 1050; max-height: 280px; overflow-y: auto;"></div>
                 <div id="customer-lookup-help" class="form-text">Nhập ít nhất 2 ký tự để tìm khách hàng cũ và tự điền thông tin.</div>
             </div>
-            <div class="col-md-8"><label class="form-label" for="shipping_address">Địa chỉ giao hàng <span class="text-danger">*</span></label><input id="shipping_address" name="shipping_address" value="{{ old('shipping_address') }}" class="form-control" placeholder="Nhập địa chỉ giao hàng..." required></div>
-            <div class="col-md-4"><label class="form-label">Phương thức thanh toán</label><select name="payment_method" class="form-select" required><option value="">Chọn phương thức</option>@foreach($paymentMethods as $method)<option value="{{ $method->method_code }}" @selected(old('payment_method') === $method->method_code)>{{ $method->name }}</option>@endforeach</select></div>
-            <div class="col-md-4"><label class="form-label">Giảm giá thủ công</label><input type="number" min="0" step="0.01" name="discount" value="{{ old('discount', 0) }}" class="form-control"><div class="form-text">Áp dụng thêm sau campaign/Flash Sale đang chạy.</div></div>
-            <div class="col-md-4"><label class="form-label">Phí giao hàng</label><input type="number" min="0" step="0.01" name="shipping_fee" value="{{ old('shipping_fee', 0) }}" class="form-control"></div>
+            <div data-tour="order-form.address" class="col-md-8"><label class="form-label" for="shipping_address">Địa chỉ giao hàng <span class="text-danger">*</span></label><input id="shipping_address" name="shipping_address" value="{{ old('shipping_address') }}" class="form-control" placeholder="Nhập địa chỉ giao hàng..." required></div>
+            <div data-tour="order-form.payment" class="col-md-4"><label class="form-label">Phương thức thanh toán</label><select name="payment_method" class="form-select" required><option value="">Chọn phương thức</option>@foreach($paymentMethods as $method)<option value="{{ $method->method_code }}" @selected(old('payment_method') === $method->method_code)>{{ $method->name }}</option>@endforeach</select></div>
+            <div data-tour="order-form.discount" class="col-md-4"><label class="form-label">Giảm giá thủ công</label><input type="number" min="0" step="0.01" name="discount" value="{{ old('discount', 0) }}" class="form-control"><div class="form-text">Áp dụng thêm sau campaign/Flash Sale đang chạy.</div></div>
+            <div data-tour="order-form.shipping-fee" class="col-md-4"><label class="form-label">Phí giao hàng</label><input type="number" min="0" step="0.01" name="shipping_fee" value="{{ old('shipping_fee', 0) }}" class="form-control"></div>
             <div class="col-md-4"><label class="form-label">Ghi chú</label><input name="notes" value="{{ old('notes') }}" class="form-control"></div>
         </div></div></div>
 
         @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
-        <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Sản phẩm</h5><button type="button" id="add-item" class="btn btn-sm btn-outline-primary">Thêm sản phẩm</button></div><div class="card-body" id="order-items"></div></div>
-        <button class="btn btn-primary mt-4">Tạo đơn hàng</button>
+        <div data-tour="order-form.items" class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Sản phẩm</h5><button data-tour="order-form.add-item" type="button" id="add-item" class="btn btn-sm btn-outline-primary">Thêm sản phẩm</button></div><div class="card-body" id="order-items"></div></div>
+        <button data-tour="order-form.submit" class="btn btn-primary mt-4">Tạo đơn hàng</button>
     </form>
 
     <template id="order-item-template"><div class="row g-2 align-items-end border-bottom pb-3 mb-3 order-item">

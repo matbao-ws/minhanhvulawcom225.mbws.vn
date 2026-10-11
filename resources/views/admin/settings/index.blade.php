@@ -248,27 +248,27 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'contact' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="contact" href="#contact-pane" role="tab" aria-selected="{{ $activeTab === 'contact' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-contact" class="nav-link {{ $activeTab === 'contact' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="contact" href="#contact-pane" role="tab" aria-selected="{{ $activeTab === 'contact' ? 'true' : 'false' }}">
                 <span><i class="ti ti-phone fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.contact') }}</span>
             </a>
         </li>
         @if(auth()->user()?->isSuperAdmin())
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'multilingual' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="multilingual" href="#multilingual-pane" role="tab" aria-selected="{{ $activeTab === 'multilingual' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-multilingual" class="nav-link {{ $activeTab === 'multilingual' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="multilingual" href="#multilingual-pane" role="tab" aria-selected="{{ $activeTab === 'multilingual' ? 'true' : 'false' }}">
                 <span><i class="ti ti-world fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.multilingual') }}</span>
             </a>
         </li>
         @endif
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'embed' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="embed" href="#embed-pane" role="tab" aria-selected="{{ $activeTab === 'embed' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-embed" class="nav-link {{ $activeTab === 'embed' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="embed" href="#embed-pane" role="tab" aria-selected="{{ $activeTab === 'embed' ? 'true' : 'false' }}">
                 <span><i class="ti ti-code fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.embed') }}</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'analytics' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="analytics" href="#analytics-pane" role="tab" aria-selected="{{ $activeTab === 'analytics' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-analytics" class="nav-link {{ $activeTab === 'analytics' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="analytics" href="#analytics-pane" role="tab" aria-selected="{{ $activeTab === 'analytics' ? 'true' : 'false' }}">
                 <span><i class="ti ti-chart-line fs-4"></i></span>
                 <span>{{ __('admin.analytics.tab') }}</span>
             </a>

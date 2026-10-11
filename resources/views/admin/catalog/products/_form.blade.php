@@ -47,7 +47,7 @@
                             <div class="mb-4"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div>
                             <div class="mb-4"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }}</label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug"><p class="fs-2 mb-0">Để trống để tự tạo từ tên {{ strtoupper($code) }}.</p></div>
                             <div class="mb-4"><label class="form-label" for="short_description_{{ $code }}">{{ __('catalog.fields.short_description') }}</label><textarea class="form-control" id="short_description_{{ $code }}" name="short_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="short_description">{{ $shortDescription }}</textarea></div>
-                            <div class="mb-4 position-relative" @if($code === $defaultContentLocale) id="editor_wrapper" @endif>
+                            <div data-tour="product-form.description" class="mb-4 position-relative" @if($code === $defaultContentLocale) id="editor_wrapper" @endif>
                                 <label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label>
                                 @if($code === $defaultContentLocale)
                                     <button type="button" id="toggle_fullscreen" class="btn btn-sm btn-outline-primary position-absolute top-0 end-0">
@@ -58,7 +58,7 @@
                                 <div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}" style="height: 350px;">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div>
                                 @include('admin.shared.ai-edit-button', ['entityType' => 'product', 'entity' => $product, 'locale' => $code, 'target' => "description_$code"])
                             </div>
-                            <div class="card border bg-light-subtle mt-4"><div class="card-body"><h5 class="mb-3">{{ __('catalog.fields.seo') }}</h5>@include('admin.shared.ai-meta-button', ['entityType' => 'product', 'entity' => $product, 'locale' => $code, 'titleField' => "meta_title[$code]", 'descriptionField' => "meta_description[$code]"])<div class="mb-3"><label class="form-label" for="meta_title_{{ $code }}">{{ __('catalog.fields.meta_title') }}</label><input type="text" maxlength="255" class="form-control" id="meta_title_{{ $code }}" name="meta_title[{{ $code }}]" value="{{ $metaTitle }}" data-i18n-locale="{{ $code }}" data-i18n-field="meta_title"></div><div class="mb-0"><label class="form-label" for="meta_description_{{ $code }}">{{ __('catalog.fields.meta_description') }}</label><textarea maxlength="500" class="form-control" id="meta_description_{{ $code }}" name="meta_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="meta_description">{{ $metaDescription }}</textarea></div></div></div>
+                            <div data-tour="product-form.seo" class="card border bg-light-subtle mt-4"><div class="card-body"><h5 class="mb-3">{{ __('catalog.fields.seo') }}</h5>@include('admin.shared.ai-meta-button', ['entityType' => 'product', 'entity' => $product, 'locale' => $code, 'titleField' => "meta_title[$code]", 'descriptionField' => "meta_description[$code]"])<div class="mb-3"><label class="form-label" for="meta_title_{{ $code }}">{{ __('catalog.fields.meta_title') }}</label><input type="text" maxlength="255" class="form-control" id="meta_title_{{ $code }}" name="meta_title[{{ $code }}]" value="{{ $metaTitle }}" data-i18n-locale="{{ $code }}" data-i18n-field="meta_title"></div><div class="mb-0"><label class="form-label" for="meta_description_{{ $code }}">{{ __('catalog.fields.meta_description') }}</label><textarea maxlength="500" class="form-control" id="meta_description_{{ $code }}" name="meta_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="meta_description">{{ $metaDescription }}</textarea></div></div></div>
                         </div>
                     @endforeach
                 </div>
@@ -222,7 +222,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div data-tour="product-form.details" class="card">
                 <div class="card-body">
                     <h4 class="card-title mb-7">{{ __('catalog.products.sections.product_details') }}</h4>
                     <div class="mb-3">

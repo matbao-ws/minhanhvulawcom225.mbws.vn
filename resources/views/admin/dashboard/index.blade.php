@@ -311,7 +311,7 @@
     </section>
 
     @if(! empty($packageUsage['rows']))
-        <section class="dashboard-package-usage mb-4" aria-label="{{ __('admin.package.usage_title') }}">
+        <section data-tour="dashboard.package" class="dashboard-package-usage mb-4" aria-label="{{ __('admin.package.usage_title') }}">
             <div class="dashboard-package-usage__intro mb-3">
                 <div class="dashboard-package-usage__intro-content">
                     <span class="dashboard-package-usage__icon"><iconify-icon icon="solar:database-bold-duotone" class="fs-6"></iconify-icon></span>

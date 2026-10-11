@@ -57,7 +57,7 @@
                     <thead>
                         <tr class="text-nowrap">
                             <th class="ps-4">{{ __('admin.customers.customer') }}</th>
-                            <th>{{ __('admin.customers.account') }}</th>
+                            <th data-tour="customers.account">{{ __('admin.customers.account') }}</th>
                             <th class="text-end">{{ __('admin.customers.orders') }}</th>
                             <th class="text-end">{{ __('admin.customers.completed_orders') }}</th>
                             <th class="text-end">{{ __('admin.customers.total_spent') }}</th>
@@ -94,7 +94,7 @@
                                         <span class="fs-3 text-muted">{{ \Carbon\Carbon::parse($customer->last_order_at)->format('d-m-Y H:i') }}</span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.customers.show', ['email' => $customer->customer_email]) }}"
+                                        <a data-tour="customers.details" href="{{ route('admin.customers.show', ['email' => $customer->customer_email]) }}"
                                            class="btn btn-sm btn-outline-primary fw-semibold">
                                             <i class="ti ti-eye me-1 fs-4"></i>{{ __('admin.customers.details') }}
                                         </a>

@@ -9,7 +9,7 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.posts.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">Import WordPress XML</x-admin.action-button>
+            <x-admin.action-button data-tour="posts.import-wordpress" type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">Import WordPress XML</x-admin.action-button>
             @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'ai_seo') && auth()->user()?->can('ai.use') && auth()->user()?->can('posts.create'))
                 <x-admin.action-button data-tour="posts.ai-draft" :href="route('admin.ai.post-drafts.create')" variant="info" icon="sparkles">{{ __('ai.draft.button') }}</x-admin.action-button>
             @endif

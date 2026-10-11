@@ -116,7 +116,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">Ghi chú nội bộ</label>
-                    <input name="note" class="form-control" maxlength="1000">
+                    <input data-tour="order.note" name="note" class="form-control" maxlength="1000">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">
@@ -128,7 +128,7 @@
     </div>
 
     <div class="row g-4 mb-4 status-card">
-        <div class="col-lg-7">
+        <div data-tour="order.refunds" class="col-lg-7">
             <div class="card h-100"><div class="card-body">
                 <h5 class="fw-bold mb-3">Hoàn tiền</h5>
                 @forelse($order->refunds as $refund)
@@ -264,7 +264,7 @@
             </div>
 
             <!-- Items Table -->
-            <div class="table-responsive mb-5 border rounded">
+            <div data-tour="order.items" class="table-responsive mb-5 border rounded">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr class="text-nowrap">

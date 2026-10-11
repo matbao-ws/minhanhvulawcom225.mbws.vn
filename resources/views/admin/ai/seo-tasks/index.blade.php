@@ -97,7 +97,7 @@
     </x-admin.page-header>
 
     @if(! $connected)
-        <div class="card seo-task-setup">
+        <div data-tour="seo-tasks.setup" class="card seo-task-setup">
             <div class="seo-task-setup__body">
                 <span class="seo-task-setup__icon"><i class="ti ti-brand-google" aria-hidden="true"></i></span>
                 <div class="seo-task-setup__content">
@@ -106,7 +106,7 @@
                     <p class="seo-task-setup__hint">{{ __('ai.tasks.connect_hint') }}</p>
                 </div>
                 @if(auth()->user()?->can('settings.view') && auth()->user()?->can('settings.update'))
-                    <a class="btn btn-primary btn-sm seo-task-setup__action" href="{{ route('admin.settings.index', ['tab' => 'analytics']) }}">
+                    <a data-tour="seo-tasks.connect" class="btn btn-primary btn-sm seo-task-setup__action" href="{{ route('admin.settings.index', ['tab' => 'analytics']) }}">
                         {{ __('ai.tasks.connect') }}<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i>
                     </a>
                 @endif
@@ -135,7 +135,7 @@
                     ['position', $now['position'] ?? '–', $now['position'], $before['position'], false],
                 ];
             @endphp
-            <div class="row g-3 mb-4">
+            <div data-tour="seo-tasks.stats" class="row g-3 mb-4">
                 @foreach($stats as [$key, $shown, $value, $previous, $higherIsBetter])
                     <div class="col-6 col-lg-3">
                         <div class="seo-task-stat seo-task-stat--{{ $key }}">
@@ -173,7 +173,7 @@
                 $badge = ['low_ctr' => 'warning', 'striking_distance' => 'primary', 'declining' => 'danger', 'on_page' => 'secondary'][$task['type']] ?? 'secondary';
                 $typeIcon = ['low_ctr' => 'ti-click', 'striking_distance' => 'ti-trending-up', 'declining' => 'ti-trending-down', 'on_page' => 'ti-file-alert'][$task['type']] ?? 'ti-sparkles';
             @endphp
-            <div class="card mb-3 seo-task-card seo-task-card--{{ $task['type'] }}" data-seo-task="{{ $task['id'] }}">
+            <div data-tour="seo-tasks.task" class="card mb-3 seo-task-card seo-task-card--{{ $task['type'] }}" data-seo-task="{{ $task['id'] }}">
                 <div class="seo-task-card__body">
                     <div class="d-flex flex-wrap align-items-start gap-2 mb-2">
                         <span class="badge bg-{{ $badge }}-subtle text-{{ $badge }}"><i class="ti {{ $typeIcon }} me-1" aria-hidden="true"></i>{{ __('ai.tasks.types.'.$task['type']) }}</span>
@@ -225,10 +225,10 @@
                         @else
                             <span class="small text-muted">{{ __('ai.tasks.no_editor') }}</span>
                         @endif
-                        <button type="button" class="btn btn-outline-primary btn-sm" data-seo-advice="{{ route('admin.ai.seo-tasks.advice', ['task' => $task['id']]) }}" title="{{ __('ai.tasks.advice_note') }}">
+                        <button data-tour="seo-tasks.advice" type="button" class="btn btn-outline-primary btn-sm" data-seo-advice="{{ route('admin.ai.seo-tasks.advice', ['task' => $task['id']]) }}" title="{{ __('ai.tasks.advice_note') }}">
                             <i class="ti ti-sparkles me-1"></i>{{ __('ai.tasks.advice') }}
                         </button>
-                        <span class="ms-auto d-inline-flex gap-2">
+                        <span data-tour="seo-tasks.mark" class="ms-auto d-inline-flex gap-2">
                             <button type="button" class="btn btn-outline-success btn-sm" data-seo-mark="done" data-url="{{ route('admin.ai.seo-tasks.status', ['task' => $task['id']]) }}"><i class="ti ti-check me-1"></i>{{ __('ai.tasks.done') }}</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-seo-mark="dismissed" data-url="{{ route('admin.ai.seo-tasks.status', ['task' => $task['id']]) }}"><i class="ti ti-eye-off me-1"></i>{{ __('ai.tasks.dismiss') }}</button>
                         </span>

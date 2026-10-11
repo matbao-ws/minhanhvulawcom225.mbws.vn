@@ -169,7 +169,7 @@
                             <p class="mb-0 fw-bold text-primary">{{ $category->total_products_count ?? $category->products_count }}</p>
                         </td>
                         <td class="text-center">
-                            <div class="dropdown dropstart">
+                            <div data-tour="categories.row-actions" class="dropdown dropstart">
                                 <a href="javascript:void(0)" class="text-muted" id="categoryAction{{ $category->id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="ti ti-dots fs-5"></i>
                                 </a>

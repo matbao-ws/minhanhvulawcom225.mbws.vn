@@ -33,12 +33,12 @@
     <x-slot:actions>
         <x-admin.action-button :href="route('admin.menus.index')" variant="outline-light" icon="arrow-left">{{ __('admin.back') }}</x-admin.action-button>
         @can('menus.update')
-            <x-admin.action-button :href="route('admin.menus.items.create', $menu)" icon="plus">{{ __('admin.menus.items.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="menu-items.create" :href="route('admin.menus.items.create', $menu)" icon="plus">{{ __('admin.menus.items.create') }}</x-admin.action-button>
         @endcan
     </x-slot:actions>
 </x-admin.page-header>
 
-<div class="card">
+<div data-tour="menu-items.tree" class="card">
     <div class="card-body">
         @if($items->isEmpty())
             <div class="text-center text-muted py-5">{{ __('admin.menus.items.empty') }}</div>

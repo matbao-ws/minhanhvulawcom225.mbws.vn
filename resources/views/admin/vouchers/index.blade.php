@@ -136,7 +136,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="d-flex justify-content-end gap-2">
+                                    <div data-tour="vouchers.row-actions" class="d-flex justify-content-end gap-2">
                                         <a href="{{ route('admin.vouchers.edit', $voucher) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
                                             <i class="ti ti-edit fs-4"></i>
                                         </a>

@@ -19,7 +19,7 @@
     <p class="text-muted small">{{ __('ai.bulk.intro') }}</p>
 
     @if($languages->count() > 1)
-        <form method="GET" class="d-flex align-items-center gap-2 mb-3">
+        <form data-tour="ai-bulk.locale" method="GET" class="d-flex align-items-center gap-2 mb-3">
             <label class="small text-muted" for="bulk-locale">{{ __('ai.bulk.locale') }}</label>
             <select class="form-select form-select-sm w-auto" id="bulk-locale" name="content_locale" onchange="this.form.submit()">
                 @foreach($languages as $language)
@@ -39,7 +39,7 @@
 
     <div class="row g-3 mb-4">
         @foreach($kinds as $kind => $info)
-            <div class="col-lg-4">
+            <div data-tour="ai-bulk.kind-{{ str_replace('_', '-', $kind) }}" class="col-lg-4">
                 <div class="card h-100 mb-0">
                     <div class="card-body d-flex flex-column">
                         <h2 class="h6 fw-semibold"><i class="ti {{ $info['icon'] }} me-1" aria-hidden="true"></i>{{ __('ai.bulk.kinds.'.$kind.'.title') }}</h2>
@@ -68,7 +68,7 @@
                                 @endif
                                 <p class="small text-muted mb-2">{{ __('ai.bulk.kinds.'.$kind.'.limit') }}</p>
                                 <div class="d-flex flex-wrap align-items-center gap-2">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bulk-estimate><i class="ti ti-calculator me-1"></i>{{ __('ai.bulk.estimate') }}</button>
+                                    <button data-tour="ai-bulk.estimate" type="button" class="btn btn-outline-primary btn-sm" data-bulk-estimate><i class="ti ti-calculator me-1"></i>{{ __('ai.bulk.estimate') }}</button>
                                     <button type="submit" class="btn btn-primary btn-sm d-none" data-bulk-run><i class="ti ti-player-play me-1"></i>{{ __('ai.bulk.run') }}</button>
                                 </div>
                                 <div class="small mt-2" data-bulk-result role="status"></div>
@@ -81,7 +81,7 @@
     </div>
 
     @if($jobs->isNotEmpty())
-        <div class="card">
+        <div data-tour="ai-bulk.history" class="card">
             <div class="card-body">
                 <h2 class="h6 fw-semibold">{{ __('ai.bulk.history') }}</h2>
                 <div class="table-responsive">

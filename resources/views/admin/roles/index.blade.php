@@ -9,7 +9,7 @@
                 <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.roles.title') }}</li>
             </x-slot:breadcrumbs>
             <x-slot:actions>
-                <x-admin.action-button :href="route('admin.roles.create')" icon="plus">{{ __('admin.roles.create') }}</x-admin.action-button>
+                <x-admin.action-button data-tour="roles.create" :href="route('admin.roles.create')" icon="plus">{{ __('admin.roles.create') }}</x-admin.action-button>
             </x-slot:actions>
         </x-admin.page-header>
 
@@ -23,13 +23,13 @@
 
     <div class="card">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div data-tour="roles.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
                             <th class="ps-4">{{ __('admin.roles.fields.name') }}</th>
                             <th>{{ __('admin.roles.fields.users_count') }}</th>
-                            <th>{{ __('admin.roles.fields.permissions') }}</th>
+                            <th data-tour="roles.permissions">{{ __('admin.roles.fields.permissions') }}</th>
                             <th class="text-end pe-4">{{ __('catalog.fields.actions') }}</th>
                         </tr>
                     </thead>
@@ -72,7 +72,7 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     @if(!$isSystemRole)
-                                        <div class="d-flex justify-content-end gap-2">
+                                        <div data-tour="roles.row-actions" class="d-flex justify-content-end gap-2">
                                             @can('roles.update')
                                             <a href="{{ route('admin.roles.edit', $role) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
                                                 <i class="ti ti-edit fs-4"></i>

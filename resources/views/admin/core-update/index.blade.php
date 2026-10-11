@@ -69,7 +69,7 @@
             <x-slot:actions>
                 <form method="POST" action="{{ route('admin.core-update.check') }}">
                     @csrf
-                    <x-admin.action-button type="submit" icon="refresh" :disabled="$busy">{{ __('admin.core_update.check') }}</x-admin.action-button>
+                    <x-admin.action-button data-tour="core-update.check" type="submit" icon="refresh" :disabled="$busy">{{ __('admin.core_update.check') }}</x-admin.action-button>
                 </form>
             </x-slot:actions>
         @endif
@@ -113,7 +113,7 @@
 
     <div class="row g-4 mb-4">
         <div class="col-lg-5">
-            <div class="card h-100 mb-0 core-update-card">
+            <div data-tour="core-update.current" class="card h-100 mb-0 core-update-card">
                 <div class="card-body core-update-card__body">
                     <div class="core-update-card__eyebrow">{{ __('admin.core_update.current') }}</div>
                     <div class="core-update-card__version">{{ $version }}</div>
@@ -171,7 +171,7 @@
         </div>
 
         <div class="col-lg-7">
-            <div class="card h-100 mb-0 core-update-card">
+            <div data-tour="core-update.offer" class="card h-100 mb-0 core-update-card">
                 <div class="card-body core-update-card__body">
                     @if(! $enabled)
                         <div class="core-update-empty">
@@ -256,7 +256,7 @@
                         <hr>
                         <form method="POST" action="{{ route('admin.core-update.rollback') }}" onsubmit="return confirm(@js(__('admin.core_update.rollback_confirm')))">
                             @csrf
-                            <x-admin.action-button type="submit" variant="outline-secondary" size="sm" icon="arrow-back-up" :disabled="$busy">
+                            <x-admin.action-button data-tour="core-update.rollback" type="submit" variant="outline-secondary" size="sm" icon="arrow-back-up" :disabled="$busy">
                                 {{ __('admin.core_update.rollback') }}
                             </x-admin.action-button>
                         </form>
@@ -268,7 +268,7 @@
 
     @if($isSuperAdmin)
         {{-- Per website, like WordPress' DISALLOW_FILE_MODS: on by default. --}}
-        <div class="card mb-4 core-update-card" data-core-update-access>
+        <div data-tour="core-update.access" class="card mb-4 core-update-card" data-core-update-access>
             <div class="card-body core-update-card__body">
                 <form method="POST" action="{{ route('admin.core-update.access') }}" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                     @csrf
@@ -288,7 +288,7 @@
     @endif
 
     @if($history !== [])
-        <div class="card">
+        <div data-tour="core-update.history" class="card">
             <div class="card-body">
                 <h5 class="fw-bold mb-3">{{ __('admin.core_update.history') }}</h5>
                 <div class="table-responsive">

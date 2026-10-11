@@ -31,7 +31,7 @@
             <form method="GET" class="row g-2 align-items-end mt-1 mt-md-0">
                 <div class="col-12 col-sm-6 col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
-                    <input type="search" name="q" class="form-control" value="{{ request('q') }}"
+                    <input data-tour="orders.search" type="search" name="q" class="form-control" value="{{ request('q') }}"
                         placeholder="{{ __('admin.orders.search_placeholder') }}">
                 </div>
                 <div class="col-12 col-sm-6 col-md-2">
@@ -142,7 +142,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end pe-4">
-                                    <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                    <a data-tour="orders.details" href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary fw-semibold">
                                         <i class="ti ti-eye me-1 fs-4"></i>{{ __('admin.orders.details') }}
                                     </a>
                                 </td>
