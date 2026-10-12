@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\CoreManifest;
 use App\Support\Extensions\ExtensionManager;
+use App\Support\Extensions\ExtensionState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -62,7 +63,7 @@ class ExtensionExampleTest extends TestCase
 
     public function test_the_example_extension_passes_its_checks(): void
     {
-        $this->app->instance(ExtensionManager::class, new ExtensionManager($this->extensionSite, new \App\Support\Extensions\ExtensionState($this->extensionSite)));
+        $this->app->instance(ExtensionManager::class, new ExtensionManager($this->extensionSite, new ExtensionState($this->extensionSite)));
         $this->app->instance(CoreManifest::class, new CoreManifest($this->extensionSite));
 
         $this->artisan('extension:check', ['id' => 'example'])->expectsOutputToContain('example 1.0.0: OK')->assertExitCode(0);

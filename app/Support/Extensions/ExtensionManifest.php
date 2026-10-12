@@ -3,6 +3,7 @@
 namespace App\Support\Extensions;
 
 use App\Support\CoreUpdate\Semver;
+use App\Support\PermissionRegistry;
 
 /**
  * extensions/<id>/extension.json, validated (docs/EXTENSIONS_DESIGN.md, section 1). Everything an
@@ -65,7 +66,7 @@ final class ExtensionManifest
             $problems[] = 'id must match '.self::ID_PATTERN.' (lowercase letters and digits)';
         } elseif (in_array($id, self::RESERVED_IDS, true)) {
             $problems[] = "id \"{$id}\" is reserved";
-        } elseif (in_array($id, \App\Support\PermissionRegistry::coreModules(), true)) {
+        } elseif (in_array($id, PermissionRegistry::coreModules(), true)) {
             $problems[] = "id \"{$id}\" is a core permission module";
         }
         if ($id !== $folder) {

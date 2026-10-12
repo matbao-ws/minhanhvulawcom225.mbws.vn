@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Support\CoreManifest;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionManifest;
 use App\Support\Extensions\ExtensionState;
@@ -22,7 +23,7 @@ class ExtensionCommandsTest extends TestCase
         parent::setUp();
         $this->makeExtensionSite();
         $this->app->instance(ExtensionManager::class, new ExtensionManager($this->extensionSite, new ExtensionState($this->extensionSite)));
-        $this->app->instance(\App\Support\CoreManifest::class, new \App\Support\CoreManifest($this->extensionSite));
+        $this->app->instance(CoreManifest::class, new CoreManifest($this->extensionSite));
     }
 
     protected function tearDown(): void

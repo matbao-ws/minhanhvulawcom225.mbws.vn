@@ -19,7 +19,7 @@ return new class extends Migration
         });
 
         Schema::table('roles', function (Blueprint $table) {
-            if (!Schema::hasColumn('roles', 'is_system')) {
+            if (! Schema::hasColumn('roles', 'is_system')) {
                 $table->boolean('is_system')->default(false)->after('name');
             }
         });

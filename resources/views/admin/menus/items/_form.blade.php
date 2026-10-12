@@ -7,7 +7,7 @@
 <div class="card">
     <div class="card-body">
         <div class="row g-3">
-            <div class="col-12">
+            <div data-tour="menu-item-form.label" class="col-12">
                 <label class="form-label fw-semibold">{{ __('admin.menus.items.fields.label') }} <span class="text-danger">*</span></label>
                 <div class="row g-2">
                     @foreach($languages->codes() as $code)
@@ -26,7 +26,7 @@
                 </div>
             </div>
 
-            <div class="col-md-6">
+            <div data-tour="menu-item-form.type" class="col-md-6">
                 <label class="form-label fw-semibold" for="type">{{ __('admin.menus.items.fields.type') }} <span class="text-danger">*</span></label>
                 <select class="form-select @error('type') is-invalid @enderror" id="type" name="type" data-menu-type required>
                     @foreach(\App\Models\MenuItem::types() as $type)
@@ -36,7 +36,7 @@
                 @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="col-md-6">
+            <div data-tour="menu-item-form.parent" class="col-md-6">
                 <label class="form-label fw-semibold" for="parent_id">{{ __('admin.menus.items.fields.parent') }}</label>
                 <select class="form-select @error('parent_id') is-invalid @enderror" id="parent_id" name="parent_id">
                     <option value="">{{ __('admin.menus.items.fields.no_parent') }}</option>
@@ -51,7 +51,7 @@
 
             {{-- One target block per type; JavaScript only toggles visibility,
                  the server still clears whatever does not match the type. --}}
-            <div class="col-12" data-menu-target="page">
+            <div data-tour="menu-item-form.target" class="col-12" data-menu-target="page">
                 <label class="form-label fw-semibold" for="page_id">{{ __('admin.menus.items.fields.page') }}</label>
                 <select class="form-select @error('page_id') is-invalid @enderror" id="page_id" name="page_id">
                     <option value="">{{ __('admin.menus.items.fields.choose') }}</option>
@@ -64,7 +64,7 @@
                 @error('page_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="col-12" data-menu-target="category">
+            <div data-tour="menu-item-form.target" class="col-12" data-menu-target="category">
                 <label class="form-label fw-semibold" for="category_id">{{ __('admin.menus.items.fields.category') }}</label>
                 <select class="form-select @error('category_id') is-invalid @enderror" id="category_id" name="category_id">
                     <option value="">{{ __('admin.menus.items.fields.choose') }}</option>
@@ -78,7 +78,7 @@
                 <div class="form-text">{{ __('admin.menus.items.no_storefront_route_help') }}</div>
             </div>
 
-            <div class="col-12" data-menu-target="post_category">
+            <div data-tour="menu-item-form.target" class="col-12" data-menu-target="post_category">
                 <label class="form-label fw-semibold" for="post_category_id">{{ __('admin.menus.items.fields.post_category') }}</label>
                 <select class="form-select @error('post_category_id') is-invalid @enderror" id="post_category_id" name="post_category_id">
                     <option value="">{{ __('admin.menus.items.fields.choose') }}</option>
@@ -92,7 +92,7 @@
                 <div class="form-text">{{ __('admin.menus.items.no_storefront_route_help') }}</div>
             </div>
 
-            <div class="col-12" data-menu-target="url">
+            <div data-tour="menu-item-form.target" class="col-12" data-menu-target="url">
                 <label class="form-label fw-semibold" for="url">{{ __('admin.menus.items.fields.url') }}</label>
                 <input type="text" class="form-control @error('url') is-invalid @enderror" id="url" name="url"
                        value="{{ old('url', $item->url) }}" placeholder="/lien-he">
@@ -100,7 +100,7 @@
                 <div class="form-text">{{ __('admin.menus.items.fields.url_help') }}</div>
             </div>
 
-            <div class="col-md-6">
+            <div data-tour="menu-item-form.new-tab" class="col-md-6">
                 <input type="hidden" name="target_blank" value="0">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" name="target_blank" value="1" id="target_blank"
@@ -109,7 +109,7 @@
                 </div>
             </div>
 
-            <div class="col-md-6">
+            <div data-tour="menu-item-form.active" class="col-md-6">
                 <input type="hidden" name="is_active" value="0">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active"

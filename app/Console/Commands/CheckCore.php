@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\FeatureSetting;
 use App\Models\User;
+use App\Services\Packages\PackageInfo;
+use App\Services\Packages\PackageSync;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -101,13 +103,13 @@ class CheckCore extends Command
      */
     private function reportPackage(): void
     {
-        if (! app(\App\Services\Packages\PackageInfo::class)->configured()) {
+        if (! app(PackageInfo::class)->configured()) {
             $this->components->twoColumnDetail('Service package', 'manual (PACKAGE_INFO_DOMAIN not set)');
 
             return;
         }
 
-        $package = app(\App\Services\Packages\PackageSync::class)->snapshot();
+        $package = app(PackageSync::class)->snapshot();
 
         if ($package === null) {
             $this->components->warn('No package synced yet for '.config('packages.domain').'. Run "php artisan package:sync".');

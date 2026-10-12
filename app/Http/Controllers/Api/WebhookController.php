@@ -24,8 +24,7 @@ class WebhookController extends Controller
         private readonly OrderStateTransitionService $orderStateTransitionService,
         private readonly PaymentTransactionService $paymentTransactionService,
         private readonly OrderCancellationService $cancellations,
-    ) {
-    }
+    ) {}
 
     public function handleGHTK(Request $request)
     {
@@ -167,6 +166,7 @@ class WebhookController extends Controller
         $token = (string) data_get($ghn?->settings, 'webhook_token', '');
         if (! data_get($ghn?->settings, 'realtime_tracking_enabled', false) || $token === '' || ! hash_equals($token, (string) $request->query('token', ''))) {
             Log::warning('GHN webhook rejected due to invalid credentials.');
+
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
         }
 
@@ -228,21 +228,25 @@ class WebhookController extends Controller
                 if ($changed || $oldStatus !== $locked->status || $oldPayment !== $locked->payment_status) {
                     OrderStatusHistory::query()->create(['order_id' => $locked->id, 'from_status' => $oldStatus, 'to_status' => $locked->status, 'from_payment_status' => $oldPayment, 'to_payment_status' => $locked->payment_status, 'note' => 'Cập nhật GHN: '.$payload['Status'].(! empty($payload['Reason']) ? ' - '.$payload['Reason'] : ''), 'created_at' => now()]);
                 }
+
                 return ['order' => $locked->fresh(), 'duplicate' => false, 'status_changed' => $changed];
             }, 3);
         } catch (QueryException $exception) {
             if (! in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
                 Log::error('Failed to process GHN webhook.', ['order_id' => $order->id, 'message' => $exception->getMessage()]);
+
                 return response()->json(['success' => false], 500);
             }
             $result = ['order' => $order->fresh(), 'duplicate' => true, 'status_changed' => false];
         } catch (\Throwable $exception) {
             Log::error('Failed to process GHN webhook.', ['order_id' => $order->id, 'message' => $exception->getMessage()]);
+
             return response()->json(['success' => false], 500);
         }
         if ($result['status_changed']) {
             SendOrderStatusEmail::dispatch($result['order']->id, $result['order']->customer_email)->afterCommit();
         }
+
         return response()->json(['success' => true, 'duplicate' => $result['duplicate']]);
     }
 

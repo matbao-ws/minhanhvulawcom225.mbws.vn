@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/task.headers.json",
+  "title": "POST v1/tasks/{code} headers: a retry with the same key is answered, not charged again",
+  "type": "object",
+  "required": ["Idempotency-Key"],
+  "properties": { "Idempotency-Key": { "type": "string", "pattern": "^[A-Za-z0-9_-]{8,64}$" } }
+}

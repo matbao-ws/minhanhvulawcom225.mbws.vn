@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\FeatureSetting;
 use App\Models\ProjectSetting;
+use App\Services\MailSettings;
 use App\Support\SecretMask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class NotificationSettingController extends Controller
 {
@@ -61,14 +64,14 @@ class NotificationSettingController extends Controller
             $settings = SecretMask::apply($settings, ['zalo_oa.secret_key', 'zalo_oa.access_token', 'zalo_oa.refresh_token', 'zalo_personal.bot_token', 'smtp.password']);
         }
 
-        $zaloFeatureEnabled = \App\Models\FeatureSetting::query()
+        $zaloFeatureEnabled = FeatureSetting::query()
             ->where('feature_code', 'zalo_oa')
             ->where('is_enabled', true)
             ->exists();
 
-        $mailSettings = app(\App\Services\MailSettings::class);
+        $mailSettings = app(MailSettings::class);
         $mailSource = $mailSettings->source();
-        $mailSourceDomain = $mailSource === \App\Services\MailSettings::SOURCE_REMOTE
+        $mailSourceDomain = $mailSource === MailSettings::SOURCE_REMOTE
             ? (string) substr(strrchr((string) $mailSettings->sharedSender(), '@') ?: '@mail.matbaows.com', 1)
             : null;
 
@@ -80,7 +83,7 @@ class NotificationSettingController extends Controller
      */
     public function update(Request $request)
     {
-        $zaloFeatureEnabled = \App\Models\FeatureSetting::query()
+        $zaloFeatureEnabled = FeatureSetting::query()
             ->where('feature_code', 'zalo_oa')
             ->where('is_enabled', true)
             ->exists();
@@ -94,7 +97,7 @@ class NotificationSettingController extends Controller
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'success' => false,
-                        'message' => $errorMessage
+                        'message' => $errorMessage,
                     ], 403);
                 }
 
@@ -176,12 +179,12 @@ class NotificationSettingController extends Controller
 
         // The resolved SMTP config is cached; without this the shop keeps sending
         // through the old credentials for up to five minutes after saving.
-        \App\Services\MailSettings::flush();
+        MailSettings::flush();
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => __('admin.notification_settings.save_success')
+                'message' => __('admin.notification_settings.save_success'),
             ]);
         }
 
@@ -206,7 +209,7 @@ class NotificationSettingController extends Controller
                 'timeout' => 5,
             ]);
 
-            if (!$response->successful() || !$response->json('ok')) {
+            if (! $response->successful() || ! $response->json('ok')) {
                 return response()->json([
                     'success' => false,
                     'message' => __('admin.notification_settings.zalo_personal.get_chat_id_error'),
@@ -234,7 +237,7 @@ class NotificationSettingController extends Controller
                 return response()->json([
                     'success' => true,
                     'chats' => [],
-                    'message' => __('admin.notification_settings.zalo_personal.get_chat_id_empty')
+                    'message' => __('admin.notification_settings.zalo_personal.get_chat_id_empty'),
                 ]);
             }
 
@@ -245,7 +248,7 @@ class NotificationSettingController extends Controller
 
         } catch (\Exception $e) {
             // The HTTP client's message holds the request URL, and the bot token is part of that URL.
-            \Illuminate\Support\Facades\Log::warning('Zalo getUpdates failed.', ['exception' => $e::class]);
+            Log::warning('Zalo getUpdates failed.', ['exception' => $e::class]);
 
             return response()->json([
                 'success' => false,

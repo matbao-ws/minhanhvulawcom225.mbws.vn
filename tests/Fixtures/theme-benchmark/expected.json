@@ -1,0 +1,33 @@
+{
+    "about": "What client:editable-audit must report on raw/ (a theme as delivered, before editable marking). Each finding carries data-case=\"<name>\" on its element; style blocks are matched by their declaration. Anything reported outside this list is a false positive.",
+    "findings": {
+        "header-hotline": { "file": "partials/header.blade.php", "kind": "text", "status": "unknown", "reason": "manual" },
+        "header-logo": { "file": "partials/header.blade.php", "kind": "image", "status": "unknown", "reason": null },
+        "footer-copyright": { "file": "partials/footer.blade.php", "kind": "text", "status": "unknown", "reason": null },
+        "footer-email": { "file": "partials/footer.blade.php", "kind": "text", "status": "unknown", "reason": null },
+        "footer-bare-ignore": { "file": "partials/footer.blade.php", "kind": "text", "status": "unknown", "reason": "manual" },
+        "hero-title-div": { "file": "pages/home.blade.php", "kind": "text", "status": "unknown", "reason": "manual" },
+        "cta-link": { "file": "pages/home.blade.php", "kind": "text", "status": "unknown", "reason": "manual" },
+        "button-text": { "file": "pages/home.blade.php", "kind": "text", "status": "unknown", "reason": "manual" },
+        "picture-img": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "picture" },
+        "picture-source-only": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "picture" },
+        "img-srcset": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "srcset" },
+        "img-lazy": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "lazy" },
+        "bg-single": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "background" },
+        "bg-layered": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "layered" },
+        "bg-shorthand": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "background" },
+        "data-bg": { "file": "pages/home.blade.php", "kind": "image", "status": "unknown", "reason": "data-background" },
+        "video-poster": { "file": "pages/home.blade.php", "kind": "image", "status": "unsupported", "reason": "poster" },
+        "trans-undefined": { "file": "pages/home.blade.php", "kind": "text", "status": "unknown", "reason": "untranslated" },
+        "lang-directive-undefined": { "file": "pages/home.blade.php", "kind": "text", "status": "unknown", "reason": "untranslated" }
+    },
+    "fixableImages": ["bg-shorthand", "bg-single", "header-logo"],
+    "styleBlocks": [
+        { "file": "pages/home.blade.php", "contains": "promo.jpg", "reason": "style-block" }
+    ],
+    "setAside": { "icon": 2, "decorative": 1, "media": 2 },
+    "dynamic": { "text": 8, "image": 1 },
+    "dynamicNote": "text: layout @include + @yield (2), header phone + DB menu (2), home product name + 2 defined translations (3), footer DB menu (1); image: the slider fed from the database",
+    "ignored": 1,
+    "invalidIgnores": 1
+}

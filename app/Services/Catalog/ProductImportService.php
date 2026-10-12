@@ -5,16 +5,13 @@ namespace App\Services\Catalog;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
-use App\Services\Catalog\ProductService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 class ProductImportService
 {
-    public function __construct(private readonly ProductService $productService)
-    {
-    }
+    public function __construct(private readonly ProductService $productService) {}
 
     /**
      * @param  bool  $mayUpdate  whether the importer holds `products.update`. A row whose SKU
@@ -23,13 +20,13 @@ class ProductImportService
      */
     public function import(string $filePath, string $type, bool $mayUpdate = true): array
     {
-        if (!file_exists($filePath) || !is_readable($filePath)) {
-            throw new RuntimeException("File is not readable or does not exist.");
+        if (! file_exists($filePath) || ! is_readable($filePath)) {
+            throw new RuntimeException('File is not readable or does not exist.');
         }
 
         $handle = fopen($filePath, 'r');
-        if (!$handle) {
-            throw new RuntimeException("Cannot open file.");
+        if (! $handle) {
+            throw new RuntimeException('Cannot open file.');
         }
 
         // Handle UTF-8 BOM if present
@@ -39,9 +36,9 @@ class ProductImportService
         }
 
         $headers = fgetcsv($handle);
-        if (!$headers) {
+        if (! $headers) {
             fclose($handle);
-            throw new RuntimeException("CSV file is empty or invalid.");
+            throw new RuntimeException('CSV file is empty or invalid.');
         }
 
         // Clean headers: trim, lowercase, remove quotes
@@ -52,7 +49,7 @@ class ProductImportService
         $results = [
             'success' => 0,
             'failed' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         $rowNumber = 1;
@@ -67,13 +64,13 @@ class ProductImportService
             try {
                 DB::transaction(function () use ($data, $type, $mayUpdate) {
                     $payload = $this->mapPayload($data, $type);
-                    if (!$payload) {
+                    if (! $payload) {
                         return; // Skip empty row
                     }
 
                     // Check if product exists by SKU
                     $product = null;
-                    if (!empty($payload['sku'])) {
+                    if (! empty($payload['sku'])) {
                         $product = Product::query()->where('sku', $payload['sku'])->first();
                     }
 
@@ -90,11 +87,12 @@ class ProductImportService
                 $results['success']++;
             } catch (\Exception $e) {
                 $results['failed']++;
-                $results['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
+                $results['errors'][] = "Row {$rowNumber}: ".$e->getMessage();
             }
         }
 
         fclose($handle);
+
         return $results;
     }
 
@@ -117,16 +115,16 @@ class ProductImportService
         }
 
         $categoryId = null;
-        if (!empty($data['category_id'])) {
+        if (! empty($data['category_id'])) {
             $categoryId = (int) $data['category_id'];
-        } elseif (!empty($data['category'])) {
+        } elseif (! empty($data['category'])) {
             $categoryId = $this->findOrCreateCategory($data['category']);
         }
 
         $brandId = null;
-        if (!empty($data['brand_id'])) {
+        if (! empty($data['brand_id'])) {
             $brandId = (int) $data['brand_id'];
-        } elseif (!empty($data['brand'])) {
+        } elseif (! empty($data['brand'])) {
             $brandId = $this->findOrCreateBrand($data['brand']);
         }
 
@@ -168,7 +166,7 @@ class ProductImportService
         $sku = $data['sku'] ?? null;
         $shortDesc = $data['short description'] ?? $data['short_description'] ?? '';
         $desc = $data['description'] ?? '';
-        
+
         $regularPrice = $this->parsePrice($data['regular price'] ?? $data['regular_price'] ?? 0);
         $salePrice = $this->parsePrice($data['sale price'] ?? $data['sale_price'] ?? null);
 
@@ -190,14 +188,14 @@ class ProductImportService
 
         $categoriesString = $data['categories'] ?? '';
         $categoryId = null;
-        if (!empty($categoriesString)) {
+        if (! empty($categoriesString)) {
             $firstCategoryPath = trim(explode(',', $categoriesString)[0]);
             $categoryId = $this->findOrCreateCategory($firstCategoryPath);
         }
 
         $imagesString = $data['images'] ?? '';
         $imageUrl = null;
-        if (!empty($imagesString)) {
+        if (! empty($imagesString)) {
             $imageUrl = trim(explode(',', $imagesString)[0]);
         }
 
@@ -236,7 +234,7 @@ class ProductImportService
         }
 
         $segments = preg_split('/\s*(?:>|&gt;)\s*/', $categoryString);
-        
+
         $parentId = null;
         foreach ($segments as $segment) {
             $segment = trim($segment);
@@ -248,11 +246,11 @@ class ProductImportService
                 ->where('parent_id', $parentId)
                 ->where(function ($q) use ($segment) {
                     $q->where('name->vi', $segment)
-                      ->orWhere('name->en', $segment);
+                        ->orWhere('name->en', $segment);
                 })
                 ->first();
 
-            if (!$category) {
+            if (! $category) {
                 $category = Category::query()->create([
                     'parent_id' => $parentId,
                     'name' => [
@@ -294,7 +292,7 @@ class ProductImportService
             ->orWhere('name->en', $brandName)
             ->first();
 
-        if (!$brand) {
+        if (! $brand) {
             $brand = Brand::query()->create([
                 'name' => [
                     'vi' => $brandName,
@@ -314,6 +312,7 @@ class ProductImportService
             return null;
         }
         $clean = preg_replace('/[^\d.]/', '', $val);
+
         return is_numeric($clean) ? (float) $clean : null;
     }
 
@@ -325,6 +324,7 @@ class ProductImportService
         while (Category::query()->where('slug', $slug)->exists()) {
             $slug = $base.'-'.$counter++;
         }
+
         return $slug;
     }
 
@@ -336,6 +336,7 @@ class ProductImportService
         while (Brand::query()->where('slug', $slug)->exists()) {
             $slug = $base.'-'.$counter++;
         }
+
         return $slug;
     }
 }

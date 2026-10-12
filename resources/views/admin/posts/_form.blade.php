@@ -9,7 +9,7 @@
     <!-- Left column: Main Content and SEO -->
     <div class="col-lg-8">
         <!-- General Info Card -->
-        <div class="card">
+        <div data-tour="post-form.general" class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4"><h4 class="card-title mb-0">{{ __('admin.posts.sections.general') }}</h4></div>
                 <ul class="nav nav-tabs mb-4" role="tablist">
@@ -43,8 +43,8 @@
                             <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'title' : 'title_'.$code }}">{{ __('admin.posts.fields.title') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="{{ $defaultTab ? 'title' : 'title_'.$code }}" name="title[{{ $code }}]" value="{{ $title }}" data-i18n-locale="{{ $code }}" data-i18n-field="title" placeholder="{{ __('admin.posts.placeholders.title') }}" @required($defaultTab)></div>
                             <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'slug' : 'slug_'.$code }}">{{ __('admin.posts.fields.slug') }}</label><input type="text" class="form-control" id="{{ $defaultTab ? 'slug' : 'slug_'.$code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="{{ __('admin.posts.placeholders.slug') }}"></div>
                             <div class="mb-4"><label class="form-label" for="summary_{{ $code }}">{{ __('admin.posts.fields.summary') }}</label><textarea class="form-control" id="summary_{{ $code }}" name="summary[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="summary" placeholder="{{ __('admin.posts.placeholders.summary') }}">{{ $summary }}</textarea></div>
-                            <div class="mb-4 position-relative" @if($defaultTab) id="editor_wrapper" @endif><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label>@if($defaultTab)<button type="button" id="toggle_fullscreen" class="btn btn-sm btn-outline-primary position-absolute top-0 end-0"><i id="fullscreen_icon" class="ti ti-maximize fs-4"></i><span id="fullscreen_text" class="ms-1">Phóng to</span></button>@endif<textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="catalog-quill" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" data-placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" style="height:350px">{!! app(\App\Support\HtmlSanitizer::class)->clean($content) !!}</div><p class="form-text mb-0"><i class="ti ti-clipboard-text me-1" aria-hidden="true"></i>{{ __('admin.posts.placeholders.content_paste_hint') }}</p>@include('admin.shared.ai-edit-button', ['entityType' => 'post', 'entity' => $post, 'locale' => $code, 'target' => $defaultTab ? 'content_input' : 'content_input_'.$code])</div>
-                            <div class="border rounded p-3 bg-light-subtle">
+                            <div data-tour="post-form.editor" class="mb-4 position-relative" @if($defaultTab) id="editor_wrapper" @endif><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label>@if($defaultTab)<button type="button" id="toggle_fullscreen" class="btn btn-sm btn-outline-primary position-absolute top-0 end-0"><i id="fullscreen_icon" class="ti ti-maximize fs-4"></i><span id="fullscreen_text" class="ms-1">Phóng to</span></button>@endif<textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="catalog-quill" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" data-placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" style="height:350px">{!! app(\App\Support\HtmlSanitizer::class)->clean($content) !!}</div><p class="form-text mb-0"><i class="ti ti-clipboard-text me-1" aria-hidden="true"></i>{{ __('admin.posts.placeholders.content_paste_hint') }}</p>@include('admin.shared.ai-edit-button', ['entityType' => 'post', 'entity' => $post, 'locale' => $code, 'target' => $defaultTab ? 'content_input' : 'content_input_'.$code])</div>
+                            <div data-tour="post-form.seo-meta" class="border rounded p-3 bg-light-subtle">
                                 @include('admin.shared.ai-meta-button', ['entityType' => 'post', 'entity' => $post, 'locale' => $code, 'titleField' => "seo_title[$code]", 'descriptionField' => "seo_description[$code]"])
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between gap-2">
@@ -84,7 +84,7 @@
         </div>
 
         <!-- SEO Card -->
-        <div class="card">
+        <div data-tour="post-form.seo" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('admin.posts.sections.seo') }}</h4>
                 
@@ -162,7 +162,7 @@
     <!-- Right column: Sidebar settings & SEO Analyzer Widget -->
     <div class="col-lg-4">
         <!-- Thumbnail Card -->
-        <div class="card">
+        <div data-tour="post-form.thumbnail" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('admin.posts.sections.thumbnail') }}</h4>
                 
@@ -188,7 +188,7 @@
         </div>
 
         <!-- Status Card -->
-        <div class="card">
+        <div data-tour="post-form.status" class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-7">
                     <h4 class="card-title">{{ __('admin.posts.sections.publish') }}</h4>
@@ -203,7 +203,7 @@
         </div>
 
         <!-- Category Card -->
-        <div class="card">
+        <div data-tour="post-form.category" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('admin.posts.sections.category') }}</h4>
                 <div class="mb-3">
@@ -224,7 +224,7 @@
         </div>
 
         <!-- Live SEO Analyzer Widget (Yoast Style) -->
-        <div class="card">
+        <div data-tour="post-form.seo-analysis" class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
                     <h4 class="card-title mb-0 text-success d-flex align-items-center gap-2">

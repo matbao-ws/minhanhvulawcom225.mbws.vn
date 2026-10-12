@@ -167,6 +167,23 @@ Replace one mock-backed feature at a time and verify it before removing that fix
 
 ## Verify
 
+Run, and do not report the stage complete until both pass:
+
+```bash
+php artisan client:editable-audit   # must end with RESULT: PASS
+php artisan test --compact
+```
+
+- The audit passes only with `unknown`, `unsupported` and "`data-editable-ignore` thiếu lý do" all at 0. It scans
+  every file under `resources/views/client/**`, partials and layouts included.
+- `--fix` wraps only what it can prove safe. Everything it marks `[sửa tay]` or `[chưa hỗ trợ]` is fixed
+  by hand in the markup, never by changing the layout to dodge the scanner and never by adding
+  `data-editable-ignore` to content a customer should be able to edit.
+- Read the audit's "Vùng cố ý để tĩnh" list and confirm every reason is true (decorative artwork,
+  database-driven content, legal text). A wrong reason is a defect, not an exception.
+- A passing audit is necessary, not sufficient: compare the source inventory with what is now
+  editable, page by page, including partials, `<picture>` sources, backgrounds and slider images.
+
 Check:
 
 - The cut interface remains visually equivalent to the approved static HTML.
@@ -207,3 +224,13 @@ errors with frontend workarounds.
 State the completed stage. List prototype/cut pages, reusable components, connected endpoints,
 auth/token handling, mock fixtures still present, error states, tests/manual checks, and any
 backend/OpenAPI mismatch that remains.
+
+When views under `resources/views/client` changed, the report also has:
+
+- Pages and partials converted (file list).
+- Editable coverage from the audit summary: text editable/dynamic, images editable/dynamic.
+- Every region left static on purpose, with its reason, as printed by the audit.
+- Dynamic regions deliberately left to their admin screen (menus, products, posts…).
+- The audit result line and the test result line, verbatim.
+- Anything unresolved, with the file and line. "Done" is not a valid report while this list is
+  non-empty or either command fails.

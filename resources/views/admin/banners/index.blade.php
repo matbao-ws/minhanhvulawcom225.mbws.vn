@@ -11,7 +11,7 @@
 
         @can('banners.create')
             <x-slot:actions>
-                <x-admin.action-button :href="route('admin.banners.create')" icon="plus">
+                <x-admin.action-button data-tour="banners.create" :href="route('admin.banners.create')" icon="plus">
                     {{ __('admin.banners.create') }}
                 </x-admin.action-button>
             </x-slot:actions>
@@ -32,7 +32,7 @@
     <!-- Banners List Card -->
     <div class="card">
         <div class="card-body border-bottom p-4">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="banners.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.banners.fields.position') }}</label>
                     <select name="position" class="form-select">
@@ -64,11 +64,11 @@
                 'bulkActionUrl' => route('admin.banners.bulk'),
                 'bulkItemLabel' => 'banner',
             ])
-            <div class="table-responsive">
+            <div data-tour="banners.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap text-muted">
-                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-banners-form" aria-label="Chọn tất cả banner"></th>
+                            <th data-tour="banners.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-banners-form" aria-label="Chọn tất cả banner"></th>
                             <th class="ps-4 fw-semibold small" style="width: 180px;">{{ __('admin.banners.fields.image') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.title') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.position') }}</th>

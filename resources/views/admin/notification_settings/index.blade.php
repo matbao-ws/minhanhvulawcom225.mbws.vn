@@ -19,7 +19,7 @@
             <!-- Left Column: Zalo Settings -->
             <div class="col-lg-6">
                 <!-- Zalo OA Configuration -->
-                <div class="card mb-4 shadow-sm">
+                <div data-tour="notification-settings.zalo-oa" class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
                             <div class="d-flex align-items-center gap-2">
@@ -69,7 +69,7 @@
                 </div>
 
                 <!-- Zalo Personal Configuration -->
-                <div class="card mb-4 shadow-sm">
+                <div data-tour="notification-settings.zalo-personal" class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
                             <div class="d-flex align-items-center gap-2">
@@ -100,7 +100,7 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control text-dark" id="zalo_personal_chat_id" name="zalo_personal[chat_id]" 
                                             value="{{ data_get($settings, 'zalo_personal.chat_id') }}" placeholder="{{ __('admin.notification_settings.zalo_personal.chat_id_placeholder') }}">
-                                        <button class="btn btn-outline-primary" type="button" id="btn_get_zalo_chat_id">
+                                        <button data-tour="notification-settings.chat-id" class="btn btn-outline-primary" type="button" id="btn_get_zalo_chat_id">
                                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="spinner_get_zalo_chat_id"></span>
                                             <iconify-icon icon="solar:refresh-line-duotone" class="align-middle me-1" id="icon_get_zalo_chat_id"></iconify-icon>
                                             <span id="text_get_zalo_chat_id">{{ __('admin.notification_settings.zalo_personal.get_chat_id') }}</span>
@@ -122,7 +122,7 @@
             <!-- Right Column: SMTP & Dashboard Settings -->
             <div class="col-lg-6">
                 <!-- SMTP Email Configuration -->
-                <div class="card mb-4 shadow-sm">
+                <div data-tour="notification-settings.smtp" class="card mb-4 shadow-sm">
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
                             <div class="d-flex align-items-center gap-2">
@@ -141,7 +141,7 @@
 
                         <p class="text-muted small mb-3">{{ __('admin.notification_settings.smtp.help') }}</p>
 
-                        <div class="alert {{ $mailSource === 'admin' ? 'alert-success' : 'alert-info' }} small py-2 mb-4">
+                        <div data-tour="notification-settings.mail-source" class="alert {{ $mailSource === 'admin' ? 'alert-success' : 'alert-info' }} small py-2 mb-4">
                             {{ __('admin.notification_settings.smtp.source_'.$mailSource, ['domain' => $mailSourceDomain]) }}
                         </div>
 
@@ -166,7 +166,7 @@
                             <div class="col-12 mb-2">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <span class="small text-muted">{{ __('admin.notification_settings.smtp.gmail_hint') }}</span>
-                                    <button class="btn btn-link btn-sm text-primary p-0 d-flex align-items-center gap-1 text-decoration-none fw-semibold" 
+                                    <button data-tour="notification-settings.smtp-advanced" class="btn btn-link btn-sm text-primary p-0 d-flex align-items-center gap-1 text-decoration-none fw-semibold" 
                                         type="button" data-bs-toggle="collapse" data-bs-target="#advancedSmtp" aria-expanded="false" aria-controls="advancedSmtp">
                                         <iconify-icon icon="solar:settings-bold-duotone" class="fs-4"></iconify-icon>
                                         {{ __('admin.notification_settings.smtp.advanced_config') }}
@@ -214,7 +214,7 @@
                 </div>
 
                 <!-- Dashboard Configuration -->
-                <div class="card mb-4 shadow-sm">
+                <div data-tour="notification-settings.dashboard" class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
                             <div class="d-flex align-items-center gap-2">

@@ -42,7 +42,7 @@
         </div>
     @endunless
 
-    <div class="row g-3 mb-4">
+    <div data-tour="extensions.stats" class="row g-3 mb-4">
         @foreach($stats as $stat)
             <div class="col-6 col-lg-3">
                 <div class="card h-100 mb-0">
@@ -62,10 +62,10 @@
 
     <div class="row g-4">
         <div class="col-xl-8">
-            <div class="card mb-0">
+            <div data-tour="extensions.list" class="card mb-0">
                 <div class="card-header bg-transparent border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h5 class="card-title fw-semibold mb-0">{{ __('admin.extensions.list_title') }}</h5>
-                    <span class="badge bg-light text-dark fw-semibold">{{ __('admin.extensions.core_badge', ['version' => $coreVersion]) }}</span>
+                    <span data-tour="extensions.core" class="badge bg-light text-dark fw-semibold">{{ __('admin.extensions.core_badge', ['version' => $coreVersion]) }}</span>
                 </div>
 
                 @if($records === [])
@@ -129,13 +129,13 @@
         </div>
 
         <div class="col-xl-4">
-            <div class="card mb-3">
+            <div data-tour="extensions.about" class="card mb-3">
                 <div class="card-body">
                     <h6 class="fw-semibold text-dark mb-2"><i class="ti ti-info-circle me-1 text-primary" aria-hidden="true"></i>{{ __('admin.extensions.about_title') }}</h6>
                     <p class="fs-2 text-muted mb-0">{{ __('admin.extensions.intro') }}</p>
                 </div>
             </div>
-            <div class="card mb-0">
+            <div data-tour="extensions.commands" class="card mb-0">
                 <div class="card-body">
                     <h6 class="fw-semibold text-dark mb-1"><i class="ti ti-terminal-2 me-1 text-primary" aria-hidden="true"></i>{{ __('admin.extensions.commands_title') }}</h6>
                     <p class="fs-2 text-muted mb-3">{{ __('admin.extensions.commands_hint') }}</p>

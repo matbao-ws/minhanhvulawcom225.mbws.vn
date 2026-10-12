@@ -17,7 +17,7 @@
     </form>
 
     @if($revisions->isNotEmpty())
-    <div class="card">
+    <div data-tour="page-form.revisions" class="card">
         <div class="card-body">
             <h5 class="mb-3">Phiên bản gần đây</h5>
             <div class="list-group">

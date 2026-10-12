@@ -11,11 +11,11 @@
     </x-admin.page-header>
 
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-2">
+        <span data-tour="customers.count" class="badge bg-primary-subtle text-primary px-3 py-2 fs-2">
             {{ trans_choice('admin.customers.total', $customers->total(), ['count' => number_format($customers->total())]) }}
         </span>
         {{-- Carries the current filters so the file matches what is on screen. --}}
-        <a href="{{ route('admin.customers.export', request()->only('q')) }}" class="btn btn-outline-primary">
+        <a data-tour="customers.export" href="{{ route('admin.customers.export', request()->only('q')) }}" class="btn btn-outline-primary">
             <i class="ti ti-file-download me-1"></i>{{ __('admin.customers.export') }}
         </a>
     </div>
@@ -36,7 +36,7 @@
                 <form method="GET" class="row g-2 align-items-end mt-1 mt-md-0">
                     <div class="col-12 col-md-6">
                         <label class="form-label small fw-bold text-muted mb-1" for="customer-search">{{ __('admin.customers.search') }}</label>
-                        <input type="search" id="customer-search" name="q" class="form-control" value="{{ request('q') }}"
+                        <input data-tour="customers.search" type="search" id="customer-search" name="q" class="form-control" value="{{ request('q') }}"
                                placeholder="{{ __('admin.customers.search_placeholder') }}">
                     </div>
                     <div class="col-12 col-md-2">
@@ -52,12 +52,12 @@
         </div>
 
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div data-tour="customers.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
                             <th class="ps-4">{{ __('admin.customers.customer') }}</th>
-                            <th>{{ __('admin.customers.account') }}</th>
+                            <th data-tour="customers.account">{{ __('admin.customers.account') }}</th>
                             <th class="text-end">{{ __('admin.customers.orders') }}</th>
                             <th class="text-end">{{ __('admin.customers.completed_orders') }}</th>
                             <th class="text-end">{{ __('admin.customers.total_spent') }}</th>
@@ -94,7 +94,7 @@
                                         <span class="fs-3 text-muted">{{ \Carbon\Carbon::parse($customer->last_order_at)->format('d-m-Y H:i') }}</span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.customers.show', ['email' => $customer->customer_email]) }}"
+                                        <a data-tour="customers.details" href="{{ route('admin.customers.show', ['email' => $customer->customer_email]) }}"
                                            class="btn btn-sm btn-outline-primary fw-semibold">
                                             <i class="ti ti-eye me-1 fs-4"></i>{{ __('admin.customers.details') }}
                                         </a>

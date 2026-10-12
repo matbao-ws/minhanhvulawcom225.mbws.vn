@@ -7,6 +7,7 @@ use App\Support\Extensions\ExtensionChecker;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionState;
 use App\Support\MigrationSafety;
+use Illuminate\Support\Facades\File;
 use Tests\Support\BuildsExtensions;
 use Tests\TestCase;
 
@@ -122,7 +123,7 @@ class ExtensionCheckTest extends TestCase
     public function test_the_command_fails_on_errors_and_lists_cascade_warnings(): void
     {
         $this->makeExtension('misa', files: [
-            'src/Bad.php' => "<?php namespace Extensions\\Misa; use App\\Services\\ShippingService; class Bad {}",
+            'src/Bad.php' => '<?php namespace Extensions\\Misa; use App\\Services\\ShippingService; class Bad {}',
             'database/migrations/2026_11_01_000000_x.php' => "<?php return new class extends Illuminate\\Database\\Migrations\\Migration { public function up(): void {
                 Schema::create('ext_misa_logs', function (\$t) { \$t->foreignId('order_id')->constrained('orders')->cascadeOnDelete(); });
                 Schema::table('ext_misa_logs', function (\$t) { \$t->dropColumn('x'); });
@@ -154,7 +155,7 @@ class ExtensionCheckTest extends TestCase
         $cases = [
             'App\\Services in use' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; use App\\Services\\MailSettings; class A {}'], 'not part of the extension API'],
             'core binding replaced' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; class A { function r() { app()->singleton(\\App\\Support\\FeatureGate::class, fn () => null); } }'], 'replaces a core class'],
-            'migration on a core table' => [[], ['database/migrations/2026_11_01_000000_a.php' => $migration("Schema::table('orders', fn (\$t) => \$t->string('x')->nullable());")], "not its own table"],
+            'migration on a core table' => [[], ['database/migrations/2026_11_01_000000_a.php' => $migration("Schema::table('orders', fn (\$t) => \$t->string('x')->nullable());")], 'not its own table'],
             'table with the wrong prefix' => [[], ['database/migrations/2026_11_01_000000_a.php' => $migration("Schema::create('misa_logs', fn (\$t) => \$t->id());")], 'must start with ext_misa_'],
             'permission with the wrong prefix' => [['permissions' => [['code' => 'orders.view', 'label' => 'x']]], [], 'must be "misa.<action>"'],
             'route outside routes/' => [[], ['src/A.php' => '<?php namespace Extensions\\Misa; use Illuminate\\Support\\Facades\\Route; class A { function b() { Route::get("/admin/x", fn () => 1); } }'], 'escape /ext/<id>'],
@@ -163,7 +164,7 @@ class ExtensionCheckTest extends TestCase
         ];
 
         foreach ($cases as $name => [$manifest, $files, $expected]) {
-            \Illuminate\Support\Facades\File::deleteDirectory($this->extensionSite.'/extensions');
+            File::deleteDirectory($this->extensionSite.'/extensions');
             $this->makeExtension('misa', $manifest, $files);
             app(ExtensionManager::class)->forget();
 

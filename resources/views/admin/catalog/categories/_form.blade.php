@@ -7,7 +7,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-12 mb-4">
-                <ul class="nav nav-tabs mb-4" role="tablist">
+                <ul data-tour="category-form.languages" class="nav nav-tabs mb-4" role="tablist">
                     @foreach($contentLanguages as $language)
                         <li class="nav-item" role="presentation">
                             <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
@@ -32,15 +32,15 @@
                         <div class="tab-pane fade @if($code === $defaultContentLocale) show active @endif" id="category-language-{{ $code }}">
                             @if($code !== $defaultContentLocale)<div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif
                             <div class="row">
-                                <div class="col-md-8 mb-3"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" placeholder="Nhập tên danh mục..." @required($code === $defaultContentLocale)></div>
+                                <div data-tour="category-form.name" class="col-md-8 mb-3"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" placeholder="Nhập tên danh mục..." @required($code === $defaultContentLocale)></div>
                                 <div class="col-md-4 mb-3"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }} <span class="text-muted fw-normal">(bỏ trống để tự tạo từ tên)</span></label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="Ví dụ: dien-thoai"></div>
-                                <div class="col-12 mb-3"><label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label><textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html" placeholder="Nhập mô tả danh mục...">{{ $description }}</textarea><div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}" data-placeholder="Nhập mô tả danh mục...">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div></div>
+                                <div data-tour="category-form.description" class="col-12 mb-3"><label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label><textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html" placeholder="Nhập mô tả danh mục...">{{ $description }}</textarea><div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}" data-placeholder="Nhập mô tả danh mục...">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div></div>
                             </div>
                         </div>
                     @endforeach
                 </div>
             </div>
-            <div class="col-md-6 mb-3">
+            <div data-tour="category-form.parent" class="col-md-6 mb-3">
                 <label class="form-label" for="parent_id">{{ __('catalog.fields.parent_category') }}</label>
                 <select class="form-select" id="parent_id" name="parent_id">
                     <option value="">{{ __('catalog.common.none') }}</option>
@@ -51,14 +51,14 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-6 mb-3">
+            <div data-tour="category-form.image" class="col-md-6 mb-3">
                 <label class="form-label" for="image_file">{{ __('catalog.fields.image') }}</label>
                 <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="categories">
                 <div class="mt-2 {{ $category->image_url ? '' : 'd-none' }}" data-media-preview>
                     <img src="{{ $category->image_url ?: '' }}" alt="{{ $name }}" class="rounded border object-fit-cover" width="72" height="72" data-media-preview-image onerror="this.onerror=null;this.src='{{ asset('admin-assets/js/icons/404.png') }}';">
                 </div>
             </div>
-            <div class="col-md-6 mb-3">
+            <div data-tour="category-form.visible" class="col-md-6 mb-3">
                 <input type="hidden" name="is_active" value="0">
                 <div class="form-check form-switch">
                     <input class="form-check-input primary" type="checkbox" name="is_active" value="1" id="is_active" @checked((bool) old('is_active', $category->is_active))>
@@ -66,7 +66,7 @@
                 </div>
                 <div class="form-text">{{ __('catalog.categories.status_help') }}</div>
             </div>
-            <div class="col-md-6 mb-3">
+            <div data-tour="category-form.draft" class="col-md-6 mb-3">
                 <input type="hidden" name="is_draft" value="0">
                 <div class="form-check form-switch">
                     <input class="form-check-input primary" type="checkbox" name="is_draft" value="1" id="is_draft" @checked((bool) old('is_draft', $category->is_draft))>

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Catalog;
 
 use App\Http\Requests\Concerns\NormalizesLocalizedInput;
+use App\Services\LanguageRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -60,30 +61,37 @@ class ProductRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->normalizeLocalizedInput(['name', 'slug', 'short_description', 'description', 'meta_title', 'meta_description']);
-        $registry = app(\App\Services\LanguageRegistry::class);
+        $registry = app(LanguageRegistry::class);
         $groups = $this->input('variant_groups', []);
         foreach ($groups as &$group) {
-            if (is_string($group['name'] ?? null)) $group['name'] = [$registry->defaultLocale() => $group['name']];
+            if (is_string($group['name'] ?? null)) {
+                $group['name'] = [$registry->defaultLocale() => $group['name']];
+            }
             if (! empty($group['values']) && is_array($group['values'])) {
                 foreach ($group['values'] as &$value) {
-                    if (is_string($value['label'] ?? null)) $value['label'] = [$registry->defaultLocale() => $value['label']];
+                    if (is_string($value['label'] ?? null)) {
+                        $value['label'] = [$registry->defaultLocale() => $value['label']];
+                    }
                 }
                 unset($value);
             }
         }
         unset($group);
-        if ($groups !== []) $this->merge(['variant_groups' => $groups]);
+        if ($groups !== []) {
+            $this->merge(['variant_groups' => $groups]);
+        }
     }
 
     private function variantTranslationRules($excludeVariantFields): array
     {
         $rules = [];
-        $registry = app(\App\Services\LanguageRegistry::class);
+        $registry = app(LanguageRegistry::class);
         foreach ($registry->codes() as $locale) {
             $required = $locale === $registry->defaultLocale() ? 'required' : 'nullable';
             $rules["variant_groups.*.name.$locale"] = [$excludeVariantFields, $required, 'string', 'max:100'];
             $rules["variant_groups.*.values.*.label.$locale"] = [$excludeVariantFields, $required, 'string', 'max:100'];
         }
+
         return $rules;
     }
 }

@@ -3,12 +3,13 @@
 namespace App\Support;
 
 use App\Support\Extensions\ExtensionManager;
+use Database\Seeders\PermissionSeeder;
 
 /**
  * The canonical catalogue of admin permissions.
  *
  * Code — not the database — owns this list. `permissions:sync` and
- * {@see \Database\Seeders\PermissionSeeder} project it into the `permissions`
+ * {@see PermissionSeeder} project it into the `permissions`
  * table, and PermissionRegistryDriftTest asserts that every code declared here
  * is actually enforced by a route and that no route demands a code that is
  * missing here. Adding a permission therefore means adding it in one place.

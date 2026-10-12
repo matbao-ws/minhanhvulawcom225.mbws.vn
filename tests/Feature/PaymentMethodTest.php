@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\FeatureSetting;
+use App\Models\PaymentMethod;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\PaymentMethod;
-use App\Models\FeatureSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,6 +14,7 @@ class PaymentMethodTest extends TestCase
     use RefreshDatabase;
 
     private User $adminUser;
+
     private User $guestUser;
 
     protected function setUp(): void
@@ -56,7 +57,7 @@ class PaymentMethodTest extends TestCase
                     'publishable_key' => '',
                     'secret_key' => '',
                     'webhook_secret' => '',
-                ]
+                ],
             ]);
         } else {
             PaymentMethod::query()->create([
@@ -68,7 +69,7 @@ class PaymentMethodTest extends TestCase
                     'publishable_key' => '',
                     'secret_key' => '',
                     'webhook_secret' => '',
-                ]
+                ],
             ]);
         }
 
@@ -136,7 +137,7 @@ class PaymentMethodTest extends TestCase
             'settings' => [
                 'publishable_key' => 'pk_test_123',
                 'secret_key' => 'sk_test_123',
-            ]
+            ],
         ]);
 
         $response = $this->actingAs($this->adminUser)->post("/vi/admin/payment-methods/{$method->id}/toggle-status");

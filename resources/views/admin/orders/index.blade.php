@@ -9,7 +9,7 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.menu.orders') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button :href="route('admin.orders.create')" icon="plus">Tạo đơn hàng</x-admin.action-button>
+            <x-admin.action-button data-tour="orders.create" :href="route('admin.orders.create')" icon="plus">Tạo đơn hàng</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
@@ -27,11 +27,11 @@
                 <i class="ti ti-chevron-down"></i>
             </button>
 
-            <div class="collapse d-md-block {{ request()->hasAny(['q', 'status', 'payment_status', 'shipping_status']) ? 'show' : '' }}" id="order-filters">
+            <div data-tour="orders.filters" class="collapse d-md-block {{ request()->hasAny(['q', 'status', 'payment_status', 'shipping_status']) ? 'show' : '' }}" id="order-filters">
             <form method="GET" class="row g-2 align-items-end mt-1 mt-md-0">
                 <div class="col-12 col-sm-6 col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
-                    <input type="search" name="q" class="form-control" value="{{ request('q') }}"
+                    <input data-tour="orders.search" type="search" name="q" class="form-control" value="{{ request('q') }}"
                         placeholder="{{ __('admin.orders.search_placeholder') }}">
                 </div>
                 <div class="col-12 col-sm-6 col-md-2">
@@ -69,7 +69,7 @@
             </div>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div data-tour="orders.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
@@ -142,7 +142,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end pe-4">
-                                    <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                    <a data-tour="orders.details" href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary fw-semibold">
                                         <i class="ti ti-eye me-1 fs-4"></i>{{ __('admin.orders.details') }}
                                     </a>
                                 </td>

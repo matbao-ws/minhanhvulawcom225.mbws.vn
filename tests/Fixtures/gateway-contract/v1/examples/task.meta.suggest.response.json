@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "result": {
+    "focus_keyword": "ống nhựa upvc",
+    "options": [
+      { "title": "Ống nhựa uPVC cấp thoát nước bền, dễ lắp cho gia đình", "description": "Ống nhựa uPVC cho hệ thống cấp thoát nước gia đình và công trình: chịu áp tốt, lắp đặt nhanh, nhiều kích cỡ, giao hàng tận nơi.", "angle": "lợi ích" },
+      { "title": "Ống nhựa uPVC chính hãng, đủ kích cỡ, giá tốt tại Shop", "description": "Ống nhựa uPVC chính hãng cho cấp thoát nước: đủ kích cỡ, chịu áp cao, lắp nhanh, tư vấn chọn ống miễn phí và giao hàng tận nơi.", "angle": "sản phẩm" },
+      { "title": "Nên chọn ống nhựa uPVC nào cho cấp thoát nước gia đình?", "description": "Cách chọn ống nhựa uPVC đúng kích cỡ và áp lực cho cấp thoát nước gia đình, kèm bảng giá và dịch vụ giao hàng tận nơi của Shop.", "angle": "câu hỏi" }
+    ]
+  },
+  "suggestion_id": 17,
+  "usage": { "credits_charged": 1, "credits_used": 12, "credits_limit": 100 }
+}

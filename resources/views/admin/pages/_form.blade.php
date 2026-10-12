@@ -3,7 +3,7 @@
         <h4 class="fw-semibold mb-1">{{ $page->exists ? 'Chỉnh sửa trang chính sách' : 'Tạo trang chính sách' }}</h4>
         <p class="text-muted mb-0">Soạn tiêu đề và nội dung chính sách (đổi trả, bảo mật, vận chuyển, thanh toán...) ngay tại đây.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div data-tour="page-form.toolbar" class="d-flex gap-2">
         <a class="btn btn-light" href="{{ route('admin.pages.index') }}">Quay lại</a>
         @if($page->exists && $page->is_active)
             <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
@@ -21,7 +21,7 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <ul class="nav nav-tabs mb-4" role="tablist">
+        <ul data-tour="page-form.languages" class="nav nav-tabs mb-4" role="tablist">
             @foreach($contentLanguages as $language)
                 <li class="nav-item"><button class="nav-link @if($language->code === $defaultContentLocale) active @endif" type="button" data-bs-toggle="tab" data-bs-target="#page-meta-{{ $language->code }}">{{ $language->native_name }}</button></li>
             @endforeach
@@ -33,7 +33,7 @@
                     <div class="row">
                         <div class="col-md-8 mb-3"><label class="form-label">Tiêu đề @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input class="form-control" name="title[{{ $code }}]" value="{{ old("title.$code", $page->getTranslation('title', $code, false)) }}" @required($code === $defaultContentLocale)></div>
                         <div class="col-md-4 mb-3"><label class="form-label">Slug</label><input class="form-control" name="slug[{{ $code }}]" value="{{ old("slug.$code", $page->localizedSlug($code) ?: ($code === $defaultContentLocale ? $page->slug : '')) }}" placeholder="Tự tạo từ tiêu đề"></div>
-                        <div class="col-12 mb-3">
+                        <div data-tour="page-form.content" class="col-12 mb-3">
                             @php $html = old("published_html.$code", $page->getTranslation('published_html', $code, false)); @endphp
                             <label class="form-label">Nội dung</label>
                             {{-- Disabled until the editor is touched: a disabled field is not
@@ -44,7 +44,7 @@
                             @include('admin.shared.ai-edit-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'target' => "page-html-$code"])
                         </div>
                         <div class="col-12">@include('admin.shared.ai-meta-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'titleField' => "meta_title[$code]", 'descriptionField' => "meta_description[$code]"])</div>
-                        <div class="col-md-6 mb-3"><label class="form-label">SEO title</label><input class="form-control" name="meta_title[{{ $code }}]" value="{{ old("meta_title.$code", $page->getTranslation('meta_title', $code, false)) }}"></div>
+                        <div data-tour="page-form.seo" class="col-md-6 mb-3"><label class="form-label">SEO title</label><input class="form-control" name="meta_title[{{ $code }}]" value="{{ old("meta_title.$code", $page->getTranslation('meta_title', $code, false)) }}"></div>
                         <div class="col-md-6 mb-3"><label class="form-label">SEO description</label><input class="form-control" name="meta_description[{{ $code }}]" value="{{ old("meta_description.$code", $page->getTranslation('meta_description', $code, false)) }}"></div>
                     </div>
                 </div>
@@ -55,14 +55,14 @@
 
 <div class="card">
     <div class="card-body d-flex flex-wrap justify-content-between gap-3">
-        <div>
+        <div data-tour="page-form.status">
             <label class="form-label fw-semibold">Trạng thái</label>
             <select class="form-select" name="is_active">
                 <option value="0" @selected(!old('is_active', $page->is_active))>Bản nháp</option>
                 <option value="1" @selected(old('is_active', $page->is_active))>Xuất bản</option>
             </select>
         </div>
-        <div class="align-self-end"><button class="btn btn-primary px-4">Lưu trang</button></div>
+        <div class="align-self-end"><button data-tour="page-form.save" class="btn btn-primary px-4">Lưu trang</button></div>
     </div>
 </div>
 

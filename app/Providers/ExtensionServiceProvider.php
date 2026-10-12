@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Extension\Registries\AdminMenu;
+use App\Http\Middleware\ForgetRouteLocale;
 use App\Support\ErrorReference;
+use App\Support\ErrorReporting\GatewayErrorReporter;
 use App\Support\Extensions\ExtensionAutoloader;
 use App\Support\Extensions\ExtensionManager;
 use App\Support\Extensions\ExtensionManifest;
@@ -109,7 +111,7 @@ class ExtensionServiceProvider extends ServiceProvider
         $groups = [
             // Inside the admin: same locale prefix and guards as routes/admin.php.
             // {locale} is dropped once used, so controllers take only their own parameters.
-            'admin.php' => fn () => Route::middleware(['web', 'setLocale', 'auth', 'admin', 'package.sync', \App\Http\Middleware\ForgetRouteLocale::class])
+            'admin.php' => fn () => Route::middleware(['web', 'setLocale', 'auth', 'admin', 'package.sync', ForgetRouteLocale::class])
                 ->prefix('{locale}/admin/ext/'.$id)->where(['locale' => '[a-z]{2,3}'])->name("ext.{$id}."),
             // Public endpoints (webhooks, an app's API): the extension adds its own auth.
             'api.php' => fn () => Route::middleware('api')->prefix('api/ext/'.$id)->name("ext.{$id}.api."),
@@ -139,7 +141,7 @@ class ExtensionServiceProvider extends ServiceProvider
         // The admin page shows only this reference; the detail is in storage/logs/core.log.
         $ref = ErrorReference::make('EXT');
         $manager->markFailed($manifest->id, "{$phase}: ".$e::class.": {$message}", $ref);
-        $this->app->make(\App\Support\ErrorReporting\GatewayErrorReporter::class)->captureWithReference($e, $ref);
+        $this->app->make(GatewayErrorReporter::class)->captureWithReference($e, $ref);
         $this->app->make(AdminMenu::class)->forget($manifest->id);
         unset($this->extensions[$manifest->id]);
 

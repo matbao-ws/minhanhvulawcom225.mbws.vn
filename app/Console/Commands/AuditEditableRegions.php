@@ -35,7 +35,8 @@ use Symfony\Component\Finder\Finder;
 class AuditEditableRegions extends Command
 {
     protected $signature = 'client:editable-audit
-        {--fix : Wrap what can be wrapped safely and rewrite the files}';
+        {--fix : Wrap what can be wrapped safely and rewrite the files}
+        {--path= : Audit another folder of Blade views instead of resources/views/client (a theme benchmark); skips the section and menu wiring checks}';
 
     protected $description = 'Classify every piece of storefront content as editable, dynamic or ignored, and fail on anything left over';
 
@@ -45,29 +46,42 @@ class AuditEditableRegions extends Command
         'conditional' => 'chữ tĩnh nằm trong nhánh @if/@foreach — bọc riêng chữ của từng nhánh',
         'slot' => 'chữ truyền vào slot của component — đánh dấu bên trong component hoặc truyền vùng editable vào slot',
         'mixed' => 'chữ nằm lẫn với khối con của <%container%> — tách đoạn chữ vào một thẻ riêng rồi đánh dấu thẻ đó',
-        'lazy' => 'ảnh lazy-load (data-src): editor chỉ thay src, script lazy sẽ ghi đè lại — editor chưa hỗ trợ',
-        'srcset' => 'trình duyệt chọn ảnh theo srcset, thay src không có tác dụng — editor chưa hỗ trợ',
-        'picture' => 'ảnh trong <picture>: <source> thắng src — editor chưa hỗ trợ',
-        'background' => 'ảnh nền CSS inline — editor chưa hỗ trợ thay ảnh nền',
-        'data-background' => 'ảnh nền qua data-bg — editor chưa hỗ trợ thay ảnh nền',
+        'lazy' => 'ảnh lazy-load: <x-client::editable-image key="%key%" src="<ảnh thật>" lazy="data-src" placeholder="<ảnh chờ>" …>',
+        'srcset' => 'ảnh có srcset: <x-client::editable-image key="%key%" src="…" srcset="…" sizes="…" …>',
+        'picture' => 'ảnh trong <picture>: <x-client::editable-image key="%key%" src="…" :sources="[[\'media\' => …, \'srcset\' => …]]" …> thay cả <picture>',
+        'background' => 'chuyển style vào @clientBackground(\'%key%\', "<style gốc>") trên chính phần tử — giữ nguyên gradient/position/size',
+        'data-background' => 'ảnh nền lazy: @clientBackground(\'%key%\', \'\', [\'lazy\' => \'data-bg\', \'src\' => …]) thay cho data-bg',
         'poster' => 'poster của <video> — editor chưa hỗ trợ',
+        'background-style-conflict' => 'thẻ vừa có style="…" vừa có @clientBackground: hai thuộc tính style, trình duyệt giữ cái đầu và mất ảnh nền — gộp toàn bộ style vào tham số thứ hai của @clientBackground',
         'image-manual' => 'bọc tay bằng editable-image (alt đang lấy từ biến, hoặc src không đọc được)',
+        'untranslated' => 'chữ tĩnh bọc trong __()/@lang nhưng key không có trong file ngôn ngữ nào — khách không sửa được: bọc bằng <x-client::editable>, hoặc thêm key vào lang/ nếu đây thật là chuỗi giao diện đa ngôn ngữ',
+        'layered' => 'ảnh nền nhiều lớp: @clientBackground(\'%key%\', "<style gốc>") chỉ thay url() của ảnh, gradient giữ nguyên; nếu có nhiều ảnh, sửa tay',
+        'style-block' => 'ảnh nền khai báo trong <style>: chuyển khai báo đó thành style inline trên phần tử rồi dùng @clientBackground, giữ nguyên selector/media query',
     ];
 
     public function handle(EditableRegionScanner $scanner, SectionRegistry $registry): int
     {
-        $root = resource_path('views/client');
+        $custom = $this->option('path');
+        $root = $custom ? $this->absolute((string) $custom) : resource_path('views/client');
 
         if (! is_dir($root)) {
+            if ($custom) {
+                $this->components->error("Không có thư mục {$root}.");
+
+                return self::FAILURE;
+            }
+
             $this->components->warn('No storefront views at resources/views/client — nothing to audit.');
 
             return self::SUCCESS;
         }
 
+        $scanner = $scanner->withAppTranslations();
         $audit = $this->auditViews($scanner, $root);
-        $sectionErrors = array_merge($this->auditSections($registry), $this->auditMenuTargets());
+        // The wiring checks describe this application's sections and menus, not a folder audited on its own.
+        $sectionErrors = $custom ? [] : array_merge($this->auditSections($registry), $this->auditMenuTargets());
 
-        if ($this->option('fix') && $this->applyFixes($audit['findings'])) {
+        if ($this->option('fix') && $this->applyFixes($audit['findings'], $root)) {
             // Report what is on disk now, not what was there before the fix:
             // the summary is the thing an agent reads to decide it is done.
             $audit = $this->auditViews($scanner, $root);
@@ -76,6 +90,11 @@ class AuditEditableRegions extends Command
         $this->report($audit, $sectionErrors);
 
         return $this->passes($audit, $sectionErrors) ? self::SUCCESS : self::FAILURE;
+    }
+
+    private function absolute(string $path): string
+    {
+        return preg_match('/^(?:[A-Za-z]:)?[\\\\\/]/', $path) ? $path : base_path($path);
     }
 
     /**
@@ -156,13 +175,13 @@ class AuditEditableRegions extends Command
         $directory = resource_path('views/client/sections');
 
         foreach (array_keys($registry->sections()) as $section) {
-            if (! is_file($directory . '/' . $section . '.blade.php')) {
+            if (! is_file($directory.'/'.$section.'.blade.php')) {
                 $errors[] = "SectionRegistry khai báo section `{$section}` nhưng không có views/client/sections/{$section}.blade.php";
             }
         }
 
         foreach ($this->sectionsNamedInTemplates() as $section => $where) {
-            if (! is_file($directory . '/' . $section . '.blade.php')) {
+            if (! is_file($directory.'/'.$section.'.blade.php')) {
                 $errors[] = "{$where} gọi section `{$section}` nhưng không có Blade tương ứng — @includeIf sẽ render rỗng, không báo lỗi";
             }
         }
@@ -274,7 +293,6 @@ class AuditEditableRegions extends Command
         return $named;
     }
 
-
     /**
      * Rewrite each file, wrapping its fixable findings.
      *
@@ -285,17 +303,19 @@ class AuditEditableRegions extends Command
      * @param  array<string, array<int, array<string, mixed>>>  $grouped
      * @return bool whether any file was written
      */
-    private function applyFixes(array $grouped): bool
+    private function applyFixes(array $grouped, string $root): bool
     {
         $written = false;
 
         foreach ($grouped as $relative => $findings) {
-            $path = resource_path('views/client/'.$relative);
+            $path = $root.'/'.$relative;
             $source = (string) file_get_contents($path);
             $wrapped = 0;
 
             foreach (array_reverse($findings) as $finding) {
-                $replacement = $finding['fixable'] ? $this->wrap($finding) : null;
+                $replacement = $finding['fixable']
+                    ? $this->wrap($finding, substr($source, $finding['start'], $finding['end'] - $finding['start']))
+                    : null;
 
                 if ($replacement === null) {
                     continue;
@@ -328,11 +348,34 @@ class AuditEditableRegions extends Command
      *
      * @param  array<string, mixed>  $finding
      */
-    private function wrap(array $finding): ?string
+    private function wrap(array $finding, string $original): ?string
     {
-        return $finding['kind'] === 'image'
-            ? $this->wrapImage($finding)
-            : $this->wrapText($finding);
+        return match (true) {
+            $finding['kind'] === 'image' && $finding['reason'] === 'background' => $this->wrapBackground($finding, $original),
+            $finding['kind'] === 'image' => $this->wrapImage($finding),
+            default => $this->wrapText($finding),
+        };
+    }
+
+    /**
+     * An element's literal `style` moves, unchanged, into `@clientBackground`; everything else in
+     * the opening tag stays where it was. The scanner offers this only for one static style with
+     * one picture and no slider around it.
+     *
+     * @param  array<string, mixed>  $finding
+     */
+    private function wrapBackground(array $finding, string $openTag): ?string
+    {
+        if (! preg_match('/\sstyle\s*=\s*(["\'])(.*?)\1/is', $openTag, $match, PREG_OFFSET_CAPTURE)) {
+            return null;
+        }
+
+        $style = $match[2][0];
+        $argument = "'".str_replace(['\\', "'"], ['\\\\', "\\'"], $style)."'";
+
+        return substr($openTag, 0, $match[0][1])
+            .sprintf(" @clientBackground('%s', %s)", $finding['key'], $argument)
+            .substr($openTag, $match[0][1] + strlen($match[0][0]));
     }
 
     /** @param  array<string, mixed>  $finding */
@@ -552,6 +595,10 @@ class AuditEditableRegions extends Command
         $this->summaryRow('ignored', $counts['image']['ignored'] ?? 0);
         $this->summaryRow('unsupported', $counts['image']['unsupported'] ?? 0, true);
         $this->summaryRow('unknown', $counts['image']['unknown'] ?? 0, true);
+        $this->line('  Set aside (not content images, listed for review)');
+        $this->summaryRow('icon / inline svg', $counts['image']['icon'] ?? 0);
+        $this->summaryRow('decorative (alt rỗng)', $counts['image']['decorative'] ?? 0);
+        $this->summaryRow('video / audio', $counts['image']['media'] ?? 0);
 
         $this->summaryRow('Ignored without reason', $invalid, true, 0);
         $this->summaryRow('Section/menu wiring errors', count($sectionErrors), true, 0);

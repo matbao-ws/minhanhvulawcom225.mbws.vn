@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SectionRegistry;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * override: no row means the section renders exactly as the design does, which
  * is why nothing is ever seeded here.
  *
- * `settings` holds tokens, not CSS classes. {@see \App\Support\SectionRegistry}
+ * `settings` holds tokens, not CSS classes. {@see SectionRegistry}
  * says which tokens a given section accepts and what class each one maps to.
  */
 class SiteSection extends Model

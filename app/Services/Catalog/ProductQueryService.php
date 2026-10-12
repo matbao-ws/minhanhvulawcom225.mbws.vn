@@ -2,6 +2,7 @@
 
 namespace App\Services\Catalog;
 
+use App\Http\Controllers\Api\PublicController;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
  * filters, sorts and eager-loads products.
  *
  * Both consumers must go through here — the JSON API in
- * {@see \App\Http\Controllers\Api\PublicController} and any same-origin Blade
+ * {@see PublicController} and any same-origin Blade
  * storefront controller. A Blade controller must not reach the API over HTTP,
  * so without a shared service the two would each own a copy of this query and
  * drift apart.

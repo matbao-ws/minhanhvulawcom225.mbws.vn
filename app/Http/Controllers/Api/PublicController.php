@@ -13,11 +13,13 @@ use App\Http\Resources\PublicReviewResource;
 use App\Jobs\SendOrderStatusEmail;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\CheckoutRequest;
 use App\Models\FeatureSetting;
+use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
-use App\Models\PaymentMethod;
 use App\Models\Page;
+use App\Models\PaymentMethod;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Product;
@@ -30,11 +32,13 @@ use App\Services\Catalog\ProductVariantResolver;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedContent;
 use App\Services\LocalizedSlugService;
+use App\Services\MenuService;
 use App\Services\MultilingualSettings;
-use App\Services\OrderStateTransitionService;
+use App\Services\Orders\CheckoutIdempotency;
 use App\Services\Orders\OrderCancellationService;
 use App\Services\Orders\OrderCreationService;
 use App\Services\Orders\OrderDraft;
+use App\Services\OrderStateTransitionService;
 use App\Services\OrderStockService;
 use App\Services\PaymentTransactionService;
 use App\Services\PromotionService;
@@ -45,6 +49,7 @@ use App\Support\ApiResponse;
 use App\Support\FeatureGate;
 use App\Support\NotificationHelper;
 use App\Support\SearchTerm;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -258,9 +263,9 @@ class PublicController extends Controller
      */
     public function menu(string $key)
     {
-        $items = app(\App\Services\MenuService::class)->tree($key);
+        $items = app(MenuService::class)->tree($key);
 
-        abort_if($items->isEmpty() && ! \App\Models\Menu::query()->where('key', $key)->where('is_active', true)->exists(), 404);
+        abort_if($items->isEmpty() && ! Menu::query()->where('key', $key)->where('is_active', true)->exists(), 404);
 
         return ApiResponse::success(['key' => $key, 'items' => $items]);
     }
@@ -373,6 +378,24 @@ class PublicController extends Controller
             return ApiResponse::error('Dữ liệu không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
+        $apiUser = $request->user('sanctum');
+
+        // Optional Idempotency-Key: a retry with the same key and cart gets the order back.
+        $idempotency = app(CheckoutIdempotency::class);
+        $key = $request->header(CheckoutIdempotency::HEADER);
+        $key = is_string($key) && $key !== '' ? $key : null;
+        $scope = $fingerprint = null;
+        if ($key !== null) {
+            if ($invalid = $idempotency->invalidKey($key, $apiUser)) {
+                return ApiResponse::error('Dữ liệu không hợp lệ.', 422, [CheckoutIdempotency::HEADER => [$invalid]]);
+            }
+            $scope = $idempotency->scope($apiUser);
+            $fingerprint = $idempotency->fingerprint($request->all());
+            if ($previous = $idempotency->find($scope, $key)) {
+                return $this->replayCheckout($previous, $fingerprint, $request);
+            }
+        }
+
         $paymentMethod = PaymentMethod::query()
             ->where('method_code', $request->input('payment_method'))
             ->where('status', 'active')
@@ -405,14 +428,16 @@ class PublicController extends Controller
             ? (float) data_get($shipping, 'flat_rate.fee', 0)
             : 0.0;
 
-        $apiUser = $request->user('sanctum');
         if ($apiUser && $apiUser->role_id !== null) {
             return ApiResponse::error('Tài khoản quản trị không thể dùng để tạo đơn hàng khách.', 403);
         }
 
         $customerId = $apiUser?->id;
         try {
-            $order = DB::transaction(function () use ($request, $customerId, $shippingFee) {
+            $order = DB::transaction(function () use ($request, $customerId, $shippingFee, $idempotency, $key, $scope, $fingerprint) {
+                // First write, before any row lock: a concurrent retry with this key blocks on
+                // the unique index and then fails as a duplicate, rolling back everything it did.
+                $claim = $key !== null ? $idempotency->claim($scope, $key, $fingerprint) : null;
                 $orderItems = [];
 
                 foreach ($request->input('items') as $item) {
@@ -484,8 +509,18 @@ class PublicController extends Controller
                     ]);
                 }
 
+                $claim?->update(['order_id' => $order->id]);
+
                 return $order->load('items');
             }, 3);
+        } catch (UniqueConstraintViolationException $e) {
+            // Lost the race to a request with the same key: its order is committed by now.
+            if ($key !== null && $idempotency->isKeyCollision($e) && ($previous = $idempotency->find($scope, $key))) {
+                return $this->replayCheckout($previous, $fingerprint, $request);
+            }
+            Log::error('Checkout transaction failed: '.$e->getMessage());
+
+            return ApiResponse::error('Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.', 500);
         } catch (\DomainException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         } catch (\Throwable $e) {
@@ -536,6 +571,40 @@ class PublicController extends Controller
         }
 
         return ApiResponse::success($responseData, 'Đặt hàng thành công.');
+    }
+
+    /**
+     * The answer to a checkout retried with a key already used: the same order, rebuilt
+     * from its current state (a fresh VNPAY link, since links expire). Nothing is created
+     * and no notification is sent again.
+     */
+    private function replayCheckout(CheckoutRequest $previous, string $fingerprint, Request $request)
+    {
+        if (! hash_equals($previous->fingerprint, $fingerprint)) {
+            return ApiResponse::error('Idempotency-Key này đã được dùng cho một đơn hàng khác. Hãy tạo key mới cho đơn mới.', 409, ['code' => 'idempotency_key_reused']);
+        }
+
+        $order = $previous->order_id !== null ? Order::query()->find($previous->order_id) : null;
+        // Deleted, or cancelled (as when the VNPAY payment could not be opened): no order to return.
+        if (! $order || $order->status === 'cancelled') {
+            return ApiResponse::error('Idempotency-Key này không còn dùng được. Hãy tạo key mới để đặt lại.', 409, ['code' => 'idempotency_key_unusable']);
+        }
+        $order->setRelation('items', $order->items()->get());
+
+        $responseData = (new PublicOrderResource($order))->resolve();
+        if ($order->payment_status === 'pending') {
+            if ($order->payment_method === 'vnpay') {
+                $paymentUrl = app(VNPAYService::class)->createPayment($order, $request->input('redirect_url'));
+                if ($paymentUrl) {
+                    $responseData['payment_url'] = $paymentUrl;
+                }
+            }
+            if ($order->payment_method === SePayService::METHOD_CODE) {
+                $responseData['payment'] = app(SePayService::class)->checkoutInstructions($order);
+            }
+        }
+
+        return ApiResponse::success($responseData, 'Đặt hàng thành công.')->header('Idempotent-Replayed', 'true');
     }
 
     /**

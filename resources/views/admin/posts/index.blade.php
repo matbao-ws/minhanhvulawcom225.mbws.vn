@@ -9,11 +9,11 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.posts.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">Import WordPress XML</x-admin.action-button>
+            <x-admin.action-button data-tour="posts.import-wordpress" type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">Import WordPress XML</x-admin.action-button>
             @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'ai_seo') && auth()->user()?->can('ai.use') && auth()->user()?->can('posts.create'))
-                <x-admin.action-button :href="route('admin.ai.post-drafts.create')" variant="info" icon="sparkles">{{ __('ai.draft.button') }}</x-admin.action-button>
+                <x-admin.action-button data-tour="posts.ai-draft" :href="route('admin.ai.post-drafts.create')" variant="info" icon="sparkles">{{ __('ai.draft.button') }}</x-admin.action-button>
             @endif
-            <x-admin.action-button :href="route('admin.posts.create')" icon="plus">{{ __('admin.posts.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="posts.create" :href="route('admin.posts.create')" icon="plus">{{ __('admin.posts.create') }}</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
@@ -52,7 +52,7 @@
     <!-- Posts Filter & List Card -->
     <div class="card">
         <div class="card-body border-bottom p-4">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="posts.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -92,11 +92,11 @@
                 'bulkActionUrl' => route('admin.posts.bulk'),
                 'bulkItemLabel' => 'bài viết',
             ])
-            <div class="table-responsive">
+            <div data-tour="posts.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
-                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-posts-form" aria-label="Chọn tất cả bài viết"></th>
+                            <th data-tour="posts.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-posts-form" aria-label="Chọn tất cả bài viết"></th>
                             <th class="ps-4">{{ __('admin.posts.fields.title') }}</th>
                             <th>{{ __('admin.posts.fields.category') }}</th>
                             <th>{{ __('admin.posts.fields.published_at') }}</th>

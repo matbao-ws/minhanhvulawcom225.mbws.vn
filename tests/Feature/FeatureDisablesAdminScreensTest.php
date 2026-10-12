@@ -3,9 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\FeatureSetting;
+use App\Models\Order;
+use App\Models\PaymentMethod;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Catalog\ProductService;
+use App\Services\MultilingualSettings;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,7 +31,7 @@ class FeatureDisablesAdminScreensTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\PermissionSeeder::class);
+        $this->seed(PermissionSeeder::class);
 
         foreach (config('features.codes', []) as $code) {
             // "shipping" already exists: its migration seeds it enabled so the
@@ -106,7 +111,7 @@ class FeatureDisablesAdminScreensTest extends TestCase
 
     public function test_disabling_shipping_blocks_pushing_a_waybill(): void
     {
-        $order = \App\Models\Order::query()->create([
+        $order = Order::query()->create([
             'order_number' => 'ORD-FEATURE-001',
             'customer_name' => 'Nguyen Van A',
             'customer_email' => 'a@example.com',
@@ -149,7 +154,7 @@ class FeatureDisablesAdminScreensTest extends TestCase
 
     public function test_disabled_variant_feature_blocks_variant_screens(): void
     {
-        $product = app(\App\Services\Catalog\ProductService::class)->create(['name' => ['vi' => 'Áo'], 'sku' => 'VAR-GATE', 'price' => 1000]);
+        $product = app(ProductService::class)->create(['name' => ['vi' => 'Áo'], 'sku' => 'VAR-GATE', 'price' => 1000]);
         $this->disable('product_variant');
 
         $this->actingAs($this->admin)->get("/vi/admin/products/{$product->id}/options")
@@ -160,19 +165,19 @@ class FeatureDisablesAdminScreensTest extends TestCase
 
     public function test_disabled_multilingual_feature_blocks_languages_and_runs_single_language(): void
     {
-        $this->assertTrue(app(\App\Services\MultilingualSettings::class)->enabled());
+        $this->assertTrue(app(MultilingualSettings::class)->enabled());
 
         $this->disable('multilingual');
 
         $this->actingAs($this->admin)->get('/vi/admin/languages')->assertRedirect('/vi/admin');
         $this->actingAs($this->admin)->postJson('/vi/admin/translations/preview', [])->assertForbidden();
-        $this->assertFalse(app(\App\Services\MultilingualSettings::class)->enabled());
+        $this->assertFalse(app(MultilingualSettings::class)->enabled());
         $this->assertStringNotContainsString(route('admin.languages.index'), $this->sidebar());
     }
 
     public function test_disabled_vnpay_feature_hides_vnpay_from_payment_methods(): void
     {
-        \App\Models\PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
+        PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
             'name' => 'VNPAY Gateway', 'type' => 'connected', 'status' => 'active', 'settings' => [],
         ]);
 

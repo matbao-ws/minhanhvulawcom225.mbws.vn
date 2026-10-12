@@ -6,6 +6,7 @@ and Python; it finds or installs php and composer itself.
     python team.py                       # menu
     python team.py new [name] [options]  # create a customer project (python team.py new -h)
     python team.py doctor                # check the machine's tools
+    python team.py ci-audit --all        # add the editable audit to existing projects' CI (dry run; --apply)
 
 In the core repository: set up the machine, create a customer project. In a customer project:
 start a task, save and push it with a PR, take a new core release, deploy (through deploy.py).
@@ -33,6 +34,143 @@ DEFAULT_OWNER = 'M-t-Bao-WS'
 NAME_PATTERN = r'[a-z0-9][a-z0-9-]{1,48}'
 
 
+# ================================================================ console
+# Kept identical in deploy.py and team.py: each runs on its own, with nothing but Python.
+#
+# Colour comes from the tag every message already starts with ([+] [-] [!] [?] [*] [=]), so a
+# line reads the same with or without it. Off when the output is not a terminal (CI, a pipe, a
+# test) or NO_COLOR is set.
+
+def _ansi_supported(stream):
+    if os.environ.get('NO_COLOR') or not hasattr(stream, 'isatty') or not stream.isatty():
+        return False
+    if os.name != 'nt':
+        return True
+    try:
+        import ctypes
+        kernel = ctypes.windll.kernel32
+        handle = kernel.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if not kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel.SetConsoleMode(handle, mode.value | 0x0004))  # VIRTUAL_TERMINAL_PROCESSING
+    except Exception:
+        return False
+
+
+class C:
+    """ANSI codes; all empty until enable_console() finds a terminal that shows them."""
+    RESET = BOLD = DIM = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = WHITE = ''
+
+    @classmethod
+    def enable(cls):
+        cls.RESET, cls.BOLD, cls.DIM = '\033[0m', '\033[1m', '\033[2m'
+        cls.RED, cls.GREEN, cls.YELLOW = '\033[91m', '\033[92m', '\033[93m'
+        cls.BLUE, cls.MAGENTA, cls.CYAN, cls.WHITE = '\033[94m', '\033[95m', '\033[96m', '\033[97m'
+
+
+# tag → (colour of the tag, colour of the rest of the line)
+_TAGS = (
+    ('[+++]', lambda: (C.BOLD + C.GREEN, C.BOLD + C.GREEN)),
+    ('[+]', lambda: (C.BOLD + C.GREEN, C.WHITE)),
+    ('[-]', lambda: (C.BOLD + C.RED, C.RED)),
+    ('[!]', lambda: (C.BOLD + C.YELLOW, C.YELLOW)),
+    ('[?]', lambda: (C.BOLD + C.CYAN, C.BOLD + C.CYAN)),
+    ('[*]', lambda: (C.BOLD + C.MAGENTA, C.MAGENTA)),
+    ('[=]', lambda: (C.BOLD + C.BLUE, C.BOLD + C.BLUE)),
+)
+
+
+def paint_line(line):
+    """One line of output, coloured by its leading tag. Lines already coloured are left alone."""
+    if not C.RESET or not line.strip() or '\033[' in line:
+        return line
+    body = line.lstrip()
+    indent = line[:len(line) - len(body)]
+    for tag, colours in _TAGS:
+        if body.startswith(tag):
+            head, rest = colours()
+            return f'{indent}{head}{tag}{C.RESET}{rest}{body[len(tag):]}{C.RESET}'
+    if set(body) <= set('-=_─═'):
+        return f'{indent}{C.DIM}{C.GREEN}{body}{C.RESET}'
+    if body.startswith('$ '):
+        return f'{indent}{C.DIM}{body}{C.RESET}'
+    return line
+
+
+class _PaintedStream:
+    """Wraps stdout so every print() goes through paint_line, without touching the callers."""
+
+    def __init__(self, stream):
+        self._stream = stream
+        self._at_line_start = True
+
+    def write(self, text):
+        out = []
+        for piece in text.splitlines(keepends=True):
+            newline = piece.endswith('\n')
+            content = piece[:-1] if newline else piece
+            out.append((paint_line(content) if self._at_line_start else content) + ('\n' if newline else ''))
+            self._at_line_start = newline
+        if not text:
+            return 0
+        self._stream.write(''.join(out))
+        return len(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
+def enable_console():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8')  # Vietnamese on a cp1252 Windows console
+        except (AttributeError, ValueError):
+            pass
+    if _ansi_supported(sys.stdout):
+        C.enable()
+        sys.stdout = _PaintedStream(sys.stdout)
+
+
+def goodbye(note=''):
+    """Ctrl+C or Ctrl+Z/Ctrl+D: a clean exit, on a fresh line, with the colours closed."""
+    sys.stdout.write(C.RESET + '\n')
+    if note:
+        print(f'[!] {note}')
+    else:
+        print('[+] Đã thoát. Hẹn gặp lại!')
+    sys.stdout.flush()
+
+
+# Pasted from a panel or a chat, a value often carries a non-breaking space, a zero-width space
+# or a byte-order mark that nobody can see — and a password with one never matches.
+_INVISIBLE = dict.fromkeys(map(ord, '​‌‍⁠﻿'))
+
+
+def clean(value):
+    """Whitespace off both ends (non-breaking spaces included) and invisible characters gone."""
+    return (value or '').translate(_INVISIBLE).replace(' ', ' ').strip()
+
+
+def prompt_line(label, default=''):
+    """`  ▸ Label [default]: ` — the label in cyan, the default dimmed, the answer in bright white."""
+    hint = f' {C.DIM}[{default}]{C.RESET}' if default else ''
+    return f'    {C.GREEN}▸{C.RESET} {C.CYAN}{label}{C.RESET}{hint}{C.DIM}:{C.RESET} {C.BOLD}{C.WHITE}'
+
+
+def read_answer(prompt):
+    """input(), with the answer's colour closed again however the line ends."""
+    try:
+        return clean(input(prompt))
+    finally:
+        if C.RESET:
+            sys.stdout.write(C.RESET)
+            sys.stdout.flush()
+        if isinstance(sys.stdout, _PaintedStream):
+            # The terminal echoed the Enter itself; the next print starts a fresh line.
+            sys.stdout._at_line_start = True
+
+
 # ================================================================ helpers
 
 class Stop(Exception):
@@ -44,20 +182,23 @@ def say(message=''):
 
 
 def ask(label, default='', required=False):
-    hint = f' [{default}]' if default else ''
+    """One value, trimmed (see clean()) and shown as typed — tokens and passwords included."""
     while True:
         try:
-            answer = input(f'  {label}{hint}: ').strip() or default
+            answer = read_answer(prompt_line(label, default)) or default
         except EOFError:
             answer = default
             required = False
         if answer or not required:
             return answer
-        say('  (bắt buộc)')
+        say('    [!] Bắt buộc, không được để trống.')
 
 
 def yes(label, default=True):
-    answer = ask(label + (' [C/k]' if default else ' [c/K]')).lower()
+    try:
+        answer = read_answer(prompt_line(label, 'C/k' if default else 'c/K')).lower()
+    except EOFError:
+        answer = ''
     return default if answer == '' else answer in ('c', 'co', 'có', 'y', 'yes')
 
 
@@ -400,9 +541,133 @@ jobs:
       - name: Check extensions
         run: php artisan extension:check
 
+      - name: Editable coverage audit
+        run: php artisan client:editable-audit
+
       - name: Run tests
         run: php artisan test --compact
 """
+
+# The editable audit step for customer projects that already exist (`python team.py ci-audit`).
+# Their .github/workflows/ci.yml is neither core nor site-owned in CoreManifest: a core update never
+# rewrites it, so the step is added by a pull request to each project, never by the updater.
+AUDIT_COMMAND = 'php artisan client:editable-audit'
+AUDIT_STEP_NAME = 'Editable coverage audit'
+# The job a project's CI runs both the audit and the tests in; the check branch protection requires.
+CI_JOB = 'test'
+
+
+def add_audit_step(ci_text):
+    """('present' | 'added' | 'unknown', new text). Adds the audit step right before the step that
+    runs the test suite, with that step's indentation, and changes nothing else. A workflow it
+    cannot read that way ('unknown') is left alone: its owner adds the step by hand."""
+    if AUDIT_COMMAND in ci_text:
+        return 'present', ci_text
+    lines = ci_text.split('\n')
+    for i, line in enumerate(lines):
+        if not re.match(r'^\s*(- )?run:\s*php artisan test\b', line):
+            continue
+        start = i
+        while start >= 0 and not re.match(r'^\s*- ', lines[start]):
+            start -= 1
+        if start < 0:
+            break
+        indent = re.match(r'^(\s*)- ', lines[start]).group(1)
+        step = [f'{indent}- name: {AUDIT_STEP_NAME}', f'{indent}  run: {AUDIT_COMMAND}', '']
+        return 'added', '\n'.join(lines[:start] + step + lines[start:])
+    return 'unknown', ci_text
+
+
+def gh_json(*args):
+    """`gh api` as JSON, or None when the call fails (404, no access)."""
+    import json
+    text = out(['gh', 'api', *args])
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
+
+
+def protection_report(repo, require=False):
+    """What branch protection says about the CI job on main; with require=True, adds the job to the
+    required checks when required checks are already on. Never turns protection on, never removes
+    or rewrites another rule."""
+    branch = gh_json(f'repos/{repo}/branches/main') or {}
+    if not branch.get('protected'):
+        return ('main CHƯA bật branch protection: CI đỏ vẫn merge được. Bật trong Settings → Branches '
+                f'(require status check "{CI_JOB}") để audit thật sự chặn merge.')
+    checks = gh_json(f'repos/{repo}/branches/main/protection/required_status_checks')
+    if checks is None:
+        return ('main có branch protection nhưng chưa có required status checks, hoặc tài khoản này không có '
+                f'quyền admin để xem: kiểm tra tay check "{CI_JOB}".')
+    contexts = set(checks.get('contexts') or []) | {c.get('context') for c in (checks.get('checks') or [])}
+    if CI_JOB in contexts:
+        return f'check "{CI_JOB}" đã là bắt buộc: audit fail sẽ chặn merge.'
+    if not require:
+        return f'check "{CI_JOB}" CHƯA bắt buộc (chạy lại với --require để thêm, các check khác giữ nguyên).'
+    code = run(['gh', 'api', '-X', 'POST', f'repos/{repo}/branches/main/protection/required_status_checks/contexts',
+                '-f', f'contexts[]={CI_JOB}'], check=False)
+    return f'đã thêm "{CI_JOB}" vào required checks.' if code == 0 else 'không thêm được required check (thiếu quyền admin repo?).'
+
+
+def ci_audit(argv=None):
+    """Adds the editable audit to the CI of existing customer projects, one pull request each."""
+    import base64
+    p = argparse.ArgumentParser(prog='python team.py ci-audit',
+                                description='Thêm bước client:editable-audit vào CI của các project khách đã có.')
+    p.add_argument('--repo', action='append', default=[], help='OWNER/REPO, lặp lại được')
+    p.add_argument('--all', action='store_true', help=f'mọi repo của {DEFAULT_OWNER} có file VERSION')
+    p.add_argument('--apply', action='store_true', help='mở PR (mặc định chỉ in việc sẽ làm)')
+    p.add_argument('--require', action='store_true', help=f'thêm "{CI_JOB}" vào required checks khi đã bật')
+    args = p.parse_args(argv)
+    if not has('gh'):
+        raise Stop('Cần GitHub CLI (gh) đã đăng nhập.')
+
+    repos = list(args.repo)
+    if args.all:
+        listed = out(['gh', 'repo', 'list', DEFAULT_OWNER, '--limit', '500', '--json', 'nameWithOwner', '-q', '.[].nameWithOwner'])
+        repos += [r for r in listed.split('\n') if r]
+    if not repos:
+        raise Stop('Chỉ định --repo OWNER/REPO hoặc --all.')
+
+    for repo in dict.fromkeys(repos):
+        say(f'\n== {repo}')
+        if gh_json(f'repos/{repo}/contents/VERSION') is None:
+            say('  bỏ qua: không có file VERSION, không phải project dựng từ core.')
+            continue
+        if gh_json(f'repos/{repo}/contents/.github/workflows/release.yml') is not None:
+            say('  bỏ qua: đây là repo core (có release.yml); core chạy audit qua EditableCoverageDriftTest.')
+            continue
+        ci = gh_json(f'repos/{repo}/contents/.github/workflows/ci.yml?ref=main')
+        if ci is None:
+            say('  không có .github/workflows/ci.yml trên main: thêm tay (xem PROJECT_CI trong team.py).')
+            continue
+        text = base64.b64decode(ci['content']).decode('utf-8')
+        status, new_text = add_audit_step(text)
+        if status == 'present':
+            say('  CI đã có bước audit.')
+        elif status == 'unknown':
+            say('  ci.yml đã được tuỳ biến, không chèn tự động. Thêm tay vào job chạy test:')
+            say(f'      - name: {AUDIT_STEP_NAME}\n        run: {AUDIT_COMMAND}')
+        elif not args.apply:
+            say('  sẽ thêm bước audit ngay trước bước chạy test (chạy lại với --apply để mở PR).')
+        else:
+            branch = 'ci/editable-audit'
+            base_sha = gh_json(f'repos/{repo}/git/ref/heads/main')['object']['sha']
+            run(['gh', 'api', '-X', 'POST', f'repos/{repo}/git/refs', '-f', f'ref=refs/heads/{branch}', '-f', f'sha={base_sha}'], check=False)
+            encoded = base64.b64encode(new_text.encode('utf-8')).decode('ascii')
+            run(['gh', 'api', '-X', 'PUT', f'repos/{repo}/contents/.github/workflows/ci.yml',
+                 '-f', 'message=ci: run the editable coverage audit', '-f', f'content={encoded}',
+                 '-f', f'sha={ci["sha"]}', '-f', f'branch={branch}'])
+            run(['gh', 'pr', 'create', '--repo', repo, '--base', 'main', '--head', branch,
+                 '--title', 'ci: run the editable coverage audit',
+                 '--body', f'Adds `{AUDIT_COMMAND}` before the test suite, so storefront copy that is not editable '
+                           'fails CI instead of reaching the customer. Only that step is added; the rest of the '
+                           'workflow is unchanged. Generated by `python team.py ci-audit`.'], check=False)
+        say('  ' + protection_report(repo, require=args.require))
+
 
 # Files of the core repository that make no sense in a customer project.
 CORE_ONLY_FILES = ['.github/workflows/release.yml', '.deploy_url', '.deploy_timestamp']
@@ -810,12 +1075,15 @@ def menu():
     title = 'REPO CORE' if where == 'core' else f'DỰ ÁN {os.path.basename(HERE)}'
     while True:
         say('')
-        say(f'=== {title} — nhánh {branch()} ===')
+        say(f'{C.GREEN}{"═" * 60}{C.RESET}')
+        say(f'{C.BOLD}{C.GREEN}  >_ {title}{C.RESET}   {C.DIM}nhánh{C.RESET} {C.YELLOW}{branch()}{C.RESET}')
+        say(f'{C.GREEN}{"═" * 60}{C.RESET}')
         for i, (label, _) in enumerate(items, 1):
-            say(f'  {i}. {label}')
-        say('  0. Thoát')
+            say(f'      {C.GREEN}{C.BOLD}{i}{C.RESET} {C.DIM}│{C.RESET} {label}')
+        say(f'      {C.RED}{C.BOLD}0{C.RESET} {C.DIM}│ Thoát{C.RESET}')
         choice = ask('Chọn')
         if choice in ('0', 'q', ''):
+            say('[+] Đã thoát. Hẹn gặp lại!')
             return
         if choice.isdigit() and 1 <= int(choice) <= len(items):
             say('')
@@ -823,13 +1091,10 @@ def menu():
                 items[int(choice) - 1][1]()
             except Stop as e:
                 say(f'[-] {e}')
-            except KeyboardInterrupt:
-                say('\n[-] Đã huỷ.')
 
 
 def main():
-    for stream in (sys.stdout, sys.stderr):
-        stream.reconfigure(encoding='utf-8')  # Vietnamese on a cp1252 Windows console
+    enable_console()
     command, rest = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else ('', [])
     try:
         if command == 'new':
@@ -837,6 +1102,8 @@ def main():
             new_project(rest)
         elif command == 'doctor':
             sys.exit(0 if doctor(offer_install='--install' in rest) else 1)
+        elif command == 'ci-audit':
+            ci_audit(rest)
         elif command in ('', 'menu'):
             menu()
         else:
@@ -844,9 +1111,10 @@ def main():
     except Stop as e:
         say(f'[-] {e}')
         sys.exit(1)
-    except KeyboardInterrupt:
-        say('\n[-] Đã huỷ.')
-        sys.exit(130)
+    except (KeyboardInterrupt, EOFError):
+        # Ctrl+C anywhere — the menu, a question, a running step — leaves the tool cleanly.
+        goodbye()
+        sys.exit(0)
 
 
 if __name__ == '__main__':

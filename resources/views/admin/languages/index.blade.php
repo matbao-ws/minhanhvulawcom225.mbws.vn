@@ -9,14 +9,14 @@
         Thêm ngôn ngữ tại đây không cần thêm cột database. Tên, mô tả và nội dung được lưu theo mã locale trong JSON; slug được lưu riêng theo locale.
     </div>
 
-    <div class="card">
+    <div data-tour="languages.preferences" class="card">
         <div class="card-body">
             <h5 class="mb-2">Ưu tiên nội dung</h5>
             <p class="text-muted mb-3">Ngôn ngữ mặc định dùng để nhập nội dung chính. Fallback chỉ được dùng khi bản dịch đang xem bị trống và không làm thay đổi URL quản trị.</p>
             <form method="POST" action="{{ route('admin.languages.preferences') }}" class="row g-3 align-items-end">
                 @csrf
                 @method('PUT')
-                <div class="col-md-5">
+                <div data-tour="languages.default" class="col-md-5">
                     <label class="form-label" for="default_locale">Ngôn ngữ mặc định</label>
                     <select class="form-select" id="default_locale" name="default_locale" required>
                         @foreach($languages->where('is_active', true) as $language)
@@ -26,7 +26,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div data-tour="languages.fallback" class="col-md-5">
                     <label class="form-label" for="fallback_locale">Fallback nội dung</label>
                     <select class="form-select" id="fallback_locale" name="fallback_locale" required>
                         @foreach($languages->where('is_active', true) as $language)
@@ -37,13 +37,13 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-primary w-100">Lưu ưu tiên</button>
+                    <button data-tour="languages.save-preferences" class="btn btn-primary w-100">Lưu ưu tiên</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div data-tour="languages.add" class="card">
         <div class="card-body">
             <h5 class="mb-3">Thêm ngôn ngữ</h5>
             <form method="POST" action="{{ route('admin.languages.store') }}" class="row g-3 align-items-end">
@@ -59,7 +59,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div data-tour="languages.list" class="card">
         <div class="card-body">
             <h5 class="mb-3">Ngôn ngữ hiện có</h5>
             <div class="table-responsive">
@@ -78,7 +78,7 @@
                                     <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input" name="is_active" value="1" @checked($language->is_active)></div>
                                     <div class="col-md-1 text-center">@if($language->is_default)<span class="badge bg-primary">Mặc định</span>@else<span class="text-muted">—</span>@endif</div>
                                     <div class="col-md-2 text-center">@if($language->is_content_fallback)<span class="badge bg-info-subtle text-info">Fallback</span>@else<span class="text-muted">—</span>@endif</div>
-                                    <div class="col-md-2 text-end"><button class="btn btn-outline-primary">Lưu {{ strtoupper($language->code) }}</button></div>
+                                    <div class="col-md-2 text-end"><button data-tour="languages.row-save" class="btn btn-outline-primary">Lưu {{ strtoupper($language->code) }}</button></div>
                                 </form>
                             </td>
                         </tr>

@@ -3,10 +3,18 @@
 namespace Tests\Feature;
 
 use App\Models\ProjectSetting;
+use App\Models\User;
+use App\Notifications\QueuedResetPassword;
+use App\Services\AiGateway\GatewayClient;
 use App\Services\MailSettings;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
 class MailSettingsTest extends TestCase
@@ -118,7 +126,7 @@ class MailSettingsTest extends TestCase
         // A fresh install runs migrations before project_settings exists; failing to
         // read a setting must not stop the process that is creating it.
         MailSettings::flush();
-        \Illuminate\Support\Facades\Schema::drop('project_settings');
+        Schema::drop('project_settings');
 
         app(MailSettings::class)->apply();
 
@@ -200,12 +208,12 @@ class MailSettingsTest extends TestCase
         $this->storeSmtp(['enabled' => false, 'owner_email' => 'owner@shop.vn']);
         $this->resolveMailer();
 
-        \Illuminate\Support\Facades\Mail::html('<p>Cảm ơn bạn</p>', function ($message) {
+        Mail::html('<p>Cảm ơn bạn</p>', function ($message) {
             $message->to('khach@example.com')->cc('ke-toan@shop.vn')->subject('Xác nhận đơn hàng')
                 ->attachData('%PDF-1.4 fake', 'hoa-don.pdf', ['mime' => 'application/pdf']);
         });
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+        Http::assertSent(function (Request $request) {
             return $request->url() === 'https://gw.test/v1/mail/send'
                 && $request->hasHeader('Authorization', 'Bearer mbp_relay_token')
                 && $request['to'] === ['khach@example.com']
@@ -225,20 +233,20 @@ class MailSettingsTest extends TestCase
         $this->useRelay(Http::response(['ok' => false, 'reason' => 'provider_unavailable'], 503));
         $this->resolveMailer();
 
-        $this->expectException(\Symfony\Component\Mailer\Exception\TransportException::class);
+        $this->expectException(TransportException::class);
 
-        \Illuminate\Support\Facades\Mail::raw('Xin chào', fn ($message) => $message->to('khach@example.com')->subject('Test'));
+        Mail::raw('Xin chào', fn ($message) => $message->to('khach@example.com')->subject('Test'));
     }
 
     public function test_password_reset_mail_is_queued(): void
     {
-        \Illuminate\Support\Facades\Notification::fake();
-        $user = \App\Models\User::factory()->create();
+        Notification::fake();
+        $user = User::factory()->create();
 
         $user->sendPasswordResetNotification('token-123');
 
-        \Illuminate\Support\Facades\Notification::assertSentTo($user, \App\Notifications\QueuedResetPassword::class);
-        $this->assertInstanceOf(\Illuminate\Contracts\Queue\ShouldQueue::class, new \App\Notifications\QueuedResetPassword('t'));
+        Notification::assertSentTo($user, QueuedResetPassword::class);
+        $this->assertInstanceOf(ShouldQueue::class, new QueuedResetPassword('t'));
     }
 
     public function test_refresh_command_shows_the_relay_without_printing_the_token(): void
@@ -255,7 +263,7 @@ class MailSettingsTest extends TestCase
     private function useRelay($sendResponse = null): void
     {
         config(['ai_gateway.url' => 'https://gw.test', 'ai_gateway.token' => 'mbp_relay_token']);
-        \App\Services\AiGateway\GatewayClient::forgetProject();
+        GatewayClient::forgetProject();
 
         Http::fake([
             'gw.test/v1/mail/send' => $sendResponse ?? Http::response(['ok' => true, 'id' => 'msg_1', 'used' => 1, 'limit' => 200]),
@@ -268,8 +276,9 @@ class MailSettingsTest extends TestCase
     {
         $this->app->forgetInstance('mail.manager');
         $this->app->forgetInstance('mailer');
-        \Illuminate\Support\Facades\Mail::clearResolvedInstances();
+        Mail::clearResolvedInstances();
     }
+
     private function storeSmtp(array $overrides = []): void
     {
         ProjectSetting::query()->updateOrCreate(

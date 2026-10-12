@@ -401,6 +401,25 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Không thêm dependency nếu framework/core hiện có giải quyết được.
 - Không đổi kiến trúc hoặc public contract ngoài phạm vi mà không báo rõ.
 
+### Hướng dẫn sử dụng từng trang admin (driver.js)
+
+Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) được phép cho riêng tính năng này:
+`public/admin-assets/libs/driver.js/` là file tĩnh vendor sẵn, không npm, không bước build.
+
+- Trang nào có hướng dẫn và các bước theo thứ tự khai báo ở **một nơi duy nhất** là
+  `app/Support/AdminTours/tours.php`, do `App\Support\AdminTours` đọc. Chữ hiển thị nằm ở `lang/{vi,en}/tours.php`, là văn bản thuần và
+  được escape trước khi đưa vào driver.js (thư viện này render bằng `innerHTML`).
+- Mỗi bước trỏ tới phần tử có `data-tour="<target>"` trong view. Đổi hoặc xoá phần tử đó thì phải
+  sửa bước tương ứng: `AdminToursTest` render từng trang và fail khi thiếu target bắt buộc. Phần tử
+  chỉ có với một số quyền, tính năng hoặc trạng thái thì đánh dấu bước là optional; trình duyệt tự
+  bỏ qua bước không tìm thấy phần tử.
+- Chỉ trang có hướng dẫn mới nạp driver.js. Hướng dẫn tự bật một lần cho mỗi trang trên mỗi trình
+  duyệt (localStorage), rồi chỉ chạy khi bấm nút "?" trên header. Tăng `AdminTours::VERSION` khi
+  muốn mọi admin xem lại.
+- **Mọi trang trong sidebar phải có hướng dẫn** (`AdminToursTest` fail nếu thiếu). Thêm trang mới:
+  thêm route và các bước vào `AdminTours/tours.php`, thêm text cho cả hai ngôn ngữ, gắn `data-tour`
+  vào view. Không viết hướng dẫn bằng JS riêng trong từng view.
+
 ## 7. An toàn dữ liệu và deployment
 
 Không chạy các lệnh sau trên database không xác định:
@@ -532,7 +551,12 @@ php artisan test --compact
 php -l path/to/changed.php
 php composer.phar validate --no-check-publish
 php composer.phar audit --locked --no-interaction
+vendor/bin/pint --test                                  # CI chặn nếu sai format; sửa bằng vendor/bin/pint
+vendor/bin/phpstan analyse --memory-limit=1G            # CI chặn lỗi mới ngoài phpstan-baseline.neon
 ```
+
+`phpstan-baseline.neon` chỉ được thu nhỏ: sửa xong lỗi thì xoá entry tương ứng, không tự sinh lại
+baseline để che lỗi mới.
 
 Nếu full suite đã lỗi do thay đổi có sẵn, không sửa file ngoài scope để “làm xanh”. Báo chính xác:
 test nào lỗi, lỗi có liên quan hay không và test mục tiêu đã đạt gì.
@@ -724,6 +748,23 @@ Ngoài CMS Page, template storefront có thể đánh dấu từng vùng tĩnh c
 - `ConvertEmptyStringsToNull` biến `""` thành `null` trước validation; FormRequest phải hoàn nguyên.
 - Lưu qua `admin.site-blocks.update`, khôi phục qua `admin.site-blocks.restore` — cùng quyền
   `pages.update` và throttle `admin-page-inline` với inline page. Ảnh cần thêm `media.view`.
+- **Ảnh nền là loại `background`**, viết trên chính phần tử của theme bằng
+  `@clientBackground('<key>', "<nguyên chuỗi style gốc>")` (lazy: `['lazy' => 'data-bg', 'src' => …]`).
+  `App\Support\ClientBackground` chỉ thay phần bên trong **đúng một** `url()` ảnh nội dung; gradient,
+  position, size, repeat và các khai báo khác giữ nguyên từng ký tự. 0 hoặc ≥2 `url()` thì ném lỗi
+  khi render — ca đó sửa tay. Không có thao tác ẩn ảnh nền.
+- **`<picture>`/srcset/lazy** đi qua `editable-image` (`srcset`, `sizes`, `:sources`, `picture-class`,
+  `lazy`, `placeholder`). Chưa thay hoặc đã khôi phục: in đúng markup gốc của theme. Đã thay: mọi
+  `srcset` và `<source>` trỏ về ảnh mới, không xoá phần tử nào.
+- **Quy tắc URL ảnh** (cả `image` và `background`), kiểm ở `SiteBlockUpdateRequest` và kiểm lại khi
+  render (`ClientBackground::isSafeUrl`): chuỗi rỗng, path bắt đầu bằng một `/`, hoặc `http(s)://host/…`;
+  không khoảng trắng, nháy, ngoặc, `\`, `<`, `>`, `;`, ký tự điều khiển. `javascript:`, `data:`,
+  `//host` bị 422. Lưu path tương đối qua `MediaUrl`. Ghi, khôi phục và khôi phục revision của
+  `image`/`background` đều cần `media.view`.
+- **Sửa lồng nhau:** phần tử có ảnh nền mang `data-client-background`, **không** mang
+  `data-block-key`, nên không bao giờ thành một vùng nuốt click của con. Ảnh nền chỉ mở từ nút
+  "Đổi ảnh nền" (editor chrome, gắn vào `<body>`); chữ và ảnh bên trong vẫn là vùng độc lập, và
+  scanner vẫn quét toàn bộ phần tử con.
 - Revision gộp trong 10 phút; lần lưu đầu của block mới không có gì để snapshot.
 - **Không viết literal `<x-client::…>` trong comment Blade.** Blade biên dịch cả trong comment JS/CSS
   và để hở `if` không đóng — trang vẫn render nhưng rò output buffer.

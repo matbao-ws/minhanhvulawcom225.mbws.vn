@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\User;
+
 /**
  * Whether this request should be served the storefront editor's own furniture.
  *
@@ -11,7 +13,7 @@ namespace App\Support;
  *
  * The flag can only ever **remove** the editor. It grants nothing, so it is not an
  * authorization decision and must never be mistaken for one — that stays with
- * {@see \App\Models\User::canEditClientContent()}, which every partial still
+ * {@see User::canEditClientContent()}, which every partial still
  * checks. Named here rather than typed into the layout so the preview and the
  * layout cannot drift on the spelling.
  */

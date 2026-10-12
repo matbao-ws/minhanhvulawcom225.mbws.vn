@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Support\PageHtmlSanitizer;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -18,7 +19,7 @@ class PageHtmlSanitizerTest extends TestCase
     {
         parent::setUp();
 
-        $this->sanitizer = new PageHtmlSanitizer();
+        $this->sanitizer = new PageHtmlSanitizer;
     }
 
     /**
@@ -42,7 +43,7 @@ class PageHtmlSanitizerTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('rawTextPayloads')]
+    #[DataProvider('rawTextPayloads')]
     public function test_raw_text_elements_cannot_smuggle_markup(string $payload): void
     {
         $clean = $this->sanitizer->clean($payload);

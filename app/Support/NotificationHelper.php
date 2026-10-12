@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Jobs\SendStoreOrderNotification;
+use App\Mail\OrderStatusMail;
 use App\Models\Order;
 use App\Models\ProjectSetting;
 use App\Services\MailSettings;
@@ -44,7 +45,7 @@ class NotificationHelper
                     $text .= "• Mã đơn: #{$order->order_number}\n";
                     $text .= "• Khách hàng: {$order->customer_name}\n";
                     $text .= "• Số điện thoại: {$order->customer_phone}\n";
-                    $text .= "• Tổng cộng: " . number_format($order->grand_total, 0, ',', '.') . " ₫\n";
+                    $text .= '• Tổng cộng: '.number_format($order->grand_total, 0, ',', '.')." ₫\n";
                     $text .= "• Địa chỉ: {$order->shipping_address}\n";
 
                     $response = Http::post("https://bot-api.zaloplatforms.com/bot{$botToken}/sendMessage", [
@@ -53,8 +54,8 @@ class NotificationHelper
                         'parse_mode' => 'markdown',
                     ]);
 
-                    if (!$response->successful()) {
-                        Log::error("Zalo Bot send message failed: " . $response->body());
+                    if (! $response->successful()) {
+                        Log::error('Zalo Bot send message failed: '.$response->body());
                     }
                 }
             }
@@ -70,12 +71,12 @@ class NotificationHelper
                 $ownerEmail = app(MailSettings::class)->ownerEmail();
                 if ($ownerEmail) {
                     // Send email to the owner from the queue worker.
-                    Mail::to($ownerEmail)->locale($order->locale ?: 'vi')->send(new \App\Mail\OrderStatusMail($order));
+                    Mail::to($ownerEmail)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order));
                 }
             }
 
         } catch (\Exception $e) {
-            Log::error("Failed to send order notification: " . $e->getMessage());
+            Log::error('Failed to send order notification: '.$e->getMessage());
         }
     }
 }

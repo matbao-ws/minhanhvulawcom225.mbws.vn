@@ -54,7 +54,7 @@ class SiteContentService
             return null;
         }
 
-        return $block->type === SiteBlock::TYPE_IMAGE ? MediaUrl::resolve($stored) : $stored;
+        return in_array($block->type, SiteBlock::PICTURE_TYPES, true) ? MediaUrl::resolve($stored) : $stored;
     }
 
     /**
@@ -313,7 +313,7 @@ class SiteContentService
             SiteBlock::TYPE_TEXT => trim(strip_tags($value)),
             SiteBlock::TYPE_HTML => $this->htmlSanitizer->clean(trim($value)),
             // Stored relative so the reference survives an APP_URL change.
-            SiteBlock::TYPE_IMAGE => (string) MediaUrl::toStorable(trim($value)),
+            SiteBlock::TYPE_IMAGE, SiteBlock::TYPE_BACKGROUND => (string) MediaUrl::toStorable(trim($value)),
             default => trim($value),
         };
     }

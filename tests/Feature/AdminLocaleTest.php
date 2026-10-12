@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\SiteBlock;
 use App\Models\User;
 use App\Services\LanguageRegistry;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,7 +25,7 @@ class AdminLocaleTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
         foreach (['catalog', 'cms_page', 'menu', 'multilingual'] as $feature) {
             FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);
         }

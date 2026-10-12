@@ -101,7 +101,7 @@ class VoucherCrudTest extends TestCase
         ]);
 
         $response->assertRedirect('/vi/admin/vouchers');
-        
+
         $this->assertDatabaseHas('vouchers', [
             'code' => 'NEWYEAR20',
             'type' => 'percentage',

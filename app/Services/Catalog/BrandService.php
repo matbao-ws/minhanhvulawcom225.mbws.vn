@@ -3,29 +3,29 @@
 namespace App\Services\Catalog;
 
 use App\Models\Brand;
-use App\Support\HtmlSanitizer;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use App\Services\CloudinaryService;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
+use App\Support\HtmlSanitizer;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class BrandService
 {
     public function __construct(
-        private readonly \App\Services\CloudinaryService $cloudinaryService,
+        private readonly CloudinaryService $cloudinaryService,
         private readonly HtmlSanitizer $htmlSanitizer,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LanguageRegistry $languages,
-    )
-    {
-    }
+    ) {}
+
     public function create(array $data): Brand
     {
         return DB::transaction(function () use ($data) {
             $brand = Brand::query()->create($this->payload($data));
             $this->localizedSlugs->sync($brand, $this->localizedValues($data['slug'] ?? []), $brand->getTranslations('name'));
+
             return $brand->refresh();
         });
     }
@@ -35,6 +35,7 @@ class BrandService
         return DB::transaction(function () use ($brand, $data) {
             $brand->update($this->payload($data, $brand));
             $this->localizedSlugs->sync($brand, $this->localizedValues($data['slug'] ?? []), $brand->getTranslations('name'));
+
             return $brand->refresh();
         });
     }
@@ -92,9 +93,15 @@ class BrandService
             }
         } else {
             $value = is_string($value) ? trim($value) : '';
-            if ($attribute === 'description') $value = $this->htmlSanitizer->clean($value);
-            if ($value !== '') $translations[$locale] = $value;
-            if ($locale !== $fallbackLocale && $value !== '' && empty($translations[$fallbackLocale])) $translations[$fallbackLocale] = $value;
+            if ($attribute === 'description') {
+                $value = $this->htmlSanitizer->clean($value);
+            }
+            if ($value !== '') {
+                $translations[$locale] = $value;
+            }
+            if ($locale !== $fallbackLocale && $value !== '' && empty($translations[$fallbackLocale])) {
+                $translations[$fallbackLocale] = $value;
+            }
         }
 
         return array_filter($translations, fn ($translation) => $translation !== null && $translation !== '');
@@ -107,7 +114,10 @@ class BrandService
 
     private function localizedValues(string|array|null $value): array
     {
-        if (is_array($value)) return collect($value)->filter(fn ($item, $locale) => $this->languages->supports((string) $locale) && is_string($item) && trim($item) !== '')->map(fn (string $item) => trim($item))->all();
+        if (is_array($value)) {
+            return collect($value)->filter(fn ($item, $locale) => $this->languages->supports((string) $locale) && is_string($item) && trim($item) !== '')->map(fn (string $item) => trim($item))->all();
+        }
+
         return is_string($value) && trim($value) !== '' ? [app()->getLocale() => trim($value)] : [];
     }
 

@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\PaymentMethod;
-use App\Models\FeatureSetting;
 use App\Models\Product;
 use App\Models\ProjectSetting;
 use App\Models\Review;

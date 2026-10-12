@@ -3,6 +3,7 @@
 namespace App\Support\Extensions;
 
 use App\Support\MigrationSafety;
+use App\Support\PhpTokens;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -88,28 +89,23 @@ class ExtensionChecker
 
             // use App\X\Y [as Z];
             if ($token[0] === T_USE) {
-                $j = $this->next($tokens, $i);
-                if ($j !== null && in_array($tokens[$j][0] ?? null, [T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_STRING], true)) {
-                    $name = ltrim($tokens[$j][1], '\\');
-                    $k = $this->next($tokens, $j);
-                    if ($k !== null && ($tokens[$k] === '{' || ($tokens[$k][0] ?? null) === T_NS_SEPARATOR)) {
-                        if ($this->isCore($name)) {
-                            $problems[] = "group use of {$name}\\{...}: import core classes one by one";
-                        }
-
-                        continue;
-                    }
-                    $alias = substr($name, (int) strrpos('\\'.$name, '\\'));
-                    if ($k !== null && ($tokens[$k][0] ?? null) === T_AS) {
-                        $a = $this->next($tokens, $k);
-                        $alias = $a !== null ? $tokens[$a][1] : $alias;
-                    }
-                    $imports[strtolower($alias)] = $name;
-                    if ($this->isCore($name) && ! $this->allowed($name)) {
-                        $problems[] = "uses {$name}, which is not part of the extension API";
-                    }
-                    $i = $j;
+                $use = PhpTokens::readUse($tokens, $i);
+                if ($use === null) {
+                    continue;
                 }
+                $name = $use['name'];
+                if ($use['group']) {
+                    if ($this->isCore($name)) {
+                        $problems[] = "group use of {$name}\\{...}: import core classes one by one";
+                    }
+
+                    continue;
+                }
+                $imports[strtolower($use['alias'])] = $name;
+                if ($this->isCore($name) && ! $this->allowed($name)) {
+                    $problems[] = "uses {$name}, which is not part of the extension API";
+                }
+                $i = $use['end'];
 
                 continue;
             }
@@ -257,24 +253,12 @@ class ExtensionChecker
 
     private function next(array $tokens, int $i): ?int
     {
-        for ($j = $i + 1, $n = count($tokens); $j < $n; $j++) {
-            if (! is_array($tokens[$j]) || ! in_array($tokens[$j][0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
-                return $j;
-            }
-        }
-
-        return null;
+        return PhpTokens::next($tokens, $i);
     }
 
     private function previous(array $tokens, int $i): ?int
     {
-        for ($j = $i - 1; $j >= 0; $j--) {
-            if (! is_array($tokens[$j]) || ! in_array($tokens[$j][0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
-                return $j;
-            }
-        }
-
-        return null;
+        return PhpTokens::previous($tokens, $i);
     }
 
     /** @return list<string> */

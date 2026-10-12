@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\FeatureSetting;
+use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\FeatureSetting;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Services\Catalog\ProductService;
 use App\Services\OrderStockService;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class VariantV2Test extends TestCase
@@ -139,7 +141,7 @@ class VariantV2Test extends TestCase
         $product = Product::query()->where('slug', 'ao-thun-variant-v2')->firstOrFail();
         $this->assertSame(2, $product->optionGroups()->count());
         $this->assertSame(4, $product->variants()->count());
-        $this->assertSame(8, \Illuminate\Support\Facades\DB::table('product_variant_option_values')->count());
+        $this->assertSame(8, DB::table('product_variant_option_values')->count());
 
         $this->actingAs($admin)
             ->get("/vi/admin/products/{$product->id}/edit")
@@ -216,7 +218,7 @@ class VariantV2Test extends TestCase
             'total' => 100,
         ]);
         // No inventory_source key means this is a ledger entry written before V2.
-        \App\Models\InventoryMovement::query()->create([
+        InventoryMovement::query()->create([
             'product_id' => $product->id,
             'product_variant_id' => $variant->id,
             'order_id' => $order->id,

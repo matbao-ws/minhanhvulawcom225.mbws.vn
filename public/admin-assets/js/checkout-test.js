@@ -176,6 +176,19 @@
     };
   };
 
+  // One Idempotency-Key per order attempt: resending the same form (after a timeout or a
+  // network error) reuses it, so the server returns the order it may already have made.
+  // A changed form is a new attempt with a new key. randomUUID needs a secure context.
+  let attempt = null;
+  const newKey = () => (window.crypto.randomUUID
+    ? window.crypto.randomUUID()
+    : [...window.crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join(''));
+  const keyFor = (payload) => {
+    const body = JSON.stringify(payload);
+    if (!attempt || attempt.body !== body) attempt = { body, key: newKey() };
+    return attempt.key;
+  };
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     result.replaceChildren();
@@ -209,11 +222,13 @@
     try {
       const response = await fetch(form.dataset.checkoutUrl, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'Idempotency-Key': keyFor(payload) },
         body: JSON.stringify(payload),
       });
       const body = await response.json().catch(() => ({}));
+      if (response.status === 409) attempt = null; // key spent: the next submit starts over
       if (!response.ok) throw body;
+      attempt = null; // placed: the next submit is a new order
 
       const number = body.data?.order?.order_number;
       const link = number ? `${form.dataset.ordersUrl}?q=${encodeURIComponent(number)}` : form.dataset.ordersUrl;

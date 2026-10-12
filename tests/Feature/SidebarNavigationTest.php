@@ -137,7 +137,7 @@ class SidebarNavigationTest extends TestCase
 
     private function xpath(string $html): \DOMXPath
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML('<?xml encoding="UTF-8">'.$html);
         libxml_clear_errors();
@@ -148,7 +148,7 @@ class SidebarNavigationTest extends TestCase
 
     private function adminLinks(string $html): array
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML($html);
         libxml_clear_errors();

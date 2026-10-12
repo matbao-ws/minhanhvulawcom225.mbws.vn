@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\HasMediaUrls;
+use App\Notifications\QueuedResetPassword;
 use App\Support\PermissionRegistry;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -27,7 +28,7 @@ class User extends Authenticatable
      */
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
-        $this->notify(new \App\Notifications\QueuedResetPassword($token));
+        $this->notify(new QueuedResetPassword($token));
     }
 
     /**
@@ -132,7 +133,7 @@ class User extends Authenticatable
     /**
      * Whether an override decides this ability outright.
      *
-     * @return bool|null  true grants, false denies, null defers to the role
+     * @return bool|null true grants, false denies, null defers to the role
      */
     public function permissionOverrideFor(string $ability): ?bool
     {

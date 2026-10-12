@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 return new class extends Migration
@@ -33,7 +33,7 @@ return new class extends Migration
                 ->first();
 
             $oldValue = $oldSetting ? json_decode($oldSetting->setting_value, true) : null;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $oldValue = null;
         }
 

@@ -30,8 +30,102 @@ jobs:
       - name: Run tests
         run: php artisan test --compact
 
+      # GatewayContractTest checks against a pinned copy of the gateway's contracts/v1; this
+      # checks the copy is exact. The token only needs read access to the gateway repo.
+      - name: Gateway contract copy matches its pinned commit
+        env:
+          GH_TOKEN: ${{ secrets.GATEWAY_CONTRACT_READ_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::GATEWAY_CONTRACT_READ_TOKEN is not set: the gateway contract copy was not compared with the gateway repository."
+            exit 0
+          fi
+          bash tests/Support/check-gateway-contract.sh
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, openssl, curl, intl, gd, zip, bcmath, exif, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Reports advisories in every package, dev tools included; never blocks.
+      - name: Audit all dependencies (report only)
+        continue-on-error: true
+        run: composer audit --locked
+
+      # Blocks on advisories in what ships to sites. An advisory with no fix yet
+      # goes in composer.json config.audit.ignore with a reason and review date.
+      - name: Audit production dependencies
+        run: composer audit --no-dev --locked
+
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+
+      # team.py edits customers' CI files (ci-audit): its text edits are tested here.
+      - name: Team script tests (Python)
+        run: python3 -m unittest discover -s tests/python
+
+      # Larastan boots the application to read models and config.
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      # Uses the committed baseline; never regenerate it here.
+      - name: Static analysis (Larastan)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+  # Row locks and unique-index races only show on a real MySQL: two processes check out
+  # with the same Idempotency-Key at once (tests/Feature/Concurrency, group "mysql").
+  mysql-concurrency:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: core_concurrency_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: core_concurrency_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, openssl, curl, intl, gd, zip, bcmath, exif, pdo_mysql
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      # The throwaway database of this job's MySQL container, nothing else.
+      - name: Migrate the concurrency database
+        run: php artisan migrate --force --no-interaction
+
+      - name: Run MySQL concurrency tests
+        run: php artisan test --compact --group=mysql
+
   image:
-    needs: test
+    needs: [test, quality, mysql-concurrency]
     runs-on: ubuntu-latest
     permissions:
       contents: read

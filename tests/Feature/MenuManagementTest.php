@@ -9,6 +9,8 @@ use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\MenuService;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +24,7 @@ class MenuManagementTest extends TestCase
     {
         parent::setUp();
 
-        (new \Database\Seeders\PermissionSeeder())->run();
+        (new PermissionSeeder)->run();
 
         foreach (['menu', 'cms_page', 'catalog'] as $feature) {
             FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);
@@ -282,7 +284,7 @@ class MenuManagementTest extends TestCase
         $this->assertSame($category->id, $item->category_id);
         $this->assertSame(
             route('client.categories.show', ['locale' => 'vi', 'slug' => 'dien-thoai']),
-            app(\App\Services\MenuService::class)->resolveUrl($item, 'vi'),
+            app(MenuService::class)->resolveUrl($item, 'vi'),
         );
     }
 
@@ -296,7 +298,7 @@ class MenuManagementTest extends TestCase
         $item = $this->item(['type' => MenuItem::TYPE_CATEGORY, 'category_id' => null, 'url' => null]);
 
         $this->assertTrue($item->hasMissingTarget());
-        $this->assertNull(app(\App\Services\MenuService::class)->resolveUrl($item, 'vi'));
+        $this->assertNull(app(MenuService::class)->resolveUrl($item, 'vi'));
     }
 
     public function test_item_tree_screen_lists_nested_items(): void

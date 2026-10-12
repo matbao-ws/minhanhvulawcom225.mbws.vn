@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Shipping\ShipmentDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -143,7 +144,7 @@ class GhnShipmentFlowTest extends TestCase
 
     // ---------------------------------------------------------------------
 
-    private function checkout(Product $product, array $extra = []): \Illuminate\Testing\TestResponse
+    private function checkout(Product $product, array $extra = []): TestResponse
     {
         return $this->postJson('/api/public/orders/checkout', array_merge([
             'customer_name' => 'Khách GHN',

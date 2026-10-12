@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/task.response.json",
+  "title": "POST v1/tasks/{code}: the answer, the suggestion it was stored as, and the credits",
+  "type": "object",
+  "required": ["ok", "result", "suggestion_id", "usage"],
+  "properties": {
+    "ok": { "const": true },
+    "result": { "type": "object" },
+    "suggestion_id": { "type": "integer", "minimum": 1 },
+    "usage": {
+      "type": "object",
+      "required": ["credits_charged", "credits_used", "credits_limit"],
+      "properties": {
+        "credits_charged": { "type": "integer", "minimum": 0 },
+        "credits_used": { "type": "integer", "minimum": 0 },
+        "credits_limit": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

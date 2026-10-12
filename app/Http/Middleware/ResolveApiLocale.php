@@ -10,9 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResolveApiLocale
 {
-    public function __construct(private readonly LanguageRegistry $languages)
-    {
-    }
+    public function __construct(private readonly LanguageRegistry $languages) {}
 
     public function handle(Request $request, Closure $next): Response
     {

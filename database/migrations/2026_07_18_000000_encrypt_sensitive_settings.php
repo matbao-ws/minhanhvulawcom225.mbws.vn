@@ -12,7 +12,7 @@ return new class extends Migration
         foreach (['payment_methods', 'shipping_partners'] as $table) {
             DB::table($table)->orderBy('id')->each(function (object $row) use ($table): void {
                 $value = json_decode($row->settings, true);
-                if (!is_array($value)) {
+                if (! is_array($value)) {
                     return;
                 }
 
@@ -27,7 +27,7 @@ return new class extends Migration
             ->orderBy('id')
             ->each(function (object $row): void {
                 $value = json_decode($row->setting_value, true);
-                if (!is_array($value)) {
+                if (! is_array($value)) {
                     return;
                 }
 
@@ -42,7 +42,7 @@ return new class extends Migration
         foreach (['payment_methods', 'shipping_partners'] as $table) {
             DB::table($table)->orderBy('id')->each(function (object $row) use ($table): void {
                 $value = json_decode($row->settings, true);
-                if (!is_string($value)) {
+                if (! is_string($value)) {
                     return;
                 }
 
@@ -61,7 +61,7 @@ return new class extends Migration
             ->orderBy('id')
             ->each(function (object $row): void {
                 $value = json_decode($row->setting_value, true);
-                if (!is_string($value)) {
+                if (! is_string($value)) {
                     return;
                 }
 

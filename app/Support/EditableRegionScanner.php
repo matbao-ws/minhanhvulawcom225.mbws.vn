@@ -126,6 +126,25 @@ class EditableRegionScanner
 
     private const CONTROL = "\x03";
 
+    /**
+     * A translation call whose key exists in no language file — `{{ __('Mua ngay') }}`
+     * on a site with no such entry. It prints the key itself, so it is authored copy
+     * wearing a Blade echo, and the editor can no more reach it than plain text.
+     */
+    private const LITERAL = "\x04";
+
+    /** CSS properties whose `url()` is a picture the page shows as content. */
+    private const CONTENT_BACKGROUND_PROPERTIES = ['background', 'background-image'];
+
+    /** Files a `url()` points at that are never content images. */
+    private const NON_IMAGE_URL = '/\.(?:woff2?|ttf|otf|eot)(?:[?#].*)?$/i';
+
+    /** Elements whose `data-src` is not a picture (lazy iframes, media players). */
+    private const NON_IMAGE_LAZY_TAGS = ['iframe', 'video', 'audio', 'source', 'script', 'object', 'embed'];
+
+    /** @var (callable(string): bool)|null */
+    private $translationExists = null;
+
     /** Directives that decide structure and print nothing visible. */
     private const CONTROL_DIRECTIVES = [
         'if', 'elseif', 'else', 'endif', 'unless', 'endunless', 'isset', 'endisset', 'empty', 'endempty',
@@ -188,6 +207,41 @@ class EditableRegionScanner
     }
 
     /**
+     * A scanner that knows which translation keys exist.
+     *
+     * Without it every `__()` counts as dynamic, which is how theme copy wrapped in a
+     * translation call nobody defined used to pass the audit while staying uneditable.
+     *
+     * @param  callable(string): bool  $exists
+     */
+    public function withTranslations(callable $exists): static
+    {
+        $scanner = clone $this;
+        $scanner->translationExists = $exists;
+
+        return $scanner;
+    }
+
+    /**
+     * A scanner that checks keys against this application's language files: every locale
+     * folder and JSON file under lang/, plus the configured locale and fallback.
+     */
+    public function withAppTranslations(): static
+    {
+        $locales = collect(glob(lang_path('*')) ?: [])
+            ->map(static fn (string $path): string => pathinfo($path, PATHINFO_FILENAME))
+            ->filter(static fn (string $name): bool => $name !== '' && $name !== 'vendor')
+            ->push((string) config('app.locale'), (string) config('app.fallback_locale'))
+            ->unique()
+            ->values()
+            ->all();
+
+        return $this->withTranslations(static fn (string $key): bool => collect($locales)->contains(
+            static fn (string $locale): bool => trans()->hasForLocale($key, $locale),
+        ));
+    }
+
+    /**
      * Findings plus everything the report needs to show its arithmetic.
      *
      * @return array{
@@ -210,10 +264,13 @@ class EditableRegionScanner
         $this->invalidIgnores = [];
         $this->counts = [
             'text' => ['editable' => 0, 'dynamic' => 0, 'ignored' => 0, 'unknown' => 0],
-            'image' => ['editable' => 0, 'dynamic' => 0, 'ignored' => 0, 'unsupported' => 0, 'unknown' => 0],
+            // icon, decorative and media are counted for the record and never fail a run:
+            // the reviewer sees what the scanner set aside instead of guessing.
+            'image' => ['editable' => 0, 'dynamic' => 0, 'ignored' => 0, 'unsupported' => 0, 'unknown' => 0, 'icon' => 0, 'decorative' => 0, 'media' => 0],
         ];
 
         $this->walk(0, null);
+        $this->inspectStyleBlocks();
 
         // Containment between text owners is settled after the walk, from the
         // offsets: an outer owner has not closed yet when an inner one is met.
@@ -267,6 +324,11 @@ class EditableRegionScanner
         $attrs = $element['attrs'];
 
         if (in_array($name, self::SKIPPED_SUBTREES, true)) {
+            // An inline <svg> is a drawn icon or illustration, not a replaceable picture.
+            if ($name === 'svg') {
+                $this->counts['image']['icon']++;
+            }
+
             return;
         }
 
@@ -316,6 +378,32 @@ class EditableRegionScanner
                     'line' => $this->lineAt($element['start']),
                     'preview' => $this->preview($this->innerRaw($id)),
                 ];
+            }
+        }
+
+        $raw = $this->rawAttributes($element['start'], $element['contentStart'], $name);
+        if (str_contains($raw, '@clientBackground(')) {
+            if ($ignoring === null && preg_match('/(?<![\w-])style\s*=/i', $raw)) {
+                // @clientBackground prints the style attribute itself. A second one beside it is a
+                // duplicate attribute: the browser keeps the first and the background disappears.
+                $this->imageFindings[] = [
+                    'kind' => 'image',
+                    'status' => self::STATUS_UNKNOWN,
+                    'fixable' => false,
+                    'reason' => 'background-style-conflict',
+                    'tag' => $name,
+                    'container' => null,
+                    'line' => $this->lineAt($element['start']),
+                    'start' => $element['start'],
+                    'end' => $element['contentStart'],
+                    'attrs' => $raw,
+                    'inner' => '',
+                    'area' => $this->areaFor($this->ancestors($id)),
+                    'preview' => $this->preview($raw),
+                ];
+            } else {
+                // The section's own picture is editable; text and images inside it are audited as usual.
+                $this->counts['image']['editable']++;
             }
         }
 
@@ -447,7 +535,7 @@ class EditableRegionScanner
                     'kind' => 'text',
                     'status' => self::STATUS_UNKNOWN,
                     'fixable' => false,
-                    'reason' => 'mixed',
+                    'reason' => str_contains(substr($this->masked, $start, $end - $start), self::LITERAL) ? 'untranslated' : 'mixed',
                     'tag' => 'text',
                     'container' => $parent === 0 ? null : $this->nodes[$parent]['name'],
                     'line' => $this->lineAt($start + strspn($this->source, " \t\r\n", $start)),
@@ -482,7 +570,9 @@ class EditableRegionScanner
         // would put that span under the new region's ownership. A reasonless
         // marker on the element itself is a decision someone half-made; a
         // human finishes it, the fixer does not guess which way.
+        $literal = str_contains($this->innerMasked($id), self::LITERAL);
         $fixable = ! $conditional
+            && ! $literal
             && $element['closed']
             && in_array($name, self::CANDIDATE_TAGS, true)
             && ! str_contains($attrs.$inner, self::IGNORE_ATTRIBUTE)
@@ -493,6 +583,7 @@ class EditableRegionScanner
             'status' => self::STATUS_UNKNOWN,
             'fixable' => $fixable,
             'reason' => match (true) {
+                $literal => 'untranslated',
                 $conditional => 'conditional',
                 str_starts_with($name, 'x-') => 'slot',
                 $fixable => null,
@@ -528,7 +619,11 @@ class EditableRegionScanner
         $raw = $this->rawAttributes($element['start'], $element['contentStart'], $name);
         $sources = [];
 
-        if ($name === 'img') {
+        if ($name === 'img' && $this->isDecorativeImage($raw)) {
+            $this->counts['image']['decorative']++;
+        } elseif ($name === 'img' && $this->isIconImage($id, $raw)) {
+            $this->counts['image']['icon']++;
+        } elseif ($name === 'img') {
             $src = $this->attribute($raw, 'src');
             $lazy = null;
 
@@ -541,9 +636,9 @@ class EditableRegionScanner
             if ($real !== null) {
                 $sources[] = match (true) {
                     str_contains($real, '$') => ['dynamic', null, $real],
-                    $lazy !== null => [self::STATUS_UNSUPPORTED, 'lazy', $lazy],
-                    $this->attribute($raw, 'srcset') !== null || $this->attribute($raw, 'data-srcset') !== null => [self::STATUS_UNSUPPORTED, 'srcset', $real],
-                    $this->hasAncestor($id, 'picture') => [self::STATUS_UNSUPPORTED, 'picture', $real],
+                    $lazy !== null => [self::STATUS_UNKNOWN, 'lazy', $lazy],
+                    $this->attribute($raw, 'srcset') !== null || $this->attribute($raw, 'data-srcset') !== null => [self::STATUS_UNKNOWN, 'srcset', $real],
+                    $this->hasAncestor($id, 'picture') => [self::STATUS_UNKNOWN, 'picture', $real],
                     $this->isMechanicalImage($raw) => [self::STATUS_UNKNOWN, null, $real],
                     default => [self::STATUS_UNKNOWN, 'manual', $real],
                 };
@@ -556,19 +651,57 @@ class EditableRegionScanner
                 : [self::STATUS_UNSUPPORTED, 'poster', $poster];
         }
 
-        $style = $this->attribute($raw, 'style');
+        // Video and audio files are media, not pictures the image editor replaces.
+        if (in_array($name, ['video', 'audio'], true) && $this->attribute($raw, 'src') !== null) {
+            $this->counts['image']['media']++;
+        }
 
-        if ($style !== null && preg_match('/url\s*\(/i', $style)) {
+        if ($name === 'source') {
+            $parent = $this->nodes[$element['parent']]['name'] ?? '';
+            $srcset = $this->attribute($raw, 'srcset') ?? $this->attribute($raw, 'data-srcset') ?? $this->attribute($raw, 'src');
+
+            if (in_array($parent, ['video', 'audio'], true)) {
+                $this->counts['image']['media']++;
+            } elseif ($parent === 'picture' && $srcset !== null && ! $this->hasDescendant($element['parent'], 'img')) {
+                // With an <img> in the picture, that <img> is the finding; without one the
+                // sources are the only thing the browser can show, so they are reported here.
+                $sources[] = str_contains($srcset, '$')
+                    ? ['dynamic', null, $srcset]
+                    : [self::STATUS_UNKNOWN, 'picture', $srcset];
+            }
+        }
+
+        $style = $this->attribute($raw, 'style');
+        $background = $style !== null ? $this->backgroundKind($style) : null;
+
+        if ($background !== null) {
             $sources[] = str_contains($style, '$')
                 ? ['dynamic', null, $style]
-                : [self::STATUS_UNSUPPORTED, 'background', $style];
+                : [self::STATUS_UNKNOWN, $background, $style];
         }
 
         if (preg_match_all(self::BACKGROUND_ATTRIBUTE_PATTERN, $raw, $matches)) {
             foreach ($matches[2] as $value) {
+                // Flatsome and friends also put class names there (`data-bg="main-menu-overlay"`).
+                if (! $this->looksLikeImageReference($value)) {
+                    continue;
+                }
+
                 $sources[] = str_contains($value, '$')
                     ? ['dynamic', null, $value]
-                    : [self::STATUS_UNSUPPORTED, 'data-background', $value];
+                    : [self::STATUS_UNKNOWN, 'data-background', $value];
+            }
+        }
+
+        // `data-src` on a <div> or <section> is a lazy background; on an <img> it was handled above.
+        if ($name !== 'img' && ! in_array($name, self::NON_IMAGE_LAZY_TAGS, true)) {
+            foreach (self::LAZY_SOURCE_ATTRIBUTES as $attribute) {
+                // `#modal` is a lightbox target (fancybox and the like), not a picture.
+                if (($value = $this->attribute($raw, $attribute)) !== null && $this->looksLikeImageReference($value)) {
+                    $sources[] = str_contains($value, '$')
+                        ? ['dynamic', null, $value]
+                        : [self::STATUS_UNKNOWN, 'data-background', $value];
+                }
             }
         }
 
@@ -588,7 +721,8 @@ class EditableRegionScanner
             $this->imageFindings[] = [
                 'kind' => 'image',
                 'status' => $status,
-                'fixable' => $status === self::STATUS_UNKNOWN && $reason === null,
+                'fixable' => $status === self::STATUS_UNKNOWN
+                    && ($reason === null || ($reason === 'background' && $this->isMechanicalBackground($id, $raw))),
                 'reason' => $reason,
                 'tag' => $name,
                 'container' => null,
@@ -601,6 +735,258 @@ class EditableRegionScanner
                 'preview' => $this->preview($preview),
             ];
         }
+    }
+
+    /**
+     * What a style attribute's `url()`s amount to: null when none of them is a content picture,
+     * 'background' for exactly one picture on a background of its own, 'layered' for a picture
+     * sharing the background with gradients or other layers.
+     *
+     * Only `background` and `background-image` carry content. A `url()` in `mask`, `cursor`,
+     * `list-style`, `border-image`, `filter`, `clip-path` or `content`, a reference to an SVG
+     * fragment (`url(#clip)`) and a font file are never pictures to replace, and a background
+     * made only of gradients has none — reporting them would teach people to ignore the audit.
+     */
+    private function backgroundKind(string $css): ?string
+    {
+        $pictures = 0;
+        $layered = false;
+
+        foreach ($this->declarations($css) as [$property, $value]) {
+            if (! in_array($property, self::CONTENT_BACKGROUND_PROPERTIES, true)
+                || ! preg_match_all('/url\(\s*([\'"]?)(.*?)\1\s*\)/is', $value, $urls)) {
+                continue;
+            }
+
+            $count = 0;
+
+            foreach ($urls[2] as $url) {
+                if (! str_starts_with(trim($url), '#') && ! preg_match(self::NON_IMAGE_URL, trim($url))) {
+                    $count++;
+                }
+            }
+
+            if ($count === 0) {
+                continue;
+            }
+
+            $pictures += $count;
+            $layered = $layered || $count > 1 || preg_match('/gradient\s*\(/i', $value) === 1 || $this->hasTopLevelComma($value);
+        }
+
+        return match (true) {
+            $pictures === 0 => null,
+            $pictures > 1 || $layered => 'layered',
+            default => 'background',
+        };
+    }
+
+    /**
+     * `property: value` pairs of a declaration list, split on `;` outside parentheses and quotes.
+     *
+     * @return array<int, array{0: string, 1: string}>
+     */
+    private function declarations(string $css): array
+    {
+        $pairs = [];
+
+        foreach ($this->splitTopLevel($css, ';') as $declaration) {
+            if (str_contains($declaration, ':')) {
+                [$property, $value] = explode(':', $declaration, 2);
+                $pairs[] = [strtolower(trim($property)), trim($value)];
+            }
+        }
+
+        return $pairs;
+    }
+
+    private function hasTopLevelComma(string $value): bool
+    {
+        return count($this->splitTopLevel($value, ',')) > 1;
+    }
+
+    /** @return array<int, string> */
+    private function splitTopLevel(string $text, string $separator): array
+    {
+        $parts = [];
+        $depth = 0;
+        $quote = null;
+        $current = '';
+
+        for ($i = 0, $length = strlen($text); $i < $length; $i++) {
+            $char = $text[$i];
+
+            if ($quote !== null) {
+                $quote = $char === $quote ? null : $quote;
+            } elseif ($char === '"' || $char === "'") {
+                $quote = $char;
+            } elseif ($char === '(') {
+                $depth++;
+            } elseif ($char === ')') {
+                $depth = max(0, $depth - 1);
+            } elseif ($char === $separator && $depth === 0) {
+                $parts[] = $current;
+                $current = '';
+
+                continue;
+            }
+
+            $current .= $char;
+        }
+
+        if (trim($current) !== '') {
+            $parts[] = $current;
+        }
+
+        return $parts;
+    }
+
+    /**
+     * Backgrounds declared in `<style>` blocks of the view.
+     *
+     * The masking blanks those blocks so their CSS is never read as copy, which also hid every
+     * banner a theme declared there. A rule's picture belongs to whatever its selector matches,
+     * so the finding points at the declaration; the fix is by hand. A `<style>` carrying
+     * `data-editable-ignore="<reason>"` is honoured like any other element.
+     */
+    private function inspectStyleBlocks(): void
+    {
+        if (! preg_match_all('/<style\b([^>]*)>(.*?)<\/style>/is', $this->source, $blocks, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            return;
+        }
+
+        foreach ($blocks as $block) {
+            [$attrs] = $block[1];
+            [$css, $cssStart] = $block[2];
+            $reason = trim((string) $this->attribute($attrs, self::IGNORE_ATTRIBUTE));
+
+            // Comments and @font-face blocks are blanked, length kept, so offsets stay true.
+            $css = (string) preg_replace_callback('/\/\*.*?\*\/|@font-face\s*\{[^}]*\}/is', static fn (array $m): string => str_repeat(' ', strlen($m[0])), $css);
+
+            if (! preg_match_all('/(?<=[{;\s])(background(?:-image)?)\s*:\s*([^;{}]*)/i', $css, $rules, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+
+            foreach ($rules as $rule) {
+                $declaration = $rule[0][0];
+                $kind = $this->backgroundKind($declaration);
+
+                if ($kind === null) {
+                    continue;
+                }
+
+                $offset = $cssStart + $rule[0][1];
+
+                if (str_contains($declaration, '$')) {
+                    $this->counts['image']['dynamic']++;
+
+                    continue;
+                }
+
+                if ($reason !== '') {
+                    $this->ignored[] = ['tag' => 'style', 'line' => $this->lineAt($offset), 'reason' => $reason, 'preview' => $this->preview($declaration), 'text' => false, 'image' => true];
+
+                    continue;
+                }
+
+                $this->imageFindings[] = [
+                    'kind' => 'image',
+                    'status' => self::STATUS_UNKNOWN,
+                    'fixable' => false,
+                    'reason' => 'style-block',
+                    'tag' => 'style',
+                    'container' => null,
+                    'line' => $this->lineAt($offset),
+                    'start' => $offset,
+                    'end' => $offset,
+                    'attrs' => '',
+                    'inner' => '',
+                    'area' => 'style',
+                    'preview' => $this->preview($declaration),
+                ];
+            }
+        }
+    }
+
+    /**
+     * Whether a `data-*` value names a picture: a path or URL, a file with an image extension,
+     * a `url()`, or a Blade echo (an asset() call). Not a class name, not a `#target`, not a font.
+     */
+    private function looksLikeImageReference(string $value): bool
+    {
+        $value = trim($value);
+
+        return $value !== ''
+            && ! str_starts_with($value, '#')
+            && ! preg_match(self::NON_IMAGE_URL, $value)
+            && (str_contains($value, '/') || str_contains($value, '{{') || str_contains($value, '$')
+                || preg_match('/url\s*\(|\.(?:jpe?g|png|gif|webp|avif|svg|bmp)(?:[?#].*)?$/i', $value) === 1);
+    }
+
+    /**
+     * Whether `--fix` can move this element's style into `@clientBackground` without risk: one
+     * literal style attribute (no Blade, no variable), one picture on a background of its own, and
+     * no slider or carousel around it that rebuilds the DOM at runtime.
+     */
+    private function isMechanicalBackground(int $id, string $raw): bool
+    {
+        $style = $this->attribute($raw, 'style');
+
+        if ($style === null || preg_match('/\{\{|\{!!|@|\$/', $style) || substr_count(strtolower($raw), 'style=') !== 1) {
+            return false;
+        }
+
+        foreach ([$id, ...$this->ancestors($id)] as $node) {
+            $element = $this->nodes[$node];
+            $attributes = strtolower($this->rawAttributes($element['start'], $element['contentStart'], $element['name']));
+            if (preg_match('/slider|carousel|swiper|slick|flickity|owl-|splide|glide/', $attributes)) {
+                return false;
+            }
+        }
+
+        return $this->backgroundKind($style) === 'background';
+    }
+
+    /** Ảnh trang trí: empty alt and hidden from assistive technology. */
+    private function isDecorativeImage(string $raw): bool
+    {
+        $alt = $this->attribute($raw, 'alt');
+        $role = strtolower((string) $this->attribute($raw, 'role'));
+
+        return $alt !== null && trim($alt) === ''
+            && (in_array($role, ['presentation', 'none'], true) || strtolower((string) $this->attribute($raw, 'aria-hidden')) === 'true');
+    }
+
+    /**
+     * An icon, not a picture: a class naming it an icon, or a small SVG/ICO declared at 48px or
+     * less inside a link or button. A logo has no such size and stays a content image.
+     */
+    private function isIconImage(int $id, string $raw): bool
+    {
+        if (preg_match('/(?:^|[\s_-])icons?(?:[\s_-]|$)/i', (string) $this->attribute($raw, 'class'))) {
+            return true;
+        }
+
+        $src = (string) ($this->attribute($raw, 'src') ?? '');
+        $width = $this->attribute($raw, 'width');
+        $height = $this->attribute($raw, 'height');
+        $small = ($width !== null && is_numeric($width) && (int) $width <= 48)
+            || ($height !== null && is_numeric($height) && (int) $height <= 48);
+
+        return $small
+            && preg_match('/\.(?:svg|ico)(?:[?#].*)?$/i', $src) === 1
+            && ($this->hasAncestor($id, 'a') || $this->hasAncestor($id, 'button'));
+    }
+
+    private function hasDescendant(int $id, string $name): bool
+    {
+        foreach ($this->nodes[$id]['children'] as $child) {
+            if (is_int($child) && ($this->nodes[$child]['name'] === $name || $this->hasDescendant($child, $name))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -671,6 +1057,10 @@ class EditableRegionScanner
 
     private function hasLetters(string $masked): bool
     {
+        if (str_contains($masked, self::LITERAL)) {
+            return true;
+        }
+
         $text = (string) preg_replace('/[\x01-\x03]+/', ' ', $masked);
         $text = (string) preg_replace('/&(?:[a-z]+|#\d+|#x[0-9a-f]+);/i', '', $text);
 
@@ -705,9 +1095,19 @@ class EditableRegionScanner
     private function withKeys(array $findings, string $viewKey): array
     {
         $ordinals = [];
+        // Keys a previous --fix (or a person) already wrote into this file. Ordinals restart on
+        // every run, so without this the second run could hand out a key in use, and two regions
+        // would share one stored value.
+        preg_match_all('/\bkey\s*=\s*(["\'])([^"\']+)\1|@clientBackground\(\s*([\'"])([^\'"]+)\3/', $this->source, $taken);
+        $taken = array_flip(array_filter([...$taken[2], ...$taken[4]]));
 
         foreach ($findings as $index => $finding) {
-            $findings[$index]['key'] = $this->makeKey($viewKey, $finding['area'], $finding['tag'], $ordinals);
+            do {
+                $key = $this->makeKey($viewKey, $finding['area'], $finding['tag'], $ordinals);
+            } while (isset($taken[$key]));
+
+            $findings[$index]['key'] = $key;
+            $taken[$key] = true;
         }
 
         return $findings;
@@ -765,7 +1165,10 @@ class EditableRegionScanner
         foreach ($spans as $pattern => $fill) {
             $replaced = preg_replace_callback(
                 $pattern,
-                static fn (array $m): string => str_repeat($fill, strlen($m[0])),
+                fn (array $m): string => str_repeat(
+                    $fill === self::OUTPUT && $this->isUndefinedTranslation($m[0]) ? self::LITERAL : $fill,
+                    strlen($m[0]),
+                ),
                 $masked,
             );
 
@@ -785,7 +1188,10 @@ class EditableRegionScanner
      */
     private function maskDirectives(string $masked): string
     {
-        if (! preg_match_all('/(?<![\w@.\x01\x02\x03])@([A-Za-z_]\w*)/', $masked, $matches, PREG_OFFSET_CAPTURE)) {
+        // A directive right after a blanked <style>, <script>, comment or another directive
+        // (`</style>@endpush`, `--}}@if`) is still a directive. Only an echo right before the `@`
+        // (`{{ $user }}@gmail.com`) means the `@` is part of the copy, so only OUTPUT is excluded.
+        if (! preg_match_all('/(?<![\w@.\x02])@([A-Za-z_]\w*)/', $masked, $matches, PREG_OFFSET_CAPTURE)) {
             return $masked;
         }
 
@@ -802,6 +1208,8 @@ class EditableRegionScanner
 
             $fill = match (true) {
                 in_array($name, self::CONTROL_DIRECTIVES, true) => self::CONTROL,
+                $name === 'lang' && $argumentsEnd !== null
+                    && $this->isUndefinedTranslation('__'.substr($masked, $end, $argumentsEnd - $end)) => self::LITERAL,
                 in_array($name, self::OUTPUT_DIRECTIVES, true), $argumentsEnd !== null => self::OUTPUT,
                 default => null,
             };
@@ -816,6 +1224,28 @@ class EditableRegionScanner
         }
 
         return $masked;
+    }
+
+    /**
+     * Whether an echo — `{{ __('…') }}`, `{!! trans("…") !!}` or the `__('…')` of `@lang` —
+     * is a single-argument translation call whose key no language file defines.
+     *
+     * Only the plain call counts: one quoted key, nothing else. Replacements, a
+     * locale argument or any expression make it a value again, as before.
+     */
+    private function isUndefinedTranslation(string $echo): bool
+    {
+        if ($this->translationExists === null) {
+            return false;
+        }
+
+        $inner = (string) preg_replace('/^\{(?:\{|!!)|(?:\}|!!)\}$/', '', trim($echo));
+
+        if (! preg_match('/^\s*(?:__|trans|@lang)\s*\(\s*([\'"])((?:\\\\.|(?!\1).)+)\1\s*\)\s*$/s', $inner, $m)) {
+            return false;
+        }
+
+        return ! ($this->translationExists)(stripcslashes($m[2]));
     }
 
     /** Offset just past a directive's balanced `( … )`, or null if it has none. */

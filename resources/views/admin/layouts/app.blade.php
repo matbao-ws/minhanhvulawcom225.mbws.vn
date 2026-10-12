@@ -476,6 +476,10 @@
         }
     </style>
     <title>@yield('title', 'Admin') - {{ $siteBranding['name'] }}</title>
+    @if(! empty($adminTour))
+        <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/libs/driver.js/dist/driver.css') }}">
+        <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/admin-tour.css') }}">
+    @endif
     @stack('styles')
 </head>
 
@@ -918,6 +922,12 @@
         });
     </script>
     <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/form-guidance.js') }}"></script>
+    @if(! empty($adminTour))
+        {{-- Guided tour of this page (App\Support\AdminTours); only pages that have one load driver.js. --}}
+        <script type="application/json" id="admin-tour-config">@json($adminTour)</script>
+        <script src="{{ \App\Support\AssetVersion::url('admin-assets/libs/driver.js/dist/driver.js.iife.js') }}"></script>
+        <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/admin-tour.js') }}"></script>
+    @endif
     @stack('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {

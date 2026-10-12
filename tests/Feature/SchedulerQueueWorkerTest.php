@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\QueuedResetPassword;
 use Illuminate\Console\Scheduling\Schedule;
@@ -45,7 +46,7 @@ class SchedulerQueueWorkerTest extends TestCase
         $this->postJson('/api/public/auth/forgot-password', ['email' => 'khach@example.com'])->assertOk();
         Notification::assertSentTo($customer, QueuedResetPassword::class);
 
-        $role = \App\Models\Role::query()->create(['name' => 'Admin', 'permissions' => ['*']]);
+        $role = Role::query()->create(['name' => 'Admin', 'permissions' => ['*']]);
         $admin = User::factory()->create(['role_id' => $role->id, 'email' => 'admin@example.com']);
         $this->postJson('/api/public/auth/forgot-password', ['email' => 'admin@example.com'])->assertOk();
         Notification::assertNotSentTo($admin, QueuedResetPassword::class);

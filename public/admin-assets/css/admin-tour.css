@@ -1,0 +1,78 @@
+/* Guided tours (admin-tour.js): driver.js popovers in the admin theme.
+ * Fixed colours, not the theme's --bs-* variables: those are a light grey (#98a4ae) meant for
+ * the admin's own text, unreadable here, and driver.js always draws the popover on white. */
+.driver-popover.admin-tour-popover {
+    font-family: 'Quicksand', sans-serif;
+    max-width: 340px;
+    border-radius: 12px;
+    padding: 18px 18px 14px;
+    background: #fff;
+    color: #1f2a37;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+}
+
+.admin-tour-popover .driver-popover-title {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #1f2a37;
+}
+
+.admin-tour-popover .driver-popover-description {
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.55;
+    color: #3b4757;
+}
+
+.admin-tour-popover .driver-popover-progress-text {
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5b6776;
+}
+
+.admin-tour-popover .driver-popover-footer {
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.admin-tour-popover .driver-popover-footer button {
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-shadow: none;
+    border-radius: 8px;
+    padding: 5px 12px;
+    border: 1px solid #cfd6e0;
+    background: #fff;
+    color: #1f2a37;
+}
+
+.admin-tour-popover .driver-popover-footer .driver-popover-next-btn {
+    background: var(--bs-primary, #5d87ff);
+    border-color: var(--bs-primary, #5d87ff);
+    color: #fff;
+}
+
+.admin-tour-popover .driver-popover-footer button:hover,
+.admin-tour-popover .driver-popover-footer button:focus-visible {
+    filter: brightness(0.95);
+}
+
+.admin-tour-popover .driver-popover-footer button:disabled {
+    opacity: 0.5;
+}
+
+.admin-tour-popover .driver-popover-close-btn {
+    color: #5b6776;
+}
+
+.admin-tour-popover .driver-popover-footer .admin-tour-skip {
+    margin-right: auto;
+    border-color: transparent;
+    background: transparent;
+    color: #3b4757;
+}

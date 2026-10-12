@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Catalog;
 
+use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
@@ -14,6 +15,8 @@ use App\Services\Catalog\ProductImportService;
 use App\Services\Catalog\ProductOptionService;
 use App\Services\Catalog\ProductService;
 use App\Services\CloudinaryService;
+use App\Services\Packages\PackageLimits;
+use App\Support\Csv;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -478,8 +481,8 @@ class ProductController extends Controller
                 $response = back()->with('warning', $msg)->with('import_errors', $results['errors']);
 
                 // Rows refused by the package limit get the blocking dialog, not just a line in the error list.
-                if ($limitHit = app(\App\Services\Packages\PackageLimits::class)->lastExceeded()) {
-                    $response->with(\App\Exceptions\PackageLimitExceeded::FLASH_KEY, $limitHit->getMessage());
+                if ($limitHit = app(PackageLimits::class)->lastExceeded()) {
+                    $response->with(PackageLimitExceeded::FLASH_KEY, $limitHit->getMessage());
                 }
 
                 return $response;
@@ -490,7 +493,7 @@ class ProductController extends Controller
             report($exception);
 
             // Only the importer's own messages are meant for the screen; a QueryException carries SQL.
-            $reason = $exception::class === \RuntimeException::class ? ' '.$exception->getMessage() : '';
+            $reason = $exception::class === RuntimeException::class ? ' '.$exception->getMessage() : '';
 
             return back()->with('error', __('catalog.products.import_failed').$reason);
         }
@@ -500,6 +503,6 @@ class ProductController extends Controller
     {
         // Kept as a thin alias so existing call sites stay readable; the rule itself
         // is shared with the other exports.
-        return \App\Support\Csv::safeValue($value);
+        return Csv::safeValue($value);
     }
 }

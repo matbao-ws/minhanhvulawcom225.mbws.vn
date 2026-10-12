@@ -8,6 +8,7 @@ use App\Models\ShippingPartner;
 use App\Models\User;
 use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -52,11 +53,11 @@ class GhnConnectionTest extends TestCase
         Http::fake(['*' => Http::response(['code' => 401, 'message' => 'Token is not valid!'], 401)]);
         $this->assertSame('invalid_token', app(ShippingService::class)->ghnVerify()['status']);
 
-        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::swap(new Factory);
         Http::fake([self::PROD.'/shiip/public-api/v2/shop/all' => Http::response(['data' => ['shops' => [['_id' => 111, 'name' => 'Other']]]])]);
         $this->assertSame('shop_not_found', app(ShippingService::class)->ghnVerify()['status']);
 
-        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::swap(new Factory);
         Http::fake([self::PROD.'/shiip/public-api/v2/shop/all' => Http::response(['data' => ['shops' => [['_id' => 5300247, 'name' => 'Shop A']]]])]);
         $check = app(ShippingService::class)->ghnVerify();
         $this->assertTrue($check['ok']);

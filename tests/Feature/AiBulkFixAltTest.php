@@ -8,6 +8,7 @@ use App\Models\FeatureSetting;
 use App\Models\Post;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AiGateway\AltTextService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -121,7 +122,7 @@ class AiBulkFixAltTest extends TestCase
 
     public function test_a_file_name_alt_counts_as_missing(): void
     {
-        $images = app(\App\Services\AiGateway\AltTextService::class)->imagesWithoutAlt(
+        $images = app(AltTextService::class)->imagesWithoutAlt(
             '<img src="/storage/media/ong-nhua.png" alt="ong-nhua.png" /><img src="/storage/media/van.jpg" alt="Van" />'
             .'<img src="/storage/media/van.jpg" alt="Van khoá đồng" /><img src="/storage/media/co.png" alt="co" />',
         );

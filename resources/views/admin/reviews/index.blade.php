@@ -12,7 +12,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="reviews.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-4 col-lg-3">
                     <label class="form-label small fw-bold text-dark mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -54,7 +54,7 @@
         </div>
         
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div data-tour="reviews.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
@@ -118,14 +118,14 @@
                                     <span class="text-dark small">{{ $review->created_at->format('d/m/Y H:i') }}</span>
                                 </td>
                                 <td>
-                                    <div class="form-check form-switch mb-0">
+                                    <div data-tour="reviews.visibility" class="form-check form-switch mb-0">
                                         <input class="form-check-input js-visibility-toggle" type="checkbox" role="switch"
                                             data-url="{{ route('admin.reviews.toggle-visibility', $review) }}"
                                             @checked($review->is_visible)>
                                     </div>
                                 </td>
                                 <td class="text-end pe-4 text-nowrap">
-                                    <div class="d-flex justify-content-end gap-2">
+                                    <div data-tour="reviews.row-actions" class="d-flex justify-content-end gap-2">
                                         <button type="button" class="btn btn-sm btn-outline-primary js-edit-review-btn" 
                                             data-url="{{ route('admin.reviews.update', $review) }}"
                                             data-comment="{{ $review->comment }}"

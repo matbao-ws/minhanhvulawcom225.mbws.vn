@@ -4,6 +4,8 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\SiteBlock;
 use App\Services\LanguageRegistry;
+use App\Support\ClientBackground;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +26,7 @@ class SiteBlockUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             // Keys are authored in templates: lowercase, dot separated.
             'key' => ['required', 'string', 'max:191', 'regex:/^[a-z0-9]+(?:[_-][a-z0-9]+)*(?:\.[a-z0-9]+(?:[_-][a-z0-9]+)*)+$/'],
             'type' => ['required', Rule::in(SiteBlock::TYPES)],
@@ -35,6 +37,18 @@ class SiteBlockUpdateRequest extends FormRequest
             // An empty string is a real value: it hides the region.
             'value' => ['present', 'string', 'max:200000'],
         ];
+
+        if (in_array($this->input('type'), SiteBlock::PICTURE_TYPES, true)) {
+            // A picture goes into src or a CSS url(): a site path or an http(s) URL, nothing that
+            // could close the attribute, the url() or the declaration (no javascript:, data:, quotes).
+            $rules['value'] = ['present', 'string', 'max:2048', function (string $attribute, mixed $value, Closure $fail): void {
+                if ($value !== '' && ! ClientBackground::isSafeUrl((string) $value)) {
+                    $fail('Đường dẫn ảnh không hợp lệ.');
+                }
+            }];
+        }
+
+        return $rules;
     }
 
     public function messages(): array

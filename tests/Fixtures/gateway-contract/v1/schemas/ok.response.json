@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/ok.response.json",
+  "title": "Accepted, nothing to read back (POST v1/core/report, POST v1/errors)",
+  "type": "object",
+  "required": ["ok"],
+  "properties": { "ok": { "const": true } }
+}

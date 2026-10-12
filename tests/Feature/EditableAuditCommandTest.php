@@ -60,15 +60,17 @@ class EditableAuditCommandTest extends TestCase
         $this->assertStringContainsString('<x-client::editable key="editable-audit-test.home.hero.h2-1" tag="h2">Dịch vụ nổi bật</x-client::editable>', $source);
         $this->assertStringContainsString('<x-client::editable-image key="editable-audit-test.home.hero.img-1" src="/client-assets/img/hero.jpg" alt="Hero" />', $source);
 
-        // Untouched: a CTA and a background are a human's call.
+        // A single static background moves, byte for byte, into @clientBackground on the same tag.
+        $this->assertStringContainsString("<div class=\"banner\" @clientBackground('editable-audit-test.home.hero.div-1', 'background-image:url(/client-assets/img/bg.jpg)')></div>", $source);
+
+        // Untouched: a CTA is a human's call.
         $this->assertStringContainsString('<a class="btn" href="/lien-he">Liên hệ ngay</a>', $source);
-        $this->assertStringContainsString('style="background-image:url(/client-assets/img/bg.jpg)"', $source);
 
         // The report is taken after the fix, so it shows what is left.
         $this->assertSame(1, $status, $output);
         $this->assertStringContainsString('Liên hệ ngay', $output);
-        $this->assertStringContainsString('[chưa hỗ trợ]', $output);
         $this->assertStringNotContainsString('Dịch vụ nổi bật', $output);
+        $this->assertStringNotContainsString('bg.jpg', $output);
         $this->assertStringContainsString('RESULT: FAIL', $output);
     }
 

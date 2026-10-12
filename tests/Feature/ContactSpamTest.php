@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Mail\ContactInquiryMail;
 use App\Models\ContactSubmission;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\MailSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -36,11 +39,11 @@ class ContactSpamTest extends TestCase
     public function test_the_inquiry_goes_to_the_owner_email_set_in_the_admin(): void
     {
         config(['mail.seller' => 'fallback@example.com']);
-        \App\Models\ProjectSetting::query()->updateOrCreate(
+        ProjectSetting::query()->updateOrCreate(
             ['setting_key' => 'notification_settings'],
             ['setting_value' => ['smtp' => ['owner_email' => 'chu-shop@example.com']]],
         );
-        \App\Services\MailSettings::flush();
+        MailSettings::flush();
 
         $this->send()->assertOk();
 
@@ -153,7 +156,7 @@ class ContactSpamTest extends TestCase
         $this->actingAs($admin)->get('/vi/admin/contact-submissions')->assertSee('casino bonus');
     }
 
-    private function send(array $fields = []): \Illuminate\Testing\TestResponse
+    private function send(array $fields = []): TestResponse
     {
         return $this->postJson('/api/public/contact', array_merge([
             'name' => 'Nguyễn Văn A',

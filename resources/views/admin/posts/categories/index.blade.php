@@ -25,7 +25,7 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.blog_categories.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button :href="route('admin.post-categories.create')" icon="plus">{{ __('admin.blog_categories.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="post-categories.create" :href="route('admin.post-categories.create')" icon="plus">{{ __('admin.blog_categories.create') }}</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
@@ -52,7 +52,7 @@
     <!-- Categories List Card -->
     <div class="card">
         <div class="card-body border-bottom p-4">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="post-categories.search" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-11">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -64,7 +64,7 @@
             </form>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div data-tour="post-categories.table" class="table-responsive">
                 <table class="table text-nowrap mb-0 align-middle" id="category-table-sortable" data-start-order="{{ max(0, ($categories->firstItem() ?? 1) - 1) }}">
                     <thead>
                         <tr class="text-nowrap">
@@ -123,7 +123,7 @@
                             </td>
                             <td class="text-center">
                                 <div class="dropdown dropstart">
-                                    <a href="javascript:void(0)" class="text-muted" id="categoryAction{{ $category->id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a data-tour="post-categories.row-actions" href="javascript:void(0)" class="text-muted" id="categoryAction{{ $category->id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="ti ti-dots fs-5"></i>
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="categoryAction{{ $category->id }}">

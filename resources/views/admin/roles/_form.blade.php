@@ -8,12 +8,12 @@
 <div class="card">
     <div class="card-body">
         <div class="row">
-            <div class="col-md-12 mb-4">
+            <div data-tour="role-form.name" class="col-md-12 mb-4">
                 <label class="form-label fw-semibold text-dark" for="name">{{ __('admin.roles.fields.name') }} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control text-dark" id="name" name="name" value="{{ old('name', $role->name) }}" placeholder="{{ __('admin.roles.fields.name_placeholder') }}" required>
             </div>
 
-            <div class="col-md-12">
+            <div data-tour="role-form.permissions" class="col-md-12">
                 <label class="form-label fw-semibold text-dark mb-3">{{ __('admin.roles.fields.select_permissions') }}</label>
 
                 @if($modules === [])
@@ -24,7 +24,7 @@
                     <div class="border rounded p-3 mb-3">
                         <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                             <h6 class="fw-bold text-dark mb-0">{{ __('admin.roles.groups.'.$group) }}</h6>
-                            <div class="form-check form-switch m-0">
+                            <div data-tour="role-form.group-toggle" class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" role="switch"
                                        id="permission_group_{{ $group }}"
                                        data-permission-group-toggle="{{ $group }}">
@@ -39,7 +39,7 @@
                                         @foreach(['view', 'create', 'update', 'delete', 'use'] as $action)
                                             <th class="text-center" style="width: 96px;">{{ __('admin.roles.actions.'.$action) }}</th>
                                         @endforeach
-                                        <th>{{ __('admin.roles.fields.other_actions') }}</th>
+                                        <th data-tour="role-form.other-actions">{{ __('admin.roles.fields.other_actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

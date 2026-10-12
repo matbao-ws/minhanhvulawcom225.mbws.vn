@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\ProjectSetting;
 use App\Models\Role;
+use App\Models\ShippingPartner;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -17,6 +17,7 @@ class ShippingIntegrationTest extends TestCase
     use RefreshDatabase;
 
     private Role $adminRole;
+
     private Order $order;
 
     protected function setUp(): void
@@ -99,8 +100,8 @@ class ShippingIntegrationTest extends TestCase
         ]);
         $this->actingAs($admin);
 
-        $ghtk = \App\Models\ShippingPartner::where('partner_code', 'DTGH000012')->first();
-        $flatRate = \App\Models\ShippingPartner::where('partner_code', 'DTGHTUGIAO')->first();
+        $ghtk = ShippingPartner::where('partner_code', 'DTGH000012')->first();
+        $flatRate = ShippingPartner::where('partner_code', 'DTGHTUGIAO')->first();
 
         // 1. Update GHTK settings
         $response = $this->post("/vi/admin/shipping-partners/{$ghtk->id}/settings", [
@@ -138,7 +139,7 @@ class ShippingIntegrationTest extends TestCase
 
     public function test_push_shipping_fails_when_ghtk_disabled(): void
     {
-        \App\Models\ShippingPartner::where('partner_code', 'DTGH000012')
+        ShippingPartner::where('partner_code', 'DTGH000012')
             ->first()
             ->update([
                 'status' => 'inactive',
@@ -160,21 +161,21 @@ class ShippingIntegrationTest extends TestCase
         $response->assertStatus(422);
         $response->assertJson([
             'success' => false,
-            'message' => 'Phương thức Giao Hàng Tiết Kiệm chưa được kích hoạt.'
+            'message' => 'Phương thức Giao Hàng Tiết Kiệm chưa được kích hoạt.',
         ]);
     }
 
     public function test_push_shipping_succeeds_with_mock_token(): void
     {
         // GHTK enabled with 'mock' token
-        \App\Models\ShippingPartner::where('partner_code', 'DTGH000012')
+        ShippingPartner::where('partner_code', 'DTGH000012')
             ->first()
             ->update([
                 'status' => 'active',
                 'settings' => [
                     'api_token' => 'mock',
                     'api_url' => 'https://services.ghtk.vn',
-                ]
+                ],
             ]);
 
         $admin = User::factory()->create([
@@ -195,7 +196,7 @@ class ShippingIntegrationTest extends TestCase
             'success',
             'message',
             'tracking_number',
-            'fee'
+            'fee',
         ]);
 
         $this->order->refresh();
@@ -228,7 +229,7 @@ class ShippingIntegrationTest extends TestCase
 
     public function test_admin_can_create_ghn_order_with_ghn_location_codes(): void
     {
-        \App\Models\ShippingPartner::query()->where('partner_code', 'DTGH000013')->first()->update([
+        ShippingPartner::query()->where('partner_code', 'DTGH000013')->first()->update([
             'status' => 'active',
             'settings' => ['api_token' => 'test-token', 'api_url' => 'https://online-gateway.ghn.vn', 'shop_id' => '12345'],
         ]);
