@@ -28,6 +28,7 @@ use App\Services\SiteListService;
 use App\Services\SiteSectionService;
 use App\Services\Translation\GoogleTranslationProvider;
 use App\Services\WordPressImageImportService;
+use App\Support\AdminTours;
 use App\Support\ClientEditorChrome;
 use App\Support\CoreUpdate\ArtisanRunner;
 use App\Support\CoreUpdate\ReleaseVerifier;
@@ -229,6 +230,8 @@ class AppServiceProvider extends ServiceProvider
 
         view()->composer('admin.layouts.app', function ($view) {
             $view->with('packageLimitAlerts', app(PackageUsageAlerts::class)->forAdmin());
+            // The guided tour of this page, if it has one; the header's "?" button and driver.js depend on it.
+            $view->with('adminTour', AdminTours::forRoute(request()->route()?->getName(), auth()->id()));
         });
 
         RateLimiter::for('public-auth', fn (Request $request) => [

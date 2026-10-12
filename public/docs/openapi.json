@@ -634,7 +634,16 @@
         "security": [{ "bearerAuth": [] }],
         "tags": ["Checkout & Orders"],
         "summary": "Đặt hàng (Checkout)",
-        "description": "Đặt hàng cho cả khách vãng lai (Guest) và thành viên đã đăng nhập. Nếu gửi kèm token, đơn hàng tự động liên kết với user. Với sản phẩm có biến thể, gửi một option_value_ids cho mỗi nhóm thuộc tính; hệ thống tự xác định SKU hợp lệ. Campaign/Flash Sale hợp lệ được tự động áp dụng trước, rồi voucher (nếu có) tính trên giá đã khuyến mãi.",
+        "description": "Đặt hàng cho cả khách vãng lai (Guest) và thành viên đã đăng nhập. Nếu gửi kèm token, đơn hàng tự động liên kết với user. Với sản phẩm có biến thể, gửi một option_value_ids cho mỗi nhóm thuộc tính; hệ thống tự xác định SKU hợp lệ. Campaign/Flash Sale hợp lệ được tự động áp dụng trước, rồi voucher (nếu có) tính trên giá đã khuyến mãi. Nên gửi header Idempotency-Key: gửi lại cùng key với cùng nội dung đơn thì nhận lại đúng đơn đã tạo (header Idempotent-Replayed: true) thay vì tạo đơn thứ hai.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Một key cho mỗi lần đặt hàng (khuyến nghị crypto.randomUUID()); dùng lại khi gửi lại sau timeout hoặc lỗi mạng. 16–64 ký tự [A-Za-z0-9_-]; khách chưa đăng nhập cần ít nhất 32 ký tự. Phạm vi theo tài khoản; khách vãng lai dùng chung một phạm vi.",
+            "schema": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,64}$", "example": "7f9c2ba4-e88f-41a8-b9c7-6c1f2d3e4a5b" }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -727,7 +736,8 @@
               }
             }
           },
-          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin)" },
+          "409": { "description": "Idempotency-Key đã dùng cho nội dung đơn khác (errors.code = idempotency_key_reused) hoặc đơn của key đã huỷ/xoá (errors.code = idempotency_key_unusable). Tạo key mới." },
+          "422": { "description": "Lỗi dữ liệu (Hết hàng, voucher không hợp lệ, thiếu thông tin, Idempotency-Key sai định dạng)" },
           "429": { "description": "Quá 10 đơn/phút từ cùng IP hoặc 5 đơn/giờ cho cùng email" }
         }
       }

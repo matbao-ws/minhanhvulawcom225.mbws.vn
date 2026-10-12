@@ -10,7 +10,7 @@
 @endphp
 <div class="card"><div class="card-body"><div class="row">
     <div class="col-12 mb-3">
-        <ul class="nav nav-tabs mb-4" role="tablist">
+        <ul data-tour="promotion-form.languages" class="nav nav-tabs mb-4" role="tablist">
             @foreach($contentLanguages as $language)
                 <li class="nav-item" role="presentation">
                     <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
@@ -26,16 +26,16 @@
         </ul>
         <div class="tab-content">@foreach($contentLanguages as $language)@php($code = $language->code)<div id="promotion-language-{{ $code }}" class="tab-pane fade @if($code === $defaultContentLocale) show active @endif">@if($code !== $defaultContentLocale)<div class="text-end mb-2"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}">Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif<div class="row"><div class="col-md-8 mb-3"><label class="form-label">Tên chương trình @if($code === $defaultContentLocale)*@endif</label><input class="form-control" id="promotion_name_{{ $code }}" name="name[{{ $code }}]" value="{{ old("name.$code", $promotion->getTranslation('name', $code, false)) }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div><div class="col-12 mb-3"><label class="form-label">Mô tả</label><textarea class="form-control" id="promotion_description_{{ $code }}" name="description[{{ $code }}]" rows="2" data-i18n-locale="{{ $code }}" data-i18n-field="description">{{ old("description.$code", $promotion->getTranslation('description', $code, false)) }}</textarea></div></div></div>@endforeach</div>
     </div>
-    <div class="col-md-4 mb-3"><label class="form-label">Loại *</label><select class="form-select" name="kind"><option value="automatic" @selected(old('kind', $promotion->kind) === 'automatic')>Khuyến mãi tự động</option><option value="flash_sale" @selected(old('kind', $promotion->kind) === 'flash_sale')>Flash Sale</option></select></div>
-    <div class="col-md-4 mb-3"><label class="form-label">Cách giảm *</label><select class="form-select" name="discount_type"><option value="percentage" @selected(old('discount_type', $promotion->discount_type) === 'percentage')>Phần trăm</option><option value="fixed_amount" @selected(old('discount_type', $promotion->discount_type) === 'fixed_amount')>Trừ tiền/SKU</option><option value="fixed_price" @selected(old('discount_type', $promotion->discount_type) === 'fixed_price')>Giá chốt/SKU</option></select></div>
+    <div data-tour="promotion-form.kind" class="col-md-4 mb-3"><label class="form-label">Loại *</label><select class="form-select" name="kind"><option value="automatic" @selected(old('kind', $promotion->kind) === 'automatic')>Khuyến mãi tự động</option><option value="flash_sale" @selected(old('kind', $promotion->kind) === 'flash_sale')>Flash Sale</option></select></div>
+    <div data-tour="promotion-form.discount" class="col-md-4 mb-3"><label class="form-label">Cách giảm *</label><select class="form-select" name="discount_type"><option value="percentage" @selected(old('discount_type', $promotion->discount_type) === 'percentage')>Phần trăm</option><option value="fixed_amount" @selected(old('discount_type', $promotion->discount_type) === 'fixed_amount')>Trừ tiền/SKU</option><option value="fixed_price" @selected(old('discount_type', $promotion->discount_type) === 'fixed_price')>Giá chốt/SKU</option></select></div>
     <div class="col-md-4 mb-3"><label class="form-label">Giá trị *</label><input type="number" step="0.01" min="0" class="form-control" name="value" value="{{ old('value', $promotion->value) }}" required></div>
-    <div class="col-md-4 mb-3"><label class="form-label">Ưu tiên (số lớn ưu tiên trước)</label><input type="number" min="0" class="form-control" name="priority" value="{{ old('priority', $promotion->priority) }}"></div>
+    <div data-tour="promotion-form.priority" class="col-md-4 mb-3"><label class="form-label">Ưu tiên (số lớn ưu tiên trước)</label><input type="number" min="0" class="form-control" name="priority" value="{{ old('priority', $promotion->priority) }}"></div>
     <div class="col-md-4 mb-3"><label class="form-label">Mua tối thiểu</label><input type="number" min="1" class="form-control" name="min_quantity" value="{{ old('min_quantity', $promotion->min_quantity ?? 1) }}"></div>
-    <div class="col-md-4 mb-3"><label class="form-label">Tổng suất campaign (trống = không giới hạn)</label><input type="number" min="1" class="form-control" name="quantity_limit" value="{{ old('quantity_limit', $promotion->quantity_limit) }}"></div>
+    <div data-tour="promotion-form.limits" class="col-md-4 mb-3"><label class="form-label">Tổng suất campaign (trống = không giới hạn)</label><input type="number" min="1" class="form-control" name="quantity_limit" value="{{ old('quantity_limit', $promotion->quantity_limit) }}"></div>
     <div class="col-md-4 mb-3"><label class="form-label">Suất cho mỗi mục tiêu</label><input type="number" min="1" class="form-control" name="target_quantity_limit" value="{{ $targetQuantityLimit }}" placeholder="Dùng cho Flash Sale SKU"><div class="form-text">Lưu sẽ áp dụng cùng quota cho các mục tiêu đã chọn.</div></div>
-    <div class="col-md-6 mb-3"><label class="form-label">Bắt đầu</label><input type="datetime-local" class="form-control" name="start_at" value="{{ old('start_at', $promotion->start_at?->format('Y-m-d\TH:i')) }}"></div>
+    <div data-tour="promotion-form.schedule" class="col-md-6 mb-3"><label class="form-label">Bắt đầu</label><input type="datetime-local" class="form-control" name="start_at" value="{{ old('start_at', $promotion->start_at?->format('Y-m-d\TH:i')) }}"></div>
     <div class="col-md-6 mb-3"><label class="form-label">Kết thúc</label><input type="datetime-local" class="form-control" name="end_at" value="{{ old('end_at', $promotion->end_at?->format('Y-m-d\TH:i')) }}"></div>
-    <div class="col-12"><hr><h5 class="fw-bold mb-3">Phạm vi áp dụng</h5>
+    <div data-tour="promotion-form.scope" class="col-12"><hr><h5 class="fw-bold mb-3">Phạm vi áp dụng</h5>
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label class="form-label" for="applies_to_select">Áp dụng cho</label>
@@ -63,7 +63,7 @@
         </div>
         <p class="text-muted small">Nếu chọn sản phẩm thì áp dụng cho toàn bộ SKU của sản phẩm. Chọn SKU khi muốn chạy flash sale riêng từng biến thể.</p>
     </div>
-    <div class="col-12 d-flex gap-4"><div class="form-check"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active" @checked(old('is_active', $promotion->is_active))><label class="form-check-label" for="is_active">Kích hoạt</label></div><span class="text-muted small align-self-center">Mỗi SKU nhận campaign có ưu tiên cao nhất; nếu bằng nhau sẽ lấy giá sau giảm thấp nhất. Mã giảm giá được tính tiếp trên giá đã khuyến mãi.</span></div>
+    <div data-tour="promotion-form.active" class="col-12 d-flex gap-4"><div class="form-check"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active" @checked(old('is_active', $promotion->is_active))><label class="form-check-label" for="is_active">Kích hoạt</label></div><span class="text-muted small align-self-center">Mỗi SKU nhận campaign có ưu tiên cao nhất; nếu bằng nhau sẽ lấy giá sau giảm thấp nhất. Mã giảm giá được tính tiếp trên giá đã khuyến mãi.</span></div>
 </div></div></div>
 @include('admin.shared.form-actions', ['cancelUrl' => route('admin.promotions.index')])
 @include('admin.shared.translation-assets')

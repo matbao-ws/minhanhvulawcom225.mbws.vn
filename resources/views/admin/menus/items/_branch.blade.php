@@ -14,7 +14,7 @@
         <li data-item-id="{{ $item->id }}">
             <div class="menu-node {{ $item->is_active ? '' : 'menu-node-inactive' }}">
                 @can('menus.update')
-                    <span class="menu-drag-handle" title="{{ __('admin.menus.items.drag') }}">
+                    <span data-tour="menu-items.drag" class="menu-drag-handle" title="{{ __('admin.menus.items.drag') }}">
                         <i class="ti ti-grip-vertical fs-5"></i>
                     </span>
                 @endcan
@@ -39,7 +39,7 @@
 
                 <div class="d-flex gap-2">
                     @can('menus.update')
-                        <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.menus.items.edit', [$menu, $item]) }}">
+                        <a data-tour="menu-items.edit" class="btn btn-sm btn-outline-primary" href="{{ route('admin.menus.items.edit', [$menu, $item]) }}">
                             <i class="ti ti-edit fs-4"></i>
                         </a>
                     @endcan

@@ -1,0 +1,4 @@
+{
+  "headers": { "X-MB-Timestamp": "1760176210", "X-MB-Signature": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "body": { "event": "job.finished", "job_id": 31, "status": "completed" }
+}

@@ -273,7 +273,7 @@
 
 @section('content')
     <div class="dashboard-content">
-    <section class="dashboard-welcome-banner mb-4" aria-labelledby="dashboard-welcome-title">
+    <section data-tour="dashboard.welcome" class="dashboard-welcome-banner mb-4" aria-labelledby="dashboard-welcome-title">
         <div class="dashboard-welcome-content">
             {{-- <p class="mb-1 fw-semibold">{{ __('admin.dashboard_page.welcome_greeting') }}</p> --}}
             <h1 id="dashboard-welcome-title" class="mb-1">{{ __('admin.dashboard_page.welcome_title') }}</h1>
@@ -311,7 +311,7 @@
     </section>
 
     @if(! empty($packageUsage['rows']))
-        <section class="dashboard-package-usage mb-4" aria-label="{{ __('admin.package.usage_title') }}">
+        <section data-tour="dashboard.package" class="dashboard-package-usage mb-4" aria-label="{{ __('admin.package.usage_title') }}">
             <div class="dashboard-package-usage__intro mb-3">
                 <div class="dashboard-package-usage__intro-content">
                     <span class="dashboard-package-usage__icon"><iconify-icon icon="solar:database-bold-duotone" class="fs-6"></iconify-icon></span>
@@ -374,7 +374,7 @@
         </div>
     @else
     <!-- Stat Cards Row -->
-    <div class="row g-3 mb-4">
+    <div data-tour="dashboard.stats" class="row g-3 mb-4">
         <!-- Revenue Card -->
         <div class="col-xl-3 col-sm-6">
             <div class="dashboard-metric-card dashboard-metric-card--revenue h-100">
@@ -457,7 +457,7 @@
     </div>
 
     <!-- Charts Row -->
-    <div class="row mb-4">
+    <div data-tour="dashboard.charts" class="row mb-4">
         <!-- Revenue Trend Chart -->
         <div class="col-lg-8 mb-4 mb-lg-0" style="min-width: 0;">
             <div class="card shadow-sm h-100 mb-0" style="min-width: 0;">
@@ -526,7 +526,7 @@
     <div class="row mb-4">
         <!-- Recent Orders Table -->
         <div class="col-lg-7 mb-4 mb-lg-0">
-            <div class="card shadow-sm h-100 mb-0">
+            <div data-tour="dashboard.recent-orders" class="card shadow-sm h-100 mb-0">
                 <div class="card-body p-0">
                     <div class="p-4 d-flex align-items-center justify-content-between border-bottom">
                         <h5 class="fw-semibold text-dark mb-0">{{ __('admin.dashboard_page.recent_orders') }}</h5>

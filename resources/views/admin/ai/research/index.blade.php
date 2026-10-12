@@ -139,7 +139,7 @@
             @endif
 
             {{-- Competitors --}}
-            <div class="card research-card mb-4">
+            <div data-tour="research.competitors" class="card research-card mb-4">
                 <div class="card-header">
                     <div class="me-auto">
                         <h2 class="research-card__title">{{ __('ai.research.competitors') }}</h2>
@@ -147,7 +147,7 @@
                     </div>
                     <form method="POST" action="{{ route('admin.ai.research.competitors.suggest') }}">
                         @csrf
-                        <button class="btn btn-outline-primary btn-sm" type="submit" title="{{ __('ai.research.suggest_hint') }}">
+                        <button data-tour="research.suggest" class="btn btn-outline-primary btn-sm" type="submit" title="{{ __('ai.research.suggest_hint') }}">
                             <i class="ti ti-users-group me-1" aria-hidden="true"></i>{{ __('ai.research.suggest') }}
                         </button>
                     </form>
@@ -198,7 +198,7 @@
                     @endforelse
 
                     @if(count($research['competitors']) < $maxCompetitors)
-                        <form method="POST" action="{{ route('admin.ai.research.competitors.store') }}" class="d-flex flex-wrap gap-2 mt-3">
+                        <form data-tour="research.add-competitor" method="POST" action="{{ route('admin.ai.research.competitors.store') }}" class="d-flex flex-wrap gap-2 mt-3">
                             @csrf
                             <label class="visually-hidden" for="research-domain">{{ __('ai.research.add_competitor') }}</label>
                             <input class="form-control" style="max-width: 22rem" id="research-domain" name="domain" maxlength="255" value="{{ old('domain') }}" placeholder="{{ __('ai.research.competitor_placeholder') }}" required>
@@ -232,7 +232,7 @@
             </div>
 
             {{-- Keyword gaps --}}
-            <div class="card research-card mb-4">
+            <div data-tour="research.gaps" class="card research-card mb-4">
                 <div class="card-header">
                     <div class="me-auto">
                         <h2 class="research-card__title">{{ __('ai.research.gaps') }}</h2>
@@ -241,7 +241,7 @@
                     @if(count($research['gaps']) >= 3)
                         <form method="POST" action="{{ route('admin.ai.research.topics') }}">
                             @csrf
-                            <button class="btn btn-primary btn-sm" type="submit" title="{{ __('ai.research.topics_hint') }}">
+                            <button data-tour="research.topics" class="btn btn-primary btn-sm" type="submit" title="{{ __('ai.research.topics_hint') }}">
                                 <i class="ti ti-sparkles me-1" aria-hidden="true"></i>{{ __('ai.research.topics') }}
                             </button>
                         </form>
@@ -342,7 +342,7 @@
             </div>
 
             {{-- Rank tracking --}}
-            <div class="card research-card mb-4">
+            <div data-tour="research.ranks" class="card research-card mb-4">
                 <div class="card-header">
                     <div class="me-auto">
                         <h2 class="research-card__title">{{ __('ai.research.ranks') }}</h2>
@@ -417,7 +417,7 @@
                     @endif
 
                     @if(count($research['tracked']) < $maxTracked)
-                        <form method="POST" action="{{ route('admin.ai.research.keywords.store') }}">
+                        <form data-tour="research.add-keywords" method="POST" action="{{ route('admin.ai.research.keywords.store') }}">
                             @csrf
                             <label class="form-label fw-semibold" for="research-keywords">{{ __('ai.research.keywords_label') }}</label>
                             <textarea class="form-control mb-2" id="research-keywords" name="keywords" rows="3" maxlength="5000" required>{{ old('keywords') }}</textarea>

@@ -15,9 +15,9 @@
                 <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('catalog.products.title') }}</li>
             </x-slot:breadcrumbs>
             <x-slot:actions>
-                <x-admin.action-button variant="info" icon="upload" data-bs-toggle="modal" data-bs-target="#importProductsModal">{{ __('catalog.products.import') }}</x-admin.action-button>
-                <x-admin.action-button :href="route('admin.products.export', request()->query())" variant="success" icon="download">{{ __('catalog.products.export') }}</x-admin.action-button>
-                <x-admin.action-button :href="route('admin.products.create')" icon="plus">{{ __('catalog.products.create') }}</x-admin.action-button>
+                <x-admin.action-button data-tour="products.import" variant="info" icon="upload" data-bs-toggle="modal" data-bs-target="#importProductsModal">{{ __('catalog.products.import') }}</x-admin.action-button>
+                <x-admin.action-button data-tour="products.export" :href="route('admin.products.export', request()->query())" variant="success" icon="download">{{ __('catalog.products.export') }}</x-admin.action-button>
+                <x-admin.action-button data-tour="products.create" :href="route('admin.products.create')" icon="plus">{{ __('catalog.products.create') }}</x-admin.action-button>
             </x-slot:actions>
         </x-admin.page-header>
 
@@ -35,7 +35,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="products.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -87,11 +87,11 @@
                 'bulkActionUrl' => route('admin.products.bulk'),
                 'bulkItemLabel' => 'sản phẩm',
             ])
-            <div class="table-responsive">
+            <div data-tour="products.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
-                            <th class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-products-form" aria-label="Chọn tất cả sản phẩm"></th>
+                            <th data-tour="products.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-products-form" aria-label="Chọn tất cả sản phẩm"></th>
                             <th class="ps-4">{{ __('catalog.fields.name') }}</th>
                             <th>{{ __('catalog.fields.category') }}</th>
                             <th>{{ __('catalog.fields.brand') }}</th>

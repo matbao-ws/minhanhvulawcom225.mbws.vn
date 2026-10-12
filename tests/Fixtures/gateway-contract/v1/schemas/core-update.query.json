@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/core-update.query.json",
+  "title": "GET v1/core/update query string",
+  "type": "object",
+  "required": ["version"],
+  "properties": {
+    "version": { "type": "string", "maxLength": 50, "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$" },
+    "php": { "type": ["string", "null"], "maxLength": 20, "pattern": "^\\d+\\.\\d+(\\.\\d+)?" }
+  },
+  "additionalProperties": false
+}

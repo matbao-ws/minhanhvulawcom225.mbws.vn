@@ -22,7 +22,7 @@
 
     @php $kind = $job->kind(); @endphp
 
-    <div class="card">
+    <div data-tour="ai-bulk-job.summary" class="card">
         <div class="card-body d-flex flex-wrap gap-4 small">
             <span>{{ __('ai.bulk.kind') }}: <strong>{{ __('ai.bulk.kinds.'.$kind.'.title') }}</strong></span>
             <span>{{ __('ai.bulk.status') }}: <strong>{{ __('ai.bulk.statuses.'.$job->status) }}</strong></span>
@@ -35,7 +35,7 @@
     </div>
 
     @if(! $job->isFinished())
-        <div class="alert alert-info" role="status">
+        <div data-tour="ai-bulk-job.running" class="alert alert-info" role="status">
             <span class="spinner-border spinner-border-sm me-2"></span>{{ __('ai.bulk.running') }}
             <a class="ms-2" href="{{ url()->current() }}">{{ __('ai.bulk.reload') }}</a>
         </div>
@@ -48,8 +48,8 @@
             @csrf
             <p class="small text-muted">{{ __('ai.bulk.review_note') }}</p>
             <div class="d-flex align-items-center gap-3 mb-2">
-                <label class="form-check mb-0"><input class="form-check-input me-1" type="checkbox" data-check-all checked>{{ __('ai.bulk.select_all') }}</label>
-                <button type="submit" class="btn btn-primary btn-sm ms-auto"><i class="ti ti-check me-1"></i>{{ __('ai.bulk.apply') }}</button>
+                <label data-tour="ai-bulk-job.select-all" class="form-check mb-0"><input class="form-check-input me-1" type="checkbox" data-check-all checked>{{ __('ai.bulk.select_all') }}</label>
+                <button data-tour="ai-bulk-job.apply" type="submit" class="btn btn-primary btn-sm ms-auto"><i class="ti ti-check me-1"></i>{{ __('ai.bulk.apply') }}</button>
             </div>
 
             @foreach($suggestions as $suggestion)
@@ -58,7 +58,7 @@
                     $known = $titles->get($suggestion->id);
                     $id = $suggestion->id;
                 @endphp
-                <div class="card mb-2">
+                <div data-tour="ai-bulk-job.item" class="card mb-2">
                     <div class="card-body py-3">
                         <div class="d-flex gap-2 align-items-start">
                             <input class="form-check-input mt-1" type="checkbox" name="chosen[]" value="{{ $id }}" checked data-choice aria-label="{{ __('ai.bulk.choose') }}">

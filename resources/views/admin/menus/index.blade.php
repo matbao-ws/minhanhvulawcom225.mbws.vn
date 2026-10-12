@@ -10,7 +10,7 @@
     </x-slot:breadcrumbs>
     <x-slot:actions>
         @can('menus.create')
-            <x-admin.action-button :href="route('admin.menus.create')" icon="plus">{{ __('admin.menus.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="menus.create" :href="route('admin.menus.create')" icon="plus">{{ __('admin.menus.create') }}</x-admin.action-button>
         @endcan
     </x-slot:actions>
 </x-admin.page-header>
@@ -18,7 +18,7 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
+        <div data-tour="menus.table" class="table-responsive">
             <table class="table align-middle">
                 <thead>
                     <tr>
@@ -42,11 +42,11 @@
                         </td>
                         <td class="text-end">
                             <div class="d-inline-flex gap-2">
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.menus.items.index', $menu) }}">
+                                <a data-tour="menus.items" class="btn btn-sm btn-outline-primary" href="{{ route('admin.menus.items.index', $menu) }}">
                                     <i class="ti ti-list-tree me-1"></i>{{ __('admin.menus.manage_items') }}
                                 </a>
                                 @can('menus.update')
-                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.menus.edit', $menu) }}">{{ __('catalog.actions.edit') }}</a>
+                                    <a data-tour="menus.edit" class="btn btn-sm btn-outline-secondary" href="{{ route('admin.menus.edit', $menu) }}">{{ __('catalog.actions.edit') }}</a>
                                 @endcan
                                 @can('menus.delete')
                                     <form method="POST" action="{{ route('admin.menus.destroy', $menu) }}" class="d-inline js-delete-form" data-confirm-text="{{ __('admin.menus.delete_confirm') }}">

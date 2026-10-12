@@ -11,7 +11,7 @@
                 {{ __('admin.users.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button :href="route('admin.users.create')" icon="plus">{{ __('admin.users.create') }}</x-admin.action-button>
+            <x-admin.action-button data-tour="users.create" :href="route('admin.users.create')" icon="plus">{{ __('admin.users.create') }}</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
@@ -19,7 +19,7 @@
     <!-- Filters Card -->
     <div class="card">
         <div class="card-body">
-            <form method="GET" data-responsive-filters class="row g-2 align-items-end">
+            <form data-tour="users.filters" method="GET" data-responsive-filters class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                     <input type="search" name="q" class="form-control" value="{{ request('q') }}"
@@ -53,7 +53,7 @@
         </div>
 
         <!-- Users Table -->
-        <div class="table-responsive">
+        <div data-tour="users.table" class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr class="text-nowrap">
@@ -102,7 +102,7 @@
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <div class="d-flex justify-content-end gap-2">
+                                <div data-tour="users.row-actions" class="d-flex justify-content-end gap-2">
                                     <!-- Lock/Unlock Link (prevent self toggle or Superadmin toggle if not superadmin) -->
                                     @if ($userItem->id !== auth()->id() && !$userItem->isSuperAdmin())
                                         <form method="POST" action="{{ route('admin.users.toggle-status', $userItem) }}"
