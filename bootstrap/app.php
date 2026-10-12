@@ -15,6 +15,7 @@ use App\Http\Middleware\ValidateLocalizedAdminPath;
 use App\Services\LanguageRegistry;
 use App\Support\ErrorReference;
 use App\Support\ErrorReporting\GatewayErrorReporter;
+use App\Support\PackageManifestGuard;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,6 +28,10 @@ use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes;
 use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath;
 use Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect;
 use Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect;
+
+// A package manifest left over from a vendor/ that has since been replaced would stop the boot
+// before package:discover could rebuild it (see PackageManifestGuard).
+PackageManifestGuard::clearIfStale(__DIR__.'/cache');
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
