@@ -279,6 +279,7 @@ class CoreUpdater
                 if (! rename($staging.'/deps/vendor', $this->base().'/vendor')) {
                     throw new RuntimeException('Cannot move the new vendor/ in place');
                 }
+                $this->forgetPackageManifest();
             }
             foreach (array_merge($plan['replace'], $plan['add']) as $path) {
                 $this->place($staging.'/core/'.$path, $this->base().'/'.$path);
@@ -360,6 +361,7 @@ class CoreUpdater
             if (! rename($backup.'/vendor', $this->base().'/vendor')) {
                 throw new RuntimeException('Cannot put the old vendor/ back');
             }
+            $this->forgetPackageManifest();
             File::deleteDirectory($failed);
         }
         if (is_file($backup.'/installed.json')) {
@@ -367,6 +369,20 @@ class CoreUpdater
         }
 
         $this->writeMeta($backup, ['rolled_back' => true] + $meta);
+    }
+
+    /**
+     * The cached package manifest describes the vendor/ that was just moved away. Left in place it
+     * is read before package:discover can rebuild it, and a package missing from the new vendor/
+     * (a dev package a deploy shipped, say) stops that very command.
+     */
+    private function forgetPackageManifest(): void
+    {
+        foreach (['packages.php', 'services.php'] as $file) {
+            if (is_file($path = $this->base().'/bootstrap/cache/'.$file)) {
+                @unlink($path);
+            }
+        }
     }
 
     private function afterRestore(array $meta, bool $wasDown): void

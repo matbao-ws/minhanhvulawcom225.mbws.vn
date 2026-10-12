@@ -167,6 +167,32 @@ class CoreUpdaterTest extends TestCase
         $this->assertSame('vendor B', file_get_contents($this->site.'/vendor/autoload.php'));
     }
 
+    public function test_swapping_vendor_drops_the_package_manifest_built_from_the_old_one(): void
+    {
+        // A manifest of the old vendor/ (here naming a dev package the new one lacks) is read before
+        // package:discover can rebuild it, so it must be gone by the time that command runs.
+        $caches = ['bootstrap/cache/packages.php' => '<?php return ["laravel/pail" => []];', 'bootstrap/cache/services.php' => '<?php return [];'];
+        $this->write($this->site, $caches);
+
+        $this->assertTrue($this->updater()->apply($this->release())['ok']);
+        $this->assertFileExists($this->site.'/bootstrap/cache/packages.php', 'same composer.lock: manifest kept');
+
+        $this->artisan = new FakeArtisan;
+        $this->assertTrue($this->updater()->apply($this->release(['VERSION' => '1.2.0', 'composer.lock' => '{"lock":"B"}']))['ok']);
+        $this->assertFileDoesNotExist($this->site.'/bootstrap/cache/packages.php');
+        $this->assertFileDoesNotExist($this->site.'/bootstrap/cache/services.php');
+    }
+
+    public function test_putting_the_old_vendor_back_drops_the_manifest_of_the_new_one(): void
+    {
+        $this->write($this->site, ['bootstrap/cache/packages.php' => '<?php return [];']);
+        $this->artisan->failOn = 'core:health';
+
+        $this->assertTrue($this->updater()->apply($this->release(['composer.lock' => '{"lock":"B"}']))['rolled_back']);
+        $this->assertFileDoesNotExist($this->site.'/bootstrap/cache/packages.php');
+        $this->assertSame('vendor A', file_get_contents($this->site.'/vendor/autoload.php'));
+    }
+
     public function test_rollback_puts_back_the_code_of_the_last_update_once(): void
     {
         $before = $this->snapshot();
