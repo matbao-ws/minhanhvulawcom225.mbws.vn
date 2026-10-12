@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/errors.request.json",
+  "title": "POST v1/errors body: one error a page showed a reference code for",
+  "type": "object",
+  "required": ["ref", "exception"],
+  "properties": {
+    "ref": { "type": "string", "pattern": "^[A-Z]{2,5}-\\d{14}-[A-Z0-9]{4}$" },
+    "occurred_at": { "type": ["string", "null"] },
+    "status": { "type": ["integer", "null"], "minimum": 100, "maximum": 599 },
+    "method": { "type": ["string", "null"], "maxLength": 10 },
+    "path": { "type": ["string", "null"], "maxLength": 300 },
+    "route": { "type": ["string", "null"], "maxLength": 150 },
+    "exception": { "type": "string", "maxLength": 200 },
+    "message": { "type": ["string", "null"], "maxLength": 1000 },
+    "file": { "type": ["string", "null"], "maxLength": 300 },
+    "line": { "type": ["integer", "null"], "minimum": 0 },
+    "core_version": { "type": ["string", "null"], "maxLength": 50 }
+  },
+  "additionalProperties": false
+}

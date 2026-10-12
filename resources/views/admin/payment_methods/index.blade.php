@@ -44,7 +44,7 @@
                     <h5 class="fw-semibold text-dark mb-1">{{ __('admin.payment_methods.title') }}</h5>
                     <p class="text-muted small mb-0">{{ __('admin.payment_methods.partner_subtitle') }}</p>
                 </div>
-                <a href="{{ route('admin.payment-methods.create') }}" class="btn btn-primary d-flex align-items-center gap-1">
+                <a data-tour="payment-methods.create" href="{{ route('admin.payment-methods.create') }}" class="btn btn-primary d-flex align-items-center gap-1">
                     <i class="ti ti-plus fs-5"></i> {{ __('admin.payment_methods.add_partner') }}
                 </a>
             </div>
@@ -64,16 +64,16 @@
             <div class="p-4 border-bottom">
                 <h5 class="fw-semibold text-dark mb-0">{{ __('admin.payment_methods.list_title') }}</h5>
             </div>
-            <div class="table-responsive">
+            <div data-tour="payment-methods.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap text-muted">
                             <th class="ps-4 fw-semibold small">{{ __('admin.payment_methods.partner_code') }}</th>
                             <th class="fw-semibold small">{{ __('admin.payment_methods.partner_name') }}</th>
                             <th class="fw-semibold small">{{ __('admin.payment_methods.account_or_phone') }}</th>
-                            <th class="fw-semibold small">{{ __('admin.payment_methods.type') }}</th>
-                            <th class="fw-semibold small">{{ __('admin.payment_methods.status') }}</th>
-                            <th class="pe-4 text-end">{{ __('admin.payment_methods.actions') }}</th>
+                            <th data-tour="payment-methods.type" class="fw-semibold small">{{ __('admin.payment_methods.type') }}</th>
+                            <th data-tour="payment-methods.status" class="fw-semibold small">{{ __('admin.payment_methods.status') }}</th>
+                            <th data-tour="payment-methods.actions" class="pe-4 text-end">{{ __('admin.payment_methods.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>

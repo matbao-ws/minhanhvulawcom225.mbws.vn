@@ -240,7 +240,7 @@
     </x-admin.page-header>
 
     <!-- Nav tabs -->
-    <ul class="nav nav-tabs mb-4" role="tablist">
+    <ul data-tour="settings.tabs" class="nav nav-tabs mb-4" role="tablist">
         <li class="nav-item">
             <a class="nav-link {{ $activeTab === 'general' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="general" href="#general-pane" role="tab" aria-selected="{{ $activeTab === 'general' ? 'true' : 'false' }}">
                 <span><i class="ti ti-settings fs-4"></i></span>
@@ -248,27 +248,27 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'contact' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="contact" href="#contact-pane" role="tab" aria-selected="{{ $activeTab === 'contact' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-contact" class="nav-link {{ $activeTab === 'contact' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="contact" href="#contact-pane" role="tab" aria-selected="{{ $activeTab === 'contact' ? 'true' : 'false' }}">
                 <span><i class="ti ti-phone fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.contact') }}</span>
             </a>
         </li>
         @if(auth()->user()?->isSuperAdmin())
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'multilingual' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="multilingual" href="#multilingual-pane" role="tab" aria-selected="{{ $activeTab === 'multilingual' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-multilingual" class="nav-link {{ $activeTab === 'multilingual' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="multilingual" href="#multilingual-pane" role="tab" aria-selected="{{ $activeTab === 'multilingual' ? 'true' : 'false' }}">
                 <span><i class="ti ti-world fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.multilingual') }}</span>
             </a>
         </li>
         @endif
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'embed' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="embed" href="#embed-pane" role="tab" aria-selected="{{ $activeTab === 'embed' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-embed" class="nav-link {{ $activeTab === 'embed' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="embed" href="#embed-pane" role="tab" aria-selected="{{ $activeTab === 'embed' ? 'true' : 'false' }}">
                 <span><i class="ti ti-code fs-4"></i></span>
                 <span>{{ __('admin.settings.tabs.embed') }}</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link {{ $activeTab === 'analytics' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="analytics" href="#analytics-pane" role="tab" aria-selected="{{ $activeTab === 'analytics' ? 'true' : 'false' }}">
+            <a data-tour="settings.tab-analytics" class="nav-link {{ $activeTab === 'analytics' ? 'active' : '' }} d-flex align-items-center gap-2" data-bs-toggle="tab" data-settings-tab="analytics" href="#analytics-pane" role="tab" aria-selected="{{ $activeTab === 'analytics' ? 'true' : 'false' }}">
                 <span><i class="ti ti-chart-line fs-4"></i></span>
                 <span>{{ __('admin.analytics.tab') }}</span>
             </a>
@@ -282,7 +282,7 @@
         <div class="tab-content" id="settingTabsContent">
             
             <!-- Cài đặt website Pane -->
-            <div class="tab-pane fade {{ $activeTab === 'general' ? 'show active' : '' }}" id="general-pane" role="tabpanel">
+            <div data-tour="settings.general" class="tab-pane fade {{ $activeTab === 'general' ? 'show active' : '' }}" id="general-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.general.title') }}</h5>
@@ -856,7 +856,7 @@
 
         <!-- Sticky Save Button -->
         <div class="mt-4 pt-2 mb-5">
-            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+            <button data-tour="settings.save" type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
                 <i class="ti ti-device-floppy me-1 fs-5"></i> {{ __('admin.settings.save_settings') }}
             </button>
         </div>

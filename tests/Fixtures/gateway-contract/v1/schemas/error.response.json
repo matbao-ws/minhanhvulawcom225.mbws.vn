@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/error.response.json",
+  "title": "Any refusal: the website reads reason (and errors on invalid_input)",
+  "type": "object",
+  "required": ["ok", "reason"],
+  "properties": {
+    "ok": { "const": false },
+    "reason": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "errors": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+    "retry_after": { "type": "integer", "minimum": 0 }
+  }
+}

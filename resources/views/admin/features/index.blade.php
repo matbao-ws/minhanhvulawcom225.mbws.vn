@@ -12,7 +12,7 @@
             <x-slot:actions>
                 <form method="POST" action="{{ route('admin.features.sync-package') }}">
                     @csrf
-                    <x-admin.action-button type="submit" icon="refresh">{{ __('admin.package.sync') }}</x-admin.action-button>
+                    <x-admin.action-button data-tour="features.sync" type="submit" icon="refresh">{{ __('admin.package.sync') }}</x-admin.action-button>
                 </form>
             </x-slot:actions>
         @endif
@@ -20,7 +20,7 @@
 
     <div class="row g-4 mb-4">
         <div class="col-lg-5">
-            <div class="card h-100 mb-0">
+            <div data-tour="features.package" class="card h-100 mb-0">
                 <div class="card-body">
                     <h5 class="fw-bold mb-3"><i class="ti ti-package me-1" aria-hidden="true"></i>{{ __('admin.package.title') }}</h5>
                     @if($package)
@@ -45,7 +45,7 @@
         </div>
         <div class="col-lg-7">
             {{-- Read-only: limits change only when sales upgrade the contract on the tool. --}}
-            <div class="card h-100 mb-0">
+            <div data-tour="features.limits" class="card h-100 mb-0">
                 <div class="card-body">
                     <h5 class="fw-bold mb-1">{{ __('admin.package.limits_title') }}</h5>
                     <p class="small text-muted mb-3">{{ __('admin.package.limits_help') }}</p>
@@ -85,7 +85,7 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
-            <ul class="nav nav-tabs feature-tabs px-3 pt-3" id="featureTypeTabs" role="tablist">
+            <ul data-tour="features.tabs" class="nav nav-tabs feature-tabs px-3 pt-3" id="featureTypeTabs" role="tablist">
                 @foreach($groupMeta as $groupKey => $meta)
                     <li class="nav-item" role="presentation">
                         <button class="nav-link d-flex align-items-center gap-2 @if($loop->first) active @endif"
@@ -122,7 +122,7 @@
                                 <h5 class="fw-bold mb-1">{{ $meta['title'] }}</h5>
                                 <p class="text-muted mb-0">{{ $meta['description'] }}</p>
                             </div>
-                            <div class="d-flex align-items-center gap-3">
+                            <div data-tour="features.group-switch" class="d-flex align-items-center gap-3">
                                 <span class="badge rounded-pill {{ $allEnabled ? 'bg-success-subtle text-success' : ($partiallyEnabled ? 'bg-warning-subtle text-warning' : 'bg-secondary-subtle text-secondary') }}"
                                       id="group-status-{{ $groupKey }}"
                                       data-group-status>

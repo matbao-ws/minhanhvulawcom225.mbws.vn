@@ -163,7 +163,22 @@ Checkout:
 ```text
 POST /api/public/orders/checkout
 Authorization: Bearer <customer token>   // optional
+Idempotency-Key: <crypto.randomUUID()>   // send it: see below
 ```
+
+`Idempotency-Key` makes a retried checkout return the order it already created instead of
+placing a second one. The server accepts the request without it, but every storefront should send one:
+- Generate **one key per order attempt** (`crypto.randomUUID()`), keep it in `sessionStorage`, and
+  send the **same key** again after a timeout or network error, when you cannot tell whether the
+  first request succeeded.
+- Start a new key when the customer changes the cart or the form, after a success, and after a `409`.
+- Rules: 16–64 characters `[A-Za-z0-9_-]`. A guest (no bearer token) needs at least 32 random
+  characters; a UUID qualifies.
+- Same key and same order content → `200` with the original order, plus the header
+  `Idempotent-Replayed: true`. Nothing is created and no email is resent. VNPAY gets a fresh `payment_url`.
+- Same key, different content → `409`, `errors.code = idempotency_key_reused`.
+- Key whose order was cancelled or deleted → `409`, `errors.code = idempotency_key_unusable`.
+- Keys are scoped per customer account; guests share one scope, so the key must be unguessable.
 
 ```json
 {

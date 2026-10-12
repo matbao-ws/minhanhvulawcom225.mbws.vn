@@ -39,7 +39,7 @@
                         @endif
                     </div>
                 </div>
-                <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                <div data-tour="product-show.actions" class="d-flex flex-wrap gap-2 flex-shrink-0">
                     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-light">
                         <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('catalog.actions.back') }}
                     </a>
@@ -53,7 +53,7 @@
 
     <div class="row g-4">
         <div class="col-xl-4">
-            <div class="card h-100 mb-0">
+            <div data-tour="product-show.summary" class="card h-100 mb-0">
                 <div class="card-body">
                     <div class="product-show-image">
                         <img src="{{ $productImage }}"
@@ -83,7 +83,7 @@
         </div>
 
         <div class="col-xl-8">
-            <div class="row g-3 mb-4">
+            <div data-tour="product-show.stats" class="row g-3 mb-4">
                 <div class="col-sm-6 col-lg-4">
                     <div class="card product-show-stat h-100 mb-0">
                         <div class="card-body">
@@ -128,7 +128,7 @@
                 </div>
             </div>
 
-            <div class="card mb-0">
+            <div data-tour="product-show.details" class="card mb-0">
                 <div class="card-header bg-transparent border-bottom py-3">
                     <h5 class="mb-0">{{ __('catalog.products.details') }}</h5>
                 </div>
@@ -179,7 +179,7 @@
     </div>
 
     @if($product->description)
-        <div class="card mt-4 mb-0">
+        <div data-tour="product-show.description" class="card mt-4 mb-0">
             <div class="card-header bg-transparent border-bottom py-3">
                 <h5 class="mb-0">{{ __('catalog.fields.description') }}</h5>
             </div>
@@ -199,24 +199,24 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('admin.products.options.edit', $product) }}" class="btn btn-outline-primary">
+                    <a data-tour="product-show.options" href="{{ route('admin.products.options.edit', $product) }}" class="btn btn-outline-primary">
                         <i class="ti ti-adjustments me-1" aria-hidden="true"></i>Thuộc tính
                     </a>
                     @if($product->optionGroups->isNotEmpty())
-                        <form method="POST" action="{{ route('admin.products.variants.generate', $product) }}">
+                        <form data-tour="product-show.generate" method="POST" action="{{ route('admin.products.variants.generate', $product) }}">
                             @csrf
                             <button class="btn btn-outline-success" type="submit">
                                 <i class="ti ti-wand me-1" aria-hidden="true"></i>Tạo tổ hợp
                             </button>
                         </form>
-                        <a href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-primary">
+                        <a data-tour="product-show.create-variant" href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-primary">
                             <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('catalog.variants.create') }}
                         </a>
                     @endif
                 </div>
             </div>
         </div>
-        <div class="table-responsive">
+        <div data-tour="product-show.variants" class="table-responsive">
             <table class="table table-hover align-middle mb-0 product-show-variants">
                 <thead>
                     <tr>

@@ -126,7 +126,7 @@
     </style>
 @endpush
 
-<section class="card mb-4 dashboard-analytics" style="border-radius: 20px !important; overflow: visible !important"
+<section data-tour="dashboard.analytics" class="card mb-4 dashboard-analytics" style="border-radius: 20px !important; overflow: visible !important"
     aria-label="{{ __('admin.analytics.title') }}" data-analytics-url="{{ route('admin.dashboard.analytics') }}"
     data-analytics-refresh-url="{{ route('admin.dashboard.analytics.refresh') }}">
     <div class="card-body">

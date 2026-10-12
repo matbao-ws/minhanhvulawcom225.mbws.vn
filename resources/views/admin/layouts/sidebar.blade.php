@@ -174,7 +174,7 @@
       }
   </script>
 
-  <aside class="side-mini-panel with-vertical">
+  <aside data-tour="layout.sidebar" class="side-mini-panel with-vertical">
       <!-- ---------------------------------- -->
       <!-- Start Vertical Layout Sidebar -->
       <!-- ---------------------------------- -->
