@@ -292,6 +292,9 @@ class AppServiceProvider extends ServiceProvider
         // Themes written before the editor moved to views/core still include
         // client.partials.admin-bar & co. Searched after views/, so a theme's own file wins.
         View::addLocation(resource_path('views/core/legacy'));
+        // An editable CSS background on the theme's own element (App\Support\ClientBackground):
+        // <section class="hero" @clientBackground('home.hero.bg', "background: url('…') center/cover")>.
+        Blade::directive('clientBackground', static fn (string $arguments): string => '<?php echo app(\\App\\Support\\ClientBackground::class)->attributes('.$arguments.'); ?>');
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
             if ($notifiable instanceof User && $notifiable->role_id === null) {

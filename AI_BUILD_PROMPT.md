@@ -729,6 +729,23 @@ Ngoài CMS Page, template storefront có thể đánh dấu từng vùng tĩnh c
 - `ConvertEmptyStringsToNull` biến `""` thành `null` trước validation; FormRequest phải hoàn nguyên.
 - Lưu qua `admin.site-blocks.update`, khôi phục qua `admin.site-blocks.restore` — cùng quyền
   `pages.update` và throttle `admin-page-inline` với inline page. Ảnh cần thêm `media.view`.
+- **Ảnh nền là loại `background`**, viết trên chính phần tử của theme bằng
+  `@clientBackground('<key>', "<nguyên chuỗi style gốc>")` (lazy: `['lazy' => 'data-bg', 'src' => …]`).
+  `App\Support\ClientBackground` chỉ thay phần bên trong **đúng một** `url()` ảnh nội dung; gradient,
+  position, size, repeat và các khai báo khác giữ nguyên từng ký tự. 0 hoặc ≥2 `url()` thì ném lỗi
+  khi render — ca đó sửa tay. Không có thao tác ẩn ảnh nền.
+- **`<picture>`/srcset/lazy** đi qua `editable-image` (`srcset`, `sizes`, `:sources`, `picture-class`,
+  `lazy`, `placeholder`). Chưa thay hoặc đã khôi phục: in đúng markup gốc của theme. Đã thay: mọi
+  `srcset` và `<source>` trỏ về ảnh mới, không xoá phần tử nào.
+- **Quy tắc URL ảnh** (cả `image` và `background`), kiểm ở `SiteBlockUpdateRequest` và kiểm lại khi
+  render (`ClientBackground::isSafeUrl`): chuỗi rỗng, path bắt đầu bằng một `/`, hoặc `http(s)://host/…`;
+  không khoảng trắng, nháy, ngoặc, `\`, `<`, `>`, `;`, ký tự điều khiển. `javascript:`, `data:`,
+  `//host` bị 422. Lưu path tương đối qua `MediaUrl`. Ghi, khôi phục và khôi phục revision của
+  `image`/`background` đều cần `media.view`.
+- **Sửa lồng nhau:** phần tử có ảnh nền mang `data-client-background`, **không** mang
+  `data-block-key`, nên không bao giờ thành một vùng nuốt click của con. Ảnh nền chỉ mở từ nút
+  "Đổi ảnh nền" (editor chrome, gắn vào `<body>`); chữ và ảnh bên trong vẫn là vùng độc lập, và
+  scanner vẫn quét toàn bộ phần tử con.
 - Revision gộp trong 10 phút; lần lưu đầu của block mới không có gì để snapshot.
 - **Không viết literal `<x-client::…>` trong comment Blade.** Blade biên dịch cả trong comment JS/CSS
   và để hở `if` không đóng — trang vẫn render nhưng rò output buffer.

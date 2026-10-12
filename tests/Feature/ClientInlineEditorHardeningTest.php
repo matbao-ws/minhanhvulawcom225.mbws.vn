@@ -232,4 +232,44 @@ class ClientInlineEditorHardeningTest extends TestCase
         $this->assertStringNotContainsString('client-admin-bar', $html);
         $this->assertStringNotContainsString('client-inline-media-picker', $html);
     }
+
+    /**
+     * A section with an editable background is not a region. Clicks inside it reach the text,
+     * images and links within, exactly as without it; the background opens only from its own
+     * handle, which is editor chrome so a click on it never edits the page underneath.
+     */
+    public function test_a_background_opens_only_from_its_handle_and_never_takes_a_childs_click(): void
+    {
+        $html = $this->editorHtml();
+        $intercept = substr($html, strpos($html, 'function interceptClicks('));
+        // Up to the next function declared beside it: the whole click handler.
+        $intercept = substr($intercept, 0, (int) strpos($intercept, '
+            function ', 30));
+
+        $this->assertStringNotContainsString('data-client-background', $intercept);
+        $this->assertStringContainsString("let region = event.target.closest('[data-block-key]');", $intercept);
+        $this->assertMatchesRegularExpression("/EDITOR_CHROME = \[[^\]]*'#client-bg-handle'/", $html);
+        $this->assertStringContainsString("bgHandle.addEventListener('click'", $html);
+        $this->assertStringContainsString('document.body.appendChild(bgHandle)', $html);
+    }
+
+    public function test_choosing_a_picture_rewrites_sources_instead_of_dropping_them(): void
+    {
+        $html = $this->editorHtml();
+
+        // Dropping srcset let the browser fall back to <source> and show the theme's picture again.
+        $this->assertStringNotContainsString("element.removeAttribute('srcset');\n                        element.src", $html);
+        $this->assertStringContainsString('function setImagePicture(img, url)', $html);
+        $this->assertStringContainsString('function setBackgroundPicture(', $html);
+        // Cancel puts back exactly what the theme printed.
+        $this->assertStringContainsString('snapshot.srcset', $html);
+        $this->assertStringContainsString('snapshot.sources', $html);
+    }
+
+    public function test_an_admin_without_media_permission_gets_no_background_handle(): void
+    {
+        $html = $this->editorHtml(['pages.update']);
+
+        $this->assertStringNotContainsString("bgHandle.id = 'client-bg-handle'", $html);
+    }
 }

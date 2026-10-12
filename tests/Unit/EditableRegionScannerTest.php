@@ -333,27 +333,90 @@ class EditableRegionScannerTest extends TestCase
         $this->assertSame([], $this->keys('<!doctype html><html><body><p>{{ $x }}</p></body></html>'));
     }
 
-    public function test_images_the_editor_cannot_replace_are_unsupported_not_offered(): void
+    public function test_responsive_lazy_and_background_pictures_are_editable_but_converted_by_hand(): void
     {
-        // Replacing src on any of these "succeeds" and the visitor still sees
-        // the old picture, so --fix must never touch them.
+        // The editor can replace all of these now, but only with the theme's own markup carried
+        // over (srcset, <source>, placeholder), so --fix leaves them to a person.
         $cases = [
-            '<section style="background-image:url(/client-assets/img/bg.jpg)"></section>' => 'background',
             '<div data-bg="/client-assets/img/bg.jpg"></div>' => 'data-background',
             '<picture><source srcset="/a.webp"><img src="/a.jpg" alt=""></picture>' => 'picture',
             '<img src="/a.jpg" srcset="/a-2x.jpg 2x" alt="">' => 'srcset',
             '<img src="data:image/gif;base64,R0lG" data-src="/real.jpg" alt="">' => 'lazy',
-            '<video poster="/poster.jpg"></video>' => 'poster',
+            '<section style="background: linear-gradient(#000, #fff), url(/a.jpg)"></section>' => 'layered',
         ];
 
         foreach ($cases as $source => $reason) {
             $findings = (new EditableRegionScanner)->scan($source, 'home');
 
             $this->assertCount(1, $findings, $source);
-            $this->assertSame(EditableRegionScanner::STATUS_UNSUPPORTED, $findings[0]['status'], $source);
+            $this->assertSame(EditableRegionScanner::STATUS_UNKNOWN, $findings[0]['status'], $source);
             $this->assertSame($reason, $findings[0]['reason'], $source);
             $this->assertFalse($findings[0]['fixable'], $source);
         }
+    }
+
+    public function test_a_video_poster_is_still_unsupported(): void
+    {
+        $findings = (new EditableRegionScanner)->scan('<video poster="/poster.jpg"></video>', 'home');
+
+        $this->assertSame(EditableRegionScanner::STATUS_UNSUPPORTED, $findings[0]['status']);
+        $this->assertSame('poster', $findings[0]['reason']);
+        $this->assertFalse($findings[0]['fixable']);
+    }
+
+    public function test_only_a_provably_safe_background_is_offered_to_fix(): void
+    {
+        $fixable = static fn (string $source): bool => (new EditableRegionScanner)->scan($source, 'home')[0]['fixable'];
+
+        $this->assertTrue($fixable('<section class="hero" style="background-image:url(/client-assets/img/bg.jpg)"></section>'));
+        $this->assertTrue($fixable("<div style=\"background: url('/a.jpg') center/cover no-repeat\"></div>"));
+
+        // Blade in the style or a slider around it: a person decides.
+        $this->assertFalse($fixable("<div style=\"background-image:url({{ asset('a.jpg') }})\"></div>"));
+        $this->assertFalse($fixable('<div class="swiper"><div class="swiper-slide" style="background-image:url(/a.jpg)"></div></div>'));
+        $this->assertFalse($fixable('<div class="owl-carousel"><div style="background-image:url(/a.jpg)"></div></div>'));
+    }
+
+    public function test_a_marked_background_counts_as_editable_and_its_children_are_still_scanned(): void
+    {
+        $source = <<<'BLADE'
+        <section class="hero" @clientBackground('home.hero.bg', 'background-image:url(/a.jpg)')>
+            <x-client::editable key="home.hero.title" tag="h1">Tiêu đề</x-client::editable>
+            <p>Chưa đánh dấu</p>
+        </section>
+        BLADE;
+
+        $findings = (new EditableRegionScanner)->scan($source, 'home');
+
+        $this->assertSame(['Chưa đánh dấu'], array_column($findings, 'preview'));
+    }
+
+    public function test_a_style_attribute_beside_client_background_is_reported(): void
+    {
+        // Two style attributes: the browser keeps the first and the background never shows.
+        $findings = (new EditableRegionScanner)->scan(
+            "<section style=\"padding:40px\" @clientBackground('home.hero.bg', 'background-image:url(/a.jpg)')></section>",
+            'home',
+        );
+
+        $this->assertCount(1, $findings);
+        $this->assertSame('background-style-conflict', $findings[0]['reason']);
+        $this->assertSame(EditableRegionScanner::STATUS_UNKNOWN, $findings[0]['status']);
+        $this->assertFalse($findings[0]['fixable']);
+    }
+
+    public function test_keys_already_written_are_never_handed_out_again(): void
+    {
+        $source = <<<'BLADE'
+        <section @clientBackground('pages.home.main.section-1', 'background-image:url(/a.jpg)')></section>
+        <x-client::editable key="pages.home.main.h2-1" tag="h2">Đã sửa</x-client::editable>
+        <section style="background-image:url(/b.jpg)"></section>
+        <h2>Mới</h2>
+        BLADE;
+
+        $keys = array_column((new EditableRegionScanner)->scan($source, 'pages.home'), 'key');
+
+        $this->assertSame(['pages.home.main.section-2', 'pages.home.main.h2-2'], $keys);
     }
 
     public function test_a_lazy_image_reports_the_real_source_not_the_placeholder(): void

@@ -23,6 +23,7 @@ class ThemeBenchmarkAuditTest extends TestCase
         $expected = $this->expected();
         $found = [];
         $styleBlocks = [];
+        $fixableImages = [];
         $totals = ['ignored' => 0, 'invalidIgnores' => 0, 'image' => [], 'text' => []];
 
         foreach ($this->audits() as $file => $audit) {
@@ -37,6 +38,9 @@ class ThemeBenchmarkAuditTest extends TestCase
                 preg_match('/data-case="([^"]+)"/', $finding['attrs'], $m);
                 $this->assertArrayNotHasKey($m[1], $found, "case {$m[1]} reported twice");
                 $found[$m[1]] = ['file' => $file, 'kind' => $finding['kind'], 'status' => $finding['status'], 'reason' => $finding['reason']];
+                if ($finding['kind'] === 'image' && $finding['fixable']) {
+                    $fixableImages[] = $m[1];
+                }
             }
             $totals['ignored'] += count($audit['ignored']);
             $totals['invalidIgnores'] += count($audit['invalidIgnores']);
@@ -52,6 +56,11 @@ class ThemeBenchmarkAuditTest extends TestCase
             $this->assertSame($want, $found[$case], "case {$case}");
         }
         $this->assertSame([], array_values(array_diff(array_keys($found), array_keys($expected['findings']))), 'reported cases missing from expected.json');
+
+        // --fix may only touch a plain <img> or a background it can prove safe: one literal url(), one static style,
+        // no slider. Layered, lazy, responsive and poster pictures stay with a person.
+        sort($fixableImages);
+        $this->assertSame($expected['fixableImages'], $fixableImages);
 
         $this->assertCount(count($expected['styleBlocks']), $styleBlocks);
         foreach ($expected['styleBlocks'] as $i => $want) {
