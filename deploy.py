@@ -11,12 +11,148 @@ import io
 import ssl
 import base64
 import secrets
-import getpass
 import argparse
 import json
 import glob
 import shutil
 import subprocess
+
+# ================================================================ console
+# Kept identical in deploy.py and team.py: each runs on its own, with nothing but Python.
+#
+# Colour comes from the tag every message already starts with ([+] [-] [!] [?] [*] [=]), so a
+# line reads the same with or without it. Off when the output is not a terminal (CI, a pipe, a
+# test) or NO_COLOR is set.
+
+def _ansi_supported(stream):
+    if os.environ.get('NO_COLOR') or not hasattr(stream, 'isatty') or not stream.isatty():
+        return False
+    if os.name != 'nt':
+        return True
+    try:
+        import ctypes
+        kernel = ctypes.windll.kernel32
+        handle = kernel.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if not kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel.SetConsoleMode(handle, mode.value | 0x0004))  # VIRTUAL_TERMINAL_PROCESSING
+    except Exception:
+        return False
+
+
+class C:
+    """ANSI codes; all empty until enable_console() finds a terminal that shows them."""
+    RESET = BOLD = DIM = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = WHITE = ''
+
+    @classmethod
+    def enable(cls):
+        cls.RESET, cls.BOLD, cls.DIM = '\033[0m', '\033[1m', '\033[2m'
+        cls.RED, cls.GREEN, cls.YELLOW = '\033[91m', '\033[92m', '\033[93m'
+        cls.BLUE, cls.MAGENTA, cls.CYAN, cls.WHITE = '\033[94m', '\033[95m', '\033[96m', '\033[97m'
+
+
+# tag → (colour of the tag, colour of the rest of the line)
+_TAGS = (
+    ('[+++]', lambda: (C.BOLD + C.GREEN, C.BOLD + C.GREEN)),
+    ('[+]', lambda: (C.BOLD + C.GREEN, C.WHITE)),
+    ('[-]', lambda: (C.BOLD + C.RED, C.RED)),
+    ('[!]', lambda: (C.BOLD + C.YELLOW, C.YELLOW)),
+    ('[?]', lambda: (C.BOLD + C.CYAN, C.BOLD + C.CYAN)),
+    ('[*]', lambda: (C.BOLD + C.MAGENTA, C.MAGENTA)),
+    ('[=]', lambda: (C.BOLD + C.BLUE, C.BOLD + C.BLUE)),
+)
+
+
+def paint_line(line):
+    """One line of output, coloured by its leading tag. Lines already coloured are left alone."""
+    if not C.RESET or not line.strip() or '\033[' in line:
+        return line
+    body = line.lstrip()
+    indent = line[:len(line) - len(body)]
+    for tag, colours in _TAGS:
+        if body.startswith(tag):
+            head, rest = colours()
+            return f'{indent}{head}{tag}{C.RESET}{rest}{body[len(tag):]}{C.RESET}'
+    if set(body) <= set('-=_─═'):
+        return f'{indent}{C.DIM}{C.GREEN}{body}{C.RESET}'
+    if body.startswith('$ '):
+        return f'{indent}{C.DIM}{body}{C.RESET}'
+    return line
+
+
+class _PaintedStream:
+    """Wraps stdout so every print() goes through paint_line, without touching the callers."""
+
+    def __init__(self, stream):
+        self._stream = stream
+        self._at_line_start = True
+
+    def write(self, text):
+        out = []
+        for piece in text.splitlines(keepends=True):
+            newline = piece.endswith('\n')
+            content = piece[:-1] if newline else piece
+            out.append((paint_line(content) if self._at_line_start else content) + ('\n' if newline else ''))
+            self._at_line_start = newline
+        if not text:
+            return 0
+        self._stream.write(''.join(out))
+        return len(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
+def enable_console():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8')  # Vietnamese on a cp1252 Windows console
+        except (AttributeError, ValueError):
+            pass
+    if _ansi_supported(sys.stdout):
+        C.enable()
+        sys.stdout = _PaintedStream(sys.stdout)
+
+
+def goodbye(note=''):
+    """Ctrl+C or Ctrl+Z/Ctrl+D: a clean exit, on a fresh line, with the colours closed."""
+    sys.stdout.write(C.RESET + '\n')
+    if note:
+        print(f'[!] {note}')
+    else:
+        print('[+] Đã thoát. Hẹn gặp lại!')
+    sys.stdout.flush()
+
+
+# Pasted from a panel or a chat, a value often carries a non-breaking space, a zero-width space
+# or a byte-order mark that nobody can see — and a password with one never matches.
+_INVISIBLE = dict.fromkeys(map(ord, '​‌‍⁠﻿'))
+
+
+def clean(value):
+    """Whitespace off both ends (non-breaking spaces included) and invisible characters gone."""
+    return (value or '').translate(_INVISIBLE).replace(' ', ' ').strip()
+
+
+def prompt_line(label, default=''):
+    """`  ▸ Label [default]: ` — the label in cyan, the default dimmed, the answer in bright white."""
+    hint = f' {C.DIM}[{default}]{C.RESET}' if default else ''
+    return f'    {C.GREEN}▸{C.RESET} {C.CYAN}{label}{C.RESET}{hint}{C.DIM}:{C.RESET} {C.BOLD}{C.WHITE}'
+
+
+def read_answer(prompt):
+    """input(), with the answer's colour closed again however the line ends."""
+    try:
+        return clean(input(prompt))
+    finally:
+        if C.RESET:
+            sys.stdout.write(C.RESET)
+            sys.stdout.flush()
+        if isinstance(sys.stdout, _PaintedStream):
+            # The terminal echoed the Enter itself; the next print starts a fresh line.
+            sys.stdout._at_line_start = True
+
 
 EXCLUDE_FILES = {
     'deploy.py',
@@ -57,6 +193,9 @@ ENV_TEMPLATE = '.env.example'
 # GATEWAY_DEPLOY_KEY in the environment works too, and so does a GATEWAY_INTERNAL_KEY saved
 # before the deploy key existed.
 DEPLOYER_SECRETS = os.path.join(os.path.expanduser('~'), '.matbaows', 'deploy.env')
+
+# Set once the deploy starts writing to the server: an interrupt after that is not a clean exit.
+WRITING = False
 
 # The hosting panel writes its own key names into backend/.env; Laravel reads
 # different ones. Translate instead of asking for credentials already on the server.
@@ -167,8 +306,8 @@ def parse_args(argv=None):
 def prompt_yes_no(question, default, args):
     if args.yes:
         return default
-    suffix = '[C/k]' if default else '[c/K]'
-    answer = input(f'{question} {suffix}: ').strip().lower()
+    suffix = 'C/k' if default else 'c/K'
+    answer = read_answer(prompt_line(question, suffix)).lower()
     if answer == '':
         return default
     return answer in ('c', 'co', 'có', 'y', 'yes')
@@ -178,11 +317,11 @@ def prompt_choice(question, options, default_index, args):
     """options: list of (label, value)."""
     if args.yes:
         return options[default_index][1]
-    print(question)
+    print(f'[?] {question}')
     for i, (label, _) in enumerate(options, 1):
-        marker = ' (mặc định)' if i - 1 == default_index else ''
-        print(f'  {i}. {label}{marker}')
-    answer = input(f'Chọn [{default_index + 1}]: ').strip()
+        marker = f' {C.DIM}(mặc định){C.RESET}' if i - 1 == default_index else ''
+        print(f'      {C.GREEN}{C.BOLD}{i}{C.RESET} {C.DIM}│{C.RESET} {label}{marker}')
+    answer = read_answer(prompt_line('Chọn', default_index + 1))
     if answer == '':
         return options[default_index][1]
     if answer.isdigit() and 1 <= int(answer) <= len(options):
@@ -210,9 +349,10 @@ def mask(key, value):
     return value
 
 def print_banner():
-    print("=" * 60)
-    print("         Laravel Ecommerce Core - Deploy Script")
-    print("=" * 60)
+    line = '═' * 60
+    print(f'{C.GREEN}{line}{C.RESET}')
+    print(f'{C.BOLD}{C.GREEN}  >_ MBWS CORE · DEPLOY{C.RESET}   {C.DIM}FTP · .env · migrate · gateway{C.RESET}')
+    print(f'{C.GREEN}{line}{C.RESET}')
 
 def normalize_domain(value):
     """
@@ -236,7 +376,7 @@ def parse_env_text(text):
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, val = line.split("=", 1)
-        env[key.strip()] = val.strip().strip('"').strip("'")
+        env[clean(key)] = clean(clean(val).strip('"').strip("'"))
     return env
 
 
@@ -341,14 +481,15 @@ def saved_sites():
 
 
 def ask(label, default='', secret=False, required=True):
+    """
+    One value, trimmed (see clean()). Passwords are shown as they are typed, `secret` or not:
+    a typo nobody could see cost a failed deploy more often than a glance over the shoulder.
+    """
     while True:
-        # A password's default is never echoed: Enter keeps it.
-        hint = (' [Enter = giữ nguyên]' if secret else f' [{default}]') if default else ''
-        prompt = f'    {label}{hint}: '
-        answer = (getpass.getpass(prompt) if secret else input(prompt)).strip() or default
+        answer = read_answer(prompt_line(label, default)) or default
         if answer or not required:
             return answer
-        print('    (bắt buộc)')
+        print('    [!] Bắt buộc, không được để trống.')
 
 
 def read_pasted_block():
@@ -362,7 +503,8 @@ def read_pasted_block():
             line = input()
         except EOFError:
             break
-        if not line.strip():
+        line = clean(line)
+        if not line:
             break
         lines.append(line)
     values = parse_env_text('\n'.join(lines))
@@ -390,10 +532,10 @@ def choose_domain(args):
 
     print('[?] Deploy lên website nào?')
     for index, host in enumerate(sites, 1):
-        print(f'    [{index}] {host}')
-    print('    Hoặc gõ domain mới (vd: shop.webwow.vn)')
+        print(f'      {C.GREEN}{C.BOLD}{index}{C.RESET} {C.DIM}│{C.RESET} {host}')
+    print(f'      {C.DIM}hoặc gõ domain mới (vd: shop.webwow.vn){C.RESET}')
     while True:
-        answer = input('    Chọn: ').strip()
+        answer = read_answer(prompt_line('Chọn'))
         if answer.isdigit() and 1 <= int(answer) <= len(sites):
             return normalize_domain(sites[int(answer) - 1])
         if '.' in answer:
@@ -1408,6 +1550,7 @@ def upload_and_trigger(ftp, remote_dir, script_name, code, domain):
 
 
 def main():
+    enable_console()
     args = parse_args()
     print_banner()
 
@@ -1515,6 +1658,9 @@ def main():
         ftp.quit()
         sys.exit(0)
 
+    global WRITING
+    WRITING = True
+
     # Before anything is written: an export that fails stops the deploy here.
     content_file = export_local_content() if push_content else None
 
@@ -1611,4 +1757,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        if WRITING:
+            goodbye('Đã dừng giữa chừng khi đang ghi lên server: website có thể đang dở. Chạy lại deploy.')
+            sys.exit(130)
+        goodbye()
+        sys.exit(0)

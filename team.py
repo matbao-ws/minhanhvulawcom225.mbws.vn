@@ -34,6 +34,143 @@ DEFAULT_OWNER = 'M-t-Bao-WS'
 NAME_PATTERN = r'[a-z0-9][a-z0-9-]{1,48}'
 
 
+# ================================================================ console
+# Kept identical in deploy.py and team.py: each runs on its own, with nothing but Python.
+#
+# Colour comes from the tag every message already starts with ([+] [-] [!] [?] [*] [=]), so a
+# line reads the same with or without it. Off when the output is not a terminal (CI, a pipe, a
+# test) or NO_COLOR is set.
+
+def _ansi_supported(stream):
+    if os.environ.get('NO_COLOR') or not hasattr(stream, 'isatty') or not stream.isatty():
+        return False
+    if os.name != 'nt':
+        return True
+    try:
+        import ctypes
+        kernel = ctypes.windll.kernel32
+        handle = kernel.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if not kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel.SetConsoleMode(handle, mode.value | 0x0004))  # VIRTUAL_TERMINAL_PROCESSING
+    except Exception:
+        return False
+
+
+class C:
+    """ANSI codes; all empty until enable_console() finds a terminal that shows them."""
+    RESET = BOLD = DIM = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = WHITE = ''
+
+    @classmethod
+    def enable(cls):
+        cls.RESET, cls.BOLD, cls.DIM = '\033[0m', '\033[1m', '\033[2m'
+        cls.RED, cls.GREEN, cls.YELLOW = '\033[91m', '\033[92m', '\033[93m'
+        cls.BLUE, cls.MAGENTA, cls.CYAN, cls.WHITE = '\033[94m', '\033[95m', '\033[96m', '\033[97m'
+
+
+# tag → (colour of the tag, colour of the rest of the line)
+_TAGS = (
+    ('[+++]', lambda: (C.BOLD + C.GREEN, C.BOLD + C.GREEN)),
+    ('[+]', lambda: (C.BOLD + C.GREEN, C.WHITE)),
+    ('[-]', lambda: (C.BOLD + C.RED, C.RED)),
+    ('[!]', lambda: (C.BOLD + C.YELLOW, C.YELLOW)),
+    ('[?]', lambda: (C.BOLD + C.CYAN, C.BOLD + C.CYAN)),
+    ('[*]', lambda: (C.BOLD + C.MAGENTA, C.MAGENTA)),
+    ('[=]', lambda: (C.BOLD + C.BLUE, C.BOLD + C.BLUE)),
+)
+
+
+def paint_line(line):
+    """One line of output, coloured by its leading tag. Lines already coloured are left alone."""
+    if not C.RESET or not line.strip() or '\033[' in line:
+        return line
+    body = line.lstrip()
+    indent = line[:len(line) - len(body)]
+    for tag, colours in _TAGS:
+        if body.startswith(tag):
+            head, rest = colours()
+            return f'{indent}{head}{tag}{C.RESET}{rest}{body[len(tag):]}{C.RESET}'
+    if set(body) <= set('-=_─═'):
+        return f'{indent}{C.DIM}{C.GREEN}{body}{C.RESET}'
+    if body.startswith('$ '):
+        return f'{indent}{C.DIM}{body}{C.RESET}'
+    return line
+
+
+class _PaintedStream:
+    """Wraps stdout so every print() goes through paint_line, without touching the callers."""
+
+    def __init__(self, stream):
+        self._stream = stream
+        self._at_line_start = True
+
+    def write(self, text):
+        out = []
+        for piece in text.splitlines(keepends=True):
+            newline = piece.endswith('\n')
+            content = piece[:-1] if newline else piece
+            out.append((paint_line(content) if self._at_line_start else content) + ('\n' if newline else ''))
+            self._at_line_start = newline
+        if not text:
+            return 0
+        self._stream.write(''.join(out))
+        return len(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
+def enable_console():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8')  # Vietnamese on a cp1252 Windows console
+        except (AttributeError, ValueError):
+            pass
+    if _ansi_supported(sys.stdout):
+        C.enable()
+        sys.stdout = _PaintedStream(sys.stdout)
+
+
+def goodbye(note=''):
+    """Ctrl+C or Ctrl+Z/Ctrl+D: a clean exit, on a fresh line, with the colours closed."""
+    sys.stdout.write(C.RESET + '\n')
+    if note:
+        print(f'[!] {note}')
+    else:
+        print('[+] Đã thoát. Hẹn gặp lại!')
+    sys.stdout.flush()
+
+
+# Pasted from a panel or a chat, a value often carries a non-breaking space, a zero-width space
+# or a byte-order mark that nobody can see — and a password with one never matches.
+_INVISIBLE = dict.fromkeys(map(ord, '​‌‍⁠﻿'))
+
+
+def clean(value):
+    """Whitespace off both ends (non-breaking spaces included) and invisible characters gone."""
+    return (value or '').translate(_INVISIBLE).replace(' ', ' ').strip()
+
+
+def prompt_line(label, default=''):
+    """`  ▸ Label [default]: ` — the label in cyan, the default dimmed, the answer in bright white."""
+    hint = f' {C.DIM}[{default}]{C.RESET}' if default else ''
+    return f'    {C.GREEN}▸{C.RESET} {C.CYAN}{label}{C.RESET}{hint}{C.DIM}:{C.RESET} {C.BOLD}{C.WHITE}'
+
+
+def read_answer(prompt):
+    """input(), with the answer's colour closed again however the line ends."""
+    try:
+        return clean(input(prompt))
+    finally:
+        if C.RESET:
+            sys.stdout.write(C.RESET)
+            sys.stdout.flush()
+        if isinstance(sys.stdout, _PaintedStream):
+            # The terminal echoed the Enter itself; the next print starts a fresh line.
+            sys.stdout._at_line_start = True
+
+
 # ================================================================ helpers
 
 class Stop(Exception):
@@ -45,20 +182,23 @@ def say(message=''):
 
 
 def ask(label, default='', required=False):
-    hint = f' [{default}]' if default else ''
+    """One value, trimmed (see clean()) and shown as typed — tokens and passwords included."""
     while True:
         try:
-            answer = input(f'  {label}{hint}: ').strip() or default
+            answer = read_answer(prompt_line(label, default)) or default
         except EOFError:
             answer = default
             required = False
         if answer or not required:
             return answer
-        say('  (bắt buộc)')
+        say('    [!] Bắt buộc, không được để trống.')
 
 
 def yes(label, default=True):
-    answer = ask(label + (' [C/k]' if default else ' [c/K]')).lower()
+    try:
+        answer = read_answer(prompt_line(label, 'C/k' if default else 'c/K')).lower()
+    except EOFError:
+        answer = ''
     return default if answer == '' else answer in ('c', 'co', 'có', 'y', 'yes')
 
 
@@ -935,12 +1075,15 @@ def menu():
     title = 'REPO CORE' if where == 'core' else f'DỰ ÁN {os.path.basename(HERE)}'
     while True:
         say('')
-        say(f'=== {title} — nhánh {branch()} ===')
+        say(f'{C.GREEN}{"═" * 60}{C.RESET}')
+        say(f'{C.BOLD}{C.GREEN}  >_ {title}{C.RESET}   {C.DIM}nhánh{C.RESET} {C.YELLOW}{branch()}{C.RESET}')
+        say(f'{C.GREEN}{"═" * 60}{C.RESET}')
         for i, (label, _) in enumerate(items, 1):
-            say(f'  {i}. {label}')
-        say('  0. Thoát')
+            say(f'      {C.GREEN}{C.BOLD}{i}{C.RESET} {C.DIM}│{C.RESET} {label}')
+        say(f'      {C.RED}{C.BOLD}0{C.RESET} {C.DIM}│ Thoát{C.RESET}')
         choice = ask('Chọn')
         if choice in ('0', 'q', ''):
+            say('[+] Đã thoát. Hẹn gặp lại!')
             return
         if choice.isdigit() and 1 <= int(choice) <= len(items):
             say('')
@@ -948,13 +1091,10 @@ def menu():
                 items[int(choice) - 1][1]()
             except Stop as e:
                 say(f'[-] {e}')
-            except KeyboardInterrupt:
-                say('\n[-] Đã huỷ.')
 
 
 def main():
-    for stream in (sys.stdout, sys.stderr):
-        stream.reconfigure(encoding='utf-8')  # Vietnamese on a cp1252 Windows console
+    enable_console()
     command, rest = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else ('', [])
     try:
         if command == 'new':
@@ -971,9 +1111,10 @@ def main():
     except Stop as e:
         say(f'[-] {e}')
         sys.exit(1)
-    except KeyboardInterrupt:
-        say('\n[-] Đã huỷ.')
-        sys.exit(130)
+    except (KeyboardInterrupt, EOFError):
+        # Ctrl+C anywhere — the menu, a question, a running step — leaves the tool cleanly.
+        goodbye()
+        sys.exit(0)
 
 
 if __name__ == '__main__':
