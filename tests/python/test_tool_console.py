@@ -110,6 +110,34 @@ class PaintTest(unittest.TestCase):
         self.assertEqual(['[+] một', 'giữa [-] không phải tag', '[-] hai', '[!] ba'], [strip_ansi(x) for x in lines])
 
 
+class InterruptTest(unittest.TestCase):
+
+    def run_deploy(self, stdin=''):
+        import subprocess
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        return subprocess.run([sys.executable, '-B', os.path.join(root, 'deploy.py')], input=stdin, capture_output=True,
+                              text=True, encoding='utf-8', cwd=root, timeout=60,
+                              env={**os.environ, 'NO_COLOR': '1', 'PYTHONIOENCODING': 'utf-8'})
+
+    def test_leaving_deploy_at_a_question_is_a_clean_exit_not_a_traceback(self):
+        # stdin closed at the first question: the same path as Ctrl+Z/Ctrl+D, and Ctrl+C.
+        result = self.run_deploy()
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('[+] Đã thoát', result.stdout)
+        self.assertNotIn('Traceback', result.stderr)
+
+    def test_goodbye_warns_instead_when_the_deploy_was_writing(self):
+        colours_off(deploy)
+        buffer = io.StringIO()
+        with mock.patch.object(sys, 'stdout', buffer):
+            deploy.goodbye('Đã dừng giữa chừng')
+        self.assertIn('[!] Đã dừng giữa chừng', buffer.getvalue())
+        self.assertNotIn('Đã thoát', buffer.getvalue())
+
+    def test_both_tools_say_goodbye_the_same_way(self):
+        self.assertEqual(deploy.goodbye.__code__.co_code, team.goodbye.__code__.co_code)
+
+
 def strip_ansi(text):
     import re
     return re.sub(r'\033\[[0-9;]*m', '', text)

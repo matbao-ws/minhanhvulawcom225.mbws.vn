@@ -132,6 +132,16 @@ def enable_console():
         sys.stdout = _PaintedStream(sys.stdout)
 
 
+def goodbye(note=''):
+    """Ctrl+C or Ctrl+Z/Ctrl+D: a clean exit, on a fresh line, with the colours closed."""
+    sys.stdout.write(C.RESET + '\n')
+    if note:
+        print(f'[!] {note}')
+    else:
+        print('[+] Đã thoát. Hẹn gặp lại!')
+    sys.stdout.flush()
+
+
 # Pasted from a panel or a chat, a value often carries a non-breaking space, a zero-width space
 # or a byte-order mark that nobody can see — and a password with one never matches.
 _INVISIBLE = dict.fromkeys(map(ord, '​‌‍⁠﻿'))
@@ -1073,6 +1083,7 @@ def menu():
         say(f'      {C.RED}{C.BOLD}0{C.RESET} {C.DIM}│ Thoát{C.RESET}')
         choice = ask('Chọn')
         if choice in ('0', 'q', ''):
+            say('[+] Đã thoát. Hẹn gặp lại!')
             return
         if choice.isdigit() and 1 <= int(choice) <= len(items):
             say('')
@@ -1080,8 +1091,6 @@ def menu():
                 items[int(choice) - 1][1]()
             except Stop as e:
                 say(f'[-] {e}')
-            except KeyboardInterrupt:
-                say('\n[-] Đã huỷ.')
 
 
 def main():
@@ -1102,9 +1111,10 @@ def main():
     except Stop as e:
         say(f'[-] {e}')
         sys.exit(1)
-    except KeyboardInterrupt:
-        say('\n[-] Đã huỷ.')
-        sys.exit(130)
+    except (KeyboardInterrupt, EOFError):
+        # Ctrl+C anywhere — the menu, a question, a running step — leaves the tool cleanly.
+        goodbye()
+        sys.exit(0)
 
 
 if __name__ == '__main__':

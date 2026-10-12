@@ -115,6 +115,16 @@ def enable_console():
         sys.stdout = _PaintedStream(sys.stdout)
 
 
+def goodbye(note=''):
+    """Ctrl+C or Ctrl+Z/Ctrl+D: a clean exit, on a fresh line, with the colours closed."""
+    sys.stdout.write(C.RESET + '\n')
+    if note:
+        print(f'[!] {note}')
+    else:
+        print('[+] Đã thoát. Hẹn gặp lại!')
+    sys.stdout.flush()
+
+
 # Pasted from a panel or a chat, a value often carries a non-breaking space, a zero-width space
 # or a byte-order mark that nobody can see — and a password with one never matches.
 _INVISIBLE = dict.fromkeys(map(ord, '​‌‍⁠﻿'))
@@ -183,6 +193,9 @@ ENV_TEMPLATE = '.env.example'
 # GATEWAY_DEPLOY_KEY in the environment works too, and so does a GATEWAY_INTERNAL_KEY saved
 # before the deploy key existed.
 DEPLOYER_SECRETS = os.path.join(os.path.expanduser('~'), '.matbaows', 'deploy.env')
+
+# Set once the deploy starts writing to the server: an interrupt after that is not a clean exit.
+WRITING = False
 
 # The hosting panel writes its own key names into backend/.env; Laravel reads
 # different ones. Translate instead of asking for credentials already on the server.
@@ -1645,6 +1658,9 @@ def main():
         ftp.quit()
         sys.exit(0)
 
+    global WRITING
+    WRITING = True
+
     # Before anything is written: an export that fails stops the deploy here.
     content_file = export_local_content() if push_content else None
 
@@ -1741,4 +1757,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        if WRITING:
+            goodbye('Đã dừng giữa chừng khi đang ghi lên server: website có thể đang dở. Chạy lại deploy.')
+            sys.exit(130)
+        goodbye()
+        sys.exit(0)
