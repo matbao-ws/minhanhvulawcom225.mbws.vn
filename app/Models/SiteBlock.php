@@ -16,7 +16,13 @@ class SiteBlock extends Model
 
     public const TYPE_IMAGE = 'image';
 
-    public const TYPES = [self::TYPE_TEXT, self::TYPE_HTML, self::TYPE_IMAGE];
+    /** A CSS background picture (App\Support\ClientBackground); stored like an image. */
+    public const TYPE_BACKGROUND = 'background';
+
+    public const TYPES = [self::TYPE_TEXT, self::TYPE_HTML, self::TYPE_IMAGE, self::TYPE_BACKGROUND];
+
+    /** Types whose value is a picture: a path or URL, and the media permission to change it. */
+    public const PICTURE_TYPES = [self::TYPE_IMAGE, self::TYPE_BACKGROUND];
 
     /**
      * Semantic wrapper an editor may choose from the inline toolbar.

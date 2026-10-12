@@ -19,6 +19,7 @@ class SiteBlockRevision extends Model
         'content' => 'array',
     ];
 
+    /** @return BelongsTo<SiteBlock, $this> */
     public function block(): BelongsTo
     {
         return $this->belongsTo(SiteBlock::class, 'site_block_id');

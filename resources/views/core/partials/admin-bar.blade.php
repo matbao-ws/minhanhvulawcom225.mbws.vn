@@ -381,6 +381,22 @@
                 outline: none !important;
             }
             @can('media.view')
+            /* The background handle: editor chrome on <body>, placed over the hovered section. */
+            #client-bg-handle {
+                background: #1f2937 !important;
+                border: 0 !important;
+                border-radius: 6px !important;
+                color: #fff !important;
+                cursor: pointer !important;
+                font: 600 12px/1 Arial, sans-serif !important;
+                padding: 6px 10px !important;
+                position: fixed !important;
+                white-space: nowrap !important;
+                z-index: 2147483644 !important;
+            }
+            #client-bg-handle[hidden] {
+                display: none !important;
+            }
             #client-inline-media-picker {
                 align-items: center !important;
                 background: rgba(10, 18, 28, .72) !important;
@@ -702,10 +718,67 @@
                 syncControls();
             }
 
+            /*
+             * Pictures. A background host carries data-client-background, never data-block-key, so
+             * no text-region code ever claims a whole section. Only the url() of its picture changes
+             * in the style, and every source a <picture> or srcset offers follows the new image, so
+             * no breakpoint shows the old one. Nothing is removed from the DOM.
+             */
+            function isBackgroundHost(element) {
+                return element.hasAttribute('data-client-background') && !element.hasAttribute('data-block-key');
+            }
+
+            function cssUrl(url) {
+                return String(url).replace(/['"()\\\s]/g, function (c) {
+                    return '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0');
+                });
+            }
+
+            function setBackgroundPicture(element, url) {
+                const old = element.getAttribute('data-client-background-src') || '';
+                const style = element.getAttribute('style') || '';
+                let replaced = false;
+                const next = style.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/g, function (match, quote, inner) {
+                    if (replaced || inner.trim() !== old) return match;
+                    replaced = true;
+                    return "url('" + cssUrl(url) + "')";
+                });
+                element.setAttribute('style', replaced ? next : (style ? style.replace(/;?\s*$/, '; ') : '') + "background-image: url('" + cssUrl(url) + "')");
+                element.setAttribute('data-client-background-src', url);
+            }
+
+            function pictureOf(img) {
+                return img.parentElement && img.parentElement.tagName === 'PICTURE' ? img.parentElement : null;
+            }
+
+            function setImagePicture(img, url) {
+                img.setAttribute('src', url);
+                if (img.hasAttribute('srcset')) img.setAttribute('srcset', url);
+                const picture = pictureOf(img);
+                if (picture) {
+                    picture.querySelectorAll('source').forEach(function (source) {
+                        if (source.hasAttribute('srcset')) source.setAttribute('srcset', url);
+                    });
+                }
+            }
+
             /** Remember a region's pre-edit HTML once, so Huỷ can put it back. */
             function markRegionDirty(element) {
-                if (!dirtyRegions.has(element)) {
+                if (!dirtyRegions.has(element) && isBackgroundHost(element)) {
                     dirtyRegions.set(element, {
+                        style: element.getAttribute('style'),
+                        bgSrc: element.getAttribute('data-client-background-src'),
+                        key: element.getAttribute('data-client-background'),
+                        type: 'background',
+                    });
+                }
+                if (!dirtyRegions.has(element)) {
+                    const picture = pictureOf(element);
+                    dirtyRegions.set(element, {
+                        srcset: element.getAttribute('srcset'),
+                        sources: picture ? Array.from(picture.querySelectorAll('source')).map(function (source) {
+                            return [source, source.getAttribute('srcset')];
+                        }) : [],
                         html: element.dataset.blockEntryHtml ?? element.innerHTML,
                         tag: element.dataset.blockEntryTag || element.getAttribute('data-block-base-tag') || element.tagName.toLowerCase(),
                         className: element.dataset.blockEntryClass ?? element.className,
@@ -868,15 +941,18 @@
                 const type = element.getAttribute('data-block-type') || snapshot.type;
                 const format = element.getAttribute('data-block-format') || null;
                 const isImage = type === 'image';
+                const isBackground = type === 'background';
                 /*
                  * A plain-text region sends its text, not its markup. innerHTML
                  * encodes "&" and ">" as entities; the server only strips tags, so
                  * the entities were stored verbatim and Blade escaped them again —
                  * visitors read "&amp;gt;" after the next reload.
                  */
-                const value = isImage
-                    ? (element.getAttribute('src') || '')
-                    : (type === 'text' ? element.textContent : cleanEditedHtml(element));
+                const value = isBackground
+                    ? (element.getAttribute('data-client-background-src') || '')
+                    : isImage
+                        ? (element.getAttribute('src') || '')
+                        : (type === 'text' ? element.textContent : cleanEditedHtml(element));
 
                 const response = await fetch(blockUrl, {
                     method: 'PATCH',
@@ -899,8 +975,14 @@
                     throw new Error(errorText(payload, 'Không thể lưu vùng nội dung.'));
                 }
 
+                if (isBackground) {
+                    if (payload.data.value) setBackgroundPicture(element, payload.data.value);
+
+                    // A background host is a whole section: none of the text-region bookkeeping below.
+                    return;
+                }
                 if (isImage) {
-                    if (payload.data.value) element.setAttribute('src', payload.data.value);
+                    if (payload.data.value) setImagePicture(element, payload.data.value);
                 } else if (type === 'text') {
                     element.textContent = payload.data.value ?? '';
                     element.classList.toggle('client-block-empty', Boolean(payload.data.cleared));
@@ -1006,8 +1088,18 @@
                     pageContent.innerHTML = entryHtml;
                 }
                 dirtyRegions.forEach(function (snapshot, element) {
-                    if (snapshot.type === 'image') {
+                    if (snapshot.type === 'background') {
+                        if (snapshot.style === null) element.removeAttribute('style');
+                        else element.setAttribute('style', snapshot.style);
+                        if (snapshot.bgSrc !== null) element.setAttribute('data-client-background-src', snapshot.bgSrc);
+                    } else if (snapshot.type === 'image') {
                         if (snapshot.src !== null) element.setAttribute('src', snapshot.src);
+                        if (snapshot.srcset === null) element.removeAttribute('srcset');
+                        else element.setAttribute('srcset', snapshot.srcset);
+                        (snapshot.sources || []).forEach(function (entry) {
+                            if (entry[1] === null) entry[0].removeAttribute('srcset');
+                            else entry[0].setAttribute('srcset', entry[1]);
+                        });
                     } else {
                         let restored = element;
                         if (element.tagName.toLowerCase() !== snapshot.tag) {
@@ -1367,13 +1459,18 @@
                         const target = selectedImage;
                         // Snapshot before the src changes, so Huỷ restores the
                         // image that was there.
-                        if (target.hasAttribute('data-block-key')) markRegionDirty(target);
-                        target.setAttribute('src', resource.secure_url);
-                        // A stale srcset would keep winning over the new src.
-                        target.removeAttribute('srcset');
+                        const region = target.hasAttribute('data-block-key') || isBackgroundHost(target);
+                        if (region) markRegionDirty(target);
+                        if (isBackgroundHost(target)) {
+                            setBackgroundPicture(target, resource.secure_url);
+                        } else {
+                            // Every source the browser may pick follows the new picture; a stale
+                            // srcset or <source> would keep winning over the new src.
+                            setImagePicture(target, resource.secure_url);
+                        }
                         closeMediaPicker();
                         // Waits for Save like every other change.
-                        if (!target.hasAttribute('data-block-key')) markDirty();
+                        if (!region) markDirty();
                     });
                     mediaGrid.appendChild(button);
                 });
@@ -1480,6 +1577,42 @@
                 }
             });
 
+            /*
+             * Backgrounds open from their own handle, never from a click on the section: a click
+             * anywhere in it belongs to the text, images and links inside, exactly as without one.
+             */
+            const bgHandle = document.createElement('button');
+            bgHandle.type = 'button';
+            bgHandle.id = 'client-bg-handle';
+            bgHandle.textContent = 'Đổi ảnh nền';
+            bgHandle.hidden = true;
+            document.body.appendChild(bgHandle);
+            let bgTarget = null;
+
+            document.addEventListener('mouseover', function (event) {
+                if (event.target.closest('#client-bg-handle')) return;
+                const host = editModeOn ? event.target.closest('[data-client-background]') : null;
+                if (!host) {
+                    bgHandle.hidden = true;
+                    bgTarget = null;
+
+                    return;
+                }
+                bgTarget = host;
+                const rect = host.getBoundingClientRect();
+                bgHandle.style.top = Math.max(4, rect.top + 8) + 'px';
+                bgHandle.style.left = Math.max(4, Math.min(window.innerWidth - 120, rect.right - 110)) + 'px';
+                bgHandle.hidden = false;
+            });
+            window.addEventListener('scroll', function () {
+                bgHandle.hidden = true;
+            }, { passive: true });
+            bgHandle.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (bgTarget) openMediaPickerFor(bgTarget);
+            });
+
             interceptClicks(function (img) {
                 openMediaPickerFor(img);
             });
@@ -1504,7 +1637,7 @@
             const EDITOR_CHROME = [
                 '#client-admin-bar', '#client-admin-bar-restore', '#client-block-toolbar', '#client-block-toast',
                 // Media pickers by suffix: an admin without media.view must not even get their ids.
-                '#client-block-hint', '#client-region-hint', '[id$="media-picker"]',
+                '#client-block-hint', '#client-region-hint', '#client-bg-handle', '[id$="media-picker"]',
                 '#client-outline', '#client-history', '#client-section-panel', '#client-viewport',
             ].join(', ');
 

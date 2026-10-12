@@ -19,6 +19,11 @@ whole block and hope.
 | Static heading, paragraph, label, button text | `<x-client::editable key="…" tag="h2">` | Text the shop owns and no admin screen edits |
 | Static rich text: a paragraph that may need bold or a link | `<x-client::editable key="…" tag="p" html>` | Stored as HTML and sanitised, not escaped |
 | Static `<img>` that is part of the design | `<x-client::editable-image key="…" src="…" alt="…">` | Replaced from the Media library |
+| `<img srcset sizes>` | `<x-client::editable-image … srcset="…" sizes="…">` | srcset and sizes printed as written; a replaced picture takes every candidate |
+| `<picture>` with `<source>` | one `<x-client::editable-image … picture-class="…" :sources="[…]">` in place of the whole `<picture>` | Same `<picture>`, same sources in the same order; see *Pictures* below |
+| Lazy `<img src="placeholder" data-src="…">` | `<x-client::editable-image … src="<real>" lazy="data-src" placeholder="<placeholder>">` | Visitors keep the theme's loader; the editor sees the real picture |
+| One content picture in an inline `style` (`background-image`, or `background` with gradient/position/size) | `@clientBackground('<key>', "<the whole original style>")` on the same element, in place of `style="…"` | Only the inside of that one `url()` is ever replaced |
+| Lazy background `data-bg="…"` | `@clientBackground('<key>', '<other style or empty>', ['lazy' => 'data-bg', 'src' => '…'])` | Visitors get `data-bg` back, so the loader runs as before |
 | A run of identical cards, members, logos, features | Keep the authored run fixed by default | Storefront text editing must not silently become content creation |
 | An ordered run of whole sections | `<x-client::section-list key="…" :sections="[…]">` | An editor may reorder them, and change how each one looks |
 | A section that should offer a variant, a background, an alignment or a spacing | declare it in `App\Support\SectionRegistry` | Semantic tokens only; the registry owns the token to class map |
@@ -26,6 +31,57 @@ whole block and hope.
 | Anything server-rendered from a model on a CMS page | plain Blade **plus** `contenteditable="false"` on the wrapper | Keeps it out of the page's editable root |
 | Decorative markup: spacers, icons, overlays, `aria-hidden` | leave untouched | Nothing to edit |
 | Static copy or artwork that must stay static (decorative background, legal line, breadcrumb) | `data-editable-ignore="<lý do>"` on the element | The reason is mandatory; a bare marker fails the audit and hides nothing |
+
+### Pictures: backgrounds, `<picture>`, srcset and lazy images
+
+The rule is the theme's: same elements, same classes, same order, same attributes for a visitor. The
+only thing that ever changes is which picture the URLs point at. `tests/Feature/ThemeConversionParityTest`
+and `tests/Support/visual-parity.php` hold the core to that.
+
+**Background.** Move the element's whole `style` value, unchanged, into the directive; keep every
+other attribute where it was. Never keep a `style="…"` beside it: two `style` attributes means the
+browser drops one, and the audit reports it as `background-style-conflict`.
+
+```blade
+{{-- theme --}}
+<section class="hero" style="background: linear-gradient(90deg, rgba(0,0,0,.5), transparent), url('/client-assets/img/hero.jpg') center / cover no-repeat; min-height: 480px">
+
+{{-- converted --}}
+<section class="hero" @clientBackground('home.hero.bg', "background: linear-gradient(90deg, rgba(0,0,0,.5), transparent), url('".asset('client-assets/img/hero.jpg')."') center / cover no-repeat; min-height: 480px")>
+```
+
+- The style needs **exactly one** content `url()` in `background`/`background-image`. None or two
+  throws while rendering, so it surfaces in tests rather than on the live site.
+- No wrapper element, no new class, no delete action: hiding a background would hide its section.
+- Editors get `data-client-background`, not `data-block-key`, and a separate **Đổi ảnh nền** handle.
+  A click anywhere else in the section still belongs to the text, images and links inside it, so
+  mark those children as usual — the scanner keeps auditing them.
+
+**`<picture>`.** Replace the whole `<picture>` with one component; list the sources in the theme's order.
+
+```blade
+{{-- theme --}}
+<picture class="card-picture">
+    <source media="(max-width: 600px)" srcset="/img/card-mobile.jpg">
+    <img src="/img/card.jpg" alt="Thẻ" class="card-img">
+</picture>
+
+{{-- converted --}}
+<x-client::editable-image key="home.card.photo" src="/img/card.jpg" alt="Thẻ" class="card-img"
+    picture-class="card-picture" :sources="[['media' => '(max-width: 600px)', 'srcset' => '/img/card-mobile.jpg']]" />
+```
+
+Until the shop replaces the picture, and again after **Khôi phục**, the output is the theme's markup
+exactly. Once replaced, every `<source srcset>` and the `<img srcset>` point at the new picture —
+nothing is removed, so `picture > img` and the theme's scripts keep matching, and no breakpoint can
+bring the old artwork back.
+
+**Fix by hand, never with `data-editable-ignore`:** several pictures in one style (`layered` with two
+`url()`), backgrounds declared in a `<style>` block or a CSS file (`style-block`: move that one
+declaration to an inline style first, keeping the selector's other rules), backgrounds that change per
+breakpoint in CSS, anything inside a slider or carousel, and `poster` on `<video>`, which the editor
+cannot replace yet. `data-editable-ignore` is for artwork that is genuinely decorative, and the
+reviewer reads every reason.
 
 The line that matters most is the one about database-driven values. **Two places to edit one field is a defect**, not a
 convenience: whichever screen is saved last wins, and neither admin knows the other exists. If a
@@ -220,8 +276,9 @@ These are properties of the *theme*, and breaking them breaks the tools rather t
   so the reveal control gives it a minimum size. A parent with `overflow: hidden` and a fixed height
   will clip that, and the region becomes unreachable.
 - **Do not put an editable region inside an element the theme's JS rebuilds.** Sliders that clone
-  slides and lazy-loaders that rewrite `src` will duplicate or strip the editor's `data-*` hooks.
-  Mark the static caption outside the slider instead.
+  slides will duplicate or strip the editor's `data-*` hooks. Mark the static caption outside the
+  slider instead. Lazy-loaders are fine through `lazy="data-src"` and `['lazy' => 'data-bg']`: the
+  editor gets the real picture, so the loader has nothing to rewrite.
 - Regions are found by `[data-block-key]`, which the components emit only for an authorized admin.
   Never write those attributes by hand.
 
@@ -278,8 +335,9 @@ Run through this per page after cutting, before calling the cut done.
 - [ ] `php artisan client:editable-audit` ends in `RESULT: PASS`. It classifies every visible text
       run and image source in `resources/views/client/**` (partials included) as editable, dynamic
       (Blade echo/output directive) or ignored-with-reason; `unknown`, `unsupported` and
-      `Ignored without reason` must all be 0. `--fix` wraps only text-level tags and plain `<img>`;
-      everything marked `[sửa tay]` or `[chưa hỗ trợ]` is resolved by hand — never by changing the
+      `Ignored without reason` must all be 0. `--fix` wraps only text-level tags, plain `<img>` and a
+      background it can prove safe (one static `style`, one literal `url()`, no Blade, no slider
+      around it); everything marked `[sửa tay]` or `[chưa hỗ trợ]` is resolved by hand — never by changing the
       layout to dodge the scanner. Read the "Vùng cố ý để tĩnh" list: every reason must be true.
       - The audit sets aside, and lists without failing: icons and inline SVG, decorative images
         (`alt=""` with `aria-hidden="true"` or `role="presentation"`), and video/audio sources. Fonts,
@@ -288,7 +346,8 @@ Run through this per page after cutting, before calling the cut done.
       - A translation call whose key exists in no language file (`{{ __('Mua ngay') }}`, `@lang('…')`)
         is reported as `untranslated`: it is static copy the shop cannot edit. Mark it with
         `<x-client::editable>`, or add the key to `lang/` if it really is an interface string.
-      - Backgrounds in a `<style>` block (`style-block`) and layered backgrounds (`layered`) are
-        reported; resolve them by hand.
+      - `<picture>`, `srcset`, lazy `data-src`, `data-bg`, layered backgrounds and `<style>` blocks
+        are reported as `[sửa tay]` with the exact markup to use (see *Pictures* above); only
+        `poster` stays `[chưa hỗ trợ]`.
 - [ ] `php artisan test --compact` passes.
 - [ ] To compare how different tools cut the same theme, use `docs/THEME_CUTTING_BENCHMARK.md`.

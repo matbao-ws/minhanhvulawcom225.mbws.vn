@@ -381,6 +381,32 @@ class EditableRegionScanner
             }
         }
 
+        $raw = $this->rawAttributes($element['start'], $element['contentStart'], $name);
+        if (str_contains($raw, '@clientBackground(')) {
+            if ($ignoring === null && preg_match('/(?<![\w-])style\s*=/i', $raw)) {
+                // @clientBackground prints the style attribute itself. A second one beside it is a
+                // duplicate attribute: the browser keeps the first and the background disappears.
+                $this->imageFindings[] = [
+                    'kind' => 'image',
+                    'status' => self::STATUS_UNKNOWN,
+                    'fixable' => false,
+                    'reason' => 'background-style-conflict',
+                    'tag' => $name,
+                    'container' => null,
+                    'line' => $this->lineAt($element['start']),
+                    'start' => $element['start'],
+                    'end' => $element['contentStart'],
+                    'attrs' => $raw,
+                    'inner' => '',
+                    'area' => $this->areaFor($this->ancestors($id)),
+                    'preview' => $this->preview($raw),
+                ];
+            } else {
+                // The section's own picture is editable; text and images inside it are audited as usual.
+                $this->counts['image']['editable']++;
+            }
+        }
+
         $this->inspectMedia($id, $ignoring);
         $this->walk($id, $ignoring);
     }
@@ -610,9 +636,9 @@ class EditableRegionScanner
             if ($real !== null) {
                 $sources[] = match (true) {
                     str_contains($real, '$') => ['dynamic', null, $real],
-                    $lazy !== null => [self::STATUS_UNSUPPORTED, 'lazy', $lazy],
-                    $this->attribute($raw, 'srcset') !== null || $this->attribute($raw, 'data-srcset') !== null => [self::STATUS_UNSUPPORTED, 'srcset', $real],
-                    $this->hasAncestor($id, 'picture') => [self::STATUS_UNSUPPORTED, 'picture', $real],
+                    $lazy !== null => [self::STATUS_UNKNOWN, 'lazy', $lazy],
+                    $this->attribute($raw, 'srcset') !== null || $this->attribute($raw, 'data-srcset') !== null => [self::STATUS_UNKNOWN, 'srcset', $real],
+                    $this->hasAncestor($id, 'picture') => [self::STATUS_UNKNOWN, 'picture', $real],
                     $this->isMechanicalImage($raw) => [self::STATUS_UNKNOWN, null, $real],
                     default => [self::STATUS_UNKNOWN, 'manual', $real],
                 };
@@ -641,7 +667,7 @@ class EditableRegionScanner
                 // sources are the only thing the browser can show, so they are reported here.
                 $sources[] = str_contains($srcset, '$')
                     ? ['dynamic', null, $srcset]
-                    : [self::STATUS_UNSUPPORTED, 'picture', $srcset];
+                    : [self::STATUS_UNKNOWN, 'picture', $srcset];
             }
         }
 
@@ -651,7 +677,7 @@ class EditableRegionScanner
         if ($background !== null) {
             $sources[] = str_contains($style, '$')
                 ? ['dynamic', null, $style]
-                : [self::STATUS_UNSUPPORTED, $background, $style];
+                : [self::STATUS_UNKNOWN, $background, $style];
         }
 
         if (preg_match_all(self::BACKGROUND_ATTRIBUTE_PATTERN, $raw, $matches)) {
@@ -663,7 +689,7 @@ class EditableRegionScanner
 
                 $sources[] = str_contains($value, '$')
                     ? ['dynamic', null, $value]
-                    : [self::STATUS_UNSUPPORTED, 'data-background', $value];
+                    : [self::STATUS_UNKNOWN, 'data-background', $value];
             }
         }
 
@@ -674,7 +700,7 @@ class EditableRegionScanner
                 if (($value = $this->attribute($raw, $attribute)) !== null && $this->looksLikeImageReference($value)) {
                     $sources[] = str_contains($value, '$')
                         ? ['dynamic', null, $value]
-                        : [self::STATUS_UNSUPPORTED, 'data-background', $value];
+                        : [self::STATUS_UNKNOWN, 'data-background', $value];
                 }
             }
         }
@@ -695,7 +721,8 @@ class EditableRegionScanner
             $this->imageFindings[] = [
                 'kind' => 'image',
                 'status' => $status,
-                'fixable' => $status === self::STATUS_UNKNOWN && $reason === null,
+                'fixable' => $status === self::STATUS_UNKNOWN
+                    && ($reason === null || ($reason === 'background' && $this->isMechanicalBackground($id, $raw))),
                 'reason' => $reason,
                 'tag' => $name,
                 'container' => null,
@@ -864,7 +891,7 @@ class EditableRegionScanner
 
                 $this->imageFindings[] = [
                     'kind' => 'image',
-                    'status' => self::STATUS_UNSUPPORTED,
+                    'status' => self::STATUS_UNKNOWN,
                     'fixable' => false,
                     'reason' => 'style-block',
                     'tag' => 'style',
@@ -894,6 +921,30 @@ class EditableRegionScanner
             && ! preg_match(self::NON_IMAGE_URL, $value)
             && (str_contains($value, '/') || str_contains($value, '{{') || str_contains($value, '$')
                 || preg_match('/url\s*\(|\.(?:jpe?g|png|gif|webp|avif|svg|bmp)(?:[?#].*)?$/i', $value) === 1);
+    }
+
+    /**
+     * Whether `--fix` can move this element's style into `@clientBackground` without risk: one
+     * literal style attribute (no Blade, no variable), one picture on a background of its own, and
+     * no slider or carousel around it that rebuilds the DOM at runtime.
+     */
+    private function isMechanicalBackground(int $id, string $raw): bool
+    {
+        $style = $this->attribute($raw, 'style');
+
+        if ($style === null || preg_match('/\{\{|\{!!|@|\$/', $style) || substr_count(strtolower($raw), 'style=') !== 1) {
+            return false;
+        }
+
+        foreach ([$id, ...$this->ancestors($id)] as $node) {
+            $element = $this->nodes[$node];
+            $attributes = strtolower($this->rawAttributes($element['start'], $element['contentStart'], $element['name']));
+            if (preg_match('/slider|carousel|swiper|slick|flickity|owl-|splide|glide/', $attributes)) {
+                return false;
+            }
+        }
+
+        return $this->backgroundKind($style) === 'background';
     }
 
     /** Ảnh trang trí: empty alt and hidden from assistive technology. */
@@ -1044,9 +1095,19 @@ class EditableRegionScanner
     private function withKeys(array $findings, string $viewKey): array
     {
         $ordinals = [];
+        // Keys a previous --fix (or a person) already wrote into this file. Ordinals restart on
+        // every run, so without this the second run could hand out a key in use, and two regions
+        // would share one stored value.
+        preg_match_all('/\bkey\s*=\s*(["\'])([^"\']+)\1|@clientBackground\(\s*([\'"])([^\'"]+)\3/', $this->source, $taken);
+        $taken = array_flip(array_filter([...$taken[2], ...$taken[4]]));
 
         foreach ($findings as $index => $finding) {
-            $findings[$index]['key'] = $this->makeKey($viewKey, $finding['area'], $finding['tag'], $ordinals);
+            do {
+                $key = $this->makeKey($viewKey, $finding['area'], $finding['tag'], $ordinals);
+            } while (isset($taken[$key]));
+
+            $findings[$index]['key'] = $key;
+            $taken[$key] = true;
         }
 
         return $findings;

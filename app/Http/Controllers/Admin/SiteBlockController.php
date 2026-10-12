@@ -33,8 +33,8 @@ class SiteBlockController extends Controller
     {
         $data = $request->validated();
 
-        // Replacing an image costs the media permission on top of pages.update.
-        if ($data['type'] === SiteBlock::TYPE_IMAGE) {
+        // Replacing an image or a background costs the media permission on top of pages.update.
+        if (in_array($data['type'], SiteBlock::PICTURE_TYPES, true)) {
             abort_unless($request->user()?->can('media.view'), 403, 'Unauthorized.');
         }
 
@@ -169,6 +169,8 @@ class SiteBlockController extends Controller
      */
     public function restoreRevision(Request $request, string $locale, SiteBlockRevision $revision): JsonResponse
     {
+        // Putting a picture back is changing a picture: same media permission as saving one.
+        $this->authorizePicture($request, $revision->block?->type);
         $block = $this->site->restoreRevision($revision, $locale, $request->user()?->id);
 
         ActivityLogger::log('restored', $block, "Khôi phục phiên bản vùng nội dung {$block?->key}", [
@@ -194,6 +196,8 @@ class SiteBlockController extends Controller
             'content_locale' => ['required', 'string', Rule::in(app(LanguageRegistry::class)->codes())],
         ]);
 
+        $this->authorizePicture($request, SiteBlock::query()->where('key', $data['key'])->value('type'));
+
         $this->site->restoreLocale($data['key'], $data['content_locale'], $request->user()?->id);
 
         ActivityLogger::log('deleted', null, "Khôi phục vùng nội dung {$data['key']}", [
@@ -206,5 +210,12 @@ class SiteBlockController extends Controller
             'message' => 'Đã khôi phục nội dung gốc.',
             'data' => ['key' => $data['key']],
         ]);
+    }
+
+    private function authorizePicture(Request $request, ?string $type): void
+    {
+        if (in_array($type, SiteBlock::PICTURE_TYPES, true)) {
+            abort_unless($request->user()?->can('media.view'), 403, 'Unauthorized.');
+        }
     }
 }

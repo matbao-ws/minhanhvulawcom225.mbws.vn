@@ -46,16 +46,17 @@ class AuditEditableRegions extends Command
         'conditional' => 'chữ tĩnh nằm trong nhánh @if/@foreach — bọc riêng chữ của từng nhánh',
         'slot' => 'chữ truyền vào slot của component — đánh dấu bên trong component hoặc truyền vùng editable vào slot',
         'mixed' => 'chữ nằm lẫn với khối con của <%container%> — tách đoạn chữ vào một thẻ riêng rồi đánh dấu thẻ đó',
-        'lazy' => 'ảnh lazy-load (data-src): editor chỉ thay src, script lazy sẽ ghi đè lại — editor chưa hỗ trợ',
-        'srcset' => 'trình duyệt chọn ảnh theo srcset, thay src không có tác dụng — editor chưa hỗ trợ',
-        'picture' => 'ảnh trong <picture>: <source> thắng src — editor chưa hỗ trợ',
-        'background' => 'ảnh nền CSS inline — editor chưa hỗ trợ thay ảnh nền',
-        'data-background' => 'ảnh nền qua data-bg — editor chưa hỗ trợ thay ảnh nền',
+        'lazy' => 'ảnh lazy-load: <x-client::editable-image key="%key%" src="<ảnh thật>" lazy="data-src" placeholder="<ảnh chờ>" …>',
+        'srcset' => 'ảnh có srcset: <x-client::editable-image key="%key%" src="…" srcset="…" sizes="…" …>',
+        'picture' => 'ảnh trong <picture>: <x-client::editable-image key="%key%" src="…" :sources="[[\'media\' => …, \'srcset\' => …]]" …> thay cả <picture>',
+        'background' => 'chuyển style vào @clientBackground(\'%key%\', "<style gốc>") trên chính phần tử — giữ nguyên gradient/position/size',
+        'data-background' => 'ảnh nền lazy: @clientBackground(\'%key%\', \'\', [\'lazy\' => \'data-bg\', \'src\' => …]) thay cho data-bg',
         'poster' => 'poster của <video> — editor chưa hỗ trợ',
+        'background-style-conflict' => 'thẻ vừa có style="…" vừa có @clientBackground: hai thuộc tính style, trình duyệt giữ cái đầu và mất ảnh nền — gộp toàn bộ style vào tham số thứ hai của @clientBackground',
         'image-manual' => 'bọc tay bằng editable-image (alt đang lấy từ biến, hoặc src không đọc được)',
         'untranslated' => 'chữ tĩnh bọc trong __()/@lang nhưng key không có trong file ngôn ngữ nào — khách không sửa được: bọc bằng <x-client::editable>, hoặc thêm key vào lang/ nếu đây thật là chuỗi giao diện đa ngôn ngữ',
-        'layered' => 'ảnh nền nhiều lớp (gradient hoặc nhiều url) — editor chưa hỗ trợ',
-        'style-block' => 'ảnh nền khai báo trong <style> — gắn vào phần tử bằng style inline hoặc sửa tay; editor chưa hỗ trợ',
+        'layered' => 'ảnh nền nhiều lớp: @clientBackground(\'%key%\', "<style gốc>") chỉ thay url() của ảnh, gradient giữ nguyên; nếu có nhiều ảnh, sửa tay',
+        'style-block' => 'ảnh nền khai báo trong <style>: chuyển khai báo đó thành style inline trên phần tử rồi dùng @clientBackground, giữ nguyên selector/media query',
     ];
 
     public function handle(EditableRegionScanner $scanner, SectionRegistry $registry): int
@@ -312,7 +313,9 @@ class AuditEditableRegions extends Command
             $wrapped = 0;
 
             foreach (array_reverse($findings) as $finding) {
-                $replacement = $finding['fixable'] ? $this->wrap($finding) : null;
+                $replacement = $finding['fixable']
+                    ? $this->wrap($finding, substr($source, $finding['start'], $finding['end'] - $finding['start']))
+                    : null;
 
                 if ($replacement === null) {
                     continue;
@@ -345,11 +348,34 @@ class AuditEditableRegions extends Command
      *
      * @param  array<string, mixed>  $finding
      */
-    private function wrap(array $finding): ?string
+    private function wrap(array $finding, string $original): ?string
     {
-        return $finding['kind'] === 'image'
-            ? $this->wrapImage($finding)
-            : $this->wrapText($finding);
+        return match (true) {
+            $finding['kind'] === 'image' && $finding['reason'] === 'background' => $this->wrapBackground($finding, $original),
+            $finding['kind'] === 'image' => $this->wrapImage($finding),
+            default => $this->wrapText($finding),
+        };
+    }
+
+    /**
+     * An element's literal `style` moves, unchanged, into `@clientBackground`; everything else in
+     * the opening tag stays where it was. The scanner offers this only for one static style with
+     * one picture and no slider around it.
+     *
+     * @param  array<string, mixed>  $finding
+     */
+    private function wrapBackground(array $finding, string $openTag): ?string
+    {
+        if (! preg_match('/\sstyle\s*=\s*(["\'])(.*?)\1/is', $openTag, $match, PREG_OFFSET_CAPTURE)) {
+            return null;
+        }
+
+        $style = $match[2][0];
+        $argument = "'".str_replace(['\\', "'"], ['\\\\', "\\'"], $style)."'";
+
+        return substr($openTag, 0, $match[0][1])
+            .sprintf(" @clientBackground('%s', %s)", $finding['key'], $argument)
+            .substr($openTag, $match[0][1] + strlen($match[0][0]));
     }
 
     /** @param  array<string, mixed>  $finding */
