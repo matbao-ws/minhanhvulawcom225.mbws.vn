@@ -342,6 +342,8 @@ return [
         'ai_seo' => 'Trợ lý AI SEO',
         'subtitle_for_ai_seo' => 'Gợi ý meta và biên tập nội dung bằng AI; người dùng duyệt trước khi lưu.',
         'ai_research' => 'Từ khoá & đối thủ',
+        'analytics' => 'Thống kê truy cập',
+        'subtitle_for_analytics' => 'Lượt truy cập, nguồn khách và trang được xem nhiều từ Google Analytics, ngay trên bảng điều khiển.',
         'subtitle_for_ai_research' => 'Từ khoá đối thủ có mà website chưa có, gợi ý chủ đề bài viết và theo dõi thứ hạng Google hằng tuần.',
         'subtitle_for_max_products' => 'Cài đặt số lượng sản phẩm tối đa được phép tạo trong hệ thống.',
         'subtitle_for_max_admin_users' => 'Cài đặt số lượng quản trị viên tối đa được phép tạo.',
@@ -1188,6 +1190,17 @@ return [
         'welcome_greeting' => 'Xin chào,',
         'welcome_title' => 'Chào mừng bạn trở lại!',
         'welcome_description' => 'Quản lý cửa hàng dễ dàng hơn với Mắt Bão WS',
+        'welcome_features_content' => [
+            'posts' => 'Viết bài mới',
+            'pages' => 'Trang chính sách',
+            'contacts' => 'Liên hệ của khách',
+            'traffic' => 'Theo dõi truy cập',
+        ],
+        'content_stats' => [
+            'posts' => 'Bài viết đang hiển thị',
+            'pages' => 'Trang chính sách',
+            'contacts' => 'Liên hệ chưa đọc',
+        ],
         'welcome_features' => [
             'revenue' => 'Theo dõi doanh thu',
             'orders' => 'Quản lý đơn hàng',

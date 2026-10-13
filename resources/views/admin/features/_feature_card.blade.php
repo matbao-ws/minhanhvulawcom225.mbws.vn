@@ -19,6 +19,9 @@
         'product_variant' => 'ti ti-versions',
         'payment_vnpay' => 'ti ti-qrcode',
         'multilingual' => 'ti ti-language',
+        'analytics' => 'ti ti-chart-line',
+        'ai_seo' => 'ti ti-sparkles',
+        'ai_research' => 'ti ti-target-arrow',
     ];
     $icon = $iconMap[$feature->feature_code] ?? 'ti ti-apps';
     
@@ -39,6 +42,9 @@
         'product_variant' => 'bg-primary-subtle text-primary',
         'payment_vnpay' => 'bg-success-subtle text-success',
         'multilingual' => 'bg-info-subtle text-info',
+        'analytics' => 'bg-success-subtle text-success',
+        'ai_seo' => 'bg-primary-subtle text-primary',
+        'ai_research' => 'bg-danger-subtle text-danger',
     ];
     $colorClass = $colorMap[$feature->feature_code] ?? 'bg-light text-dark';
 @endphp
