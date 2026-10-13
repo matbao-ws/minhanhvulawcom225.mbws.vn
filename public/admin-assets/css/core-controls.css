@@ -103,6 +103,22 @@
     transform: rotate(180deg);
 }
 
+/* Every admin table: a rounded, bordered frame. */
+.table-responsive {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+}
+
+/* The wrapper scrolls (overflow-x: auto), so it already clips the header background and the
+   rows to its rounded corners; the last row's border would double the wrapper's. */
+.table-responsive > .table {
+    margin-bottom: 0;
+}
+
+.table-responsive > .table > :last-child > tr:last-child > * {
+    border-bottom-width: 0;
+}
+
 @media (max-width: 767.98px) {
     .table-responsive tbody tr:only-child:has(> td[colspan]) {
         position: sticky;

@@ -264,7 +264,7 @@
             </div>
 
             <!-- Items Table -->
-            <div data-tour="order.items" class="table-responsive mb-5 border rounded">
+            <div data-tour="order.items" class="table-responsive mb-5">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr class="text-nowrap">
