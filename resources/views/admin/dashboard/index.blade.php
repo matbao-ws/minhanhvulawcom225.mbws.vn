@@ -1109,6 +1109,32 @@
             strip.scrollLeft += event.deltaY;
         }, {passive: false});
 
+        // Slides on by itself, one shortcut every 2.6 s like the phone slider, back to the first
+        // after the last. Paused under the mouse, while dragging, in a hidden tab, and never for
+        // people who asked their system for less motion.
+        const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let hovered = false;
+        strip.addEventListener('mouseenter', () => { hovered = true; });
+        strip.addEventListener('mouseleave', () => { hovered = false; });
+        strip.addEventListener('focusin', () => { hovered = true; });
+        strip.addEventListener('focusout', () => { hovered = false; });
+
+        function advance() {
+            if (hovered || pointer !== null || document.hidden || still.matches || !strip.classList.contains('is-scrollable')) return;
+            const max = strip.scrollWidth - strip.clientWidth;
+            if (strip.scrollLeft >= max - 2) {
+                strip.scrollTo({left: 0, behavior: 'smooth'});
+                return;
+            }
+            // Positions measured against the strip itself (offsetLeft would count from the banner).
+            const left = strip.getBoundingClientRect().left;
+            const next = Array.from(strip.querySelectorAll('.dashboard-welcome-feature:not([data-clone])'))
+                .find((item) => item.getBoundingClientRect().left - left > 2);
+            const target = next ? strip.scrollLeft + next.getBoundingClientRect().left - left : max;
+            strip.scrollTo({left: Math.min(target, max), behavior: 'smooth'});
+        }
+        window.setInterval(advance, 2600);
+
         strip.addEventListener('scroll', update, {passive: true});
         window.addEventListener('resize', update);
         update();
