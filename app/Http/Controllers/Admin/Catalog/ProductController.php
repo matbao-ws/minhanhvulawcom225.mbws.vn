@@ -17,6 +17,7 @@ use App\Services\Catalog\ProductService;
 use App\Services\CloudinaryService;
 use App\Services\Packages\PackageLimits;
 use App\Support\Csv;
+use App\Support\FeatureGate;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -89,7 +90,7 @@ class ProductController extends Controller
     {
         try {
             $data = $request->validated();
-            $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
+            $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) && $this->variantsAvailable() ? $data['variant_groups'] : [];
             unset($data['has_variants'], $data['variant_groups']);
             $galleryImages = array_values(array_filter($data['gallery_images'] ?? [], fn ($url) => filled($url)));
             unset($data['gallery_images']);
@@ -149,7 +150,7 @@ class ProductController extends Controller
     public function update(ProductRequest $request, string $locale, Product $product)
     {
         $data = $request->validated();
-        $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
+        $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) && $this->variantsAvailable() ? $data['variant_groups'] : [];
         unset($data['has_variants'], $data['variant_groups']);
         $galleryImages = array_values(array_filter($data['gallery_images'] ?? [], fn ($url) => filled($url)));
         unset($data['gallery_images']);
@@ -504,5 +505,11 @@ class ProductController extends Controller
         // Kept as a thin alias so existing call sites stay readable; the rule itself
         // is shared with the other exports.
         return Csv::safeValue($value);
+    }
+
+    /** Variant groups count only with the product_variant feature (superadmin always). */
+    private function variantsAvailable(): bool
+    {
+        return app(FeatureGate::class)->availableTo(request()->user(), 'product_variant');
     }
 }

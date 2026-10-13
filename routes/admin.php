@@ -299,7 +299,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::resource('vouchers', VoucherController::class)->only(['destroy'])->middleware('can:vouchers.delete');
     });
 
-    Route::middleware('feature:catalog')->group(function () {
+    // Promotions / flash sales belong to the voucher feature ("Khuyến mãi & mã giảm giá", Hero 2+)
+    // and discount products, so the catalogue must be on too.
+    Route::middleware(['feature:catalog', 'feature:voucher'])->group(function () {
         Route::resource('promotions', PromotionController::class)->only(['create', 'store'])->middleware('can:promotions.create');
         Route::resource('promotions', PromotionController::class)->only(['index'])->middleware('can:promotions.view');
         Route::resource('promotions', PromotionController::class)->only(['edit', 'update'])->middleware('can:promotions.update');

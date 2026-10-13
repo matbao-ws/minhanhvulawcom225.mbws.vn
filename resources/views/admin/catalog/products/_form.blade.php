@@ -110,6 +110,7 @@
             $variantGroups ??= [];
             $hasVariants = (bool) old('has_variants', ! empty($variantGroups));
         @endphp
+            @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'product_variant'))
             <div data-tour="product-form.variants" class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
@@ -146,6 +147,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
         <div data-tour="product-form.pricing" class="card">
             <div class="card-body">

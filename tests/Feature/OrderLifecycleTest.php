@@ -32,6 +32,8 @@ class OrderLifecycleTest extends TestCase
     {
         parent::setUp();
         FeatureSetting::query()->create(['feature_code' => 'catalog', 'is_enabled' => true]);
+        // Promotions apply with "Khuyến mãi & mã giảm giá" on.
+        FeatureSetting::query()->create(['feature_code' => 'voucher', 'is_enabled' => true]);
         $role = Role::query()->create(['name' => 'Admin', 'permissions' => ['*']]);
         $this->admin = User::factory()->create(['role_id' => $role->id]);
         $this->product = Product::query()->create([

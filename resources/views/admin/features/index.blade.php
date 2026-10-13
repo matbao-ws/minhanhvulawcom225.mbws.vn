@@ -163,6 +163,9 @@
 
 @push('styles')
 <style>
+    /* A feature whose parent is off has no effect: dimmed, still switchable. */
+    [data-feature-card].feature-blocked .feature-card { opacity: .6; }
+    .feature-requires { color: #6c7a91; }
     .feature-card {
         transition: all 0.25s ease-in-out;
     }
@@ -222,7 +225,22 @@
             statusText.className = 'fw-bold text-danger mb-0 fs-3';
         }
         badge.style.borderBottomLeftRadius = '12px';
+        refreshRequirements();
     }
+
+    // Dims each card whose required features (config features.requires) are not all on.
+    function refreshRequirements() {
+        document.querySelectorAll('[data-feature-card][data-feature-requires]').forEach(card => {
+            const codes = (card.dataset.featureRequires || '').split(',').filter(Boolean);
+            const blocked = codes.some(code => {
+                const parent = document.getElementById('switch-' + code);
+                return parent ? !parent.checked : false;
+            });
+            card.classList.toggle('feature-blocked', blocked);
+            card.querySelector('[data-requires-off]')?.classList.toggle('d-none', !blocked);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', refreshRequirements);
 
     function setFeatureSource(code, overridden) {
         const source = document.querySelector('[data-feature-source="' + code + '"]');
