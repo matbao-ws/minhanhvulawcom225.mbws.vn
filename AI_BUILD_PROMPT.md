@@ -225,6 +225,20 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Đa ngôn ngữ
 
 - Admin route luôn có `{locale}`.
+- **URL storefront của ngôn ngữ mặc định không có tiền tố** (`/chinh-sach/x`); ngôn ngữ khác giữ tiền tố
+  (`/en/chinh-sach/x`); `/vi/...` cũ chuyển 301 sang URL không tiền tố (giữ query). Lý do: SEO — mỗi
+  ngôn ngữ vẫn có URL riêng cho hreflang, còn ngôn ngữ chính có URL gọn. Cơ chế (`App\Support\LocaleUrl`):
+  - Sinh URL: luôn dùng `route('client.…', ['locale' => …])`. Bộ định dạng đường dẫn đăng ký trong
+    `AppServiceProvider` (`URL::formatPathUsing`) cắt tiền tố của ngôn ngữ mặc định cho route tên `client.*`,
+    nên canonical, hreflang, sitemap, menu, site index tự đúng. **Không** tự ghép `url('/'.$locale…)`;
+    nơi buộc phải ghép tay dùng `LocaleUrl::home()` / `LocaleUrl::switchTo()`.
+  - Nhận URL: `bootstrap/app.php` nạp `routes/client.php` và `routes/theme.php` hai lần — dưới `{locale}`
+    (tên `client.*`, middleware `defaultLocale.redirect`) và không tiền tố (tên `root.client.*`, middleware
+    `useDefaultLocale` chèn `locale` mặc định vào **đầu** tham số route, nên controller vẫn là
+    `show(string $locale, …)`). Theme khai route một lần trong `routes/theme.php`.
+  - `/` đăng ký sau nhóm không tiền tố: theme có trang chủ `/` thì thắng, không thì vẫn chuyển sang `/admin`.
+  - Tắt bằng `MULTILINGUAL_HIDE_DEFAULT_LOCALE=false`: mọi URL storefront quay về có tiền tố như cũ.
+  - Đổi ngôn ngữ mặc định trong admin làm URL hai ngôn ngữ đổi chỗ cho nhau; chỉ nên đổi lúc site còn mới.
 - Hai danh sách locale trong `LanguageRegistry`: `routable()` là mọi ngôn ngữ active (URL `/{locale}/…`,
   tab nội dung), `admin()` chỉ gồm ngôn ngữ có trong `config('multilingual.admin_locales')` (mặc định
   `vi`, `en` — những locale có file `lang/`). Mở trang admin bằng ngôn ngữ chỉ dành cho storefront
@@ -485,7 +499,7 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   `CoreUpdater::check()` chặn bản core không thoả `requires_core` của extension đang bật. Bỏ thư mục
   `extensions/` thì hệ thống chạy y như không có extension layer.
 - **Không sửa file core trên từng website.** Thay đổi riêng của khách đi vào theme; route riêng của theme
-  vào `routes/theme.php` (nạp dưới `{locale}`, tên `client.`); component Blade riêng vào
+  vào `routes/theme.php` (core nạp cả dưới `{locale}` lẫn không tiền tố cho ngôn ngữ mặc định, tên `client.`); component Blade riêng vào
   `resources/views/client/components` (cùng namespace `x-client::`, ghi đè được). Cần đổi hành vi core
   thì sửa core ở repo này để mọi website cùng nhận. Layout theme chỉ include `core.head` và
   `core.editor`, không chép partial của core.
@@ -676,9 +690,10 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
   `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
   Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
-- URL storefront của Page là `/{locale}/chinh-sach/{slug}` (route `client.pages.show`), dùng chung
-  một view `client.pages.show`; `/{locale}/pages/{slug}` chỉ còn là redirect 301. Không đưa slug Page
-  ra gốc `/{locale}/{slug}` — route bắt mọi slug sẽ nuốt `/{locale}/admin`.
+- URL storefront của Page là `/chinh-sach/{slug}` cho ngôn ngữ mặc định, `/{locale}/chinh-sach/{slug}`
+  cho ngôn ngữ khác (route `client.pages.show`), dùng chung một view `client.pages.show`; `/pages/{slug}`
+  chỉ còn là redirect 301 thẳng tới URL đó. Không đưa slug Page ra gốc (`/{slug}` hay `/{locale}/{slug}`)
+  — route bắt mọi slug sẽ nuốt `/admin`, `/api` và `/{locale}/admin`.
 - Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng Quill (đã có
   sẵn trong admin). Ô nội dung của mỗi locale chỉ được submit khi editor của locale đó thực sự bị sửa;
   `PageContentService` merge các locale gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm

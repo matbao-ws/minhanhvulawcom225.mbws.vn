@@ -226,13 +226,13 @@ class AnalyticsTest extends TestCase
         ]);
         $tag = 'googletagmanager.com/gtag/js?id=G-TEST123';
 
-        $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->assertSee($tag, false);
-        $this->get('/vi/chinh-sach/gioi-thieu?client_chrome=off')->assertOk()->assertDontSee($tag, false);
-        $this->actingAs($this->admin())->get('/vi/chinh-sach/gioi-thieu')->assertOk()->assertDontSee($tag, false);
+        $this->get('/chinh-sach/gioi-thieu')->assertOk()->assertSee($tag, false);
+        $this->get('/chinh-sach/gioi-thieu?client_chrome=off')->assertOk()->assertDontSee($tag, false);
+        $this->actingAs($this->admin())->get('/chinh-sach/gioi-thieu')->assertOk()->assertDontSee($tag, false);
 
         auth()->logout();
         FeatureSetting::query()->where('feature_code', 'analytics')->update(['is_enabled' => false]);
-        $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->assertDontSee($tag, false);
+        $this->get('/chinh-sach/gioi-thieu')->assertOk()->assertDontSee($tag, false);
     }
 
     public function test_check_command_never_prints_the_token(): void

@@ -34,6 +34,7 @@ use App\Support\CoreUpdate\ArtisanRunner;
 use App\Support\CoreUpdate\ReleaseVerifier;
 use App\Support\ErrorReporting\GatewayErrorReporter;
 use App\Support\FeatureGate;
+use App\Support\LocaleUrl;
 use App\Support\Seo\SeoMeta;
 use App\Support\Seo\StructuredData;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -45,6 +46,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -91,6 +93,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Storefront URLs of the default language have no /{locale} prefix (App\Support\LocaleUrl):
+        // every route('client.…') — canonical, hreflang, sitemap, menus, the site index — is built
+        // from the prefixed route and loses the default language's prefix here, in one place.
+        URL::formatPathUsing(function (string $path, $route = null): string {
+            return $route instanceof \Illuminate\Routing\Route && str_starts_with((string) $route->getName(), 'client.')
+                ? LocaleUrl::stripDefault($path)
+                : $path;
+        });
+
         // Resolve the effective SMTP configuration the first time anything asks for
         // the mailer, so the admin screen outranks .env for every mail in the system
         // — customer order updates, contact form, password reset, invoices, not just
@@ -132,10 +143,13 @@ class AppServiceProvider extends ServiceProvider
             'errors::*',
         ], function ($view) {
             // An error page is rendered outside the locale middleware: read the language from
-            // the URL here, against the site's own languages (a /ja page errs in Japanese).
+            // the URL here, against the site's own languages (a /ja page errs in Japanese, a page
+            // without a prefix in the default language).
             $segment = (string) request()->segment(1);
             if ($segment !== '' && app(LanguageRegistry::class)->supports($segment)) {
                 app()->setLocale($segment);
+            } elseif ($segment !== 'admin') {
+                app()->setLocale(LocaleUrl::split(request()->path())[0]);
             }
             $currentLocale = app()->getLocale();
             $isAdminContext = request()->is('*/admin*') || request()->is('admin*') || (request()->is('error-preview*') && request()->query('context') !== 'client');
@@ -144,7 +158,7 @@ class AppServiceProvider extends ServiceProvider
             // URL cannot be built and the error page itself throws (a blank 500 for a 404).
             $clientHomeUrl = Route::has('client.home')
                 ? route('client.home', ['locale' => $currentLocale])
-                : (is_file(base_path('routes/theme.php')) ? url('/'.$currentLocale) : null);
+                : (is_file(base_path('routes/theme.php')) ? LocaleUrl::home($currentLocale) : null);
 
             $view->with([
                 'isAdminContext' => $isAdminContext,

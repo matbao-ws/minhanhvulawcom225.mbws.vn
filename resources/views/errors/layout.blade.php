@@ -17,13 +17,9 @@
         $targetLocaleFlag = $currentLocale === 'vi' ? asset('admin-assets/images/flag/icon-flag-en.svg') : asset('admin-assets/images/flag/Flag_of_Vietnam.svg.png');
         $currentLocaleFlag = $currentLocale === 'vi' ? asset('admin-assets/images/flag/Flag_of_Vietnam.svg.png') : asset('admin-assets/images/flag/icon-flag-en.svg');
 
-        // Ghép URL đổi ngôn ngữ theo chuẩn /{locale}/... của dự án
-        $switchSegments = $segments;
-        if (!empty($switchSegments) && in_array($switchSegments[0], ['vi', 'en'])) {
-            array_shift($switchSegments);
-        }
-        $switchPath = trim($targetLocale . '/' . implode('/', $switchSegments), '/');
-        $switchUrl = url($switchPath);
+        // The same page in the other language: the default language's storefront pages have no
+        // prefix, admin pages always keep it (App\Support\LocaleUrl).
+        $switchUrl = \App\Support\LocaleUrl::switchTo($targetLocale);
         if ($query = request()->getQueryString()) {
             parse_str($query, $parsedQuery);
             unset($parsedQuery['locale']);
@@ -37,7 +33,7 @@
         $adminDashboardUrl = $adminDashboardUrl ?? route('admin.dashboard', ['locale' => $currentLocale]);
         $clientHomeUrl = $clientHomeUrl ?? (\Illuminate\Support\Facades\Route::has('client.home')
             ? route('client.home', ['locale' => $currentLocale])
-            : (is_file(base_path('routes/theme.php')) ? url('/' . $currentLocale) : null));
+            : (is_file(base_path('routes/theme.php')) ? \App\Support\LocaleUrl::home($currentLocale) : null));
 
         $favicon = $siteBranding['favicon_url'] ?? asset('admin-assets/images/logos/favicon.png');
         $headerLogoUrl = $isAdminContext

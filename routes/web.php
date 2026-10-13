@@ -6,7 +6,7 @@ use App\Http\Controllers\Client\SeoFileController;
 use App\Services\LanguageRegistry;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin');
+// `/` is registered after the storefront routes (bootstrap/app.php): a theme home page wins.
 Route::get('/login', fn () => redirect('/'.app(LanguageRegistry::class)->defaultLocale().'/admin/login'))->name('login');
 
 Route::get('/api/docs', [PublicController::class, 'docs'])->name('api.docs');

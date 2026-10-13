@@ -30,7 +30,8 @@ class ErrorPageThemeHomeTest extends TestCase
         $this->get('/a-definitely-missing-page-12345')
             ->assertStatus(404)
             ->assertSee('btn-back-404')
-            ->assertSee(url('/vi'), false);
+            // The default language's home has no prefix.
+            ->assertSee('href="'.url('/').'"', false);
     }
 
     public function test_a_page_in_a_storefront_language_errs_in_that_language(): void
