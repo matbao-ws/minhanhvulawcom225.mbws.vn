@@ -254,13 +254,11 @@ return [
         'unlimited' => 'Unlimited',
         'metric' => [
             'data_unit' => 'Products + posts',
-            'banner' => 'Banners',
             'email_monthly' => 'Email (system SMTP)',
             'storage' => 'Media storage',
         ],
         'limit_exceeded' => [
             'data_unit' => 'Your package allows up to :limit products and posts. Please contact support to upgrade.',
-            'banner' => 'Your package allows up to :limit banners. Please contact support to upgrade.',
             'email_monthly' => 'This month\'s :limit emails included in your package have been used.',
         ],
         'limit_reached_title' => 'Package limit reached',

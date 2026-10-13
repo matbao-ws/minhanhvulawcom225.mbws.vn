@@ -69,7 +69,8 @@ class AdminToursTest extends TestCase
             $config = $this->tourConfig($html);
             $this->assertNotNull($config, "{$route} renders its tour");
             $this->assertSame($tour, $config['id'], $route);
-            $this->assertSame($this->root->id, $config['user']);
+            // Runs only from the "?" button: nothing per admin to remember in the browser.
+            $this->assertArrayNotHasKey('user', $config);
             $this->assertStringContainsString('data-admin-tour-start', $html, "{$route} shows the replay button");
             $this->assertStringContainsString('libs/driver.js/dist/driver.js.iife.js', $html);
 
@@ -146,11 +147,11 @@ class AdminToursTest extends TestCase
         app('translator')->addLines(['tours.dashboard.intro.title' => '<img src=x onerror=alert(1)>'], 'vi');
         app()->setLocale('vi');
 
-        $tour = AdminTours::forRoute('admin.dashboard', 1);
+        $tour = AdminTours::forRoute('admin.dashboard');
 
         $this->assertSame('&lt;img src=x onerror=alert(1)&gt;', $tour['steps'][0]['title']);
-        $this->assertNull(AdminTours::forRoute('admin.posts.show', 1), 'a redirect has no tour');
-        $this->assertNull(AdminTours::forRoute(null, 1));
+        $this->assertNull(AdminTours::forRoute('admin.posts.show'), 'a redirect has no tour');
+        $this->assertNull(AdminTours::forRoute(null));
     }
 
     public function test_a_step_whose_element_the_admin_cannot_see_is_marked_optional(): void

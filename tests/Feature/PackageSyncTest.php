@@ -72,7 +72,8 @@ class PackageSyncTest extends TestCase
 
         $snapshot = app(PackageSync::class)->snapshot();
         $this->assertSame('BASIC', $snapshot['code']);
-        $this->assertSame(['data_unit' => 500, 'banner' => 1, 'email_monthly' => 200], $snapshot['limits']);
+        // numberBanner (the banner design service) is not read: it is no limit of the core.
+        $this->assertSame(['data_unit' => 500, 'email_monthly' => 200], $snapshot['limits']);
         $this->assertTrue($snapshot['plan_known']);
 
         Http::assertSent(fn ($request) => $request->url() === 'https://tool.test/get-package-info.php/shop123.mbws.test');

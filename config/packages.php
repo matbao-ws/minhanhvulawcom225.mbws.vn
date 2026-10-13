@@ -89,7 +89,8 @@ return [
     'limits' => [
         // Products + posts together.
         'data_unit' => 'dataUnit',
-        'banner' => 'numberBanner',
+        // numberBanner in the tool is the banner *design* service sold with the package, not a
+        // cap on banners in the admin: the core does not read it.
         // Mails per calendar month, counted only while the shared SMTP is used.
         'email_monthly' => 'numberEmail',
     ],

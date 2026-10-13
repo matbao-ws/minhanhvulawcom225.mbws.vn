@@ -3,7 +3,6 @@
 namespace App\Services\Packages;
 
 use App\Exceptions\PackageLimitExceeded;
-use App\Models\Banner;
 use App\Models\Post;
 use App\Models\Product;
 use App\Services\AiGateway\GatewayClient;
@@ -30,11 +29,9 @@ class PackageLimits
 {
     public const DATA_UNIT = 'data_unit';
 
-    public const BANNER = 'banner';
-
     public const EMAIL_MONTHLY = 'email_monthly';
 
-    public const METRICS = [self::DATA_UNIT, self::BANNER, self::EMAIL_MONTHLY];
+    public const METRICS = [self::DATA_UNIT, self::EMAIL_MONTHLY];
 
     public const EMAIL_USAGE_CACHE_KEY = 'packages.email_usage';
 
@@ -59,7 +56,6 @@ class PackageLimits
     {
         return match ($metric) {
             self::DATA_UNIT => Product::query()->count() + Post::query()->count(),
-            self::BANNER => Banner::query()->count(),
             self::EMAIL_MONTHLY => (int) ($this->emailUsage()['used'] ?? 0),
             default => 0,
         };

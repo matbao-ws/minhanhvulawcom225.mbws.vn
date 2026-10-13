@@ -154,7 +154,7 @@ Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc
   rồi ghi `feature_settings.package_enabled` (và `is_enabled` cho row chưa bị ghi đè). Superadmin ghi đè
   được từng tính năng (`is_overridden`), lần sync sau giữ nguyên. Tool lỗi/không tìm thấy domain không
   bao giờ tắt tính năng; snapshot gần nhất nằm ở `project_settings.package_info`.
-- Hạn mức gói (`App\Services\Packages\PackageLimits`): `data_unit` = sản phẩm + bài viết, `banner`,
+- Hạn mức gói (`App\Services\Packages\PackageLimits`): `data_unit` = sản phẩm + bài viết,
   `email_monthly` (chỉ đếm khi gửi qua SMTP dùng chung). Chặn ở model event `creating` nên form admin,
   import CSV và import WordPress đều bị áp; áp cả cho superadmin. Hạn mức **chỉ** lấy từ tool nội bộ, core không
   có chỗ sửa: nâng hạn mức = Sales nâng gói/ký lại hợp đồng → cập nhật tool → `package:sync`.
@@ -413,9 +413,8 @@ Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) đư�
   sửa bước tương ứng: `AdminToursTest` render từng trang và fail khi thiếu target bắt buộc. Phần tử
   chỉ có với một số quyền, tính năng hoặc trạng thái thì đánh dấu bước là optional; trình duyệt tự
   bỏ qua bước không tìm thấy phần tử.
-- Chỉ trang có hướng dẫn mới nạp driver.js. Hướng dẫn tự bật một lần cho mỗi trang trên mỗi trình
-  duyệt (localStorage), rồi chỉ chạy khi bấm nút "?" trên header. Tăng `AdminTours::VERSION` khi
-  muốn mọi admin xem lại.
+- Chỉ trang có hướng dẫn mới nạp driver.js. Hướng dẫn **không bao giờ tự bật**: chỉ chạy khi admin
+  bấm nút "?" trên header.
 - **Mọi trang trong sidebar phải có hướng dẫn** (`AdminToursTest` fail nếu thiếu). Thêm trang mới:
   thêm route và các bước vào `AdminTours/tours.php`, thêm text cho cả hai ngôn ngữ, gắn `data-tour`
   vào view. Không viết hướng dẫn bằng JS riêng trong từng view.

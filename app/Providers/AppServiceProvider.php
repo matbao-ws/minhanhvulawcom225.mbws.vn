@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Contracts\TranslationProvider;
 use App\Mail\Transport\MatbaoGatewayTransport;
-use App\Models\Banner;
 use App\Models\Order;
 use App\Models\Post;
 use App\Models\Product;
@@ -231,7 +230,7 @@ class AppServiceProvider extends ServiceProvider
         view()->composer('admin.layouts.app', function ($view) {
             $view->with('packageLimitAlerts', app(PackageUsageAlerts::class)->forAdmin());
             // The guided tour of this page, if it has one; the header's "?" button and driver.js depend on it.
-            $view->with('adminTour', AdminTours::forRoute(request()->route()?->getName(), auth()->id()));
+            $view->with('adminTour', AdminTours::forRoute(request()->route()?->getName()));
         });
 
         RateLimiter::for('public-auth', fn (Request $request) => [
@@ -431,7 +430,6 @@ class AppServiceProvider extends ServiceProvider
 
         Product::creating(fn () => $limits()->ensureCanCreate(PackageLimits::DATA_UNIT));
         Post::creating(fn () => $limits()->ensureCanCreate(PackageLimits::DATA_UNIT));
-        Banner::creating(fn () => $limits()->ensureCanCreate(PackageLimits::BANNER));
 
         // The monthly mail quota is enforced by the MatBao relay on the gateway,
         // where this website's code cannot reach it; PackageLimits only reads it.
