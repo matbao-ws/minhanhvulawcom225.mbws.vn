@@ -62,7 +62,7 @@ class SiteBlockEditingTest extends TestCase
 
     public function test_a_region_renders_its_blade_default_until_it_is_edited(): void
     {
-        $this->get('/vi/danh-muc/dien-thoai')
+        $this->get('/danh-muc/dien-thoai')
             ->assertOk()
             ->assertSee('Danh mục này chưa có sản phẩm nào.');
 
@@ -80,7 +80,7 @@ class SiteBlockEditingTest extends TestCase
             'value' => 'Sắp có hàng mới, quay lại sau nhé.',
         ])->assertOk()->assertJsonPath('data.value', 'Sắp có hàng mới, quay lại sau nhé.');
 
-        $this->get('/vi/danh-muc/dien-thoai')
+        $this->get('/danh-muc/dien-thoai')
             ->assertOk()
             ->assertSee('Sắp có hàng mới, quay lại sau nhé.')
             ->assertDontSee('Danh mục này chưa có sản phẩm nào.');
@@ -97,7 +97,7 @@ class SiteBlockEditingTest extends TestCase
             'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_TEXT, 'content_locale' => 'vi', 'value' => 'Sắp có hàng',
         ])->assertOk();
 
-        $html = $this->get('/vi/danh-muc/dien-thoai')->assertOk()->getContent();
+        $html = $this->get('/danh-muc/dien-thoai')->assertOk()->getContent();
 
         $this->assertStringContainsString('>Sắp có hàng</', $html);
     }
@@ -186,7 +186,7 @@ class SiteBlockEditingTest extends TestCase
         $this->assertNull($this->site()->value('catalog.category.empty', 'vi'));
 
         // A guest sees neither the override nor the Blade default.
-        $this->get('/vi/danh-muc/dien-thoai')
+        $this->get('/danh-muc/dien-thoai')
             ->assertOk()
             ->assertDontSee('Danh mục này chưa có sản phẩm nào.');
     }
@@ -208,7 +208,7 @@ class SiteBlockEditingTest extends TestCase
         ])->assertOk();
 
         $this->assertDatabaseCount('site_blocks', 0);
-        $this->get('/vi/danh-muc/dien-thoai')->assertOk()->assertSee('Danh mục này chưa có sản phẩm nào.');
+        $this->get('/danh-muc/dien-thoai')->assertOk()->assertSee('Danh mục này chưa có sản phẩm nào.');
     }
 
     public function test_an_unchanged_value_writes_nothing_and_records_no_revision(): void
@@ -297,7 +297,7 @@ class SiteBlockEditingTest extends TestCase
 
     public function test_guests_receive_no_region_hooks(): void
     {
-        $html = $this->get('/vi/danh-muc/dien-thoai')->assertOk()->getContent();
+        $html = $this->get('/danh-muc/dien-thoai')->assertOk()->getContent();
 
         $this->assertStringNotContainsString('data-block-key', $html);
     }
@@ -306,7 +306,7 @@ class SiteBlockEditingTest extends TestCase
     {
         $this->actingWith(['pages.update']);
 
-        $this->get('/vi/danh-muc/dien-thoai')
+        $this->get('/danh-muc/dien-thoai')
             ->assertOk()
             ->assertSee('data-block-key="catalog.category.empty"', false);
     }
@@ -327,7 +327,7 @@ class SiteBlockEditingTest extends TestCase
         ]);
         $this->actingWith(['pages.update', 'media.view']);
 
-        $html = $this->get('/vi/danh-muc/dien-thoai')->assertOk()->getContent();
+        $html = $this->get('/danh-muc/dien-thoai')->assertOk()->getContent();
 
         $this->assertStringContainsString('iPhone 15', $html);
         // Match the attribute, not the bare token: the editor stylesheet mentions
@@ -352,7 +352,7 @@ class SiteBlockEditingTest extends TestCase
         ]);
         $this->actingWith(['pages.update']);
 
-        $html = $this->get('/vi/chuyen-muc/tin-tuc')->assertOk()->getContent();
+        $html = $this->get('/chuyen-muc/tin-tuc')->assertOk()->getContent();
 
         $this->assertStringContainsString('Bài viết một', $html);
         $this->assertStringNotContainsString('data-block-key=', $html);
@@ -362,6 +362,6 @@ class SiteBlockEditingTest extends TestCase
     {
         $this->category->update(['is_active' => false]);
 
-        $this->get('/vi/danh-muc/dien-thoai')->assertNotFound();
+        $this->get('/danh-muc/dien-thoai')->assertNotFound();
     }
 }

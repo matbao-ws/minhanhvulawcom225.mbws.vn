@@ -103,7 +103,11 @@ Convert:
 - Repeated sections to Blade components/partials.
 - CSRF-sensitive forms to Laravel routes with `@csrf` and the correct method.
 - Form values/errors to `old()`, `@error`, and validated controller/FormRequest data.
-- Locale-aware links to the repository's established locale routing policy.
+- Locale-aware links to `route('client.…', ['locale' => …])`, never `url('/'.$locale.…)`: the default
+  language's storefront has no `/{locale}` prefix (`/chinh-sach/x`, `/en/chinh-sach/x` for the others)
+  and `route()` applies that for you. Declare a theme route once in `routes/theme.php`; the core loads
+  it both with and without the prefix. A hand-built link uses `App\Support\LocaleUrl::home()` /
+  `switchTo()` (language switcher). See AI_BUILD_PROMPT.md "Đa ngôn ngữ".
 - Static pagination to Laravel/API pagination without changing its approved markup.
 
 Never expose admin-only models, secret settings, cost prices, or integration credentials to views.

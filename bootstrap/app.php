@@ -7,10 +7,12 @@ use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsurePackageLimit;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsSuperadmin;
+use App\Http\Middleware\RedirectDefaultLocalePrefix;
 use App\Http\Middleware\ResolveApiLocale;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocaleFromRoute;
 use App\Http\Middleware\SyncPackageInfo;
+use App\Http\Middleware\UseDefaultLocale;
 use App\Http\Middleware\ValidateLocalizedAdminPath;
 use App\Services\LanguageRegistry;
 use App\Support\ErrorReference;
@@ -46,13 +48,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('{locale}')
                 ->where(['locale' => '[a-z]{2,3}'])
                 ->group(function (): void {
-                    Route::name('client.')
+                    // The default language's storefront moved to URLs without a prefix
+                    // (App\Support\LocaleUrl): /vi/... answers with a permanent redirect there.
+                    Route::middleware('defaultLocale.redirect')->name('client.')
                         ->group(base_path('routes/client.php'));
 
                     // A theme's own storefront routes (product or post detail, landing pages…).
                     // Theme-owned: a core update never ships or touches this file (CoreManifest).
                     if (is_file(base_path('routes/theme.php'))) {
-                        Route::name('client.')
+                        Route::middleware('defaultLocale.redirect')->name('client.')
                             ->group(base_path('routes/theme.php'));
                     }
 
@@ -60,6 +64,21 @@ return Application::configure(basePath: dirname(__DIR__))
                         ->name('admin.')
                         ->group(base_path('routes/admin.php'));
                 });
+
+            // The same storefront routes without a prefix, for the default language. Named
+            // root.client.* so route('client.…') keeps generating from the prefixed ones, whose
+            // default-language URLs the path formatter (AppServiceProvider) then strips.
+            Route::middleware(['web', 'useDefaultLocale', 'setLocale'])
+                ->name('root.')
+                ->group(function (): void {
+                    Route::name('client.')->group(base_path('routes/client.php'));
+                    if (is_file(base_path('routes/theme.php'))) {
+                        Route::name('client.')->group(base_path('routes/theme.php'));
+                    }
+                });
+
+            // After the storefront: a theme's home page owns /, otherwise it opens the admin.
+            Route::redirect('/', '/admin');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -84,6 +103,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'package.sync' => SyncPackageInfo::class,
             'package.limit' => EnsurePackageLimit::class,
             'setLocale' => SetLocaleFromRoute::class,
+            'useDefaultLocale' => UseDefaultLocale::class,
+            'defaultLocale.redirect' => RedirectDefaultLocalePrefix::class,
             'apiLocale' => ResolveApiLocale::class,
             'localize' => LaravelLocalizationRoutes::class,
             'localizationRedirect' => LaravelLocalizationRedirectFilter::class,

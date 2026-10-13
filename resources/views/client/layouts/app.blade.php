@@ -18,7 +18,7 @@
          the screen that owns them — so both carry contenteditable="false". --}}
     <header class="client-header" contenteditable="false">
         <div class="client-shell client-header__inner">
-            <a class="client-brand" href="{{ url('/'.app()->getLocale()) }}">{{ $siteBranding['name'] ?? config('app.name') }}</a>
+            <a class="client-brand" href="{{ \App\Support\LocaleUrl::home(app()->getLocale()) }}">{{ $siteBranding['name'] ?? config('app.name') }}</a>
             @include('client.partials.navigation', ['menuKey' => 'primary'])
         </div>
     </header>

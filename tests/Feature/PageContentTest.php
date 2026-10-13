@@ -113,7 +113,7 @@ class PageContentTest extends TestCase
     public function test_published_client_page_only_shows_edit_bar_to_authorized_admin(): void
     {
         $page = $this->publishedPage();
-        $clientUrl = '/vi/chinh-sach/'.$page->canonicalSlug('vi');
+        $clientUrl = '/chinh-sach/'.$page->canonicalSlug('vi');
 
         $this->get($clientUrl)
             ->assertOk()
@@ -267,7 +267,7 @@ class PageContentTest extends TestCase
             'is_active' => false,
         ]);
 
-        $this->get('/vi/chinh-sach/'.$draft->slug)->assertNotFound();
+        $this->get('/chinh-sach/'.$draft->slug)->assertNotFound();
 
         $published = Page::query()->create([
             'title' => ['vi' => 'Trang đang hoạt động'],
@@ -282,7 +282,7 @@ class PageContentTest extends TestCase
             ->update(['is_enabled' => false]);
 
         $this->actingAs($this->admin)
-            ->get('/vi/chinh-sach/'.$published->slug)
+            ->get('/chinh-sach/'.$published->slug)
             ->assertNotFound();
     }
 
@@ -306,14 +306,14 @@ class PageContentTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get('/vi/chinh-sach/chinh-sach')
+            ->get('/chinh-sach/chinh-sach')
             ->assertOk()
             ->assertSee('Nhập nội dung trang tại đây.')
             ->assertSee('data-client-editable-root', false);
 
         $this->app['auth']->logout();
 
-        $this->get('/vi/chinh-sach/chinh-sach')
+        $this->get('/chinh-sach/chinh-sach')
             ->assertOk()
             ->assertDontSee('Nhập nội dung trang tại đây.')
             ->assertDontSee('data-client-editable-root', false);
@@ -329,7 +329,7 @@ class PageContentTest extends TestCase
         $page = $this->publishedPage();
 
         $this->actingAs($this->admin)
-            ->get('/vi/chinh-sach/gioi-thieu')
+            ->get('/chinh-sach/gioi-thieu')
             ->assertOk()
             ->assertSee('Trang giới thiệu')
             ->assertDontSee('Nhập nội dung trang tại đây.');
@@ -497,9 +497,9 @@ class PageContentTest extends TestCase
 
     public function test_old_pages_path_redirects_permanently_to_policy_path(): void
     {
-        $this->get('/vi/pages/chinh-sach-bao-mat')
+        $this->get('/pages/chinh-sach-bao-mat')
             ->assertStatus(301)
-            ->assertRedirect('/vi/chinh-sach/chinh-sach-bao-mat');
+            ->assertRedirect('/chinh-sach/chinh-sach-bao-mat');
     }
 
     private function payload(): array

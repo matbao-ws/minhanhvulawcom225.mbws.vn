@@ -229,7 +229,10 @@ class CoreManifestTest extends TestCase
             $this->refreshApplication();
 
             $this->assertTrue(Route::has('client.theme-probe'));
-            $this->get('/vi/theme-probe')->assertOk()->assertSee('theme ok');
+            // The default language has no prefix; the others keep it, and /vi/... moved for good.
+            $this->get('/theme-probe')->assertOk()->assertSee('theme ok');
+            $this->get('/en/theme-probe')->assertOk()->assertSee('theme ok');
+            $this->get('/vi/theme-probe')->assertStatus(301)->assertRedirect(url('/theme-probe'));
         } finally {
             unlink($file);
         }

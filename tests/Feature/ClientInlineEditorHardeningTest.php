@@ -53,7 +53,7 @@ class ClientInlineEditorHardeningTest extends TestCase
     {
         $this->actingWith($permissions);
 
-        return $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->getContent();
+        return $this->get('/chinh-sach/gioi-thieu')->assertOk()->getContent();
     }
 
     public function test_the_editable_root_carries_a_theme_portable_hook(): void
@@ -136,7 +136,7 @@ class ClientInlineEditorHardeningTest extends TestCase
 
     public function test_every_visitor_gets_the_formatting_reset_classes(): void
     {
-        $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()
+        $this->get('/chinh-sach/gioi-thieu')->assertOk()
             ->assertSee('.client-weight-normal{font-weight:400!important}', false);
     }
 
@@ -210,7 +210,7 @@ class ClientInlineEditorHardeningTest extends TestCase
 
     public function test_guests_receive_no_editor_at_all(): void
     {
-        $html = $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->getContent();
+        $html = $this->get('/chinh-sach/gioi-thieu')->assertOk()->getContent();
 
         foreach ([
             'client-admin-bar',
