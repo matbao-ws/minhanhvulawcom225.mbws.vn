@@ -267,6 +267,26 @@
         .dashboard-welcome-features-track > [data-clone="true"] {
             display: none !important;
         }
+        /* One row that scrolls sideways when the banner is too narrow, instead of wrapping. */
+        .dashboard-welcome-features {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
+            /* Room for the hover lift, which overflow would otherwise clip. */
+            padding: 4px 0 6px;
+            margin: -4px 0 -6px;
+        }
+        .dashboard-welcome-features-track {
+            flex-wrap: nowrap;
+            width: max-content;
+        }
+        .dashboard-welcome-feature {
+            flex: 0 0 auto;
+            white-space: nowrap;
+            scroll-snap-align: start;
+        }
     }
 </style>
 @endpush
@@ -331,7 +351,8 @@
             </div>
             <div class="row g-3">
                 @foreach($packageUsage['rows'] as $row)
-                    <div class="col-12 col-sm-6 col-xl-3">
+                    {{-- Equal columns that fill the row, whatever the number of limits. --}}
+                    <div class="col-12 col-md">
                         <div class="dashboard-package-usage__item">
                             <div class="dashboard-package-usage__meta">
                                 <span>{{ $row['label'] }}</span>
