@@ -103,6 +103,30 @@
     transform: rotate(180deg);
 }
 
+/* Every admin table: a rounded, bordered frame. */
+.table-responsive {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+}
+
+/* The wrapper scrolls (overflow-x: auto), so it already clips the header background and the
+   rows to its rounded corners; the last row's border would double the wrapper's. */
+.table-responsive > .table {
+    margin-bottom: 0;
+}
+
+.table-responsive > .table > :last-child > tr:last-child > * {
+    border-bottom-width: 0;
+}
+
+/* A table flush with its card's edges (card-body p-0): the card's own border and rounded
+   corners frame it, so a second frame would only double the edge. */
+.card > .card-body.p-0 > .table-responsive,
+.card > .table-responsive {
+    border: 0;
+    border-radius: 0;
+}
+
 @media (max-width: 767.98px) {
     .table-responsive tbody tr:only-child:has(> td[colspan]) {
         position: sticky;
@@ -272,4 +296,59 @@ body {
 textarea::placeholder {
     color: #64748b !important;
     opacity: 1 !important;
+}
+
+/* Scrollbars of the whole admin: thin, rounded, quiet until used. Chromium and Safari take the
+   ::-webkit-scrollbar rules; Firefox takes scrollbar-width/-color (Chromium ignores the
+   ::-webkit rules once those are set, so they stay behind the @supports below). */
+:root {
+    --admin-scroll-thumb: #c9d1de;
+    --admin-scroll-thumb-hover: #9aa6b8;
+    --admin-scroll-thumb-active: #c01e25;
+}
+
+[data-bs-theme="dark"] {
+    --admin-scroll-thumb: #3e4f68;
+    --admin-scroll-thumb-hover: #5a6d8a;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-color: var(--admin-scroll-thumb);
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--admin-scroll-thumb-hover);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background-color: var(--admin-scroll-thumb-active);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--admin-scroll-thumb) transparent;
+    }
+}
+
+/* The sidebar draws its own bar (SimpleBar): same colour. */
+.simplebar-scrollbar::before {
+    background: var(--admin-scroll-thumb-hover);
 }

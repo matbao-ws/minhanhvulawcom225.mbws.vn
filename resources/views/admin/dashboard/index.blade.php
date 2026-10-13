@@ -267,6 +267,43 @@
         .dashboard-welcome-features-track > [data-clone="true"] {
             display: none !important;
         }
+        /* One row that slides sideways when the banner is too narrow, instead of wrapping: no
+           scrollbar; drag, wheel or swipe moves it, and a fading edge shows there is more. */
+        .dashboard-welcome-features {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
+            /* Room for the hover lift, which overflow would otherwise clip. */
+            padding: 4px 0 6px;
+            margin: -4px 0 -6px;
+        }
+        .dashboard-welcome-features::-webkit-scrollbar { display: none; }
+        .dashboard-welcome-features.is-scrollable { cursor: grab; }
+        .dashboard-welcome-features.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+        .dashboard-welcome-features.is-dragging .dashboard-welcome-feature { pointer-events: none; }
+        .dashboard-welcome-features.is-scrollable:not(.at-start):not(.at-end) {
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+        }
+        .dashboard-welcome-features.is-scrollable.at-start:not(.at-end) {
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+        }
+        .dashboard-welcome-features.is-scrollable.at-end:not(.at-start) {
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px);
+            mask-image: linear-gradient(90deg, transparent, #000 32px);
+        }
+        .dashboard-welcome-features-track {
+            flex-wrap: nowrap;
+            width: max-content;
+        }
+        .dashboard-welcome-feature {
+            flex: 0 0 auto;
+            white-space: nowrap;
+            scroll-snap-align: start;
+        }
     }
 </style>
 @endpush
@@ -331,7 +368,8 @@
             </div>
             <div class="row g-3">
                 @foreach($packageUsage['rows'] as $row)
-                    <div class="col-12 col-sm-6 col-xl-3">
+                    {{-- Equal columns that fill the row, whatever the number of limits. --}}
+                    <div class="col-12 col-md">
                         <div class="dashboard-package-usage__item">
                             <div class="dashboard-package-usage__meta">
                                 <span>{{ $row['label'] }}</span>
@@ -1007,6 +1045,101 @@
     });
 </script>
 @endif
+
+<script>
+    // Welcome shortcuts above 485px: a sideways slider when they do not fit one row (the phone
+    // layout below has its own vertical slider). Drag with the mouse, wheel, or swipe; no scrollbar.
+    document.addEventListener('DOMContentLoaded', function () {
+        const strip = document.querySelector('[data-welcome-slider]');
+        if (!strip) return;
+        const phone = () => window.matchMedia('(max-width: 485px)').matches;
+
+        function update() {
+            const max = strip.scrollWidth - strip.clientWidth;
+            const scrollable = !phone() && max > 2;
+            strip.classList.toggle('is-scrollable', scrollable);
+            strip.classList.toggle('at-start', strip.scrollLeft <= 2);
+            strip.classList.toggle('at-end', strip.scrollLeft >= max - 2);
+        }
+
+        let startX = 0;
+        let startLeft = 0;
+        let pointer = null;
+        let dragged = false;
+
+        strip.addEventListener('pointerdown', function (event) {
+            // Touch scrolls natively; the mouse drags.
+            if (event.pointerType !== 'mouse' || event.button !== 0 || !strip.classList.contains('is-scrollable')) return;
+            pointer = event.pointerId;
+            startX = event.clientX;
+            startLeft = strip.scrollLeft;
+            dragged = false;
+        });
+        strip.addEventListener('pointermove', function (event) {
+            if (event.pointerId !== pointer) return;
+            const dx = event.clientX - startX;
+            if (!dragged && Math.abs(dx) > 5) {
+                dragged = true;
+                strip.classList.add('is-dragging');
+                strip.setPointerCapture(pointer);
+            }
+            if (dragged) strip.scrollLeft = startLeft - dx;
+        });
+        const release = function () {
+            pointer = null;
+            strip.classList.remove('is-dragging');
+        };
+        strip.addEventListener('pointerup', release);
+        strip.addEventListener('pointercancel', release);
+        // A drag that ends over a shortcut is not a click on it.
+        strip.addEventListener('click', function (event) {
+            if (dragged) {
+                event.preventDefault();
+                event.stopPropagation();
+                dragged = false;
+            }
+        }, true);
+
+        // A plain mouse wheel slides it while there is room; at either end the page scrolls on.
+        strip.addEventListener('wheel', function (event) {
+            if (!strip.classList.contains('is-scrollable') || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+            const max = strip.scrollWidth - strip.clientWidth;
+            if ((event.deltaY < 0 && strip.scrollLeft <= 0) || (event.deltaY > 0 && strip.scrollLeft >= max)) return;
+            event.preventDefault();
+            strip.scrollLeft += event.deltaY;
+        }, {passive: false});
+
+        // Slides on by itself, one shortcut every 2.6 s like the phone slider, back to the first
+        // after the last. Paused under the mouse, while dragging, in a hidden tab, and never for
+        // people who asked their system for less motion.
+        const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let hovered = false;
+        strip.addEventListener('mouseenter', () => { hovered = true; });
+        strip.addEventListener('mouseleave', () => { hovered = false; });
+        strip.addEventListener('focusin', () => { hovered = true; });
+        strip.addEventListener('focusout', () => { hovered = false; });
+
+        function advance() {
+            if (hovered || pointer !== null || document.hidden || still.matches || !strip.classList.contains('is-scrollable')) return;
+            const max = strip.scrollWidth - strip.clientWidth;
+            if (strip.scrollLeft >= max - 2) {
+                strip.scrollTo({left: 0, behavior: 'smooth'});
+                return;
+            }
+            // Positions measured against the strip itself (offsetLeft would count from the banner).
+            const left = strip.getBoundingClientRect().left;
+            const next = Array.from(strip.querySelectorAll('.dashboard-welcome-feature:not([data-clone])'))
+                .find((item) => item.getBoundingClientRect().left - left > 2);
+            const target = next ? strip.scrollLeft + next.getBoundingClientRect().left - left : max;
+            strip.scrollTo({left: Math.min(target, max), behavior: 'smooth'});
+        }
+        window.setInterval(advance, 2600);
+
+        strip.addEventListener('scroll', update, {passive: true});
+        window.addEventListener('resize', update);
+        update();
+    });
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

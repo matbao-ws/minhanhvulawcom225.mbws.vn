@@ -357,25 +357,16 @@
             color: #007b83 !important;
         }
         
-        /* Keep data tables square; form and dashboard cards retain their regular rounding. */
+        /* Cards clip what they hold to their rounded corners, tables included: the rounded
+           table frame itself lives in core-controls.css (.table-responsive). */
         .card {
             overflow: hidden !important;
         }
-        .card:has(.table-responsive) {
-            border-radius: 0 !important;
-        }
         .table-responsive {
-            border-radius: 0 !important;
             overflow-x: auto !important;
         }
         .table {
             margin-bottom: 0 !important;
-        }
-        .table tr:last-child td:first-child {
-            border-bottom-left-radius: 0 !important;
-        }
-        .table tr:last-child td:last-child {
-            border-bottom-right-radius: 0 !important;
         }
         
         /* Softer, premium colors for all status buttons to avoid glaring colors */
