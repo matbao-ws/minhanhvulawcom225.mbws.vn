@@ -207,7 +207,7 @@
                                   'contacts' => $sidebarCan('contacts.view'),
                                   'products' => $sidebarCatalog && $sidebarCan('products.view'),
                                   'vouchers' => $sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarCan('vouchers.view'),
-                                  'promotions' => $sidebarCatalog && $sidebarCan('promotions.view'),
+                                  'promotions' => $sidebarCatalog && $sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarCan('promotions.view'),
                                   'reviews' => $sidebarFeatures->availableTo($sidebarUser, 'review') && $sidebarCan('reviews.view'),
                                   'posts' => $sidebarCms && $sidebarCan('posts.view'),
                                   'pages' => $sidebarCms && $sidebarCan('pages.view'),

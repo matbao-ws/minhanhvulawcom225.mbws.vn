@@ -1,6 +1,9 @@
 @php
     $translationKey = "admin.features.{$feature->feature_code}";
     $displayName = Lang::has($translationKey) ? __($translationKey) : Str::headline($feature->feature_code);
+    // Features this one needs on to have any effect (config features.requires).
+    $requires = (array) config("features.requires.{$feature->feature_code}", []);
+    $requiresLabels = collect($requires)->map(fn ($code) => Lang::has("admin.features.{$code}") ? __("admin.features.{$code}") : Str::headline($code))->implode(', ');
     
     $iconMap = [
         'catalog' => 'ti ti-package',
@@ -14,7 +17,6 @@
         'menu' => 'ti ti-menu-2',
         'zalo_oa' => 'ti ti-bell-ringing',
         'multi_admin' => 'ti ti-users-group',
-        'inventory_log' => 'ti ti-clipboard-list',
         'cms_page' => 'ti ti-article',
         'product_variant' => 'ti ti-versions',
         'payment_vnpay' => 'ti ti-qrcode',
@@ -37,7 +39,6 @@
         'menu' => 'bg-info-subtle text-info',
         'zalo_oa' => 'bg-warning-subtle text-warning',
         'multi_admin' => 'bg-success-subtle text-success',
-        'inventory_log' => 'bg-danger-subtle text-danger',
         'cms_page' => 'bg-secondary-subtle text-secondary',
         'product_variant' => 'bg-primary-subtle text-primary',
         'payment_vnpay' => 'bg-success-subtle text-success',
@@ -49,7 +50,7 @@
     $colorClass = $colorMap[$feature->feature_code] ?? 'bg-light text-dark';
 @endphp
 
-<div data-tour="features.card" class="col-md-6 col-lg-4 mb-4" data-feature-card data-feature-group="{{ $groupKey }}">
+<div data-tour="features.card" class="col-md-6 col-lg-4 mb-4" data-feature-card data-feature-group="{{ $groupKey }}" data-feature-requires="{{ implode(',', $requires) }}">
     <div class="card h-100 shadow-sm border border-light-subtle rounded-4 overflow-hidden position-relative feature-card">
         <!-- Top Status Badge -->
         <span class="position-absolute top-0 end-0 {{ $feature->is_enabled ? 'bg-success text-white' : 'bg-secondary-subtle text-muted' }} px-3 py-1 small fw-semibold d-flex align-items-center gap-1" 
@@ -76,9 +77,17 @@
                         <span class="badge bg-primary-subtle text-primary {{ $feature->is_overridden ? 'd-none' : '' }}" data-source-package>{{ __('admin.package.badge_package') }}</span>
                     </div>
                 @endif
-                <p class="text-muted small mb-4" style="min-height: 48px;">
+                <p class="text-muted small mb-{{ $requires ? '2' : '4' }}" style="min-height: 48px;">
                     {{ Lang::has("admin.features.subtitle_for_{$feature->feature_code}") ? __("admin.features.subtitle_for_{$feature->feature_code}") : '' }}
                 </p>
+                @if($requires)
+                    <p class="small mb-4 feature-requires">
+                        <i class="ti ti-link me-1" aria-hidden="true"></i>{{ __('admin.features.requires', ['features' => $requiresLabels]) }}
+                        <span class="d-block text-warning fw-semibold d-none" data-requires-off>
+                            <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>{{ __('admin.features.requires_off') }}
+                        </span>
+                    </p>
+                @endif
             </div>
 
             <div>

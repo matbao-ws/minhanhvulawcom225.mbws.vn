@@ -7,6 +7,7 @@ use App\Models\OrderStatusHistory;
 use App\Services\ActivityLogger;
 use App\Services\OrderStateTransitionService;
 use App\Services\ShippingService;
+use App\Support\FeatureGate;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -110,6 +111,10 @@ class ShipmentDispatcher
      */
     public function autoPushOnConfirm(Order $order, ?int $actorId = null): ?array
     {
+        if (! app(FeatureGate::class)->enabled('shipping')) {
+            return null;
+        }
+
         $ghn = data_get($this->shipping->getSettings(), 'ghn', []);
         $location = $order->ghnLocation();
 

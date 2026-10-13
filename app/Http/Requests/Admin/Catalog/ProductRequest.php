@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Catalog;
 
 use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use App\Services\LanguageRegistry;
+use App\Support\FeatureGate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,9 @@ class ProductRequest extends FormRequest
     public function rules(): array
     {
         $productId = $this->route('product')?->id;
-        $excludeVariantFields = Rule::excludeIf(! $this->boolean('has_variants'));
+        // Without the product_variant feature the variant fields are ignored, not validated.
+        $excludeVariantFields = Rule::excludeIf(! $this->boolean('has_variants')
+            || ! app(FeatureGate::class)->availableTo($this->user(), 'product_variant'));
 
         return [
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],

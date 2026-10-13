@@ -30,7 +30,7 @@ class FoundationSeederTest extends TestCase
             'is_enabled' => true,
         ]);
         $this->assertSame(0, Product::query()->count());
-        $this->assertTrue(FeatureSetting::query()->where('feature_code', 'inventory_log')->value('is_enabled'));
+        $this->assertTrue(FeatureSetting::query()->where('feature_code', 'menu')->value('is_enabled'));
     }
 
     public function test_seed_creates_an_active_superadmin_on_a_fresh_install(): void
