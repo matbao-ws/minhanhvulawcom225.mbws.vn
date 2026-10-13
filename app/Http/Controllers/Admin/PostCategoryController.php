@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PostCategoryRequest;
 use App\Models\PostCategory;
@@ -14,6 +15,8 @@ use Illuminate\Support\Str;
 
 class PostCategoryController extends Controller
 {
+    use HandlesPagination;
+
     public function __construct(
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
@@ -36,7 +39,7 @@ class PostCategoryController extends Controller
             })
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         // Get all categories in one query to build tree in memory

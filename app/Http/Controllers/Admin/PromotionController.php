@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PromotionRequest;
 use App\Models\Product;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class PromotionController extends Controller
 {
+    use HandlesPagination;
+
     public function index()
     {
         $promotions = Promotion::query()
@@ -21,7 +24,7 @@ class PromotionController extends Controller
             ->when(request('q'), fn ($query, $keyword) => $query->where('name', 'like', "%{$keyword}%"))
             ->when(request()->filled('kind'), fn ($query) => $query->where('kind', request('kind')))
             ->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         return view('admin.promotions.index', compact('promotions'));

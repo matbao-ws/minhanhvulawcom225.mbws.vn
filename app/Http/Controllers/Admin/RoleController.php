@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\AuthorizesPermissionGrants;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Services\ActivityLogger;
@@ -13,6 +14,7 @@ use Illuminate\Validation\Rule;
 class RoleController extends Controller
 {
     use AuthorizesPermissionGrants;
+    use HandlesPagination;
 
     /**
      * Codes come from the registry rather than the table so an unseeded
@@ -40,7 +42,7 @@ class RoleController extends Controller
         if (! auth()->user()->isSuperAdmin()) {
             $query->where('is_system', false)->where('is_superadmin', false);
         }
-        $roles = $query->orderBy('id')->paginate(15);
+        $roles = $query->orderBy('id')->paginate($this->perPage(15))->withQueryString();
 
         return view('admin.roles.index', compact('roles'));
     }

@@ -60,7 +60,7 @@
                 </tbody>
             </table>
         </div>
-        {{ $pages->links() }}
+        @include('admin.shared.pagination', ['paginator' => $pages])
     </div>
 </div>
 @endsection

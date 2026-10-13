@@ -352,3 +352,14 @@ textarea::placeholder {
 .simplebar-scrollbar::before {
     background: var(--admin-scroll-thumb-hover);
 }
+
+/* Admin lists: the current page in the brand red, like the primary buttons. */
+.pagination .page-item.active > .page-link {
+    border-color: var(--core-control-primary, #c01e25);
+    background-color: var(--core-control-primary, #c01e25);
+    color: #fff;
+}
+
+.pagination .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(192, 30, 37, 0.18);
+}

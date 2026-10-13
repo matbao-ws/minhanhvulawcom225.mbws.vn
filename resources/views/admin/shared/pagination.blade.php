@@ -1,6 +1,8 @@
 @php
-    $perPageOptions = \App\Http\Controllers\Admin\Concerns\HandlesPagination::$perPageOptions;
     $currentPerPage = $paginator->perPage();
+    // A screen whose default size is not one of the offered ones (10, 20) still shows it selected.
+    $perPageOptions = collect(\App\Http\Controllers\Admin\Concerns\HandlesPagination::$perPageOptions)
+        ->push($currentPerPage)->unique()->sort()->values()->all();
     $keptQuery = collect(request()->except(['per_page', 'page']))->filter(fn ($value) => $value !== null && $value !== '');
 @endphp
 
@@ -34,6 +36,7 @@
                 ]) }}
             </span>
         </div>
-        <div>{{ $paginator->onEachSide(1)->links() }}</div>
+        {{-- Always drawn, disabled while everything fits on one page. --}}
+        <div>{{ $paginator->onEachSide(1)->links('admin.shared.pagination-links') }}</div>
     </div>
 @endif

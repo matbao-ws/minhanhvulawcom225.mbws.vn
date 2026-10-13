@@ -6,6 +6,7 @@ return [
         'per_page' => 'Rows',
         'summary' => 'Showing :from–:to of :total',
         'apply' => 'Apply',
+        'label' => 'Pagination',
     ],
     'dashboard' => 'Dashboard',
     'admin' => 'Admin',

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Services\ActivityLogger;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 class BannerController extends Controller
 {
     use HandlesBulkActions;
+    use HandlesPagination;
 
     public function __construct(private readonly CloudinaryService $cloudinaryService) {}
 
@@ -32,7 +34,7 @@ class BannerController extends Controller
             $query->where('is_active', $request->status === '1');
         }
 
-        $banners = $query->orderBy('sort_order', 'asc')->paginate(10);
+        $banners = $query->orderBy('sort_order', 'asc')->paginate($this->perPage(10))->withQueryString();
 
         return view('admin.banners.index', compact('banners'));
     }

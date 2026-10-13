@@ -6,6 +6,7 @@ return [
         'per_page' => 'Số dòng',
         'summary' => 'Hiển thị :from–:to trên :total',
         'apply' => 'Áp dụng',
+        'label' => 'Phân trang',
     ],
     'dashboard' => 'Trang quản trị',
     'admin' => 'Quản trị',

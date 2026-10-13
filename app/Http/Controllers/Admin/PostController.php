@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\WordPressPostImportRequest;
 use App\Models\Post;
@@ -23,6 +24,7 @@ use Illuminate\Support\Str;
 class PostController extends Controller
 {
     use HandlesBulkActions;
+    use HandlesPagination;
 
     public function __construct(
         private readonly LanguageRegistry $languages,
@@ -49,7 +51,7 @@ class PostController extends Controller
                 $query->where('is_active', request('status'));
             })
             ->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         $categories = $this->categoryOptions();

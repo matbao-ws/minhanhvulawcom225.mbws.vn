@@ -161,9 +161,9 @@
                 ])
             @endif
 
-            @if($orders->hasPages())
+            @if($orders->total() > 0)
                 <div class="card-footer bg-transparent border-top py-3">
-                    {{ $orders->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $orders])
                 </div>
             @endif
         </div>

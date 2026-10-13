@@ -163,9 +163,9 @@
                 ])
             @endif
 
-            @if($vouchers->hasPages())
+            @if($vouchers->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $vouchers->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $vouchers])
                 </div>
             @endif
         </div>

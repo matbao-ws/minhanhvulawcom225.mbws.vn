@@ -156,9 +156,9 @@
                 ])
             @endif
 
-            @if($reviews->hasPages())
+            @if($reviews->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $reviews->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $reviews])
                 </div>
             @endif
         </div>

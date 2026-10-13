@@ -191,9 +191,9 @@
                 </table>
             </div>
 
-            @if($posts->hasPages())
+            @if($posts->total() > 0)
                 <div class="card-footer bg-transparent border-top py-3">
-                    {{ $posts->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $posts])
                 </div>
             @endif
         </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\InlinePageUpdateRequest;
 use App\Http\Requests\Admin\PageRequest;
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
+    use HandlesPagination;
+
     public function __construct(
         private readonly PageContentService $pages,
         private readonly LanguageRegistry $languages,
@@ -30,7 +33,7 @@ class PageController extends Controller
             })
             ->when($request->filled('status'), fn ($query) => $query->where('is_active', $request->boolean('status')))
             ->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         return view('admin.pages.index', compact('pages'));

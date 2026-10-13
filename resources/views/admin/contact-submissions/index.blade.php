@@ -136,9 +136,9 @@
                 ])
             @endif
 
-            @if($submissions->hasPages())
+            @if($submissions->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $submissions->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $submissions])
                 </div>
             @endif
         </div>
