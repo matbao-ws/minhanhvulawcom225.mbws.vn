@@ -317,6 +317,7 @@
             <p class="mb-4">{{ __('admin.dashboard_page.welcome_description') }}</p>
             <div class="dashboard-welcome-features" data-welcome-slider>
                 <div class="dashboard-welcome-features-track" data-welcome-track>
+                    @if($isStore ?? true)
                     <a href="#revenueChart" class="dashboard-welcome-feature">
                         <span class="dashboard-welcome-feature-icon text-danger">
                             <iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon>
@@ -341,6 +342,33 @@
                         </span>
                         <span>{{ __('admin.dashboard_page.welcome_features.growth') }}</span>
                     </a>
+                    @else
+                    @php($canOpen = fn (string $permission) => auth()->user()?->can($permission))
+                    <a href="{{ $canOpen('posts.view') ? route('admin.posts.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-primary">
+                            <iconify-icon icon="solar:document-text-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.posts') }}</span>
+                    </a>
+                    <a href="{{ $canOpen('pages.view') ? route('admin.pages.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-success">
+                            <iconify-icon icon="solar:notebook-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.pages') }}</span>
+                    </a>
+                    <a href="{{ $canOpen('contacts.view') ? route('admin.contact-submissions.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-danger">
+                            <iconify-icon icon="solar:letter-unread-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.contacts') }}</span>
+                    </a>
+                    <a href="#revenueChart" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-warning">
+                            <iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.traffic') }}</span>
+                    </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -396,7 +424,28 @@
 
     @include('admin.dashboard._seo-tasks')
 
-    @if(!$canViewOrders)
+    @if(! ($isStore ?? true))
+        {{-- A website that sells nothing: its content, not sales figures. --}}
+        @if(! empty($contentStats))
+            <div data-tour="dashboard.stats" class="row g-3 mb-4">
+                @foreach($contentStats as $stat)
+                    <div class="col-md-4">
+                        <a href="{{ $stat['url'] }}" class="card shadow-sm h-100 mb-0 text-decoration-none">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <span class="card-icon bg-{{ $stat['tone'] }}-subtle text-{{ $stat['tone'] }} flex-shrink-0">
+                                    <iconify-icon icon="{{ $stat['icon'] }}" class="fs-6"></iconify-icon>
+                                </span>
+                                <div>
+                                    <div class="fs-6 fw-bold text-dark">{{ number_format($stat['value']) }}</div>
+                                    <div class="text-muted small">{{ __('admin.dashboard_page.content_stats.'.$stat['key']) }}</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    @elseif(!$canViewOrders)
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <div class="d-flex align-items-start gap-3">

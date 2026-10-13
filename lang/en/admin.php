@@ -339,6 +339,8 @@ return [
         'ai_seo' => 'AI SEO Copilot',
         'subtitle_for_ai_seo' => 'AI meta suggestions and copy editing; every change is reviewed before saving.',
         'ai_research' => 'Keywords & competitors',
+        'analytics' => 'Visitor analytics',
+        'subtitle_for_analytics' => 'Visits, traffic sources and top pages from Google Analytics, on the dashboard.',
         'subtitle_for_ai_research' => 'Keywords competitors rank for that this website does not, post topic ideas and weekly Google rank tracking.',
         'subtitle_for_max_products' => 'Set the maximum number of products allowed in the database.',
         'subtitle_for_max_admin_users' => 'Set the maximum number of administrators allowed.',
@@ -1185,6 +1187,17 @@ return [
         'welcome_greeting' => 'Hello,',
         'welcome_title' => 'Welcome back!',
         'welcome_description' => 'Manage your store more easily with Mat Bao WS',
+        'welcome_features_content' => [
+            'posts' => 'Write a post',
+            'pages' => 'Policy pages',
+            'contacts' => 'Customer messages',
+            'traffic' => 'Track visits',
+        ],
+        'content_stats' => [
+            'posts' => 'Published posts',
+            'pages' => 'Policy pages',
+            'contacts' => 'Unread messages',
+        ],
         'welcome_features' => [
             'revenue' => 'Track revenue',
             'orders' => 'Manage orders',

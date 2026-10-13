@@ -361,7 +361,7 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
 
             // Fetch recent orders
-            if ($user?->can('orders.view') && Schema::hasTable('orders')) {
+            if ($user?->can('orders.view') && Schema::hasTable('orders') && app(FeatureGate::class)->enabled('catalog')) {
                 $orders = Order::query()->latest()->limit(5)->get();
                 foreach ($orders as $order) {
                     $notifications->push([
@@ -377,7 +377,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Fetch recent reviews
-            if ($user?->can('reviews.view') && Schema::hasTable('reviews')) {
+            if ($user?->can('reviews.view') && Schema::hasTable('reviews') && app(FeatureGate::class)->enabled('review')) {
                 $reviews = Review::query()->latest()->limit(5)->get();
                 foreach ($reviews as $review) {
                     $prodName = 'Sản phẩm';
