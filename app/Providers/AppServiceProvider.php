@@ -41,6 +41,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -96,11 +97,16 @@ class AppServiceProvider extends ServiceProvider
         // Storefront URLs of the default language have no /{locale} prefix (App\Support\LocaleUrl):
         // every route('client.…') — canonical, hreflang, sitemap, menus, the site index — is built
         // from the prefixed route and loses the default language's prefix here, in one place.
-        URL::formatPathUsing(function (string $path, $route = null): string {
-            return $route instanceof \Illuminate\Routing\Route && str_starts_with((string) $route->getName(), 'client.')
-                ? LocaleUrl::stripDefault($path)
-                : $path;
-        });
+        // Attached when the URL generator is first built, not by building it here: a process that
+        // boots the kernel before any request exists (a queue worker, a test racer) cannot build it yet.
+        $stripDefaultLocale = function (UrlGenerator $url): void {
+            $url->formatPathUsing(function (string $path, $route = null): string {
+                return $route instanceof \Illuminate\Routing\Route && str_starts_with((string) $route->getName(), 'client.')
+                    ? LocaleUrl::stripDefault($path)
+                    : $path;
+            });
+        };
+        $this->app->resolved('url') ? $stripDefaultLocale($this->app->make('url')) : $this->app->afterResolving('url', $stripDefaultLocale);
 
         // Resolve the effective SMTP configuration the first time anything asks for
         // the mailer, so the admin screen outranks .env for every mail in the system

@@ -8,6 +8,7 @@ use App\Services\LanguageRegistry;
 use App\Services\Seo\SitemapService;
 use App\Support\LocaleUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Process;
 use Tests\TestCase;
 
 /**
@@ -99,6 +100,18 @@ class DefaultLocaleUrlTest extends TestCase
         $this->get('/')->assertRedirect('/admin');
         $this->assertSame(url('/vi/chinh-sach/'.$slug), route('client.pages.show', ['locale' => 'vi', 'slug' => $slug]));
         $this->assertSame(url('/vi/chinh-sach/x'), LocaleUrl::switchTo('vi', 'en/chinh-sach/x'));
+    }
+
+    public function test_a_kernel_booted_before_any_request_still_starts(): void
+    {
+        // Queue workers and the checkout race (CheckoutConcurrencyTest) boot the HTTP kernel with no
+        // request yet: the URL formatter must not force the URL generator into existence then.
+        $code = 'require "vendor/autoload.php"; $app = require "bootstrap/app.php";'
+            .' $app->make(Illuminate\Contracts\Http\Kernel::class)->bootstrap(); echo "booted";';
+
+        $result = Process::path(base_path())->run([PHP_BINARY, '-r', $code]);
+
+        $this->assertSame('booted', trim($result->output()), $result->errorOutput());
     }
 
     public function test_the_language_switch_of_a_page_follows_the_same_rule(): void
