@@ -193,7 +193,6 @@ class ContentTransfer
     {
         $wanted = [
             PackageLimits::DATA_UNIT => count($tables['products'] ?? []) + count($tables['posts'] ?? []),
-            PackageLimits::BANNER => count($tables['banners'] ?? []),
         ];
 
         foreach ($wanted as $metric => $count) {

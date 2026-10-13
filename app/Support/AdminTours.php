@@ -15,18 +15,16 @@ namespace App\Support;
  * whose element is not on the page. AdminToursTest renders each page and fails when a required
  * target is missing, and fails when a page of the sidebar has no tour.
  *
- * Bump VERSION when tours change enough to be worth showing again: each admin then sees them
- * once more.
+ * A tour runs only from the header's "?" button (public/admin-assets/js/admin-tour.js), never
+ * by itself.
  */
 final class AdminTours
 {
-    public const VERSION = 2;
-
     /** @var array{routes: array<string, string>, tours: array<string, list<array{0: string, 1: ?string, 2: string, 3: bool}>>}|null */
     private static ?array $data = null;
 
     /** The tour of the page this route renders, ready for the browser, or null when it has none. */
-    public static function forRoute(?string $route, ?int $userId): ?array
+    public static function forRoute(?string $route): ?array
     {
         $tour = $route !== null ? (self::routes()[$route] ?? null) : null;
         if ($tour === null) {
@@ -35,8 +33,6 @@ final class AdminTours
 
         return [
             'id' => $tour,
-            'version' => self::VERSION,
-            'user' => $userId,
             'steps' => array_map(fn (array $step) => [
                 'target' => $step[1],
                 'side' => $step[2],

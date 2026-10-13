@@ -257,13 +257,11 @@ return [
         'unlimited' => 'Không giới hạn',
         'metric' => [
             'data_unit' => 'Sản phẩm + bài viết',
-            'banner' => 'Banner',
             'email_monthly' => 'Email (SMTP hệ thống)',
             'storage' => 'Dung lượng media',
         ],
         'limit_exceeded' => [
             'data_unit' => 'Gói dịch vụ cho phép tối đa :limit sản phẩm và bài viết. Vui lòng liên hệ bộ phận hỗ trợ để nâng cấp gói.',
-            'banner' => 'Gói dịch vụ cho phép tối đa :limit banner. Vui lòng liên hệ bộ phận hỗ trợ để nâng cấp gói.',
             'email_monthly' => 'Đã dùng hết :limit email của tháng này theo gói dịch vụ.',
         ],
         'limit_reached_title' => 'Đã đạt giới hạn của gói dịch vụ',
