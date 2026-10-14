@@ -1,4 +1,8 @@
 <style>
+    /* The post editor can enter a 9999 fullscreen layer. Keep this modal and its backdrop
+       above it together; lifting only the modal would leave the fullscreen editor interactive. */
+    body.admin-media-picker-open .modal-backdrop { z-index: 11040 !important; }
+    body.admin-media-picker-open #adminMediaPicker { z-index: 11050 !important; }
     #adminMediaPickerGrid .media-picker-card {
         height: 150px;
         min-width: 0;
@@ -65,6 +69,12 @@
         if (!modalElement || typeof bootstrap === 'undefined') return;
 
         const modal = new bootstrap.Modal(modalElement);
+        modalElement.addEventListener('show.bs.modal', function () {
+            document.body.classList.add('admin-media-picker-open');
+        });
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            document.body.classList.remove('admin-media-picker-open');
+        });
         const folder = document.getElementById('adminMediaPickerFolder');
         const upload = document.getElementById('adminMediaPickerUpload');
         const grid = document.getElementById('adminMediaPickerGrid');
@@ -144,8 +154,9 @@
 
         function select(url) {
             if (!activeInput) return;
+            const isQuillMediaPicker = activeInput.dataset.quillMediaPicker === 'true';
             const form = activeInput.closest('form');
-            if (form) {
+            if (form && !isQuillMediaPicker) {
                 let targets = Array.from(form.querySelectorAll('[name="' + selectedField(activeInput) + '"]'));
                 if (targets.length === 0) {
                     const target = document.createElement('input');

@@ -614,12 +614,14 @@
                 
                 // Create alignment toolbar
                 toolbar = document.createElement('div');
-                toolbar.style.position = 'absolute';
+                toolbar.style.position = 'fixed';
                 toolbar.style.backgroundColor = '#2a3547';
                 toolbar.style.borderRadius = '6px';
                 toolbar.style.padding = '6px 8px';
                 toolbar.style.display = 'flex';
+                toolbar.style.flexWrap = 'wrap';
                 toolbar.style.gap = '8px';
+                toolbar.style.maxWidth = 'calc(100vw - 24px)';
                 toolbar.style.zIndex = '10000';
                 toolbar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
                 
@@ -668,6 +670,7 @@
                 altInput.placeholder = 'Mô tả ảnh (alt text)';
                 altInput.setAttribute('aria-label', 'Mô tả ảnh (alt text)');
                 altInput.style.width = '180px';
+                altInput.style.flex = '1 1 150px';
                 altInput.style.padding = '4px 8px';
                 altInput.style.border = '1px solid rgba(255,255,255,0.35)';
                 altInput.style.borderRadius = '4px';
@@ -686,6 +689,7 @@
                 captionInput.placeholder = 'Chú thích hiển thị dưới ảnh';
                 captionInput.setAttribute('aria-label', 'Chú thích hiển thị dưới ảnh');
                 captionInput.style.width = '220px';
+                captionInput.style.flex = '1 1 180px';
                 captionInput.style.padding = '4px 8px';
                 captionInput.style.border = '1px solid rgba(255,255,255,0.35)';
                 captionInput.style.borderRadius = '4px';
@@ -765,8 +769,24 @@
                     overlay.style.width = rect.width + 'px';
                     overlay.style.height = rect.height + 'px';
                     
-                    toolbar.style.top = (scrollY + rect.top - 45) + 'px';
-                    toolbar.style.left = (scrollX + rect.left + (rect.width - toolbar.offsetWidth) / 2) + 'px';
+                    const viewportPadding = 12;
+                    const toolbarHeight = toolbar.offsetHeight;
+                    const toolbarWidth = toolbar.offsetWidth;
+                    const editorToolbar = activeImage.closest('.catalog-quill')?.querySelector('.ql-toolbar');
+                    const editorToolbarBottom = editorToolbar?.getBoundingClientRect().bottom ?? 0;
+                    let top = rect.top - toolbarHeight - 10;
+
+                    // An image near the top of the editor has no room above it: placing the
+                    // image controls there hides Quill's own toolbar, so show them below instead.
+                    if (top < viewportPadding || top < editorToolbarBottom + 8) {
+                        top = rect.bottom + 10;
+                    }
+                    top = Math.max(viewportPadding, Math.min(top, window.innerHeight - toolbarHeight - viewportPadding));
+
+                    let left = rect.left + (rect.width - toolbarWidth) / 2;
+                    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - toolbarWidth - viewportPadding));
+                    toolbar.style.top = top + 'px';
+                    toolbar.style.left = left + 'px';
                     
                     const children = overlay.children;
                     if (children.length === 4) {

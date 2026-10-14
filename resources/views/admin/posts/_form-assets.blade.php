@@ -1,4 +1,5 @@
 @push('styles')
+    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill-table/index.css') }}">
     <style>
         /* Make editor text color dark and highly readable */
         .ql-editor {
@@ -11,7 +12,6 @@
             color: #6b7280 !important;
             font-style: normal !important;
         }
-
         /* Fullscreen editor wrapper styles */
         #editor_wrapper.quill-fullscreen {
             position: fixed !important;
@@ -163,6 +163,11 @@
     <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/vendor.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/select2/dist/js/select2.full.min.js') }}"></script>
+    <script type="module">
+        import TableHandler, { rewirteFormats } from '{{ asset('admin-assets/libs/quill-table/index.js') }}';
+
+        window.adminPostTableModule = { TableHandler, rewirteFormats };
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.querySelector('form.admin-form-with-sticky-actions');
@@ -219,6 +224,11 @@
             ImageCaptionBlot.tagName = 'div';
             ImageCaptionBlot.className = 'ql-image-caption';
             Quill.register(ImageCaptionBlot, true);
+            const tableModule = window.adminPostTableModule;
+            if (tableModule) {
+                Quill.register({ ['modules/' + tableModule.TableHandler.moduleName]: tableModule.TableHandler }, true);
+                tableModule.rewirteFormats();
+            }
 
             // Quill initialization
             let quill = null;
@@ -227,29 +237,79 @@
             document.querySelectorAll('.catalog-quill').forEach(function (editorElement) {
                 const target = document.getElementById(editorElement.dataset.target);
                 if (!target) return;
+                const toolbarOptions = [
+                    [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'script': 'sub' }, { 'script': 'super' }],
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    [{ 'blockquote': true }, { 'code-block': true }],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                    [{ 'align': [] }],
+                    tableModule ? ['link', 'image', 'video', 'table'] : ['link', 'image', 'video'],
+                    ['clean']
+                ];
+                const editorModules = {
+                    clipboard: {
+                        matchVisual: false
+                    },
+                    toolbar: toolbarOptions
+                };
+                if (tableModule) {
+                    editorModules[tableModule.TableHandler.moduleName] = {
+                        fullWidth: true,
+                        operationMenu: {
+                            items: {
+                                insertColumnLeft: { text: 'Thêm cột bên trái' },
+                                insertColumnRight: { text: 'Thêm cột bên phải' },
+                                insertRowTop: { text: 'Thêm hàng phía trên' },
+                                insertRowBottom: { text: 'Thêm hàng phía dưới' },
+                                removeCol: { text: 'Xóa cột' },
+                                removeRow: { text: 'Xóa hàng' },
+                                removeTable: { text: 'Xóa bảng' },
+                                mergeCell: { text: 'Gộp ô' },
+                                splitCell: { text: 'Tách ô' },
+                                setBackgroundColor: { text: 'Màu nền' },
+                                clearBackgroundColor: { text: 'Xóa màu nền' },
+                                setBorderColor: { text: 'Màu viền' },
+                                clearBorderColor: { text: 'Xóa màu viền' }
+                            }
+                        }
+                    };
+                    editorModules.keyboard = {
+                        bindings: tableModule.TableHandler.keyboradHandler
+                    };
+                }
                 const editor = new Quill(editorElement, {
                     theme: 'snow',
                     placeholder: editorElement.dataset.placeholder || '',
-                    modules: {
-                        clipboard: {
-                            matchVisual: false
-                        },
-                        toolbar: [
-                            [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],
-                            ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'color': [] }, { 'background': [] }],
-                            [{ 'script': 'sub' }, { 'script': 'super' }],
-                            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                            [{ 'blockquote': true }, { 'code-block': true }],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-                            [{ 'align': [] }],
-                            ['link', 'image', 'video'],
-                            ['clean']
-                        ]
-                    }
+                    modules: editorModules
                 });
                 editorElement.__quill = editor;
                 if (editorElement.id === 'content_editor') quill = editor;
+
+                // Route Quill's image toolbar through the shared media library. The picker
+                // returns a hosted URL, which Quill can embed directly (no fake File needed).
+                const toolbar = editor.getModule('toolbar');
+                toolbar.addHandler('image', function () {
+                    const selection = editor.getSelection(true);
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.dataset.quillMediaPicker = 'true';
+                    input.className = 'd-none';
+                    document.body.appendChild(input);
+
+                    input.addEventListener('media:selected', function (event) {
+                        const url = event.detail?.url;
+                        if (!url) return;
+                        editor.insertEmbed(selection.index, 'image', url, Quill.sources.USER);
+                        editor.setSelection(selection.index + 1, 0, Quill.sources.SILENT);
+                        input.remove();
+                    }, { once: true });
+
+                    input.click();
+                });
 
                 editor.on('text-change', function() {
                     isDirty = true;
