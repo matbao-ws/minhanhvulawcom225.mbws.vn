@@ -62,8 +62,7 @@ class SeoFixService
      */
     public function suggest(int $id, User $user, string $type = 'post'): array
     {
-        abort_unless(isset(self::ENTITY_TYPES[$type]), 404, __('ai.errors.not_found'));
-        [$definition, $record] = $this->resolve($type, $id, $user);
+        $record = $this->record($type, $id, $user);
         $locale = $this->languages->defaultLocale();
         $analysis = $this->analyze($record);
         $failing = array_keys(array_filter($analysis['rules'], fn (bool $passed) => ! $passed));
@@ -97,14 +96,14 @@ class SeoFixService
     public function apply(AiSuggestion $suggestion, array $values, User $user): array
     {
         abort_unless($suggestion->task === self::TASK, 404, __('ai.errors.not_found'));
-        [$definition, $record] = $this->resolve($suggestion->entity_type, $suggestion->entity_id, $user);
+        $record = $this->record($suggestion->entity_type, $suggestion->entity_id, $user);
         abort_unless($suggestion->isOpen(), 410, __('ai.errors.closed'));
 
         $values = array_filter(array_intersect_key($values, array_flip(self::FIELDS)), fn ($value) => trim((string) $value) !== '');
         abort_if($values === [], 422, __('ai.errors.option'));
 
         $scores = DB::transaction(function () use ($suggestion, $record, $values, $user) {
-            $record = $record::query()->lockForUpdate()->findOrFail($record->getKey());
+            $record = $record->newQuery()->lockForUpdate()->whereKey($record->getKey())->firstOrFail();
             $map = SeoBox::MODELS[$record::class];
             $locale = $suggestion->locale;
             $before = (int) $this->analyze($record)['score'];
@@ -149,7 +148,7 @@ class SeoFixService
             }
 
             $suggestion->update(['status' => AiSuggestion::APPLIED, 'applied_option' => 0, 'user_id' => $user->id, 'applied_at' => now()]);
-            $after = (int) $record->fresh()->seo_score;
+            $after = (int) $record->refresh()->seo_score;
             ActivityLogger::log('ai_seo_fixed', $record, 'Sửa theo điểm SEO bằng AI', ['fields' => array_keys($values), 'score' => [$before, $after]]);
 
             return ['before' => $before, 'after' => $after];
@@ -167,7 +166,7 @@ class SeoFixService
      *
      * @return array<string, mixed>
      */
-    public function taskInput(Model $record, string $locale, array $analysis): array
+    public function taskInput(Post|Product|Page|Category|PostCategory $record, string $locale, array $analysis): array
     {
         $current = $this->current($record, $locale);
         $map = SeoBox::MODELS[$record::class];
@@ -187,7 +186,7 @@ class SeoFixService
     }
 
     /** The model's answer as an option: the opening sanitized, and dropped if it changed a link or image. */
-    public function proposal(array $result, array $current, array $failing, ?Model $record = null): array
+    public function proposal(array $result, array $current, array $failing, Post|Product|Page|Category|PostCategory|null $record = null): array
     {
         $proposal = [];
         foreach (self::FIELDS as $field) {
@@ -206,13 +205,26 @@ class SeoFixService
     }
 
     /** Scored like the record's form: default language, saved fields. */
-    public function analyze(Model $record): array
+    public function analyze(Post|Product|Page|Category|PostCategory $record): array
     {
         return $this->seoBox->analyze($record);
     }
 
+    /** The record behind a suggestion, once the user may change it; only types with an SEO box. */
+    private function record(string $type, int $id, User $user): Post|Product|Page|Category|PostCategory
+    {
+        abort_unless(isset(self::ENTITY_TYPES[$type]), 404, __('ai.errors.not_found'));
+        [, $record] = $this->resolve($type, $id, $user);
+        if (! $record instanceof Post && ! $record instanceof Product && ! $record instanceof Page
+            && ! $record instanceof Category && ! $record instanceof PostCategory) {
+            abort(404, __('ai.errors.not_found'));
+        }
+
+        return $record;
+    }
+
     /** @return array{seo_title: string, seo_description: string, intro_html: string} */
-    public function current(Model $record, string $locale): array
+    public function current(Post|Product|Page|Category|PostCategory $record, string $locale): array
     {
         $map = SeoBox::MODELS[$record::class];
         $body = (string) $record->getTranslation($map['content'], $locale, false);

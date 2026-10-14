@@ -66,12 +66,12 @@ class CollectionIntroService
      */
     public function suggest(string $type, int $id, string $locale, int $words, User $user): array
     {
-        [$definition, $record] = $this->resolve($type, $id, $user);
+        [$definition, $record] = $this->collection($type, $id, $user);
         abort_unless($this->languages->supports($locale), 422, __('ai.errors.locale'));
 
         $current = $this->body($definition, $record, $locale);
         $keywords = (string) $record->getAttribute('seo_keys');
-        $parent = $record->getAttribute('parent_id') ? $record->newQuery()->find($record->getAttribute('parent_id')) : null;
+        $parent = $record instanceof Brand ? null : $record->parent()->first();
 
         $response = $this->gateway->task(self::TASK, [
             'locale' => $locale,
@@ -79,7 +79,7 @@ class CollectionIntroService
             'entity_id' => $record->getKey(),
             'name' => Str::limit((string) $this->content->get($record, 'name', $locale), 290, ''),
             'parent' => $parent ? Str::limit((string) $this->content->get($parent, 'name', $locale), 290, '') : null,
-            'items' => $this->items($type, $record, $locale),
+            'items' => $this->items($record, $locale),
             'current_description' => $current !== '' ? $current : null,
             'focus_keyword' => $keywords !== '' ? Str::limit(PostSeoAnalyzer::primaryKeyword($keywords), 120, '') : null,
             'target_words' => $words,
@@ -103,14 +103,14 @@ class CollectionIntroService
         return [$suggestion, (array) ($response['usage'] ?? [])];
     }
 
-    public function apply(AiSuggestion $suggestion, User $user): Model
+    public function apply(AiSuggestion $suggestion, User $user): Category|PostCategory|Brand
     {
         abort_unless($suggestion->task === self::TASK, 404, __('ai.errors.not_found'));
-        [$definition, $record] = $this->resolve($suggestion->entity_type, $suggestion->entity_id, $user);
+        [$definition] = $this->collection($suggestion->entity_type, $suggestion->entity_id, $user);
         abort_unless($suggestion->isOpen(), 410, __('ai.errors.closed'));
 
-        $record = DB::transaction(function () use ($suggestion, $definition, $record, $user) {
-            $record = $record->newQuery()->lockForUpdate()->findOrFail($record->getKey());
+        $record = DB::transaction(function () use ($suggestion, $definition, $user) {
+            $record = $definition['model']::query()->lockForUpdate()->findOrFail($suggestion->entity_id);
 
             if ($this->body($definition, $record, $suggestion->locale) !== $suggestion->old_values['html']) {
                 abort(409, __('ai.errors.conflict_content'));
@@ -145,15 +145,23 @@ class CollectionIntroService
         return [$definition, $record];
     }
 
-    /** @return list<string> the titles of the products or posts the collection holds, newest first */
-    private function items(string $type, Model $record, string $locale): array
+    /** @return array{0: array, 1: Category|PostCategory|Brand} */
+    private function collection(string $type, int $id, User $user): array
     {
-        $query = match ($type) {
-            'category' => Product::query()->where('category_id', $record->getKey())->where('is_active', true),
-            'brand' => Product::query()->where('brand_id', $record->getKey())->where('is_active', true),
-            'post_category' => Post::query()->where('category_id', $record->getKey())->where('is_active', true),
-        };
-        $field = $type === 'post_category' ? 'title' : 'name';
+        [$definition, $record] = $this->resolve($type, $id, $user);
+        if (! $record instanceof Category && ! $record instanceof PostCategory && ! $record instanceof Brand) {
+            abort(404, __('ai.errors.not_found'));
+        }
+
+        return [$definition, $record];
+    }
+
+    /** @return list<string> the titles of the products or posts the collection holds, newest first */
+    private function items(Category|PostCategory|Brand $record, string $locale): array
+    {
+        $query = $record instanceof PostCategory ? Post::query() : Product::query();
+        $query->where($record instanceof Brand ? 'brand_id' : 'category_id', $record->getKey())->where('is_active', true);
+        $field = $record instanceof PostCategory ? 'title' : 'name';
 
         return $query->latest('id')->limit(self::MAX_ITEMS)->get()
             ->map(fn (Model $item) => Str::limit(trim(strip_tags((string) $this->content->get($item, $field, $locale))), 290, ''))

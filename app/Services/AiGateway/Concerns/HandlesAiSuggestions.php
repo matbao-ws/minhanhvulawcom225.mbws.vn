@@ -80,6 +80,9 @@ trait HandlesAiSuggestions
             return;
         }
 
+        if (! method_exists($record, 'setTranslation')) {
+            throw new \LogicException($record::class.' has no translated body.');
+        }
         $record->setTranslation($definition['content'], $locale, $this->htmlSanitizer->cleanRichText($html));
         if ($record instanceof Post) {
             $this->refreshPostScore($record);
@@ -119,7 +122,7 @@ trait HandlesAiSuggestions
 
     protected function body(array $definition, Model $record, string $locale): string
     {
-        return (string) $record->getTranslation($definition['content'], $locale, false);
+        return method_exists($record, 'getTranslation') ? (string) $record->getTranslation($definition['content'], $locale, false) : '';
     }
 
     /** Feedback for the gateway's metrics. Never blocks or undoes what the admin did. */
