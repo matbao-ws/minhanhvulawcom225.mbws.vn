@@ -111,6 +111,21 @@
             object-fit: cover;
             display: block;
         }
+        .media-pdf-preview {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #fff;
+        }
+        .media-file-name-link {
+            color: inherit;
+            text-decoration: none;
+        }
+        .media-file-name-link:hover,
+        .media-file-name-link:focus-visible {
+            color: #d11e28;
+            text-decoration: underline;
+        }
         .media-preview-doc {
             display: flex;
             flex-direction: column;
@@ -518,6 +533,7 @@
                                 @php
                                     $isImage = in_array(strtolower($resource['format']), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp']);
                                     $isVideo = ($resource['resource_type'] ?? 'image') === 'video';
+                                    $isPdf = strtolower($resource['format']) === 'pdf';
                                     $displayName = basename($resource['public_id']);
                                     $resourceSource = $resource['source'] ?? ($isConfigured ? 'cloudinary' : 'local');
                                 @endphp
@@ -536,13 +552,21 @@
                                                  <video class="position-absolute w-100 h-100 start-0 top-0" controls preload="metadata" style="object-fit: contain;"><source src="{{ $resource['secure_url'] }}" type="video/mp4"></video>
                                              @elseif ($isImage)
                                                  <img src="{{ $resource['secure_url'] }}" alt="{{ $resource['public_id'] }}" class="img-fluid position-absolute w-100 h-100 start-0 top-0" style="object-fit: contain;">
+                                             @elseif ($isPdf)
+                                                 <iframe class="media-pdf-preview position-absolute w-100 h-100 start-0 top-0" src="{{ $resource['secure_url'] }}#page=1&toolbar=0&navpanes=0" title="{{ $displayName }}" loading="lazy"></iframe>
                                              @else
                                                  <div class="d-flex flex-column align-items-center justify-content-center"><i class="ti ti-file-text fs-8 text-primary mb-2"></i><span class="badge bg-primary text-uppercase">{{ $resource['format'] }}</span></div>
                                              @endif
                                          </div>
                                          <div class="card-body p-2 p-sm-3">
                                              <div>
-                                                 <h6 class="card-subtitle text-dark fw-semibold text-truncate mb-1" title="{{ $displayName }}">{{ $displayName }}</h6>
+                                                 <h6 class="card-subtitle text-dark fw-semibold text-truncate mb-1" title="{{ $displayName }}">
+                                                     @if ($isPdf)
+                                                         <a class="media-file-name-link" href="{{ $resource['secure_url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $displayName }}">{{ $displayName }} <i class="ti ti-external-link" aria-hidden="true"></i></a>
+                                                     @else
+                                                         {{ $displayName }}
+                                                     @endif
+                                                 </h6>
                                                  <div class="d-flex justify-content-between align-items-center text-muted fs-2 mb-2 mb-sm-3"><span>{{ number_format($resource['bytes'] / 1024, 1) }} KB</span><span>{{ date('d-m-Y', strtotime($resource['created_at'])) }}</span></div>
                                              </div>
                                              <div class="d-flex gap-1 gap-sm-2">

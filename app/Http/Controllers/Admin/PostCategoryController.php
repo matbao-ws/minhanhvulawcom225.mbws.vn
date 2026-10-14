@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PostCategoryRequest;
 use App\Models\PostCategory;
@@ -15,6 +16,8 @@ use Illuminate\Support\Str;
 
 class PostCategoryController extends Controller
 {
+    use OpensAiToolAfterCreate;
+
     public function __construct(
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
@@ -102,7 +105,7 @@ class PostCategoryController extends Controller
         $validated = $request->validated();
         $names = $this->cleanTranslations($validated['name']);
         $slugs = $this->cleanTranslations($validated['slug'] ?? []);
-        DB::transaction(function () use ($validated, $names, $slugs, $request): void {
+        $category = DB::transaction(function () use ($validated, $names, $slugs, $request): PostCategory {
             $category = PostCategory::query()->create([
                 'parent_id' => $validated['parent_id'] ?? null,
                 'name' => $names,
@@ -115,11 +118,13 @@ class PostCategoryController extends Controller
             ] + $this->seoBox->payload($validated));
             $this->localizedSlugs->sync($category, $slugs, $names);
             $this->seoBox->refreshScore($category);
+
+            return $category;
         });
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.post-categories.edit', $category, redirect()
             ->route('admin.post-categories.index')
-            ->with('success', __('admin.blog_categories.created'));
+            ->with('success', __('admin.blog_categories.created')));
     }
 
     /**

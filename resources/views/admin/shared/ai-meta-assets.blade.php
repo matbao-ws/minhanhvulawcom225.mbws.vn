@@ -54,7 +54,7 @@
         <script>
             (function () {
                 const text = {
-                        keywordAdded: @json(__('ai.meta.keyword_added')),
+                    keywordAdded: @json(__('ai.meta.keyword_added')),
                     empty: @json(__('ai.meta.empty')),
                     option: @json(__('ai.meta.option', ['number' => '#'])),
                     credits: @json(__('ai.meta.credits', ['used' => ':used', 'limit' => ':limit'])),
@@ -178,6 +178,14 @@
                         }
                         modal.hide();
                     });
+
+                    // A suggestion asked for earlier and never reviewed (admin.shared.ai-pending).
+                    (window.AdminAiResume = window.AdminAiResume || {})['meta.suggest'] = function (button, data) {
+                        state = { button, data, done: false };
+                        reset();
+                        render(data);
+                        modal.show();
+                    };
 
                     document.querySelectorAll('.js-ai-meta-suggest').forEach(function (button) {
                         button.addEventListener('click', async function () {
