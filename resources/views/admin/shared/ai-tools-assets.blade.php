@@ -345,7 +345,7 @@
                         seo.show('.js-ai-loading', true);
                         seo.modal.show();
                         try {
-                            const payload = await post(urls.seo, { entity_id: Number(button.dataset.entityId) });
+                            const payload = await post(urls.seo, { entity_type: button.dataset.entityType || 'post', entity_id: Number(button.dataset.entityId) });
                             seoState.data = payload.data;
                             seo.part('.js-ai-seo-score').textContent = payload.data.score;
                             let offered = 0;

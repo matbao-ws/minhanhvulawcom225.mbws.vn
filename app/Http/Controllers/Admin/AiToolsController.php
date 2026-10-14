@@ -83,10 +83,13 @@ class AiToolsController extends Controller
 
     public function seoSuggest(Request $request, string $locale): JsonResponse
     {
-        $data = $request->validate(['entity_id' => ['required', 'integer', 'min:1']]);
+        $data = $request->validate([
+            'entity_type' => ['nullable', 'string', 'in:'.implode(',', array_keys(SeoFixService::ENTITY_TYPES))],
+            'entity_id' => ['required', 'integer', 'min:1'],
+        ]);
 
         try {
-            [$suggestion, $usage, $analysis] = $this->seo->suggest((int) $data['entity_id'], $request->user());
+            [$suggestion, $usage, $analysis] = $this->seo->suggest((int) $data['entity_id'], $request->user(), $data['entity_type'] ?? 'post');
         } catch (GatewayUnavailable $e) {
             return AiMetaController::unavailableResponse($e);
         }

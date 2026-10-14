@@ -148,6 +148,60 @@ class AiToolsTest extends TestCase
         $this->assertSame($post->seo_score, $result->json('data.after'));
     }
 
+    public function test_seo_fix_works_on_a_product_and_rescores_it(): void
+    {
+        $product = Product::query()->create([
+            'name' => ['vi' => 'Máy bơm nước'], 'slug' => 'may-bom-nuoc', 'price' => 1000000, 'is_active' => true,
+            'description' => ['vi' => '<p>Máy bơm nước gia đình chạy êm.</p>'], 'seo_keys' => 'máy bơm nước',
+            'meta_title' => ['vi' => 'Bơm'],
+        ]);
+        $this->answers['seo.fix_suggest'] = [
+            'seo_title' => 'Máy bơm nước gia đình chạy êm, tiết kiệm điện 2026',
+            'seo_description' => '', 'intro_html' => '', 'notes' => [],
+        ];
+
+        $id = $this->ask('/vi/admin/ai/seo-fixes', ['entity_type' => 'product', 'entity_id' => $product->id])->assertOk()->json('data.suggestion_id');
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v1/tasks/seo.fix_suggest')
+            && $r['entity_type'] === 'product' && $r['seo_title'] === 'Bơm' && $r['focus_keyword'] === 'máy bơm nước');
+
+        $result = $this->actingAs($this->editor)->postJson("/vi/admin/ai/seo-fixes/$id/apply", [
+            'seo_title' => $this->answers['seo.fix_suggest']['seo_title'],
+        ])->assertOk();
+
+        $product->refresh();
+        $this->assertSame('Máy bơm nước gia đình chạy êm, tiết kiệm điện 2026', $product->getTranslation('meta_title', 'vi'));
+        $this->assertGreaterThan($result->json('data.before'), $result->json('data.after'));
+        $this->assertSame($product->seo_score, $result->json('data.after'));
+    }
+
+    public function test_seo_fix_rewrites_a_policy_pages_opening_through_its_revision_path(): void
+    {
+        $page = \App\Models\Page::query()->create([
+            'title' => ['vi' => 'Chính sách đổi trả'], 'slug' => 'doi-tra', 'is_active' => true, 'seo_keys' => 'đổi trả',
+            'published_html' => ['vi' => '<p>Khách được hoàn tiền.</p><h2>Điều kiện</h2><p>Còn tem.</p>'],
+        ]);
+        $this->answers['seo.fix_suggest'] = [
+            'seo_title' => '', 'seo_description' => '',
+            'intro_html' => '<p>Chính sách đổi trả: khách được hoàn tiền.</p>', 'notes' => [],
+        ];
+
+        $id = $this->ask('/vi/admin/ai/seo-fixes', ['entity_type' => 'page', 'entity_id' => $page->id])->assertOk()->json('data.suggestion_id');
+        $this->actingAs($this->editor)->postJson("/vi/admin/ai/seo-fixes/$id/apply", [
+            'intro_html' => $this->answers['seo.fix_suggest']['intro_html'],
+        ])->assertOk();
+
+        $page->refresh();
+        $this->assertSame('<p>Chính sách đổi trả: khách được hoàn tiền.</p><h2>Điều kiện</h2><p>Còn tem.</p>', $page->getTranslation('published_html', 'vi'));
+        $this->assertSame(1, $page->revisions()->count(), 'the old text is a revision');
+        $this->assertNotNull($page->seo_score);
+    }
+
+    public function test_seo_fix_refuses_a_record_type_without_an_seo_box(): void
+    {
+        $this->ask('/vi/admin/ai/seo-fixes', ['entity_type' => 'category', 'entity_id' => 1])->assertStatus(422);
+        $this->assertSame(0, AiSuggestion::query()->count());
+    }
+
     public function test_the_checker_not_a_stored_score_decides_what_fails(): void
     {
         $post = $this->makePost('<p>x</p>');

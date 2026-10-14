@@ -62,7 +62,6 @@
             'tour' => 'post-form',
             'mediaFolder' => 'posts',
             'schemaTypes' => \App\Models\Post::SCHEMA_TYPES,
-            'aiFix' => true,
             'placeholders' => ['title' => __('admin.posts.placeholders.seo_title')],
         ])
 
