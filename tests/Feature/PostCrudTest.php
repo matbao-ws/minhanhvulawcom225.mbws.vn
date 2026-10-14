@@ -7,6 +7,7 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\PostSeoAnalyzer;
 use App\Support\FeatureGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -201,7 +202,9 @@ class PostCrudTest extends TestCase
             ->assertOk()
             ->assertSee('placeholder="Nhập tiêu đề hấp dẫn thu hút người đọc..."', false)
             ->assertSee('placeholder="tieu-de-bai-viet-chuan-seo"', false)
-            ->assertSee('placeholder="Nhập tóm tắt thu hút hiển thị ở danh sách bài viết..."', false)
+            ->assertDontSee('name="summary[vi]"', false)
+            ->assertSee('id="seo_keys_entry"', false)
+            ->assertSee('id="seo-snippet-editor"', false)
             ->assertSee('data-placeholder="Nhập nội dung chi tiết..."', false)
             ->assertSee(__('admin.posts.placeholders.content_paste_hint'))
             ->assertSee('class="rich-editor" data-preset="full" data-media-folder="posts" data-target="content_input"', false)
@@ -549,6 +552,43 @@ XML;
         $this->assertStringNotContainsString('position', $content);
         $this->assertStringContainsString('target="_blank"', $content);
         $this->assertStringContainsString('nofollow', $content);
+    }
+
+    public function test_summary_follows_the_seo_description_or_the_content_unless_typed(): void
+    {
+        $payload = fn (array $overrides) => [
+            'title' => ['vi' => 'Bài tự tóm tắt'],
+            'content' => ['vi' => '<p>Đoạn mở đầu của bài.</p><p>Đoạn thứ hai.</p>'],
+            ...$overrides,
+        ];
+
+        $this->actingAs($this->adminUser)->post('/vi/admin/posts', $payload([]))->assertRedirect('/vi/admin/posts');
+        $post = Post::query()->latest('id')->first();
+        $this->assertSame('Đoạn mở đầu của bài. Đoạn thứ hai.', $post->getTranslation('summary', 'vi'));
+
+        // Still automatic: follows the SEO description once there is one.
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$post->id, $payload(['seo_description' => ['vi' => 'Mô tả SEO của bài.']]));
+        $this->assertSame('Mô tả SEO của bài.', $post->fresh()->getTranslation('summary', 'vi'));
+
+        // A summary typed before the field went away (or imported) is kept.
+        $this->post->setTranslation('summary', 'vi', 'Tóm tắt viết tay')->save();
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$this->post->id, [
+            'title' => ['vi' => 'Bài viết thử nghiệm'],
+            'content' => ['vi' => '<p>Nội dung mới hoàn toàn.</p>'],
+        ]);
+        $this->assertSame('Tóm tắt viết tay', $this->post->fresh()->getTranslation('summary', 'vi'));
+    }
+
+    public function test_only_the_first_keyword_is_scored(): void
+    {
+        $analyzer = app(PostSeoAnalyzer::class);
+        $data = ['title' => 'Giày chạy bộ', 'seo_title' => 'Giày chạy bộ cho người mới', 'content' => '<p>Giày chạy bộ êm.</p>'];
+
+        $single = $analyzer->analyze([...$data, 'focus_keyword' => 'giày chạy bộ']);
+        $several = $analyzer->analyze([...$data, 'focus_keyword' => 'giày chạy bộ, giày thể thao, sneaker']);
+
+        $this->assertSame($single['score'], $several['score']);
+        $this->assertTrue($several['rules']['title_keyword']);
     }
 
     public function test_public_post_exposes_canonical_and_robots_metadata(): void

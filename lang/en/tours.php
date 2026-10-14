@@ -294,7 +294,7 @@ return [
         'intro' => ['title' => 'Write a post', 'description' => 'The left column holds content and SEO, the right column the image, status, category and SEO score.'],
         'general' => ['title' => 'Content per language', 'description' => 'Each tab is one language with its own title, slug and summary. The main language needs a title and content.'],
         'editor' => ['title' => 'Content editor', 'description' => 'Write with headings, bold, lists, links and images. You can paste from another website; foreign styling is removed.'],
-        'seo_meta' => ['title' => 'SEO title and description', 'description' => 'The title and description shown on Google for the language in view. Keep the title under 60 characters.'],
+        'seo_meta' => ['title' => 'Google preview', 'description' => 'How the post shows on Google. Click Edit SEO title & description to change them for the language in view; keep the title under 60 characters.'],
         'seo' => ['title' => 'SEO settings', 'description' => 'Focus keyword, canonical link, whether Google may index the post and follow its links, plus a search result preview.'],
         'thumbnail' => ['title' => 'Featured image', 'description' => 'Click the box to pick an image from the Media library or upload a new one.'],
         'status' => ['title' => 'Status', 'description' => 'Choose whether the post is shown on the website or hidden.'],

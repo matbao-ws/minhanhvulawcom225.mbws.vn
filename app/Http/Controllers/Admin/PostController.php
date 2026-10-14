@@ -98,7 +98,7 @@ class PostController extends Controller
                 'category_id' => $validated['category_id'] ?? null,
                 'title' => $titles,
                 'slug' => $legacySlug,
-                'summary' => $this->cleanTranslations($validated['summary'] ?? []),
+                'summary' => $this->summaries([], $this->cleanTranslations($validated['summary'] ?? []), $contents, $seoDescriptions),
                 'content' => $contents,
                 'image_url' => $imageUrl,
                 'is_active' => $active,
@@ -168,7 +168,14 @@ class PostController extends Controller
                 'category_id' => $validated['category_id'] ?? null,
                 'title' => $titles,
                 'slug' => $legacySlug,
-                'summary' => $this->mergeTranslations($post, 'summary', $validated['summary'] ?? []),
+                'summary' => $this->summaries(
+                    $post->getTranslations('summary'),
+                    $this->cleanTranslations($validated['summary'] ?? []),
+                    $contents,
+                    $seoDescriptions,
+                    $post->getTranslations('content'),
+                    $post->getTranslations('seo_description'),
+                ),
                 'content' => $contents,
                 'image_url' => $imageUrl,
                 'is_active' => $active,
@@ -360,6 +367,47 @@ class PostController extends Controller
     {
         return collect($values)->filter(fn ($value, $code) => $this->languages->supports((string) $code) && is_string($value) && trim($value) !== '')
             ->map(fn (string $value) => $html ? $this->htmlSanitizer->cleanRichText(trim($value)) : trim($value))->all();
+    }
+
+    /**
+     * The summary (post cards, meta description fallback) has no field in the form any more:
+     * like WordPress' automatic excerpt it follows the SEO description, else the opening of
+     * the content. A summary sent explicitly, typed earlier or imported from WordPress stays.
+     *
+     * @param  array<string, string>  $stored
+     * @param  array<string, string>  $submitted
+     * @param  array<string, string>  $contents
+     * @param  array<string, string>  $seoDescriptions
+     * @param  array<string, string>  $oldContents
+     * @param  array<string, string>  $oldSeoDescriptions
+     * @return array<string, string>
+     */
+    private function summaries(array $stored, array $submitted, array $contents, array $seoDescriptions, array $oldContents = [], array $oldSeoDescriptions = []): array
+    {
+        $summaries = [...$stored, ...$submitted];
+        foreach ($contents as $locale => $html) {
+            if (isset($submitted[$locale])) {
+                continue;
+            }
+            $current = trim((string) ($summaries[$locale] ?? ''));
+            // Still the automatic one from the last save: follow the new content.
+            if ($current === '' || $current === $this->autoSummary($oldSeoDescriptions[$locale] ?? null, $oldContents[$locale] ?? null)) {
+                $summaries[$locale] = $this->autoSummary($seoDescriptions[$locale] ?? null, $html);
+            }
+        }
+
+        return array_filter($summaries, fn (string $summary) => trim($summary) !== '');
+    }
+
+    private function autoSummary(?string $seoDescription, ?string $html): string
+    {
+        $text = trim((string) $seoDescription);
+        if ($text === '') {
+            $plain = html_entity_decode((string) preg_replace('/<[^>]+>/', ' ', (string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $text = trim((string) preg_replace('/\s+/u', ' ', $plain));
+        }
+
+        return Str::limit($text, 200, '…');
     }
 
     private function mergeTranslations(Post $post, string $field, array $values, bool $html = false): array

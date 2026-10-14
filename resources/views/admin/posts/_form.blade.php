@@ -32,53 +32,14 @@
                             $code = $language->code;
                             $title = old("title.$code", $post->getTranslation('title', $code, false));
                             $slug = old("slug.$code", $post->localizedSlug($code) ?: ($code === $defaultContentLocale ? $post->slug : ''));
-                            $summary = old("summary.$code", $post->getTranslation('summary', $code, false));
                             $content = old("content.$code", $post->getTranslation('content', $code, false));
-                            $seoTitle = old("seo_title.$code", $post->getTranslation('seo_title', $code, false));
-                            $seoDesc = old("seo_description.$code", $post->getTranslation('seo_description', $code, false));
                             $defaultTab = $code === $defaultContentLocale;
                         @endphp
                         <div class="tab-pane fade @if($defaultTab) show active @endif" id="post-language-{{ $code }}">
                             @if(!$defaultTab)<div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif
                             <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'title' : 'title_'.$code }}">{{ __('admin.posts.fields.title') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="{{ $defaultTab ? 'title' : 'title_'.$code }}" name="title[{{ $code }}]" value="{{ $title }}" data-i18n-locale="{{ $code }}" data-i18n-field="title" placeholder="{{ __('admin.posts.placeholders.title') }}" @required($defaultTab)></div>
                             <div class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'slug' : 'slug_'.$code }}">{{ __('admin.posts.fields.slug') }}</label><input type="text" class="form-control" id="{{ $defaultTab ? 'slug' : 'slug_'.$code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="{{ __('admin.posts.placeholders.slug') }}"></div>
-                            <div class="mb-4"><label class="form-label" for="summary_{{ $code }}">{{ __('admin.posts.fields.summary') }}</label><textarea class="form-control" id="summary_{{ $code }}" name="summary[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="summary" placeholder="{{ __('admin.posts.placeholders.summary') }}">{{ $summary }}</textarea></div>
                             <div data-tour="post-form.editor" class="mb-4"><label class="form-label" for="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}">{{ __('admin.posts.fields.content') }} @if($defaultTab)<span class="text-danger">*</span>@endif</label><textarea class="form-control d-none" id="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" name="content[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="content" data-translation-format="html" placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}" @required($defaultTab)>{{ $content }}</textarea><div id="{{ $defaultTab ? 'content_editor' : 'content_editor_'.$code }}" class="rich-editor" data-preset="full" data-media-folder="posts" data-target="{{ $defaultTab ? 'content_input' : 'content_input_'.$code }}" data-placeholder="{{ __('admin.posts.placeholders.content_placeholder') }}">{!! app(\App\Support\HtmlSanitizer::class)->cleanRichText($content) !!}</div><p class="form-text mb-0"><i class="ti ti-clipboard-text me-1" aria-hidden="true"></i>{{ __('admin.posts.placeholders.content_paste_hint') }}</p>@include('admin.shared.ai-edit-button', ['entityType' => 'post', 'entity' => $post, 'locale' => $code, 'target' => $defaultTab ? 'content_input' : 'content_input_'.$code])</div>
-                            <div data-tour="post-form.seo-meta" class="border rounded p-3 bg-light-subtle">
-                                @include('admin.shared.ai-meta-button', ['entityType' => 'post', 'entity' => $post, 'locale' => $code, 'titleField' => "seo_title[$code]", 'descriptionField' => "seo_description[$code]"])
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between gap-2">
-                                        <label class="form-label" for="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}">{{ __('admin.posts.fields.seo_title') }}</label>
-                                        <small class="text-muted"><span data-seo-title-count="{{ $code }}">{{ mb_strlen($seoTitle) }}</span>/60</small>
-                                    </div>
-                                    <input class="form-control"
-                                           id="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}"
-                                           name="seo_title[{{ $code }}]"
-                                           value="{{ $seoTitle }}"
-                                           maxlength="255"
-                                           data-seo-title-input="{{ $code }}"
-                                           data-i18n-locale="{{ $code }}"
-                                           data-i18n-field="seo_title"
-                                           placeholder="{{ __('admin.posts.placeholders.seo_title') }}">
-                                    <div class="rm-length" aria-hidden="true"><span data-seo-length="{{ $code }}-title"></span></div>
-                                </div>
-                                <div>
-                                    <div class="d-flex justify-content-between gap-2">
-                                        <label class="form-label" for="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}">{{ __('admin.posts.fields.seo_description') }}</label>
-                                        <small class="text-muted"><span data-seo-description-count="{{ $code }}">{{ mb_strlen($seoDesc) }}</span>/160</small>
-                                    </div>
-                                    <textarea class="form-control"
-                                              id="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}"
-                                              name="seo_description[{{ $code }}]"
-                                              rows="3"
-                                              maxlength="500"
-                                              data-seo-description-input="{{ $code }}"
-                                              data-i18n-locale="{{ $code }}"
-                                              data-i18n-field="seo_description"
-                                              placeholder="{{ __('admin.posts.placeholders.seo_description') }}">{{ $seoDesc }}</textarea>
-                                    <div class="rm-length" aria-hidden="true"><span data-seo-length="{{ $code }}-description"></span></div>
-                                </div>
-                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -109,7 +70,7 @@
                 <button type="button" class="rm-tab active" data-bs-toggle="tab" data-bs-target="#seo-tab-general" role="tab" aria-controls="seo-tab-general" aria-selected="true">
                     <i class="ti ti-settings" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_general') }}
                 </button>
-                <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-preview" role="tab" aria-controls="seo-tab-preview" aria-selected="false">
+                <button data-tour="post-form.seo-meta" type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-preview" role="tab" aria-controls="seo-tab-preview" aria-selected="false">
                     <i class="ti ti-brand-google" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_preview') }}
                 </button>
                 <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-advanced" role="tab" aria-controls="seo-tab-advanced" aria-selected="false">
@@ -119,10 +80,15 @@
             <div class="tab-content rm-panel__body">
                 <div class="tab-pane fade show active" id="seo-tab-general" role="tabpanel">
                     <div class="rm-keyword">
-                        <label class="form-label" for="seo_keys">{{ __('admin.posts.seo_panel.focus_keyword') }}</label>
-                        <div class="rm-keyword__field">
+                        <label class="form-label" for="seo_keys_entry">{{ __('admin.posts.seo_panel.focus_keyword') }}</label>
+                        {{-- Badges; the field submits them comma-separated and the first is scored. --}}
+                        <input type="hidden" id="seo_keys" name="seo_keys" value="{{ old('seo_keys', $post->seo_keys) }}">
+                        <div class="rm-tags" data-seo-keywords>
                             <i class="ti ti-target-arrow rm-keyword__icon" aria-hidden="true"></i>
-                            <input type="text" class="form-control" id="seo_keys" name="seo_keys" value="{{ old('seo_keys', $post->seo_keys) }}" placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}">
+                            <span class="rm-tags__list" data-seo-keyword-list></span>
+                            <input type="text" class="rm-tags__input" id="seo_keys_entry" autocomplete="off" maxlength="255"
+                                   data-placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}"
+                                   placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}">
                             <span class="rm-score {{ $seoTone }}" data-seo-score-pill><span data-seo-score>{{ $seoScore }}</span>&nbsp;/ 100</span>
                         </div>
                         <p class="form-text mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
@@ -183,9 +149,61 @@
                             <div class="seo-preview-description" id="seo_preview_description">{{ __('admin.posts.placeholders.seo_description') }}</div>
                         </div>
                         <div class="rm-snippet__foot">
-                            <button type="button" class="btn btn-sm btn-light" data-seo-edit-snippet>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#seo-snippet-editor" aria-expanded="false" aria-controls="seo-snippet-editor">
                                 <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.edit_snippet') }}
                             </button>
+                        </div>
+                        {{-- Edit snippet, as in Rank Math: the SEO title and description of the
+                             language tab in view (the others stay in the form, hidden). --}}
+                        <div class="collapse" id="seo-snippet-editor">
+                            <div class="rm-snippet__editor">
+                                @foreach($contentLanguages as $language)
+                                    @php
+                                        $code = $language->code;
+                                        $defaultTab = $code === $defaultContentLocale;
+                                        $seoTitle = old("seo_title.$code", $post->getTranslation('seo_title', $code, false));
+                                        $seoDesc = old("seo_description.$code", $post->getTranslation('seo_description', $code, false));
+                                    @endphp
+                                    <div data-seo-meta-locale="{{ $code }}" @class(['d-none' => ! $defaultTab])>
+                                        @if(count($contentLanguages) > 1)
+                                            <div class="rm-snippet__locale"><i class="ti ti-language me-1" aria-hidden="true"></i>{{ $language->native_name }}</div>
+                                        @endif
+                                        @include('admin.shared.ai-meta-button', ['entityType' => 'post', 'entity' => $post, 'locale' => $code, 'titleField' => "seo_title[$code]", 'descriptionField' => "seo_description[$code]"])
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between gap-2">
+                                                <label class="form-label" for="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}">{{ __('admin.posts.fields.seo_title') }}</label>
+                                                <small class="text-muted"><span data-seo-title-count="{{ $code }}">{{ mb_strlen($seoTitle) }}</span>/60</small>
+                                            </div>
+                                            <input class="form-control"
+                                                   id="{{ $defaultTab ? 'seo_title' : 'seo_title_'.$code }}"
+                                                   name="seo_title[{{ $code }}]"
+                                                   value="{{ $seoTitle }}"
+                                                   maxlength="255"
+                                                   data-seo-title-input="{{ $code }}"
+                                                   data-i18n-locale="{{ $code }}"
+                                                   data-i18n-field="seo_title"
+                                                   placeholder="{{ __('admin.posts.placeholders.seo_title') }}">
+                                            <div class="rm-length" aria-hidden="true"><span data-seo-length="{{ $code }}-title"></span></div>
+                                        </div>
+                                        <div>
+                                            <div class="d-flex justify-content-between gap-2">
+                                                <label class="form-label" for="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}">{{ __('admin.posts.fields.seo_description') }}</label>
+                                                <small class="text-muted"><span data-seo-description-count="{{ $code }}">{{ mb_strlen($seoDesc) }}</span>/160</small>
+                                            </div>
+                                            <textarea class="form-control"
+                                                      id="{{ $defaultTab ? 'seo_description' : 'seo_description_'.$code }}"
+                                                      name="seo_description[{{ $code }}]"
+                                                      rows="3"
+                                                      maxlength="500"
+                                                      data-seo-description-input="{{ $code }}"
+                                                      data-i18n-locale="{{ $code }}"
+                                                      data-i18n-field="seo_description"
+                                                      placeholder="{{ __('admin.posts.placeholders.seo_description') }}">{{ $seoDesc }}</textarea>
+                                            <div class="rm-length" aria-hidden="true"><span data-seo-length="{{ $code }}-description"></span></div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                 </div>

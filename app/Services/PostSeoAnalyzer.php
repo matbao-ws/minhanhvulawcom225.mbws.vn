@@ -17,7 +17,7 @@ class PostSeoAnalyzer
         $content = (string) ($data['content'] ?? '');
         $seoTitle = trim((string) ($data['seo_title'] ?? '')) ?: $title;
         $seoDescription = trim((string) ($data['seo_description'] ?? ''));
-        $keyword = $this->normalize((string) ($data['focus_keyword'] ?? ''));
+        $keyword = $this->normalize(self::primaryKeyword($data['focus_keyword'] ?? null));
         $plainText = $this->plainText($content);
         $words = $this->words($plainText);
         $wordCount = count($words);
@@ -99,6 +99,15 @@ class PostSeoAnalyzer
     private function normalize(string $value): string
     {
         return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $value)), 'UTF-8');
+    }
+
+    /**
+     * Keywords are entered comma-separated (badges in the post form); the first one is the
+     * focus keyword that is scored, as in Rank Math. The others are secondary.
+     */
+    public static function primaryKeyword(?string $keywords): string
+    {
+        return trim(explode(',', (string) $keywords)[0]);
     }
 
     private function occurrences(string $text, string $keyword): int

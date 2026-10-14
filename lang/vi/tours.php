@@ -294,7 +294,7 @@ return [
         'intro' => ['title' => 'Soạn bài viết', 'description' => 'Cột trái là nội dung và SEO, cột phải là ảnh, trạng thái, chuyên mục và điểm SEO.'],
         'general' => ['title' => 'Nội dung theo ngôn ngữ', 'description' => 'Mỗi tab là một ngôn ngữ, với tiêu đề, slug và tóm tắt riêng. Ngôn ngữ chính bắt buộc có tiêu đề và nội dung.'],
         'editor' => ['title' => 'Trình soạn nội dung', 'description' => 'Soạn bài với tiêu đề, chữ đậm, danh sách, liên kết và ảnh. Có thể dán từ website khác; định dạng lạ sẽ được loại bỏ.'],
-        'seo_meta' => ['title' => 'Tiêu đề và mô tả SEO', 'description' => 'Tiêu đề và mô tả hiển thị trên Google cho ngôn ngữ đang xem. Tiêu đề nên dưới 60 ký tự.'],
+        'seo_meta' => ['title' => 'Xem trước trên Google', 'description' => 'Bài viết hiện trên Google ra sao. Bấm Sửa tiêu đề & mô tả SEO để chỉnh cho ngôn ngữ đang xem; tiêu đề nên dưới 60 ký tự.'],
         'seo' => ['title' => 'Cài đặt SEO', 'description' => 'Từ khoá chính, link canonical, cho phép Google index và theo link, kèm bản xem trước kết quả tìm kiếm.'],
         'thumbnail' => ['title' => 'Ảnh đại diện', 'description' => 'Bấm vào khung để chọn ảnh từ thư viện Media hoặc tải ảnh mới lên.'],
         'status' => ['title' => 'Trạng thái', 'description' => 'Chọn hiển thị hoặc tạm ẩn bài trên website.'],

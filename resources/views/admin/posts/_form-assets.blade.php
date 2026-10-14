@@ -23,16 +23,24 @@
         .rm-serp__site { display: flex; align-items: center; gap: 10px; }
         .rm-serp__favicon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid #e5eaf2; border-radius: 50%; background: #f1f3f4; color: #5f6368; font-size: 13px; font-weight: 700; }
         .rm-snippet__foot { padding: 10px 14px; border-top: 1px dashed #e5eaf2; }
+        .rm-snippet__editor { padding: 16px 18px; border-top: 1px solid #e5eaf2; background: #f8fafc; }
+        .rm-snippet__locale { margin-bottom: 10px; color: #5a6a85; font-size: 13px; font-weight: 700; }
         .seo-preview-site { color: #202124; font-size: 14px; }
         .seo-preview-url { overflow: hidden; color: #4d5156; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
         .seo-preview-title { margin-top: 8px; color: #1a0dab; font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
         .seo-preview-description { margin-top: 4px; color: #4d5156; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
         .seo-preview-title strong, .seo-preview-description strong { font-weight: 700; }
         .rm-keyword { margin-bottom: 16px; }
-        .rm-keyword__field { position: relative; }
-        .rm-keyword__field .form-control { height: 48px; padding-left: 40px; padding-right: 96px; font-weight: 600; }
+        .rm-tags { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 48px; padding: 6px 100px 6px 40px; border: 1px solid #dfe5ef; border-radius: 8px; background: #fff; cursor: text; }
+        .rm-tags:focus-within { border-color: var(--bs-primary); box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .15); }
+        .rm-tags__list { display: contents; }
+        .rm-tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px 4px 10px; border-radius: 6px; background: #eef2f7; color: #1f2937; font-size: 13px; font-weight: 600; }
+        .rm-tag.is-primary { background: rgba(var(--bs-primary-rgb), .1); color: var(--bs-primary); }
+        .rm-tag button { padding: 0 2px; border: 0; background: none; color: inherit; line-height: 1; opacity: .6; }
+        .rm-tag button:hover { opacity: 1; }
+        .rm-tags__input { flex: 1 1 160px; min-width: 120px; padding: 4px; border: 0; outline: 0; background: transparent; font-weight: 600; }
         .rm-keyword__icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: #94a3b8; font-size: 18px; }
-        .rm-keyword__field .rm-score { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); }
+        .rm-tags .rm-score { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); }
         .rm-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; color: #5a6a85; font-size: 13px; }
         .rm-stats strong { color: #1f2937; }
         .rm-group { margin-bottom: 12px; border: 1px solid #e5eaf2; border-radius: 12px; overflow: hidden; }
@@ -55,8 +63,8 @@
         .rm-length span.is-bad { background: #ef4444; }
         @media (max-width: 575.98px) {
             .rm-panel__body { padding: 14px; }
-            .rm-keyword__field .form-control { padding-right: 14px; }
-            .rm-keyword__field .rm-score { display: none; }
+            .rm-tags { padding-right: 10px; }
+            .rm-tags .rm-score { display: none; }
         }
     </style>
 @endpush
@@ -178,12 +186,19 @@
                 });
             });
 
-            // "Edit snippet" jumps to the SEO title of the language tab in view.
-            document.querySelector('[data-seo-edit-snippet]')?.addEventListener('click', function () {
-                const field = document.querySelector('.tab-pane.active [data-seo-title-input]') || seoTitleInput;
-                if (!field) return;
-                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                field.focus({ preventScroll: true });
+            // The snippet editor shows the SEO title/description of the language tab in view.
+            function showSnippetLocale(code) {
+                document.querySelectorAll('[data-seo-meta-locale]').forEach(function (group) {
+                    group.classList.toggle('d-none', group.dataset.seoMetaLocale !== code);
+                });
+            }
+            document.querySelectorAll('a[data-bs-toggle="tab"][href^="#post-language-"]').forEach(function (link) {
+                link.addEventListener('shown.bs.tab', function () {
+                    showSnippetLocale(link.getAttribute('href').replace('#post-language-', ''));
+                });
+            });
+            document.getElementById('seo-snippet-editor')?.addEventListener('shown.bs.collapse', function () {
+                document.querySelector('[data-seo-meta-locale]:not(.d-none) [data-seo-title-input]')?.focus();
             });
 
             function countOccurrences(string, subString) {
@@ -215,6 +230,8 @@
                 status_excellent: "{{ __('admin.posts.seo_widget.status_excellent') }}",
                 group_errors: @json(__('admin.posts.seo_panel.group_errors')),
                 group_all_good: @json(__('admin.posts.seo_panel.group_all_good')),
+                primary_keyword: @json(__('admin.posts.seo_panel.primary_keyword')),
+                remove_keyword: @json(__('admin.posts.seo_panel.remove_keyword')),
                 preview_title: @json(__('admin.posts.placeholders.seo_title')),
                 preview_description: @json(__('admin.posts.placeholders.seo_description'))
             };
@@ -222,7 +239,8 @@
             function analyzeSEO() {
                 if (!seoKeysInput) return;
 
-                const keyword = seoKeysInput.value.trim().toLowerCase();
+                // The first keyword is the focus keyword (PostSeoAnalyzer::primaryKeyword).
+                const keyword = (seoKeysInput.value.split(',')[0] || '').trim().toLowerCase();
                 const title = (titleInput ? titleInput.value : '').trim();
                 const slug = (slugInput ? slugInput.value : '').trim();
                 const seoTitle = (seoTitleInput ? seoTitleInput.value : '').trim() || title;
@@ -364,6 +382,81 @@
                 if (!keyword) return safe;
                 const pattern = escapeHtml(keyword).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 return safe.replace(new RegExp(pattern, 'gi'), match => '<strong>' + match + '</strong>');
+            }
+
+            // Focus keywords as badges: Enter or a comma adds one, Backspace removes the last.
+            // The hidden field submits them comma-separated; the first one is scored.
+            const keywordBox = document.querySelector('[data-seo-keywords]');
+            const keywordEntry = document.getElementById('seo_keys_entry');
+            const keywordList = keywordBox ? keywordBox.querySelector('[data-seo-keyword-list]') : null;
+            let keywords = (seoKeysInput ? seoKeysInput.value : '').split(',').map(word => word.trim()).filter(Boolean);
+
+            function renderKeywords() {
+                if (!keywordList) return;
+                keywordList.innerHTML = '';
+                keywords.forEach(function (word, index) {
+                    const tag = document.createElement('span');
+                    tag.className = 'rm-tag' + (index === 0 ? ' is-primary' : '');
+                    if (index === 0) {
+                        tag.title = translations.primary_keyword;
+                        tag.insertAdjacentHTML('beforeend', '<i class="ti ti-star-filled" aria-hidden="true"></i>');
+                    }
+                    const text = document.createElement('span');
+                    text.textContent = word;
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.setAttribute('aria-label', translations.remove_keyword + ' ' + word);
+                    remove.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+                    remove.addEventListener('click', function () {
+                        keywords.splice(index, 1);
+                        commitKeywords();
+                        keywordEntry.focus();
+                    });
+                    tag.append(text, remove);
+                    keywordList.appendChild(tag);
+                });
+                keywordEntry.placeholder = keywords.length ? '' : keywordEntry.dataset.placeholder;
+            }
+
+            function commitKeywords() {
+                seoKeysInput.value = keywords.join(', ');
+                seoKeysInput.dispatchEvent(new Event('input', { bubbles: true }));
+                isDirty = true;
+                renderKeywords();
+            }
+
+            function addKeywords(text) {
+                text.split(',').map(word => word.trim().replace(/\s+/g, ' ')).filter(Boolean).forEach(function (word) {
+                    const exists = keywords.some(current => current.toLowerCase() === word.toLowerCase());
+                    if (!exists && keywords.concat(word).join(', ').length <= 255) keywords.push(word);
+                });
+                keywordEntry.value = '';
+                commitKeywords();
+            }
+
+            if (keywordBox && keywordEntry && seoKeysInput) {
+                keywordEntry.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ',') {
+                        event.preventDefault();
+                        if (keywordEntry.value.trim()) addKeywords(keywordEntry.value);
+                    } else if (event.key === 'Backspace' && keywordEntry.value === '' && keywords.length) {
+                        keywords.pop();
+                        commitKeywords();
+                    }
+                });
+                keywordEntry.addEventListener('paste', function (event) {
+                    const pasted = (event.clipboardData || window.clipboardData).getData('text');
+                    if (!pasted.includes(',')) return;
+                    event.preventDefault();
+                    addKeywords(keywordEntry.value + pasted);
+                });
+                keywordEntry.addEventListener('blur', function () {
+                    if (keywordEntry.value.trim()) addKeywords(keywordEntry.value);
+                });
+                keywordBox.addEventListener('click', function (event) {
+                    if (event.target === keywordBox || event.target === keywordList) keywordEntry.focus();
+                });
+                renderKeywords();
             }
 
             // Bind listeners
