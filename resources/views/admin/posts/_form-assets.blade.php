@@ -1,123 +1,7 @@
+@include('admin.shared.rich-editor-assets')
+
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill-table/index.css') }}">
     <style>
-        /* Make editor text color dark and highly readable */
-        .ql-editor {
-            color: #111827 !important; /* Rich charcoal/dark black */
-            font-size: 15.5px !important;
-            line-height: 1.65 !important;
-        }
-        /* Make Quill placeholder dark grey instead of light grey */
-        .ql-editor.ql-blank::before {
-            color: #6b7280 !important;
-            font-style: normal !important;
-        }
-        /* Fullscreen editor wrapper styles */
-        #editor_wrapper.quill-fullscreen {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 9999 !important;
-            background: #ffffff !important;
-            padding: 20px 30px !important;
-            box-sizing: border-box !important;
-            display: flex !important;
-            flex-direction: column !important;
-        }
-        #editor_wrapper.quill-fullscreen .ql-toolbar {
-            border-top-left-radius: 8px !important;
-            border-top-right-radius: 8px !important;
-            background-color: #f8f9fa !important;
-        }
-        #editor_wrapper.quill-fullscreen .ql-container {
-            flex-grow: 1 !important;
-            height: calc(100vh - 120px) !important;
-            background-color: #ffffff !important;
-            border-bottom-left-radius: 8px !important;
-            border-bottom-right-radius: 8px !important;
-        }
-        #editor_wrapper.quill-fullscreen #toggle_fullscreen {
-            top: 20px !important;
-            right: 30px !important;
-        }
-        @media (max-width: 767.98px) {
-            #editor_wrapper.quill-fullscreen {
-                padding: 14px !important;
-            }
-            #editor_wrapper.quill-fullscreen #toggle_fullscreen {
-                top: 14px !important;
-                right: 14px !important;
-            }
-        }
-
-        /* Custom fonts in editor */
-        .ql-font-arial { font-family: Arial, sans-serif !important; }
-        .ql-font-georgia { font-family: Georgia, serif !important; }
-        .ql-font-impact { font-family: Impact, charcoal, sans-serif !important; }
-        .ql-font-tahoma { font-family: Tahoma, Geneva, sans-serif !important; }
-        .ql-font-times-new-roman { font-family: "Times New Roman", Times, serif !important; }
-        .ql-font-verdana { font-family: Verdana, Geneva, sans-serif !important; }
-        .ql-font-quicksand { font-family: "Quicksand", sans-serif !important; }
-        .ql-font-roboto { font-family: "Roboto", sans-serif !important; }
-
-        /* Custom fonts in toolbar picker label/items */
-        .ql-snow .ql-picker.ql-font .ql-picker-label::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item::before {
-            content: 'Sans Serif' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
-            content: 'Serif' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
-            content: 'Monospace' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
-            content: 'Arial' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
-            content: 'Georgia' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before {
-            content: 'Impact' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="tahoma"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]::before {
-            content: 'Tahoma' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
-            content: 'Times New Roman' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
-            content: 'Verdana' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="quicksand"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="quicksand"]::before {
-            content: 'Quicksand' !important;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="roboto"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto"]::before {
-            content: 'Roboto' !important;
-        }
-
-        /* Show the preview of the fonts in the dropdown options list */
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"] { font-family: Arial, sans-serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"] { font-family: Georgia, serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"] { font-family: Impact, charcoal, sans-serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"] { font-family: Tahoma, Geneva, sans-serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"] { font-family: "Times New Roman", Times, serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"] { font-family: Verdana, Geneva, sans-serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="quicksand"] { font-family: "Quicksand", sans-serif !important; }
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto"] { font-family: "Roboto", sans-serif !important; }
-
         .seo-google-preview {
             padding: 16px;
             border: 1px solid #e5eaf2;
@@ -161,13 +45,7 @@
 
 @push('scripts')
     <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/vendor.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script src="{{ asset('admin-assets/libs/select2/dist/js/select2.full.min.js') }}"></script>
-    <script type="module">
-        import TableHandler, { rewirteFormats } from '{{ asset('admin-assets/libs/quill-table/index.js') }}';
-
-        window.adminPostTableModule = { TableHandler, rewirteFormats };
-    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.querySelector('form.admin-form-with-sticky-actions');
@@ -213,145 +91,11 @@
                 });
             }
 
-            // Register custom fonts in Quill
-            const Font = Quill.import('formats/font');
-            Font.whitelist = ['sans-serif', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'];
-            Quill.register(Font, true);
-
-            const Block = Quill.import('blots/block');
-            class ImageCaptionBlot extends Block {}
-            ImageCaptionBlot.blotName = 'imageCaption';
-            ImageCaptionBlot.tagName = 'div';
-            ImageCaptionBlot.className = 'ql-image-caption';
-            Quill.register(ImageCaptionBlot, true);
-            const tableModule = window.adminPostTableModule;
-            if (tableModule) {
-                Quill.register({ ['modules/' + tableModule.TableHandler.moduleName]: tableModule.TableHandler }, true);
-                tableModule.rewirteFormats();
-            }
-
-            // Quill initialization
-            let quill = null;
-            const contentInput = document.getElementById('content_input');
-
-            document.querySelectorAll('.catalog-quill').forEach(function (editorElement) {
-                const target = document.getElementById(editorElement.dataset.target);
-                if (!target) return;
-                const toolbarOptions = [
-                    [{ 'font': ['', 'serif', 'monospace', 'arial', 'georgia', 'impact', 'tahoma', 'times-new-roman', 'verdana', 'quicksand', 'roboto'] }, { 'size': [] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'color': [] }, { 'background': [] }],
-                    [{ 'script': 'sub' }, { 'script': 'super' }],
-                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                    [{ 'blockquote': true }, { 'code-block': true }],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-                    [{ 'align': [] }],
-                    tableModule ? ['link', 'image', 'video', 'table'] : ['link', 'image', 'video'],
-                    ['clean']
-                ];
-                const editorModules = {
-                    clipboard: {
-                        matchVisual: false
-                    },
-                    toolbar: toolbarOptions
-                };
-                if (tableModule) {
-                    editorModules[tableModule.TableHandler.moduleName] = {
-                        fullWidth: true,
-                        operationMenu: {
-                            items: {
-                                insertColumnLeft: { text: 'Thêm cột bên trái' },
-                                insertColumnRight: { text: 'Thêm cột bên phải' },
-                                insertRowTop: { text: 'Thêm hàng phía trên' },
-                                insertRowBottom: { text: 'Thêm hàng phía dưới' },
-                                removeCol: { text: 'Xóa cột' },
-                                removeRow: { text: 'Xóa hàng' },
-                                removeTable: { text: 'Xóa bảng' },
-                                mergeCell: { text: 'Gộp ô' },
-                                splitCell: { text: 'Tách ô' },
-                                setBackgroundColor: { text: 'Màu nền' },
-                                clearBackgroundColor: { text: 'Xóa màu nền' },
-                                setBorderColor: { text: 'Màu viền' },
-                                clearBorderColor: { text: 'Xóa màu viền' }
-                            }
-                        }
-                    };
-                    editorModules.keyboard = {
-                        bindings: tableModule.TableHandler.keyboradHandler
-                    };
-                }
-                const editor = new Quill(editorElement, {
-                    theme: 'snow',
-                    placeholder: editorElement.dataset.placeholder || '',
-                    modules: editorModules
-                });
-                editorElement.__quill = editor;
-                if (editorElement.id === 'content_editor') quill = editor;
-
-                // Route Quill's image toolbar through the shared media library. The picker
-                // returns a hosted URL, which Quill can embed directly (no fake File needed).
-                const toolbar = editor.getModule('toolbar');
-                toolbar.addHandler('image', function () {
-                    const selection = editor.getSelection(true);
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.dataset.quillMediaPicker = 'true';
-                    input.className = 'd-none';
-                    document.body.appendChild(input);
-
-                    input.addEventListener('media:selected', function (event) {
-                        const url = event.detail?.url;
-                        if (!url) return;
-                        editor.insertEmbed(selection.index, 'image', url, Quill.sources.USER);
-                        editor.setSelection(selection.index + 1, 0, Quill.sources.SILENT);
-                        input.remove();
-                    }, { once: true });
-
-                    input.click();
-                });
-
-                editor.on('text-change', function() {
-                    isDirty = true;
-                    target.value = editor.root.innerHTML;
-                    if (editorElement.id === 'content_editor') analyzeSEO();
-                });
-
-                if (form) {
-                    form.addEventListener('submit', function () {
-                        target.value = editor.root.innerHTML;
-                    });
-                }
-
-                // Fullscreen toggle logic
-                const toggleBtn = document.getElementById('toggle_fullscreen');
-                const editorWrapper = document.getElementById('editor_wrapper');
-                const fullscreenIcon = document.getElementById('fullscreen_icon');
-                const fullscreenText = document.getElementById('fullscreen_text');
-
-                if (toggleBtn && editorWrapper && editorElement.id === 'content_editor') {
-                    toggleBtn.addEventListener('click', function() {
-                        const isFullscreen = editorWrapper.classList.toggle('quill-fullscreen');
-                        if (isFullscreen) {
-                            fullscreenIcon.className = 'ti ti-minimize fs-4';
-                            fullscreenText.textContent = 'Thu nhỏ';
-                            document.addEventListener('keydown', handleEsc);
-                        } else {
-                            fullscreenIcon.className = 'ti ti-maximize fs-4';
-                            fullscreenText.textContent = 'Phóng to';
-                            document.removeEventListener('keydown', handleEsc);
-                        }
-                    });
-
-                    function handleEsc(e) {
-                        if (e.key === 'Escape') {
-                            editorWrapper.classList.remove('quill-fullscreen');
-                            fullscreenIcon.className = 'ti ti-maximize fs-4';
-                            fullscreenText.textContent = 'Phóng to';
-                            document.removeEventListener('keydown', handleEsc);
-                        }
-                    }
-                }
+            // The body editor (public/admin-assets/js/forms/rich-editor.js) drives the SEO check.
+            const contentEditor = window.AdminRichEditor ? AdminRichEditor.forTarget('content_input') : null;
+            document.addEventListener('rich-editor:change', function (event) {
+                isDirty = true;
+                if (contentEditor && event.target === contentEditor.element) analyzeSEO();
             });
 
             // Local Preview Uploader for Featured Image
@@ -445,8 +189,8 @@
                 const seoTitle = (seoTitleInput ? seoTitleInput.value : '').trim() || title;
                 const seoDesc = (seoDescInput ? seoDescInput.value : '').trim();
                 
-                const htmlContent = quill ? quill.root.innerHTML : '';
-                const textContent = quill ? quill.getText().trim() : '';
+                const htmlContent = contentEditor ? contentEditor.getHTML() : '';
+                const textContent = contentEditor ? contentEditor.getText() : '';
 
                 // Word count
                 const words = textContent.split(/\s+/).filter(w => w.length > 0);

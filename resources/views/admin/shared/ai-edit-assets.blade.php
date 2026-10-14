@@ -142,14 +142,13 @@
                         try {
                             const payload = await post(state.data.apply_url);
                             if (payload.data.reload) {
-                                // Policy pages keep their stored HTML out of Quill; show the saved result instead.
+                                // Policy pages keep their stored HTML out of the admin editor; show the saved result instead.
                                 window.location.reload();
                                 return;
                             }
                             // Keep the open form in step, so saving it later does not write the old text back.
                             const textarea = document.getElementById(state.button.dataset.target);
-                            const editor = document.querySelector(`.catalog-quill[data-target="${state.button.dataset.target}"]`);
-                            if (editor && editor.__quill) editor.__quill.root.innerHTML = payload.data.html;
+                            window.AdminRichEditor?.forTarget(state.button.dataset.target)?.setHTML(payload.data.html);
                             if (textarea) {
                                 textarea.value = payload.data.html;
                                 textarea.dispatchEvent(new Event('input', { bubbles: true }));

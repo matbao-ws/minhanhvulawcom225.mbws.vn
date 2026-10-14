@@ -92,13 +92,13 @@ class CategoryService
         if (is_array($value)) {
             foreach ($value as $lang => $translation) {
                 if ($this->languages->supports((string) $lang) && is_string($translation) && trim($translation) !== '') {
-                    $translations[$lang] = $attribute === 'description' ? $this->htmlSanitizer->clean(trim($translation)) : trim($translation);
+                    $translations[$lang] = $attribute === 'description' ? $this->htmlSanitizer->cleanRichText(trim($translation)) : trim($translation);
                 }
             }
         } else {
             $value = is_string($value) ? trim($value) : '';
             if ($attribute === 'description') {
-                $value = $this->htmlSanitizer->clean($value);
+                $value = $this->htmlSanitizer->cleanRichText($value);
             }
             if ($value !== '') {
                 $translations[$locale] = $value;

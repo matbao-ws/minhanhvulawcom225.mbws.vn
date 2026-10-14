@@ -36,11 +36,12 @@
                         <div data-tour="page-form.content" class="col-12 mb-3">
                             @php $html = old("published_html.$code", $page->getTranslation('published_html', $code, false)); @endphp
                             <label class="form-label">Nội dung</label>
-                            {{-- Disabled until the editor is touched: a disabled field is not
-                                 submitted, so saving title/SEO never pushes stored HTML through
-                                 Quill, which would flatten markup saved by the storefront editor. --}}
+                            {{-- Disabled until the editor is really edited (data-sync="edited"): a
+                                 disabled field is not submitted, so saving title/SEO never pushes
+                                 stored HTML through the admin editor, which normalises markup saved
+                                 by the storefront editor. --}}
                             <textarea class="d-none" name="published_html[{{ $code }}]" id="page-html-{{ $code }}" @disabled(old("published_html.$code") === null)>{{ $html }}</textarea>
-                            <div class="page-quill" data-target="page-html-{{ $code }}" data-placeholder="Nhập nội dung chính sách..." style="min-height:360px">{!! app(\App\Support\PageHtmlSanitizer::class)->clean($html) !!}</div>
+                            <div class="rich-editor" data-preset="page" data-sync="edited" data-media-folder="pages" data-target="page-html-{{ $code }}" data-placeholder="Nhập nội dung chính sách...">{!! app(\App\Support\PageHtmlSanitizer::class)->clean($html) !!}</div>
                             @include('admin.shared.ai-edit-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'target' => "page-html-$code"])
                         </div>
                         <div class="col-12">@include('admin.shared.ai-meta-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'titleField' => "meta_title[$code]", 'descriptionField' => "meta_description[$code]"])</div>
@@ -66,39 +67,4 @@
     </div>
 </div>
 
-@push('styles')
-<link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
-<style>.page-quill .ql-editor { min-height: 320px; color: #1f2937; font-size: 15px; }</style>
-@endpush
-
-@push('scripts')
-<script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.page-quill').forEach(function (element) {
-            const target = document.getElementById(element.dataset.target);
-            if (!target || typeof Quill === 'undefined') return;
-
-            const editor = new Quill(element, {
-                theme: 'snow',
-                placeholder: element.dataset.placeholder || '',
-                modules: {
-                    toolbar: [
-                        [{ header: [2, 3, 4, false] }],
-                        ['bold', 'italic', 'underline'],
-                        [{ list: 'ordered' }, { list: 'bullet' }],
-                        ['blockquote', 'link'],
-                        ['clean'],
-                    ],
-                },
-            });
-
-            editor.on('text-change', function () {
-                target.disabled = false;
-                // An emptied editor still holds <p><br></p>; store it as no content.
-                target.value = editor.getText().trim() === '' ? '' : editor.root.innerHTML;
-            });
-        });
-    });
-</script>
-@endpush
+@include('admin.shared.rich-editor-assets')

@@ -34,7 +34,7 @@
                             <div class="row">
                                 <div data-tour="brand-form.name" class="col-md-8 mb-3"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div>
                                 <div class="col-md-4 mb-3"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }}</label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="Tự tạo từ tên"></div>
-                                <div data-tour="brand-form.description" class="col-12 mb-3"><label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label><textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html">{{ $description }}</textarea><div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div></div>
+                                <div data-tour="brand-form.description" class="col-12 mb-3"><label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label><textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html">{{ $description }}</textarea><div id="description_editor_{{ $code }}" class="rich-editor" data-preset="basic" data-media-folder="brands" data-target="description_{{ $code }}">{!! app(\App\Support\HtmlSanitizer::class)->cleanRichText($description) !!}</div></div>
                             </div>
                         </div>
                     @endforeach
@@ -61,38 +61,4 @@
 @include('admin.shared.form-actions', ['cancelUrl' => route('admin.brands.index')])
 @include('admin.shared.translation-assets')
 
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
-@endpush
-
-@push('scripts')
-    <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.catalog-quill').forEach(function (editorElement) {
-                if (editorElement.id === 'quick_description_editor') return;
-                const target = document.getElementById(editorElement.dataset.target);
-                if (!target) return;
-
-                const quill = new Quill(editorElement, {
-                    theme: 'snow',
-                    modules: {
-                        toolbar: [
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['link', 'clean']
-                        ]
-                    }
-                });
-                editorElement.__quill = quill;
-
-                const form = editorElement.closest('form');
-                if (form) {
-                    form.addEventListener('submit', function () {
-                        target.value = quill.root.innerHTML;
-                    });
-                }
-            });
-        });
-    </script>
-@endpush
+@include('admin.shared.rich-editor-assets')

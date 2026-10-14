@@ -20,8 +20,8 @@
                         const formats = {};
 
                         document.querySelectorAll(`[data-i18n-locale="${sourceLocale}"][data-i18n-field]`).forEach(function (element) {
-                            const editor = document.querySelector(`.catalog-quill[data-target="${element.id}"]`);
-                            if (editor && editor.__quill) element.value = editor.__quill.root.innerHTML;
+                            const editor = window.AdminRichEditor?.forTarget(element.id);
+                            if (editor) element.value = editor.getHTML();
                             fields[element.dataset.i18nField] = element.value || '';
                             formats[element.dataset.i18nField] = element.dataset.translationFormat || 'text';
                         });
@@ -51,8 +51,7 @@
                                 const value = payload.data?.fields?.[element.dataset.i18nField];
                                 if (typeof value !== 'string') return;
                                 element.value = value;
-                                const editor = document.querySelector(`.catalog-quill[data-target="${element.id}"]`);
-                                if (editor && editor.__quill) editor.__quill.root.innerHTML = value;
+                                window.AdminRichEditor?.forTarget(element.id)?.setHTML(value);
                                 element.dispatchEvent(new Event('input', { bubbles: true }));
                             });
                         } catch (error) {

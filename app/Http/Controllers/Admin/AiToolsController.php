@@ -204,7 +204,7 @@ class AiToolsController extends Controller
     {
         return response()->json(['success' => true, 'message' => $message, 'data' => [
             'html' => (string) $html,
-            // Policy pages keep stored HTML out of Quill; the page reloads instead.
+            // Policy pages keep stored HTML out of the admin editor; the page reloads instead.
             'reload' => $suggestion->entity_type === 'page',
         ]]);
     }

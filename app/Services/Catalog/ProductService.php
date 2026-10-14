@@ -301,14 +301,14 @@ class ProductService
                 if (is_string($val) && trim($val) !== '') {
                     $cleanValue = trim($val);
                     $translations[$lang] = in_array($attribute, ['short_description', 'description'], true)
-                        ? $this->htmlSanitizer->clean($cleanValue)
+                        ? $this->htmlSanitizer->cleanRichText($cleanValue)
                         : $cleanValue;
                 }
             }
         } else {
             $value = is_string($value) ? trim($value) : '';
             if (in_array($attribute, ['short_description', 'description'], true)) {
-                $value = $this->htmlSanitizer->clean($value);
+                $value = $this->htmlSanitizer->cleanRichText($value);
             }
             if ($value !== '') {
                 $translations[$locale] = $value;

@@ -79,7 +79,7 @@ trait HandlesAiSuggestions
             return;
         }
 
-        $record->setTranslation($definition['content'], $locale, $this->htmlSanitizer->clean($html));
+        $record->setTranslation($definition['content'], $locale, $this->htmlSanitizer->cleanRichText($html));
         if ($record instanceof Post) {
             $this->refreshPostScore($record);
         }
@@ -88,7 +88,7 @@ trait HandlesAiSuggestions
 
     protected function sanitizeBody(Model $record, string $html): string
     {
-        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->clean($html);
+        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->cleanRichText($html);
     }
 
     /** Every href/src in order: an AI edit must leave this list exactly as it was. */

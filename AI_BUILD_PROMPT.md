@@ -658,6 +658,23 @@ Kiểm kê toàn bộ theme/
   khi tới Laravel. `public/robots.txt` thuộc website nên cập nhật core không xoá nó: site cài trước
   bản này phải xoá tay một lần. Sitemap cache 1 giờ (`SitemapService::flush()`).
 
+### Trình soạn thảo trong admin
+
+Mọi ô nội dung HTML trong admin (bài viết, sản phẩm, trang chính sách, mô tả danh mục/thương hiệu/
+chuyên mục, kể cả modal sửa nhanh) dùng **một** trình soạn thảo: Jodit (MIT, vendor tĩnh trong
+`public/admin-assets/libs/jodit/`, bản dịch tiếng Việt nằm trong `admin-assets/js/forms/rich-editor.js`).
+
+- Form chỉ khai báo: một field ẩn được submit và `<div class="rich-editor" data-target="{id field}"
+  data-preset="full|page|basic">` chứa HTML đã lọc, rồi `@include('admin.shared.rich-editor-assets')`.
+  Không tự gọi `Jodit.make`, không nạp thư viện editor khác.
+- Script khác chạm vào editor qua `AdminRichEditor.forTarget(id)` (`getHTML`/`setHTML`/`getText`) và
+  sự kiện `rich-editor:change`; không đọc DOM bên trong Jodit.
+- Ảnh chèn từ thư viện Media (nút ảnh mở `media-picker`), không upload hay base64 trong editor.
+- HTML từ editor lưu qua `HtmlSanitizer::cleanRichText()`: chỉ giữ CSS inline trong `RICH_TEXT_CSS`,
+  iframe chỉ YouTube/Vimeo, `<figure>/<figcaption>` cho chú thích ảnh. `clean()` (không style inline)
+  vẫn dành cho site block storefront và import — không chuyển chúng sang `cleanRichText()`. Thêm định
+  dạng mới thì mở rộng sanitizer kèm test, không nới bằng cách tắt lọc.
+
 ### Sửa trực tiếp trên storefront
 
 Core **không có** page builder kéo-thả. Tính năng đó đã bị loại bỏ cùng GrapesJS,
@@ -693,10 +710,11 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
   cho ngôn ngữ khác (route `client.pages.show`), dùng chung một view `client.pages.show`; `/pages/{slug}`
   chỉ còn là redirect 301 thẳng tới URL đó. Không đưa slug Page ra gốc (`/{slug}` hay `/{locale}/{slug}`)
   — route bắt mọi slug sẽ nuốt `/admin`, `/api` và `/{locale}/admin`.
-- Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng Quill (đã có
-  sẵn trong admin). Ô nội dung của mỗi locale chỉ được submit khi editor của locale đó thực sự bị sửa;
-  `PageContentService` merge các locale gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm
-  editor không bao giờ đẩy HTML đã lưu qua Quill — Quill làm phẳng markup do inline editor lưu.
+- Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng trình soạn thảo
+  chung của admin (Jodit, xem mục trình soạn thảo admin). Ô nội dung của mỗi locale chỉ được submit
+  khi editor của locale đó thực sự bị sửa (`data-sync="edited"`); `PageContentService` merge các locale
+  gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm editor không bao giờ đẩy HTML đã lưu qua
+  editor admin — editor chuẩn hoá lại markup do inline editor lưu.
 - Vùng sửa được tìm bằng id `client-page-{id}`, dự phòng bằng thuộc tính
   `data-client-editable-root` để layout theme tự đánh dấu wrapper của mình. Không tìm thấy vùng nào
   thì editor thoát im lặng và nút **Sửa trực tiếp** không hiện — không được để script ném lỗi vì sẽ

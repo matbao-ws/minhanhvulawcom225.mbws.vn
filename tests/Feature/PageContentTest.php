@@ -491,7 +491,8 @@ class PageContentTest extends TestCase
             ->get('/vi/admin/pages/create')
             ->assertOk()
             ->assertSee('name="published_html[vi]"', false)
-            ->assertSee('quill.min.js', false)
+            ->assertSee('jodit.min.js', false)
+            ->assertSee('data-sync="edited"', false)
             ->assertDontSee('page-open-inline-editor', false);
     }
 

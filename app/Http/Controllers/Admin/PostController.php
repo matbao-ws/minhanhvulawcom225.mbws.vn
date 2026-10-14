@@ -359,7 +359,7 @@ class PostController extends Controller
     private function cleanTranslations(array $values, bool $html = false): array
     {
         return collect($values)->filter(fn ($value, $code) => $this->languages->supports((string) $code) && is_string($value) && trim($value) !== '')
-            ->map(fn (string $value) => $html ? $this->htmlSanitizer->clean(trim($value)) : trim($value))->all();
+            ->map(fn (string $value) => $html ? $this->htmlSanitizer->cleanRichText(trim($value)) : trim($value))->all();
     }
 
     private function mergeTranslations(Post $post, string $field, array $values, bool $html = false): array

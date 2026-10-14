@@ -198,10 +198,9 @@ class PostCrudTest extends TestCase
             ->assertSee('placeholder="Nhập tóm tắt thu hút hiển thị ở danh sách bài viết..."', false)
             ->assertSee('data-placeholder="Nhập nội dung chi tiết..."', false)
             ->assertSee(__('admin.posts.placeholders.content_paste_hint'))
-            ->assertSee("['link', 'image', 'video', 'table']", false)
-            ->assertSee('adminPostTableModule', false)
-            ->assertSee('fullWidth: true', false)
-            ->assertSee('Mô tả ảnh (alt text)', false)
+            ->assertSee('class="rich-editor" data-preset="full" data-media-folder="posts" data-target="content_input"', false)
+            ->assertSee('jodit.min.js', false)
+            ->assertSee('rich-editor.js', false)
             ->assertSee('placeholder="Bỏ trống để tự động lấy theo tiêu đề bài viết..."', false)
             ->assertSee('placeholder="Mô tả ngắn gọn nội dung hiển thị trên kết quả tìm kiếm (120-160 ký tự)..."', false)
             ->assertSee('placeholder="Ví dụ: chuẩn seo, gio hang..."', false)
@@ -513,6 +512,37 @@ XML;
         $this->assertStringContainsString('<table class="ql-table" data-table-id="table-1" data-full="">', $content);
         $this->assertStringContainsString('<colgroup data-table-id="table-1">', $content);
         $this->assertStringContainsString('<td class="ql-table-cell" data-table-id="table-1" data-row-id="row-1" data-col-id="column-1"><p>Cell 1</p></td>', $content);
+    }
+
+    public function test_post_content_keeps_editor_formatting_and_drops_unsafe_markup(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->put('/vi/admin/posts/'.$this->post->id, [
+                'title' => 'Post with formatting',
+                'slug' => 'post-with-formatting',
+                'summary' => 'A post summary with formatting.',
+                'content' => '<p style="text-align: center; position: fixed;">Giữa</p>'
+                    .'<figure><img src="https://example.com/a.jpg" alt="Ảnh" style="width: 300px; float: left;"><figcaption>Chú thích</figcaption></figure>'
+                    .'<table style="border-collapse: collapse; width: 100%;"><tbody><tr><td style="width: 50%;">1</td></tr></tbody></table>'
+                    .'<iframe width="400" height="300" src="https://www.youtube.com/embed/abc123" allowfullscreen></iframe>'
+                    .'<iframe src="https://evil.example/embed"></iframe>'
+                    .'<p><a href="https://example.com" target="_blank" rel="nofollow">ngoài</a></p>',
+                'seo_title' => 'SEO title for formatting',
+                'seo_description' => 'SEO description for a post that has formatting.',
+                'seo_keys' => 'formatting',
+            ])
+            ->assertRedirect('/vi/admin/posts');
+
+        $content = $this->post->fresh()->getTranslation('content', 'vi');
+        $this->assertStringContainsString('<p style="text-align:center;">Giữa</p>', $content);
+        $this->assertStringContainsString('style="width:300px;float:left;"', $content);
+        $this->assertStringContainsString('<figcaption>Chú thích</figcaption></figure>', $content);
+        $this->assertStringContainsString('<table style="border-collapse:collapse;width:100%;">', $content);
+        $this->assertStringContainsString('src="https://www.youtube.com/embed/abc123"', $content);
+        $this->assertStringNotContainsString('evil.example', $content);
+        $this->assertStringNotContainsString('position', $content);
+        $this->assertStringContainsString('target="_blank"', $content);
+        $this->assertStringContainsString('nofollow', $content);
     }
 
     public function test_public_post_exposes_canonical_and_robots_metadata(): void
