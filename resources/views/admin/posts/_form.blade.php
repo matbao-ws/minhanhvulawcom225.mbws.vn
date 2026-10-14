@@ -353,7 +353,7 @@
     </div>
 
     <!-- Right column: Sidebar settings & SEO Analyzer Widget -->
-    <div class="col-lg-4">
+    <div class="col-lg-4 admin-sticky-aside">
         <!-- Thumbnail Card -->
         <div data-tour="post-form.thumbnail" class="card">
             <div class="card-body">

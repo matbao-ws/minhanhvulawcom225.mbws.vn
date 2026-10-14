@@ -562,6 +562,7 @@
         });
     </script>
     <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/form-guidance.js') }}"></script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/forms/sticky-aside.js') }}"></script>
     @if(! empty($adminTour))
         {{-- Guided tour of this page (App\Support\AdminTours); only pages that have one load driver.js. --}}
         <script type="application/json" id="admin-tour-config">@json($adminTour)</script>

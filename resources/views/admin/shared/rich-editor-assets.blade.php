@@ -10,9 +10,13 @@
             /* The sticky toolbar follows the page scroll; fullscreen has no page to follow. */
             .jodit_fullsize .jodit-toolbar__box { position: relative !important; top: 0 !important; left: auto !important; width: auto !important; }
             .jodit_fullsize .jodit_sticky-dummy_toolbar { display: none !important; }
-            .jodit-container:not(.jodit_inline) { border-radius: 10px; border-color: #dfe5ef; }
-            .jodit-container:not(.jodit_inline) .jodit-toolbar__box { border-radius: 10px 10px 0 0; background: #f8f9fa; }
-            .jodit-container .jodit-status-bar { border-radius: 0 0 10px 10px; }
+            /* Square corners: the toolbar stays pinned under the header while the text scrolls past. */
+            .jodit-container:not(.jodit_inline) { border-radius: 0; border-color: #dfe5ef; }
+            .jodit-container:not(.jodit_inline) .jodit-toolbar__box { border-radius: 0; background: #f8f9fa; }
+            .jodit-container .jodit-status-bar { border-radius: 0; }
+            /* The layout's .card { overflow: hidden !important } (clipping to rounded corners) would stop
+               the toolbar from sticking; an editor's card has padding, so nothing spills out. */
+            .card:has(.rich-editor) { overflow: visible !important; }
             .jodit-wysiwyg { color: #111827; font-size: 15.5px; line-height: 1.65; }
             .jodit-wysiwyg img { max-width: 100%; height: auto; }
             .jodit-wysiwyg figure { margin: 1rem 0; }

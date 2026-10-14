@@ -202,6 +202,15 @@ fieldset:disabled .btn-primary {
     padding-bottom: 92px;
 }
 
+/* The theme's overflow-x: hidden makes .page-wrapper a scroll box of its own, while the page
+   scrolls the window: nothing inside could stick (editor toolbars, form side columns).
+   clip cuts the same overflow without making a scroll box. */
+@supports (overflow: clip) {
+    .page-wrapper {
+        overflow-x: clip;
+    }
+}
+
 .admin-sticky-actions {
     position: fixed;
     right: 0;
@@ -322,4 +331,14 @@ textarea::placeholder {
 /* The sidebar draws its own bar (SimpleBar): same colour. */
 .simplebar-scrollbar::before {
     background: var(--admin-scroll-thumb-hover);
+}
+
+/* Side column of a two-column admin form (posts, products): stays in view while the main
+   column scrolls. --admin-aside-top comes from js/forms/sticky-aside.js. */
+@media (min-width: 992px) {
+    .admin-sticky-aside {
+        position: sticky;
+        top: var(--admin-aside-top, 108px);
+        align-self: flex-start;
+    }
 }
