@@ -19,6 +19,7 @@ use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
@@ -105,6 +106,11 @@ class PostController extends Controller
                 'seo_title' => $seoTitles,
                 'seo_description' => $seoDescriptions,
                 'seo_keys' => $validated['seo_keys'] ?? null,
+                'og_title' => $this->cleanTranslations($validated['og_title'] ?? []),
+                'og_description' => $this->cleanTranslations($validated['og_description'] ?? []),
+                'og_image' => $validated['og_image'] ?? null,
+                'schema_type' => $validated['schema_type'] ?? null,
+                'schema_faq' => $request->has('schema_faq') ? $request->boolean('schema_faq') : true,
                 'canonical_url' => $validated['canonical_url'] ?? null,
                 'robots_index' => $request->has('robots_index') ? $request->boolean('robots_index') : true,
                 'robots_follow' => $request->has('robots_follow') ? $request->boolean('robots_follow') : true,
@@ -182,6 +188,12 @@ class PostController extends Controller
                 'seo_title' => $seoTitles,
                 'seo_description' => $seoDescriptions,
                 'seo_keys' => $validated['seo_keys'] ?? null,
+                // Sent emptied, a field goes back to following the SEO title/description.
+                'og_title' => $request->has('og_title') ? $this->replaceTranslations($post, 'og_title', $validated['og_title'] ?? []) : $post->getTranslations('og_title'),
+                'og_description' => $request->has('og_description') ? $this->replaceTranslations($post, 'og_description', $validated['og_description'] ?? []) : $post->getTranslations('og_description'),
+                'og_image' => $request->has('og_image') ? ($validated['og_image'] ?? null) : $post->getRawOriginal('og_image'),
+                'schema_type' => $request->has('schema_type') ? ($validated['schema_type'] ?? null) : $post->schema_type,
+                'schema_faq' => $request->has('schema_faq') ? $request->boolean('schema_faq') : $post->schema_faq,
                 'canonical_url' => $validated['canonical_url'] ?? null,
                 'robots_index' => $request->has('robots_index') ? $request->boolean('robots_index') : $post->robots_index,
                 'robots_follow' => $request->has('robots_follow') ? $request->boolean('robots_follow') : $post->robots_follow,
@@ -339,6 +351,10 @@ class PostController extends Controller
             'robots_index' => ['nullable', 'boolean'],
             'robots_follow' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'og_title' => ['nullable', 'array'], 'og_description' => ['nullable', 'array'],
+            'og_image' => ['nullable', 'string', 'max:2048'],
+            'schema_type' => ['nullable', Rule::in(Post::SCHEMA_TYPES)],
+            'schema_faq' => ['nullable', 'boolean'],
         ];
         foreach ($this->languages->codes() as $code) {
             $required = $code === $this->languages->defaultLocale() ? 'required' : 'nullable';
@@ -348,6 +364,8 @@ class PostController extends Controller
             $rules["content.$code"] = [$required, 'string'];
             $rules["seo_title.$code"] = ['nullable', 'string', 'max:255'];
             $rules["seo_description.$code"] = ['nullable', 'string', 'max:500'];
+            $rules["og_title.$code"] = ['nullable', 'string', 'max:255'];
+            $rules["og_description.$code"] = ['nullable', 'string', 'max:500'];
         }
 
         return $rules;
@@ -412,6 +430,28 @@ class PostController extends Controller
         }
 
         return Str::limit($text, 200, '…');
+    }
+
+    /**
+     * Like mergeTranslations(), but a language sent empty is cleared instead of kept: optional
+     * fields whose emptiness means "use the default".
+     */
+    private function replaceTranslations(Post $post, string $field, array $values): array
+    {
+        $current = $post->getTranslations($field);
+        foreach ($values as $code => $value) {
+            if (! $this->languages->supports((string) $code)) {
+                continue;
+            }
+            $value = is_string($value) ? trim($value) : '';
+            if ($value === '') {
+                unset($current[$code]);
+            } else {
+                $current[$code] = $value;
+            }
+        }
+
+        return $current;
     }
 
     private function mergeTranslations(Post $post, string $field, array $values, bool $html = false): array

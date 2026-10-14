@@ -579,6 +579,34 @@ XML;
         $this->assertSame('Tóm tắt viết tay', $this->post->fresh()->getTranslation('summary', 'vi'));
     }
 
+    public function test_share_fields_and_schema_are_saved_and_can_be_cleared(): void
+    {
+        $payload = [
+            'title' => ['vi' => 'Bài viết thử nghiệm'],
+            'content' => ['vi' => '<p>Nội dung.</p>'],
+            'og_title' => ['vi' => 'Tiêu đề khi chia sẻ'],
+            'og_description' => ['vi' => 'Mô tả khi chia sẻ'],
+            'og_image' => url('/storage/posts/share.jpg'),
+            'schema_type' => 'NewsArticle',
+            'schema_faq' => '0',
+        ];
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$this->post->id, $payload)->assertRedirect('/vi/admin/posts');
+
+        $post = $this->post->fresh();
+        $this->assertSame('Tiêu đề khi chia sẻ', $post->getTranslation('og_title', 'vi'));
+        $this->assertSame('/storage/posts/share.jpg', $post->getRawOriginal('og_image'), 'stored relative');
+        $this->assertSame('NewsArticle', $post->schema_type);
+        $this->assertFalse($post->schema_faq);
+
+        // Emptied: back to following the SEO title and featured image.
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$this->post->id, ['og_title' => ['vi' => ''], 'og_image' => ''] + $payload);
+        $this->assertSame('', $this->post->fresh()->getTranslation('og_title', 'vi', false));
+        $this->assertNull($this->post->fresh()->getRawOriginal('og_image'));
+
+        $this->actingAs($this->adminUser)->from('/vi/admin/posts')->put('/vi/admin/posts/'.$this->post->id, ['schema_type' => 'Recipe'] + $payload)
+            ->assertSessionHasErrors('schema_type');
+    }
+
     public function test_only_the_first_keyword_is_scored(): void
     {
         $analyzer = app(PostSeoAnalyzer::class);

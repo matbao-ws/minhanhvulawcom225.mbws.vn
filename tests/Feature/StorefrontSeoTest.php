@@ -60,7 +60,8 @@ class StorefrontSeoTest extends TestCase
         $this->get($path)->assertSee('<meta name="robots" content="noindex, follow">', false);
 
         $this->app['env'] = 'production';
-        $this->get($path)->assertSee('<meta name="robots" content="index, follow">', false);
+        // Indexable pages also allow a long snippet and a large image preview (Search, Discover).
+        $this->get($path)->assertSee('<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">', false);
     }
 
     public function test_every_active_language_is_declared_as_an_alternate(): void
@@ -306,6 +307,41 @@ class StorefrontSeoTest extends TestCase
 
         $this->assertSame('Máy bơm', $node['name']);
         $this->assertArrayNotHasKey('offers', $node);
+    }
+
+    public function test_a_post_shares_its_own_title_and_image_and_publishes_its_type_and_faq(): void
+    {
+        $this->themeRoute('bai-viet', 'client.posts.show');
+        $post = Post::query()->create([
+            'title' => ['vi' => 'Cách chọn ống nước'], 'slug' => 'cach-chon-ong', 'is_active' => true,
+            'content' => ['vi' => '<p>Nội dung.</p><h2>Câu hỏi thường gặp</h2><h3>Ống nào bền nhất?</h3><p>Ống uPVC.</p><h3>Bao lâu thay?</h3><p>Mười năm.</p><h2>Kết luận</h2><h3>Không phải câu hỏi</h3><p>x</p>'],
+            'seo_title' => ['vi' => 'Chọn ống nước đúng cách'], 'seo_description' => ['vi' => 'Mô tả cho Google.'],
+            'og_title' => ['vi' => 'Đừng mua ống nước trước khi đọc bài này'], 'og_description' => ['vi' => 'Mô tả khi chia sẻ.'],
+            'og_image' => '/storage/posts/share.jpg', 'image_url' => '/storage/posts/cover.jpg',
+            'schema_type' => 'BlogPosting',
+        ]);
+
+        app()->setLocale('vi');
+        $seo = app(SeoMetaFactory::class)->forPost($post);
+
+        // Google keeps the SEO title; Facebook, Zalo and X get the post's own.
+        $this->assertSame('Chọn ống nước đúng cách', $seo->title);
+        $this->assertSame('Đừng mua ống nước trước khi đọc bài này', $seo->ogTitle());
+        $this->assertSame('Mô tả khi chia sẻ.', $seo->ogDescription());
+        $this->assertStringEndsWith('/storage/posts/share.jpg', (string) $seo->image);
+        $this->assertSame('summary_large_image', $seo->twitterCard());
+
+        $this->assertNotNull(collect($seo->structuredData)->firstWhere('@type', 'BlogPosting'));
+        $faq = collect($seo->structuredData)->firstWhere('@type', 'FAQPage');
+        $this->assertSame(['Ống nào bền nhất?', 'Bao lâu thay?'], array_column($faq['mainEntity'], 'name'));
+        $this->assertSame('Ống uPVC.', $faq['mainEntity'][0]['acceptedAnswer']['text']);
+
+        // Switched off, and without its own share fields, it falls back to the SEO ones.
+        $post->update(['schema_faq' => false, 'og_title' => [], 'og_description' => [], 'og_image' => null]);
+        $seo = app(SeoMetaFactory::class)->forPost($post->fresh());
+        $this->assertNull(collect($seo->structuredData)->firstWhere('@type', 'FAQPage'));
+        $this->assertSame('Chọn ống nước đúng cách', $seo->ogTitle());
+        $this->assertStringEndsWith('/storage/posts/cover.jpg', (string) $seo->image);
     }
 
     public function test_a_theme_post_page_follows_the_posts_own_seo_settings(): void

@@ -25,10 +25,35 @@ final class SeoMeta
         public readonly array $alternates = [],
         public readonly ?string $xDefault = null,
         public readonly array $structuredData = [],
+        public readonly ?string $socialTitle = null,
+        public readonly ?string $socialDescription = null,
     ) {}
 
+    /**
+     * An indexable page also lets Google show a long snippet and a large image preview (Search,
+     * Discover), as Rank Math does by default; without max-image-preview:large only a thumbnail.
+     */
     public function robots(): string
     {
-        return ($this->index ? 'index' : 'noindex').', '.($this->follow ? 'follow' : 'nofollow');
+        $robots = ($this->index ? 'index' : 'noindex').', '.($this->follow ? 'follow' : 'nofollow');
+
+        return $this->index ? $robots.', max-snippet:-1, max-image-preview:large, max-video-preview:-1' : $robots;
+    }
+
+    /** The title shared on Facebook, Zalo, X: its own when set, else the page title. */
+    public function ogTitle(): string
+    {
+        return filled($this->socialTitle) ? (string) $this->socialTitle : $this->title;
+    }
+
+    public function ogDescription(): ?string
+    {
+        return filled($this->socialDescription) ? $this->socialDescription : $this->description;
+    }
+
+    /** A large card when there is a picture to show. */
+    public function twitterCard(): string
+    {
+        return $this->image ? 'summary_large_image' : 'summary';
     }
 }
