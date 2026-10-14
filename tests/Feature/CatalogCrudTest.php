@@ -119,8 +119,9 @@ class CatalogCrudTest extends TestCase
         $this->get('/vi/admin/categories')->assertOk();
         $this->get('/vi/admin/categories/create')
             ->assertOk()
-            ->assertDontSee('name="meta_title[', false)
-            ->assertDontSee('name="meta_description[', false)
+            // The SEO title and description live in the SEO box, not among the language fields.
+            ->assertSee('data-seo-box', false)
+            ->assertSee('name="meta_title[vi]"', false)
             ->assertSee('placeholder="Nhập tên danh mục..."', false)
             ->assertSee('placeholder="Ví dụ: dien-thoai"', false)
             ->assertSee('data-placeholder="Nhập mô tả danh mục..."', false)
@@ -128,8 +129,9 @@ class CatalogCrudTest extends TestCase
             ->assertSee('<span class="text-danger">*</span>', false);
         $this->get("/vi/admin/categories/{$category->id}/edit")
             ->assertOk()
-            ->assertDontSee('name="meta_title[', false)
-            ->assertDontSee('name="meta_description[', false)
+            // The SEO title and description live in the SEO box, not among the language fields.
+            ->assertSee('data-seo-box', false)
+            ->assertSee('name="meta_title[vi]"', false)
             ->assertSee('placeholder="Nhập tên danh mục..."', false)
             ->assertSee('placeholder="Ví dụ: dien-thoai"', false)
             ->assertSee('data-placeholder="Nhập mô tả danh mục..."', false)

@@ -223,6 +223,12 @@ uPVC pipe glue',
         'applied' => 'Product description updated.',
         'note' => 'The AI uses the product name, category, brand, options and short description. Prices and stock are not sent.',
     ],
+    'collection' => [
+        'button' => 'AI description',
+        'title' => 'Write the description with AI',
+        'applied' => 'Description updated.',
+        'note' => 'The AI uses the name, the parent and the names of the products or posts in it. Prices and stock are not sent.',
+    ],
     'usage' => [
         'title' => 'AI SEO Copilot',
         'credits' => 'AI credits this month',

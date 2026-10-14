@@ -223,6 +223,12 @@ Keo dán ống uPVC',
         'applied' => 'Đã cập nhật mô tả sản phẩm.',
         'note' => 'AI dùng tên, danh mục, thương hiệu, thuộc tính và mô tả ngắn của sản phẩm. Không gửi giá hay tồn kho.',
     ],
+    'collection' => [
+        'button' => 'AI viết mô tả',
+        'title' => 'Viết mô tả bằng AI',
+        'applied' => 'Đã cập nhật mô tả.',
+        'note' => 'AI dùng tên, danh mục cha và tên các sản phẩm hoặc bài viết đang thuộc mục này. Không gửi giá hay tồn kho.',
+    ],
     'usage' => [
         'title' => 'Trợ lý AI SEO',
         'credits' => 'Lượt AI tháng này',

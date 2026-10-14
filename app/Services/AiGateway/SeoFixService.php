@@ -3,8 +3,10 @@
 namespace App\Services\AiGateway;
 
 use App\Models\AiSuggestion;
+use App\Models\Category;
 use App\Models\Page;
 use App\Models\Post;
+use App\Models\PostCategory;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\ActivityLogger;
@@ -37,7 +39,10 @@ class SeoFixService
     public const FIELDS = ['seo_title', 'seo_description', 'intro_html'];
 
     /** The records the button and bulk jobs work on (SeoBox::MODELS by entity type). */
-    public const ENTITY_TYPES = ['post' => Post::class, 'product' => Product::class, 'page' => Page::class];
+    public const ENTITY_TYPES = [
+        'post' => Post::class, 'product' => Product::class, 'page' => Page::class,
+        'category' => Category::class, 'post_category' => PostCategory::class,
+    ];
 
     public function __construct(
         private readonly GatewayClient $gateway,

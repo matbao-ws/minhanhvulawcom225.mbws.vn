@@ -123,6 +123,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('seo.apply');
             Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
             Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('product.apply');
+            Route::post('collection-intros', 'collectionSuggest')->middleware('throttle:admin-ai')->name('collection.suggest');
+            Route::post('collection-intros/{suggestion}/apply', 'collectionApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('collection.apply');
             Route::post('internal-links', 'linksSuggest')->middleware('throttle:admin-ai')->name('links.suggest');
             Route::post('internal-links/{suggestion}/apply', 'linksApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('links.apply');
             Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');

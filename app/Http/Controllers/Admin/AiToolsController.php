@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiSuggestion;
 use App\Services\AiGateway\AiUsage;
 use App\Services\AiGateway\AltTextService;
+use App\Services\AiGateway\CollectionIntroService;
 use App\Services\AiGateway\FaqService;
 use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\AiGateway\InternalLinkService;
@@ -17,7 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * FAQ, alt text, SEO fixes and product descriptions. Route: feature:ai_seo +
+ * FAQ, alt text, SEO fixes, product and collection descriptions. Route: feature:ai_seo +
  * can:ai.use; each service also requires the record's own update permission.
  * Every suggestion endpoint asks, every apply endpoint writes; rejects go
  * through the shared reject on each service.
@@ -30,6 +31,7 @@ class AiToolsController extends Controller
         private readonly SeoFixService $seo,
         private readonly ProductDescriptionService $product,
         private readonly InternalLinkService $links,
+        private readonly CollectionIntroService $collection,
     ) {}
 
     public function faqSuggest(Request $request, string $locale): JsonResponse
@@ -138,6 +140,23 @@ class AiToolsController extends Controller
         return $this->applied(__('ai.product.applied'), $suggestion, $product->getTranslation('description', $suggestion->locale, false));
     }
 
+    public function collectionSuggest(Request $request, string $locale): JsonResponse
+    {
+        $data = $request->validate($this->recordRules(array_keys(CollectionIntroService::ENTITIES)) + [
+            'target_words' => ['required', 'integer', 'min:'.CollectionIntroService::MIN_WORDS, 'max:'.CollectionIntroService::MAX_WORDS],
+        ]);
+
+        return $this->asked(fn () => $this->collection->suggest($data['entity_type'], (int) $data['entity_id'], $data['content_locale'], (int) $data['target_words'], $request->user()),
+            fn (AiSuggestion $s) => $s->options[0], $locale, 'collection');
+    }
+
+    public function collectionApply(Request $request, string $locale, AiSuggestion $suggestion): JsonResponse
+    {
+        $record = $this->collection->apply($suggestion, $request->user());
+
+        return $this->applied(__('ai.collection.applied'), $suggestion, $record->getTranslation('description', $suggestion->locale, false));
+    }
+
     public function linksSuggest(Request $request, string $locale): JsonResponse
     {
         $data = $request->validate($this->recordRules(InternalLinkService::ENTITY_TYPES));
@@ -165,6 +184,7 @@ class AiToolsController extends Controller
             AltTextService::TASK => $this->alt,
             SeoFixService::TASK => $this->seo,
             ProductDescriptionService::TASK => $this->product,
+            CollectionIntroService::TASK => $this->collection,
             InternalLinkService::TASK => $this->links,
             default => abort(404),
         };

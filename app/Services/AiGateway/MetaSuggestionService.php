@@ -3,8 +3,10 @@
 namespace App\Services\AiGateway;
 
 use App\Models\AiSuggestion;
+use App\Models\Category;
 use App\Models\Page;
 use App\Models\Post;
+use App\Models\PostCategory;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\ActivityLogger;
@@ -45,6 +47,10 @@ class MetaSuggestionService
             'title' => 'title', 'content' => 'content', 'meta_title' => 'seo_title', 'meta_description' => 'seo_description'],
         'page' => ['model' => Page::class, 'feature' => 'cms_page', 'permission' => 'pages.update',
             'title' => 'title', 'content' => 'published_html', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'],
+        'category' => ['model' => Category::class, 'feature' => 'catalog', 'permission' => 'products.update',
+            'title' => 'name', 'content' => 'description', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'],
+        'post_category' => ['model' => PostCategory::class, 'feature' => 'cms_page', 'permission' => 'posts.update',
+            'title' => 'name', 'content' => 'description', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'],
     ];
 
     /** Limits of the admin forms the values end up in. */

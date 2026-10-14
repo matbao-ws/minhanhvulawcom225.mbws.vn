@@ -8,6 +8,7 @@ use App\Models\PostCategory;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Support\HtmlSanitizer;
+use App\Support\Seo\SeoBox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ class PostCategoryController extends Controller
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly HtmlSanitizer $htmlSanitizer,
+        private readonly SeoBox $seoBox,
     ) {}
 
     /**
@@ -106,10 +108,13 @@ class PostCategoryController extends Controller
                 'name' => $names,
                 'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $names[$this->languages->defaultLocale()]),
                 'description' => $this->cleanTranslations($validated['description'] ?? [], true),
+                'meta_title' => $this->cleanTranslations($validated['meta_title'] ?? []),
+                'meta_description' => $this->cleanTranslations($validated['meta_description'] ?? []),
                 'is_active' => $request->boolean('is_active', true),
                 'sort_order' => $validated['sort_order'] ?? 0,
-            ]);
+            ] + $this->seoBox->payload($validated));
             $this->localizedSlugs->sync($category, $slugs, $names);
+            $this->seoBox->refreshScore($category);
         });
 
         return redirect()
@@ -143,10 +148,13 @@ class PostCategoryController extends Controller
                 'name' => $names,
                 'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $postCategory->slug, $postCategory->id),
                 'description' => $this->mergeTranslations($postCategory, 'description', $validated['description'] ?? [], true),
+                'meta_title' => $this->mergeTranslations($postCategory, 'meta_title', $validated['meta_title'] ?? []),
+                'meta_description' => $this->mergeTranslations($postCategory, 'meta_description', $validated['meta_description'] ?? []),
                 'is_active' => $request->boolean('is_active', true),
                 'sort_order' => $validated['sort_order'] ?? 0,
-            ]);
+            ] + $this->seoBox->payload($validated, $postCategory));
             $this->localizedSlugs->sync($postCategory, $slugs, $names);
+            $this->seoBox->refreshScore($postCategory);
         });
 
         return redirect()

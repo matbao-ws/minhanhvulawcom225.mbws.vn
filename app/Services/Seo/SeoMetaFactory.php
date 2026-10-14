@@ -166,6 +166,27 @@ class SeoMetaFactory
             socialDescription: $this->content->get($page, 'og_description') ?: null);
     }
 
+    /**
+     * A product category or blog category page: its SEO title and description (else its name and
+     * description), robots and canonical choices, share fields and the FAQ its description holds.
+     *
+     * @param  list<array{name: string, url: string}>  $breadcrumbs
+     */
+    public function forCollection(Model $record, string $routeName, ?string $image = null, array $breadcrumbs = []): SeoMeta
+    {
+        $title = (string) ($this->content->get($record, 'meta_title') ?: $this->content->get($record, 'name'));
+        $description = $this->content->get($record, 'meta_description') ?: $this->content->get($record, 'description');
+        $faq = $this->faqNode($record, 'description');
+
+        return $this->forRecord($record, $routeName, $title, $description,
+            image: MediaUrl::resolve($record->getAttribute('og_image')) ?: $image,
+            breadcrumbs: $breadcrumbs,
+            index: $record->getAttribute('robots_index') ?? true, follow: $record->getAttribute('robots_follow') ?? true,
+            canonical: $record->getAttribute('canonical_url'), structuredData: $faq ? [$faq] : [],
+            socialTitle: $this->content->get($record, 'og_title') ?: null,
+            socialDescription: $this->content->get($record, 'og_description') ?: null);
+    }
+
     /** FAQPage from the record's own "Câu hỏi thường gặp" section, unless switched off. */
     private function faqNode(Model $record, string $field): ?array
     {

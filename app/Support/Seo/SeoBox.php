@@ -2,8 +2,10 @@
 
 namespace App\Support\Seo;
 
+use App\Models\Category;
 use App\Models\Page;
 use App\Models\Post;
+use App\Models\PostCategory;
 use App\Models\Product;
 use App\Services\LanguageRegistry;
 use App\Services\PostSeoAnalyzer;
@@ -21,6 +23,8 @@ final class SeoBox
         Post::class => ['title' => 'title', 'content' => 'content', 'seo_title' => 'seo_title', 'seo_description' => 'seo_description', 'route' => 'client.posts.show'],
         Product::class => ['title' => 'name', 'content' => 'description', 'seo_title' => 'meta_title', 'seo_description' => 'meta_description', 'route' => 'client.products.show'],
         Page::class => ['title' => 'title', 'content' => 'published_html', 'seo_title' => 'meta_title', 'seo_description' => 'meta_description', 'route' => 'client.pages.show'],
+        Category::class => ['title' => 'name', 'content' => 'description', 'seo_title' => 'meta_title', 'seo_description' => 'meta_description', 'route' => 'client.categories.show'],
+        PostCategory::class => ['title' => 'name', 'content' => 'description', 'seo_title' => 'meta_title', 'seo_description' => 'meta_description', 'route' => 'client.post-categories.show'],
     ];
 
     public function __construct(

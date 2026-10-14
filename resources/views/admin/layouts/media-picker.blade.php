@@ -180,7 +180,9 @@
 
         document.addEventListener('media:selected', function (event) {
             const input = event.target;
-            const formPreview = input.closest('form')?.querySelector('[data-media-preview]');
+            // Only the form's main image (image_url) repaints its preview; e.g. the SEO box's share image does not.
+            const ownField = !input.dataset.mediaSelectedField || input.dataset.mediaSelectedField === 'image_url';
+            const formPreview = ownField ? input.closest('form')?.querySelector('[data-media-preview]') : null;
             if (formPreview) {
                 const image = formPreview.querySelector('[data-media-preview-image]');
                 if (image) image.src = event.detail.url;

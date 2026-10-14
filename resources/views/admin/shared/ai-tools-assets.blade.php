@@ -81,6 +81,33 @@
             </div></div>
         </div>
 
+        {{-- Category, blog category or brand description --}}
+        <div class="modal fade" id="ai-collection-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title"><i class="ti ti-sparkles me-1"></i>{{ __('ai.collection.title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <p class="text-muted small">{{ __('ai.collection.note') }}</p>
+                    <div class="js-ai-collection-start">
+                        <label class="form-label" for="ai-collection-words">{{ __('ai.product.length') }}</label>
+                        <input type="number" class="form-control mb-3" id="ai-collection-words" min="{{ \App\Services\AiGateway\CollectionIntroService::MIN_WORDS }}" max="{{ \App\Services\AiGateway\CollectionIntroService::MAX_WORDS }}" step="20" value="150" style="max-width: 160px">
+                        <button type="button" class="btn btn-primary js-ai-collection-run"><i class="ti ti-sparkles me-1"></i>{{ __('ai.product.run') }}</button>
+                    </div>
+                    <div class="js-ai-loading text-center py-4 d-none"><span class="spinner-border spinner-border-sm me-2"></span>{{ __('ai.product.loading') }}</div>
+                    <div class="js-ai-error alert alert-danger d-none mt-3"></div>
+                    <div class="js-ai-collection-result d-none">
+                        <div class="alert alert-warning small js-ai-collection-missing d-none"><div class="fw-semibold">{{ __('ai.product.missing') }}</div><ul class="mb-0"></ul></div>
+                        {{-- HTML the server already ran through the rich-text sanitizer. --}}
+                        <div class="border rounded p-3 bg-white js-ai-collection-preview" style="max-height: 420px; overflow: auto;"></div>
+                        <p class="small text-muted mt-2 mb-0 js-ai-usage"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary js-ai-reject d-none">{{ __('ai.edit.reject') }}</button>
+                    <button type="button" class="btn btn-primary js-ai-apply d-none">{{ __('ai.product.apply') }}</button>
+                </div>
+            </div></div>
+        </div>
+
         {{-- Fix by SEO score --}}
         <div class="modal fade" id="ai-seo-modal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
@@ -119,7 +146,7 @@
                 const urls = {
                     faq: @json(route('admin.ai.faq.suggest')), altMissing: @json(route('admin.ai.alt.missing')),
                     alt: @json(route('admin.ai.alt.suggest')), product: @json(route('admin.ai.product.suggest')), seo: @json(route('admin.ai.seo.suggest')),
-                    links: @json(route('admin.ai.links.suggest')),
+                    links: @json(route('admin.ai.links.suggest')), collection: @json(route('admin.ai.collection.suggest')),
                 };
                 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const notify = (icon, message) => window.Swal
@@ -330,6 +357,37 @@
                     product.part('.js-ai-apply').addEventListener('click', async function () {
                         this.disabled = true;
                         try { applied(productState, await post(productState.data.apply_url), product); }
+                        catch (error) { notify('error', error.message); }
+                        finally { this.disabled = false; }
+                    });
+
+                    // Category, blog category or brand description
+                    const collection = setup('ai-collection-modal');
+                    const collectionState = {};
+                    wireReject(collection, collectionState);
+                    document.querySelectorAll('.js-ai-collection').forEach((button) => button.addEventListener('click', function () {
+                        Object.assign(collectionState, { button, data: null });
+                        ['.js-ai-loading', '.js-ai-error', '.js-ai-collection-result', '.js-ai-apply', '.js-ai-reject'].forEach((s) => collection.show(s, false));
+                        collection.show('.js-ai-collection-start', true);
+                        collection.modal.show();
+                    }));
+                    collection.part('.js-ai-collection-run').addEventListener('click', async function () {
+                        collection.show('.js-ai-collection-start', false); collection.show('.js-ai-error', false); collection.show('.js-ai-loading', true);
+                        try {
+                            const payload = await post(urls.collection, { ...record(collectionState.button), target_words: Number(document.getElementById('ai-collection-words').value) });
+                            collectionState.data = payload.data;
+                            collection.part('.js-ai-collection-preview').innerHTML = payload.data.html;
+                            const list = collection.part('.js-ai-collection-missing ul'); list.replaceChildren();
+                            (payload.data.missing_info || []).forEach((item) => list.appendChild(el('li', {}, item)));
+                            collection.show('.js-ai-collection-missing', (payload.data.missing_info || []).length > 0);
+                            usage(collection.element, payload.data);
+                            collection.show('.js-ai-loading', false); collection.show('.js-ai-collection-result', true);
+                            collection.show('.js-ai-apply', true); collection.show('.js-ai-reject', true);
+                        } catch (error) { collection.fail(error.message); collection.show('.js-ai-collection-start', true); }
+                    });
+                    collection.part('.js-ai-apply').addEventListener('click', async function () {
+                        this.disabled = true;
+                        try { applied(collectionState, await post(collectionState.data.apply_url), collection); }
                         catch (error) { notify('error', error.message); }
                         finally { this.disabled = false; }
                     });
