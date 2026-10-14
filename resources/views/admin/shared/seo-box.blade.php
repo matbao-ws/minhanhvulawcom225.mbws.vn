@@ -113,6 +113,12 @@
                     <span class="rm-score {{ $seoTone }}" data-seo-score-pill><span data-seo-score>{{ $seoScore }}</span>&nbsp;/ 100</span>
                 </div>
                 <p class="form-text mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
+                {{-- The keyword (and titles) the AI reads from the saved page, in the default language. --}}
+                @include('admin.shared.ai-meta-button', [
+                    'entityType' => $entityType, 'entity' => $record, 'locale' => $seoDefaultLocale,
+                    'titleField' => "{$titleField}[$seoDefaultLocale]", 'descriptionField' => "{$descriptionField}[$seoDefaultLocale]",
+                    'label' => __('ai.meta.keyword_button'), 'wrapperClass' => 'mt-2',
+                ])
             </div>
 
             @include('admin.shared.ai-seo-fix-button', ['entityType' => $entityType, 'entity' => $record])

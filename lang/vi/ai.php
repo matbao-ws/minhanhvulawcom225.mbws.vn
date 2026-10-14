@@ -2,6 +2,10 @@
 
 return [
     'meta' => [
+        'keyword_button' => 'Gợi ý từ khóa bằng AI',
+        'keyword_suggested' => 'Từ khóa chính gợi ý',
+        'keyword_use' => 'Dùng làm từ khóa chính',
+        'keyword_added' => 'Đã đặt làm từ khóa chính. Bấm Lưu để giữ thay đổi.',
         'button' => 'Gợi ý meta bằng AI',
         'title' => 'Gợi ý meta bằng AI',
         'loading' => 'AI đang đọc nội dung và soạn gợi ý…',

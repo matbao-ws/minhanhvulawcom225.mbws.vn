@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\User;
 use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\AiGateway\MetaSuggestionService;
+use App\Support\Seo\SeoBox;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -84,6 +85,15 @@ trait HandlesAiSuggestions
             $this->refreshPostScore($record);
         }
         $record->save();
+        $this->refreshBoxScore($record);
+    }
+
+    /** Products and pages keep their SEO box score (posts: refreshPostScore) after an AI write. */
+    protected function refreshBoxScore(Model $record): void
+    {
+        if (! $record instanceof Post && isset(SeoBox::MODELS[$record::class])) {
+            app(SeoBox::class)->refreshScore($record);
+        }
     }
 
     protected function sanitizeBody(Model $record, string $html): string

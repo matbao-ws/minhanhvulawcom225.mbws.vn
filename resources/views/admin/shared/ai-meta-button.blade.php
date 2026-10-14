@@ -12,7 +12,7 @@
         && auth()->user()?->can($aiDefinition['permission']);
 @endphp
 @if($aiAllowed)
-    <div class="mb-3">
+    <div class="{{ $wrapperClass ?? 'mb-3' }}">
         @if($entity?->exists)
             <button type="button" class="btn btn-sm btn-outline-primary js-ai-meta-suggest"
                     data-entity-type="{{ $entityType }}"
@@ -20,7 +20,7 @@
                     data-locale="{{ $locale }}"
                     data-title-field="{{ $titleField }}"
                     data-description-field="{{ $descriptionField }}">
-                <i class="ti ti-sparkles me-1"></i>{{ __('ai.meta.button') }}
+                <i class="ti ti-sparkles me-1"></i>{{ $label ?? __('ai.meta.button') }}
             </button>
         @else
             <span class="text-muted small"><i class="ti ti-sparkles me-1"></i>{{ __('ai.meta.save_first') }}</span>

@@ -315,6 +315,15 @@
             commitKeywords();
         }
 
+        // "Use as focus keyword" from the AI meta suggestions: first badge, so the checks use it.
+        document.addEventListener('seo-box:use-keyword', function (event) {
+            const word = String(event.detail?.keyword || '').trim().replace(/\s+/g, ' ');
+            if (!word || !keysInput) return;
+            keywords = [word].concat(keywords.filter(current => current.toLowerCase() !== word.toLowerCase()));
+            while (keywords.join(', ').length > 255) keywords.pop();
+            commitKeywords();
+        });
+
         if (keywordBox && keywordEntry && keysInput) {
             keywordEntry.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter' || event.key === ',') {

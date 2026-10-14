@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AiSuggestion;
 use App\Models\FeatureSetting;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
 use App\Models\ProductOptionGroup;
@@ -176,7 +177,7 @@ class AiToolsTest extends TestCase
 
     public function test_seo_fix_rewrites_a_policy_pages_opening_through_its_revision_path(): void
     {
-        $page = \App\Models\Page::query()->create([
+        $page = Page::query()->create([
             'title' => ['vi' => 'Chính sách đổi trả'], 'slug' => 'doi-tra', 'is_active' => true, 'seo_keys' => 'đổi trả',
             'published_html' => ['vi' => '<p>Khách được hoàn tiền.</p><h2>Điều kiện</h2><p>Còn tem.</p>'],
         ]);

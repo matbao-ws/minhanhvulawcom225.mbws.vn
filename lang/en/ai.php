@@ -2,6 +2,10 @@
 
 return [
     'meta' => [
+        'keyword_button' => 'Suggest a keyword with AI',
+        'keyword_suggested' => 'Suggested focus keyword',
+        'keyword_use' => 'Use as focus keyword',
+        'keyword_added' => 'Set as the focus keyword. Save to keep it.',
         'button' => 'AI meta suggestions',
         'title' => 'AI meta suggestions',
         'loading' => 'The AI is reading the content and drafting suggestions…',
