@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Post;
 use App\Models\PostCategory;
+use App\Services\Seo\RedirectService;
 use App\Support\HtmlSanitizer;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -15,6 +17,14 @@ use XMLReader;
 
 class WordPressPostImportService
 {
+    /** @var array{name: string, description: string, hosts: list<string>} the WordPress site being imported */
+    private array $site = ['name' => '', 'description' => '', 'hosts' => []];
+
+    /** @var list<int> posts written by this batch, whose links finishBatch() rewrites */
+    private array $touched = [];
+
+    private int $redirectCount = 0;
+
     public function __construct(
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
@@ -22,10 +32,59 @@ class WordPressPostImportService
         private readonly PostSeoAnalyzer $seoAnalyzer,
         private readonly WordPressImageImportService $images,
         private readonly WordPressContentNormalizer $contentNormalizer,
+        private readonly RedirectService $redirects,
+        private readonly WordPressSeoMeta $seoMeta,
     ) {}
 
     /**
-     * @return array{imported: int, updated: int, skipped: int, failed: int, errors: list<string>, images_downloaded: int, images_failed: int, image_errors: list<string>}
+     * Starts an import of one WordPress site: its name fills the SEO title templates, its hosts
+     * tell which links inside posts are internal.
+     *
+     * @param  array{name?: string, description?: string, hosts?: list<string>}  $site
+     */
+    public function startBatch(array $site = []): void
+    {
+        $this->site = [
+            'name' => (string) ($site['name'] ?? ''),
+            'description' => (string) ($site['description'] ?? ''),
+            'hosts' => array_values(array_filter($site['hosts'] ?? [])),
+        ];
+        $this->touched = [];
+        $this->redirectCount = 0;
+    }
+
+    /**
+     * After every item of the batch is in: old image addresses redirect to the copies, and links
+     * between imported posts point straight at the new URLs.
+     *
+     * @return array{redirects: int, image_redirects: int, links_rewritten: int}
+     */
+    public function finishBatch(): array
+    {
+        $imageRedirects = $this->redirects->rememberImages($this->images->localizedUrls());
+        $rewritten = 0;
+
+        Post::query()->whereKey($this->touched)->orderBy('id')->each(function (Post $post) use (&$rewritten): void {
+            $contents = $post->getTranslations('content');
+            $changed = false;
+            foreach ($contents as $locale => $html) {
+                $linked = $this->redirects->rewriteLinks((string) $html, $this->site['hosts']);
+                if ($linked !== $html) {
+                    $contents[$locale] = $linked;
+                    $changed = true;
+                }
+            }
+            if ($changed) {
+                $post->update(['content' => $contents]);
+                $rewritten++;
+            }
+        });
+
+        return ['redirects' => $this->redirectCount, 'image_redirects' => $imageRedirects, 'links_rewritten' => $rewritten];
+    }
+
+    /**
+     * @return array{imported: int, updated: int, skipped: int, failed: int, errors: list<string>, images_downloaded: int, images_failed: int, image_errors: list<string>, redirects: int, image_redirects: int, links_rewritten: int}
      */
     public function import(string $filePath, string $duplicateAction = 'skip'): array
     {
@@ -38,6 +97,7 @@ class WordPressPostImportService
         }
 
         $this->images->reset();
+        $this->startBatch($this->channelInfo($filePath));
         $attachments = $this->attachmentMap($filePath);
         $results = ['imported' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
         $postNumber = 0;
@@ -64,10 +124,12 @@ class WordPressPostImportService
             }
         });
 
+        $finished = $this->finishBatch();
         $imageReport = $this->images->report();
 
         return [
             ...$results,
+            ...$finished,
             'images_downloaded' => $imageReport['downloaded'],
             'images_failed' => $imageReport['failed'],
             'image_errors' => $imageReport['errors'],
@@ -86,11 +148,13 @@ class WordPressPostImportService
         $embedded = (array) ($post['_embedded'] ?? []);
         $categories = collect((array) ($embedded['wp:term'] ?? []))->flatten(1)
             ->filter(fn ($term) => is_array($term) && ($term['taxonomy'] ?? '') === 'category')
-            ->map(fn (array $term) => ['name' => html_entity_decode((string) ($term['name'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'slug' => rawurldecode((string) ($term['slug'] ?? ''))])
+            ->map(fn (array $term) => ['name' => html_entity_decode((string) ($term['name'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'slug' => rawurldecode((string) ($term['slug'] ?? '')), 'link' => (string) ($term['link'] ?? '')])
             ->values()->all();
         $featuredId = (string) ($post['featured_media'] ?? '');
         $featuredUrl = (string) ($embedded['wp:featuredmedia'][0]['source_url'] ?? '');
-        $yoast = (array) ($post['yoast_head_json'] ?? []);
+        $link = (string) ($post['link'] ?? '');
+        // Rendered by Yoast, or by Rank Math's headless getHead (WordPressSiteImportService).
+        $head = (array) ($post['seo_head'] ?? $post['yoast_head_json'] ?? []);
 
         $data = [
             'post_id' => (string) ($post['id'] ?? ''),
@@ -105,11 +169,9 @@ class WordPressPostImportService
             'content' => (string) ($post['content']['rendered'] ?? ''),
             'excerpt' => (string) ($post['excerpt']['rendered'] ?? ''),
             'categories' => $categories,
-            'meta' => array_filter([
-                '_yoast_wpseo_title' => trim((string) ($yoast['title'] ?? '')),
-                '_yoast_wpseo_metadesc' => trim((string) ($yoast['description'] ?? '')),
-                '_thumbnail_id' => $featuredId,
-            ]),
+            'link' => $link,
+            'meta' => array_filter(['_thumbnail_id' => $featuredId]),
+            'seo' => $head === [] ? null : $this->seoMeta->fromHead($head, $link),
         ];
 
         if ($data['title'] === '') {
@@ -254,6 +316,7 @@ class WordPressPostImportService
             'post_password' => trim((string) ($wp?->post_password ?? '')),
             'attachment_url' => trim((string) ($wp?->attachment_url ?? '')),
             'title' => trim((string) $item->title),
+            'link' => trim((string) $item->link),
             'content' => (string) ($content?->encoded ?? ''),
             'excerpt' => (string) ($excerpt?->encoded ?? ''),
             'categories' => $categories,
@@ -269,6 +332,9 @@ class WordPressPostImportService
         $existing = Post::query()->where('slug', $slug)->lockForUpdate()->first();
 
         if ($existing && $duplicateAction === 'skip') {
+            // Already here: its old address still has to lead to it.
+            $this->rememberUrl((string) ($data['link'] ?? ''), $existing);
+
             return 'skipped';
         }
 
@@ -278,9 +344,19 @@ class WordPressPostImportService
         );
         $summary = trim(html_entity_decode(strip_tags((string) $data['excerpt']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $meta = $data['meta'];
-        $seoTitle = trim((string) ($meta['_yoast_wpseo_title'] ?? ''));
-        $seoDescription = trim((string) ($meta['_yoast_wpseo_metadesc'] ?? ''));
-        $focusKeyword = trim((string) ($meta['_yoast_wpseo_focuskw'] ?? $meta['_yoast_wpseo_focuskw_text_input'] ?? ''));
+        // Rank Math or Yoast: the title and description Google showed, keywords, canonical, robots.
+        $seo = $data['seo'] ?? $this->seoMeta->fromPostMeta($meta, [
+            'title' => (string) $data['title'],
+            'excerpt' => Str::limit($summary, 156, ''),
+            'site_name' => $this->site['name'],
+            'site_description' => $this->site['description'],
+            'category' => (string) ($data['categories'][0]['name'] ?? ''),
+            'date' => (string) $data['post_date'],
+            'link' => (string) ($data['link'] ?? ''),
+        ]);
+        $seoTitle = $seo['title'];
+        $seoDescription = $seo['description'];
+        $focusKeyword = $seo['keywords'];
         $thumbnailId = trim((string) ($meta['_thumbnail_id'] ?? ''));
         $sourceImageUrl = $attachments[$thumbnailId] ?? $this->firstImageUrl($content);
         $imageUrl = $this->images->localize($sourceImageUrl);
@@ -306,8 +382,9 @@ class WordPressPostImportService
             'seo_title' => $seoTitle === '' ? [] : [$locale => Str::limit($seoTitle, 255, '')],
             'seo_description' => $seoDescription === '' ? [] : [$locale => Str::limit($seoDescription, 500, '')],
             'seo_keys' => $focusKeyword === '' ? null : Str::limit($focusKeyword, 255, ''),
-            'robots_index' => true,
-            'robots_follow' => true,
+            'canonical_url' => $seo['canonical'],
+            'robots_index' => $seo['index'],
+            'robots_follow' => $seo['follow'],
             'seo_score' => $analysis['score'],
             'seo_analysis' => $analysis,
             'published_at' => $publishedAt,
@@ -323,8 +400,64 @@ class WordPressPostImportService
         }
 
         $this->localizedSlugs->sync($post, [$locale => $slug], [$locale => (string) $data['title']]);
+        $this->touched[] = (int) $post->getKey();
+        $this->rememberUrl((string) ($data['link'] ?? ''), $post);
+        if ($category) {
+            // WXR names the category but not its URL: WordPress's default /category/{slug}/.
+            $categoryData = (array) $data['categories'][0];
+            $this->rememberUrl((string) ($categoryData['link'] ?? '') ?: '/category/'.rawurlencode((string) ($categoryData['slug'] ?? '')).'/', $category);
+        }
 
         return $result;
+    }
+
+    /** The old WordPress address of an item now redirects (301) to where it lives here. */
+    public function rememberUrl(string $oldUrl, Model $model): void
+    {
+        if (trim($oldUrl) !== '' && $this->redirects->remember($oldUrl, $model)) {
+            $this->redirectCount++;
+        }
+    }
+
+    /**
+     * The site name and address from a WXR export's <channel>: titles use the name, links to the
+     * address are the site's own.
+     *
+     * @return array{name: string, description: string, hosts: list<string>}
+     */
+    private function channelInfo(string $filePath): array
+    {
+        $info = ['name' => '', 'description' => '', 'hosts' => []];
+        $reader = new XMLReader;
+        $previousErrors = libxml_use_internal_errors(true);
+
+        try {
+            if (! $reader->open($filePath, null, LIBXML_NONET | LIBXML_COMPACT)) {
+                return $info;
+            }
+            while ($reader->read()) {
+                if ($reader->nodeType !== XMLReader::ELEMENT || $reader->depth !== 2) {
+                    continue;
+                }
+                if ($reader->localName === 'item') {
+                    break; // channel fields come before the items
+                }
+                $value = trim($reader->readString());
+                match ($reader->localName) {
+                    'title' => $info['name'] = $value,
+                    'description' => $info['description'] = $value,
+                    'link', 'base_site_url', 'base_blog_url' => $info['hosts'][] = strtolower((string) parse_url($value, PHP_URL_HOST)),
+                    default => null,
+                };
+            }
+        } finally {
+            $reader->close();
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousErrors);
+        }
+        $info['hosts'] = array_values(array_unique(array_filter($info['hosts'])));
+
+        return $info;
     }
 
     /** @param array{name?: string, slug?: string}|null $data */

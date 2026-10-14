@@ -46,7 +46,7 @@ class TranslationService
                 foreach (array_keys($chunk) as $index => $key) {
                     $value = html_entity_decode((string) ($translated[$index] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
                     if ($format === 'html') {
-                        $value = $this->htmlSanitizer->clean($value);
+                        $value = $this->htmlSanitizer->cleanRichText($value);
                     }
 
                     $result[$key] = $value;

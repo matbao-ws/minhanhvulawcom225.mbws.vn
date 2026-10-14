@@ -63,6 +63,7 @@ return [
         'admin.promotions.create' => 'promotions_form',
         'admin.promotions.edit' => 'promotions_form',
         'admin.promotions.index' => 'promotions_index',
+        'admin.redirects.index' => 'redirects_index',
         'admin.reviews.index' => 'reviews_index',
         'admin.roles.create' => 'roles_form',
         'admin.roles.edit' => 'roles_form',
@@ -306,6 +307,15 @@ return [
             ['shipping_partners_form.submit', 'shipping-partner-form.submit', 'top', false],
             ['shipping_partners_form.back', 'shipping-partner-form.back', 'top', false],
         ],
+        'redirects_index' => [
+            ['redirects_index.intro', null, 'bottom', false],
+            ['redirects_index.tabs', 'redirects.tabs', 'bottom', false],
+            ['redirects_index.add', 'redirects.add', 'bottom', true],
+            ['redirects_index.import', 'redirects.import', 'bottom', true],
+            ['redirects_index.search', 'redirects.search', 'bottom', false],
+            ['redirects_index.table', 'redirects.table', 'top', false],
+            ['layout.help', 'layout.help', 'bottom', false],
+        ],
         'contact_submissions_index' => [
             ['contact_submissions_index.intro', null, 'bottom', false],
             ['contact_submissions_index.tabs', 'contacts.tabs', 'bottom', false],
@@ -354,7 +364,7 @@ return [
             ['posts_form.thumbnail', 'post-form.thumbnail', 'left', false],
             ['posts_form.status', 'post-form.status', 'left', false],
             ['posts_form.category', 'post-form.category', 'left', false],
-            ['posts_form.seo_analysis', 'post-form.seo-analysis', 'left', false],
+            ['posts_form.seo_analysis', 'post-form.seo-analysis', 'top', false],
             ['form.save', 'form.save', 'top', false],
         ],
         'post_categories_index' => [

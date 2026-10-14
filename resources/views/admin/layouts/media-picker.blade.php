@@ -154,9 +154,9 @@
 
         function select(url) {
             if (!activeInput) return;
-            const isQuillMediaPicker = activeInput.dataset.quillMediaPicker === 'true';
+            const isEditorMediaPicker = activeInput.dataset.editorMediaPicker === 'true';
             const form = activeInput.closest('form');
-            if (form && !isQuillMediaPicker) {
+            if (form && !isEditorMediaPicker) {
                 let targets = Array.from(form.querySelectorAll('[name="' + selectedField(activeInput) + '"]'));
                 if (targets.length === 0) {
                     const target = document.createElement('input');

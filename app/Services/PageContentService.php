@@ -152,7 +152,7 @@ class PageContentService
      * The admin form submits `published_html` only for the locales whose
      * editor was actually touched, so submitted locales are merged over the
      * stored ones. A save that leaves the editor alone never rewrites content
-     * the storefront inline editor saved — Quill would flatten its markup.
+     * the storefront inline editor saved — the admin editor would normalise its markup.
      */
     private function payload(array $data, ?Page $page = null): array
     {

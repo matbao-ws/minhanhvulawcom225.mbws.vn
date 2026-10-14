@@ -104,10 +104,10 @@ class SeoFixService
                 $post->setTranslation('seo_description', $locale, Str::limit(trim($values['seo_description']), 500, ''));
             }
             if (isset($values['intro_html'])) {
-                $intro = $this->htmlSanitizer->clean($values['intro_html']);
+                $intro = $this->htmlSanitizer->cleanRichText($values['intro_html']);
                 abort_unless($this->bodyReferences($intro) === $this->bodyReferences($current['intro_html']), 422, __('ai.errors.unsafe_output'));
                 $body = (string) $post->getTranslation('content', $locale, false);
-                $post->setTranslation('content', $locale, $this->htmlSanitizer->clean($intro.substr($body, strlen($current['intro_html']))));
+                $post->setTranslation('content', $locale, $this->htmlSanitizer->cleanRichText($intro.substr($body, strlen($current['intro_html']))));
             }
 
             $this->refreshPostScore($post);
@@ -156,7 +156,7 @@ class SeoFixService
         foreach (self::FIELDS as $field) {
             $value = trim((string) ($result[$field] ?? ''));
             if ($field === 'intro_html' && $value !== '') {
-                $value = $this->htmlSanitizer->clean($value);
+                $value = $this->htmlSanitizer->cleanRichText($value);
                 // The opening may be reworded, never re-linked.
                 if ($this->bodyReferences($value) !== $this->bodyReferences($current['intro_html'])) {
                     $value = '';

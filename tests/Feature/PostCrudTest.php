@@ -7,6 +7,7 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\PostSeoAnalyzer;
 use App\Support\FeatureGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -183,6 +184,12 @@ class PostCrudTest extends TestCase
             ->assertOk()
             ->assertSee('seo_google_preview_result', false)
             ->assertSee('rule_internal_links', false)
+            ->assertSee('data-seo-group="basic"', false)
+            ->assertSee('data-seo-group="additional"', false)
+            ->assertSee('data-seo-group="title_readability"', false)
+            ->assertSee('id="seo-tab-preview"', false)
+            ->assertSee('id="seo-tab-advanced"', false)
+            ->assertSee('data-seo-length="vi-title"', false)
             ->assertSee('name="canonical_url"', false)
             ->assertSee('name="robots_index"', false)
             ->assertSee('name="robots_follow"', false);
@@ -195,13 +202,14 @@ class PostCrudTest extends TestCase
             ->assertOk()
             ->assertSee('placeholder="Nhập tiêu đề hấp dẫn thu hút người đọc..."', false)
             ->assertSee('placeholder="tieu-de-bai-viet-chuan-seo"', false)
-            ->assertSee('placeholder="Nhập tóm tắt thu hút hiển thị ở danh sách bài viết..."', false)
+            ->assertDontSee('name="summary[vi]"', false)
+            ->assertSee('id="seo_keys_entry"', false)
+            ->assertSee('id="seo-snippet-editor"', false)
             ->assertSee('data-placeholder="Nhập nội dung chi tiết..."', false)
             ->assertSee(__('admin.posts.placeholders.content_paste_hint'))
-            ->assertSee("['link', 'image', 'video', 'table']", false)
-            ->assertSee('adminPostTableModule', false)
-            ->assertSee('fullWidth: true', false)
-            ->assertSee('Mô tả ảnh (alt text)', false)
+            ->assertSee('class="rich-editor" data-preset="full" data-media-folder="posts" data-target="content_input"', false)
+            ->assertSee('jodit.min.js', false)
+            ->assertSee('rich-editor.js', false)
             ->assertSee('placeholder="Bỏ trống để tự động lấy theo tiêu đề bài viết..."', false)
             ->assertSee('placeholder="Mô tả ngắn gọn nội dung hiển thị trên kết quả tìm kiếm (120-160 ký tự)..."', false)
             ->assertSee('placeholder="Ví dụ: chuẩn seo, gio hang..."', false)
@@ -513,6 +521,102 @@ XML;
         $this->assertStringContainsString('<table class="ql-table" data-table-id="table-1" data-full="">', $content);
         $this->assertStringContainsString('<colgroup data-table-id="table-1">', $content);
         $this->assertStringContainsString('<td class="ql-table-cell" data-table-id="table-1" data-row-id="row-1" data-col-id="column-1"><p>Cell 1</p></td>', $content);
+    }
+
+    public function test_post_content_keeps_editor_formatting_and_drops_unsafe_markup(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->put('/vi/admin/posts/'.$this->post->id, [
+                'title' => 'Post with formatting',
+                'slug' => 'post-with-formatting',
+                'summary' => 'A post summary with formatting.',
+                'content' => '<p style="text-align: center; position: fixed;">Giữa</p>'
+                    .'<figure><img src="https://example.com/a.jpg" alt="Ảnh" style="width: 300px; float: left;"><figcaption>Chú thích</figcaption></figure>'
+                    .'<table style="border-collapse: collapse; width: 100%;"><tbody><tr><td style="width: 50%;">1</td></tr></tbody></table>'
+                    .'<iframe width="400" height="300" src="https://www.youtube.com/embed/abc123" allowfullscreen></iframe>'
+                    .'<iframe src="https://evil.example/embed"></iframe>'
+                    .'<p><a href="https://example.com" target="_blank" rel="nofollow">ngoài</a></p>',
+                'seo_title' => 'SEO title for formatting',
+                'seo_description' => 'SEO description for a post that has formatting.',
+                'seo_keys' => 'formatting',
+            ])
+            ->assertRedirect('/vi/admin/posts');
+
+        $content = $this->post->fresh()->getTranslation('content', 'vi');
+        $this->assertStringContainsString('<p style="text-align:center;">Giữa</p>', $content);
+        $this->assertStringContainsString('style="width:300px;float:left;"', $content);
+        $this->assertStringContainsString('<figcaption>Chú thích</figcaption></figure>', $content);
+        $this->assertStringContainsString('<table style="border-collapse:collapse;width:100%;">', $content);
+        $this->assertStringContainsString('src="https://www.youtube.com/embed/abc123"', $content);
+        $this->assertStringNotContainsString('evil.example', $content);
+        $this->assertStringNotContainsString('position', $content);
+        $this->assertStringContainsString('target="_blank"', $content);
+        $this->assertStringContainsString('nofollow', $content);
+    }
+
+    public function test_summary_follows_the_seo_description_or_the_content_unless_typed(): void
+    {
+        $payload = fn (array $overrides) => [
+            'title' => ['vi' => 'Bài tự tóm tắt'],
+            'content' => ['vi' => '<p>Đoạn mở đầu của bài.</p><p>Đoạn thứ hai.</p>'],
+            ...$overrides,
+        ];
+
+        $this->actingAs($this->adminUser)->post('/vi/admin/posts', $payload([]))->assertRedirect('/vi/admin/posts');
+        $post = Post::query()->latest('id')->first();
+        $this->assertSame('Đoạn mở đầu của bài. Đoạn thứ hai.', $post->getTranslation('summary', 'vi'));
+
+        // Still automatic: follows the SEO description once there is one.
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$post->id, $payload(['seo_description' => ['vi' => 'Mô tả SEO của bài.']]));
+        $this->assertSame('Mô tả SEO của bài.', $post->fresh()->getTranslation('summary', 'vi'));
+
+        // A summary typed before the field went away (or imported) is kept.
+        $this->post->setTranslation('summary', 'vi', 'Tóm tắt viết tay')->save();
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$this->post->id, [
+            'title' => ['vi' => 'Bài viết thử nghiệm'],
+            'content' => ['vi' => '<p>Nội dung mới hoàn toàn.</p>'],
+        ]);
+        $this->assertSame('Tóm tắt viết tay', $this->post->fresh()->getTranslation('summary', 'vi'));
+    }
+
+    public function test_share_fields_and_schema_are_saved_and_can_be_cleared(): void
+    {
+        $payload = [
+            'title' => ['vi' => 'Bài viết thử nghiệm'],
+            'content' => ['vi' => '<p>Nội dung.</p>'],
+            'og_title' => ['vi' => 'Tiêu đề khi chia sẻ'],
+            'og_description' => ['vi' => 'Mô tả khi chia sẻ'],
+            'og_image' => url('/storage/posts/share.jpg'),
+            'schema_type' => 'NewsArticle',
+            'schema_faq' => '0',
+        ];
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$this->post->id, $payload)->assertRedirect('/vi/admin/posts');
+
+        $post = $this->post->fresh();
+        $this->assertSame('Tiêu đề khi chia sẻ', $post->getTranslation('og_title', 'vi'));
+        $this->assertSame('/storage/posts/share.jpg', $post->getRawOriginal('og_image'), 'stored relative');
+        $this->assertSame('NewsArticle', $post->schema_type);
+        $this->assertFalse($post->schema_faq);
+
+        // Emptied: back to following the SEO title and featured image.
+        $this->actingAs($this->adminUser)->put('/vi/admin/posts/'.$this->post->id, ['og_title' => ['vi' => ''], 'og_image' => ''] + $payload);
+        $this->assertSame('', $this->post->fresh()->getTranslation('og_title', 'vi', false));
+        $this->assertNull($this->post->fresh()->getRawOriginal('og_image'));
+
+        $this->actingAs($this->adminUser)->from('/vi/admin/posts')->put('/vi/admin/posts/'.$this->post->id, ['schema_type' => 'Recipe'] + $payload)
+            ->assertSessionHasErrors('schema_type');
+    }
+
+    public function test_only_the_first_keyword_is_scored(): void
+    {
+        $analyzer = app(PostSeoAnalyzer::class);
+        $data = ['title' => 'Giày chạy bộ', 'seo_title' => 'Giày chạy bộ cho người mới', 'content' => '<p>Giày chạy bộ êm.</p>'];
+
+        $single = $analyzer->analyze([...$data, 'focus_keyword' => 'giày chạy bộ']);
+        $several = $analyzer->analyze([...$data, 'focus_keyword' => 'giày chạy bộ, giày thể thao, sneaker']);
+
+        $this->assertSame($single['score'], $several['score']);
+        $this->assertTrue($several['rules']['title_keyword']);
     }
 
     public function test_public_post_exposes_canonical_and_robots_metadata(): void

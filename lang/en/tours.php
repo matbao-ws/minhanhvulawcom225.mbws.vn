@@ -252,6 +252,15 @@ return [
         'back' => ['title' => 'Back', 'description' => 'Return to the list without saving.'],
     ],
 
+    'redirects_index' => [
+        'intro' => ['title' => 'Redirects & 404 errors', 'description' => 'Old links (for example from a previous WordPress site) redirect 301 to their new page so Google keeps their rankings. They apply only when nothing else answers the old link.'],
+        'tabs' => ['title' => 'Redirects and 404 errors', 'description' => 'The 404 tab lists links visitors or Google opened that have no page, most requested first. Click "Create redirect" to handle each one.'],
+        'add' => ['title' => 'Add a redirect', 'description' => 'Enter the old link, the new link and the type: 301 (moved for good, keeps rankings), 302/307 (temporary) or 410 (gone for good).'],
+        'import' => ['title' => 'CSV import and export', 'description' => 'Import many redirects at once from a CSV file (old link, new link, code), or download the current list.'],
+        'search' => ['title' => 'Search and filter', 'description' => 'Search by old or new link; filter by origin: made by hand, WordPress import or from a 404.'],
+        'table' => ['title' => 'The list', 'description' => 'Redirects made by the WordPress import follow the new page, even if you change its slug later. Hits show how often the old link is still requested.'],
+    ],
+
     'contact_submissions_index' => [
         'intro' => ['title' => 'Contact messages', 'description' => 'Messages sent through the website contact form, newest first.'],
         'tabs' => ['title' => 'Inbox and Spam', 'description' => 'Messages caught by the spam filter go to the Spam tab: they skip the inbox and send no email.'],
@@ -294,7 +303,7 @@ return [
         'intro' => ['title' => 'Write a post', 'description' => 'The left column holds content and SEO, the right column the image, status, category and SEO score.'],
         'general' => ['title' => 'Content per language', 'description' => 'Each tab is one language with its own title, slug and summary. The main language needs a title and content.'],
         'editor' => ['title' => 'Content editor', 'description' => 'Write with headings, bold, lists, links and images. You can paste from another website; foreign styling is removed.'],
-        'seo_meta' => ['title' => 'SEO title and description', 'description' => 'The title and description shown on Google for the language in view. Keep the title under 60 characters.'],
+        'seo_meta' => ['title' => 'Google preview', 'description' => 'How the post shows on Google. Click Edit SEO title & description to change them for the language in view; keep the title under 60 characters.'],
         'seo' => ['title' => 'SEO settings', 'description' => 'Focus keyword, canonical link, whether Google may index the post and follow its links, plus a search result preview.'],
         'thumbnail' => ['title' => 'Featured image', 'description' => 'Click the box to pick an image from the Media library or upload a new one.'],
         'status' => ['title' => 'Status', 'description' => 'Choose whether the post is shown on the website or hidden.'],

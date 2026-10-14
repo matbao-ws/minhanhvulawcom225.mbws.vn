@@ -1,0 +1,1 @@
+Jodit 4.15.14 (MIT) — es2021.en build from npm package jodit@4.15.14. Vietnamese strings live in admin-assets/js/forms/rich-editor.js.

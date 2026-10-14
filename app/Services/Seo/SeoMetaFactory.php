@@ -10,6 +10,7 @@ use App\Services\LocalizedContent;
 use App\Services\SiteBranding;
 use App\Support\FeatureGate;
 use App\Support\MediaUrl;
+use App\Support\Seo\FaqSchema;
 use App\Support\Seo\RecordLocales;
 use App\Support\Seo\SeoMeta;
 use App\Support\Seo\StructuredData;
@@ -50,6 +51,8 @@ class SeoMetaFactory
         bool $follow = true,
         ?string $canonical = null,
         array $structuredData = [],
+        ?string $socialTitle = null,
+        ?string $socialDescription = null,
     ): SeoMeta {
         $locale = app()->getLocale();
         $url = fn (string $code) => route($routeName, ['locale' => $code, 'slug' => $model->canonicalSlug($code)]);
@@ -87,6 +90,8 @@ class SeoMetaFactory
             alternates: $alternates,
             xDefault: $alternates ? $url(in_array($default, $own, true) ? $default : $own[0]) : null,
             structuredData: array_values(array_filter([StructuredData::breadcrumbs($trail), ...$structuredData])),
+            socialTitle: $socialTitle,
+            socialDescription: $this->description($socialDescription),
         );
     }
 
@@ -140,6 +145,8 @@ class SeoMetaFactory
             ?: $this->content->get($post, 'summary')
             ?: $this->content->get($post, 'content'));
         $image = MediaUrl::resolve($post->image_url);
+        // Shared on Facebook, Zalo, X: the post's own picture for it, else the featured image.
+        $socialImage = MediaUrl::resolve($post->og_image) ?: $image;
         $url = Route::has($routeName) ? route($routeName, ['locale' => app()->getLocale(), 'slug' => $post->canonicalSlug()]) : url()->current();
         $category = $post->category;
         $breadcrumbs = $category && $category->is_active && Route::has('client.post-categories.show')
@@ -147,6 +154,7 @@ class SeoMetaFactory
             : [];
 
         $schema = StructuredData::article([
+            'type' => (string) ($post->schema_type ?: 'Article'),
             'headline' => (string) $this->content->get($post, 'title'),
             'url' => $url,
             'description' => $description,
@@ -155,14 +163,22 @@ class SeoMetaFactory
             'modified' => $post->updated_at?->toAtomString(),
         ], $this->branding->current());
 
+        $nodes = [$schema];
+        if ($post->schema_faq ?? true) {
+            $nodes[] = StructuredData::faq(FaqSchema::fromHtml((string) $this->content->get($post, 'content')));
+        }
+        $nodes = array_values(array_filter($nodes));
+
         if (! Route::has($routeName)) {
-            return $this->fallback($title, $description, [$schema], $image, 'article');
+            return $this->fallback($title, $description, $nodes, $socialImage, 'article');
         }
 
         return $this->forRecord($post, $routeName, $title, $description,
-            image: $image, type: 'article', breadcrumbs: $breadcrumbs,
+            image: $socialImage, type: 'article', breadcrumbs: $breadcrumbs,
             index: $post->robots_index ?? true, follow: $post->robots_follow ?? true,
-            canonical: $post->canonical_url, structuredData: [$schema]);
+            canonical: $post->canonical_url, structuredData: $nodes,
+            socialTitle: $this->content->get($post, 'og_title') ?: null,
+            socialDescription: $this->content->get($post, 'og_description') ?: null);
     }
 
     /**

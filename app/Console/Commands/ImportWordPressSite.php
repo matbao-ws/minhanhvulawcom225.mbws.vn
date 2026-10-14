@@ -51,6 +51,8 @@ class ImportWordPressSite extends Command
             }
         }
         $this->line("images: {$report['images']['downloaded']} downloaded, {$report['images']['failed']} failed");
+        $redirects = $report['redirects'];
+        $this->line("redirects: {$redirects['redirects']} old URLs + {$redirects['image_redirects']} images now 301 to the new ones; internal links rewritten in {$redirects['links_rewritten']} items");
         foreach (array_slice($report['images']['errors'], 0, 5) as $error) {
             $this->warn('  image: '.$error);
         }

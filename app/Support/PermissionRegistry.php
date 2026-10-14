@@ -54,6 +54,7 @@ class PermissionRegistry
         'translations' => ['group' => 'system', 'label' => 'Dịch nội dung tự động', 'actions' => ['use']],
         // use: ask for suggestions. apply: write them — still also needing the record's own update permission.
         'ai' => ['group' => 'marketing', 'label' => 'Trợ lý AI SEO', 'actions' => ['use', 'apply']],
+        'redirects' => ['group' => 'marketing', 'label' => 'Chuyển hướng URL (301) và lỗi 404', 'actions' => ['view', 'create', 'update', 'delete']],
     ];
 
     /** @var array<string, string> */

@@ -138,8 +138,7 @@
                 // Keep the open form in step, so saving it later does not write the old body back.
                 function syncEditor(target, html) {
                     const textarea = document.getElementById(target);
-                    const editor = document.querySelector(`.catalog-quill[data-target="${target}"]`);
-                    if (editor && editor.__quill) editor.__quill.root.innerHTML = html;
+                    window.AdminRichEditor?.forTarget(target)?.setHTML(html);
                     if (textarea) { textarea.value = html; textarea.dispatchEvent(new Event('input', { bubbles: true })); }
                 }
                 function el(tag, attrs, text) {
