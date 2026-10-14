@@ -60,6 +60,7 @@
                                            data-i18n-locale="{{ $code }}"
                                            data-i18n-field="seo_title"
                                            placeholder="{{ __('admin.posts.placeholders.seo_title') }}">
+                                    <div class="rm-length" aria-hidden="true"><span data-seo-length="{{ $code }}-title"></span></div>
                                 </div>
                                 <div>
                                     <div class="d-flex justify-content-between gap-2">
@@ -75,6 +76,7 @@
                                               data-i18n-locale="{{ $code }}"
                                               data-i18n-field="seo_description"
                                               placeholder="{{ __('admin.posts.placeholders.seo_description') }}">{{ $seoDesc }}</textarea>
+                                    <div class="rm-length" aria-hidden="true"><span data-seo-length="{{ $code }}-description"></span></div>
                                 </div>
                             </div>
                         </div>
@@ -83,74 +85,149 @@
             </div>
         </div>
 
-        <!-- SEO Card -->
-        <div data-tour="post-form.seo" class="card">
-            <div class="card-body">
-                <h4 class="card-title mb-7">{{ __('admin.posts.sections.seo') }}</h4>
-                
-                <div class="mb-4">
-                    <label class="form-label" for="seo_keys">{{ __('admin.posts.fields.seo_keys') }}</label>
-                    <input type="text" class="form-control" id="seo_keys" name="seo_keys" value="{{ old('seo_keys', $post->seo_keys) }}" placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}">
-                    <p class="fs-2 text-muted mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
+        {{-- SEO box (Rank Math style): score, Google preview, focus keyword and grouped checks.
+             The checks run in _form-assets (analyzeSEO); PostController::analyzeSeo scores on save. --}}
+        @php
+            $seoScore = (int) ($post->seo_score ?? 0);
+            $seoTone = $seoScore >= 80 ? 'is-good' : ($seoScore >= 50 ? 'is-ok' : 'is-bad');
+            $seoGroups = [
+                'basic' => ['keyword_exists', 'title_keyword', 'desc_keyword', 'slug_keyword', 'first_paragraph', 'content_length'],
+                'additional' => ['keyword_density', 'headings', 'image_alts', 'internal_links'],
+                'title_readability' => ['title_length', 'desc_length'],
+            ];
+            $siteHost = parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com';
+        @endphp
+        <div data-tour="post-form.seo" class="card rm-panel">
+            <div class="rm-panel__head">
+                <div class="rm-panel__brand">
+                    <span class="rm-panel__logo"><i class="ti ti-chart-line" aria-hidden="true"></i></span>
+                    {{ __('admin.posts.seo_panel.title') }}
                 </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="canonical_url">{{ __('admin.posts.fields.canonical_url') }}</label>
-                    <input type="url"
-                           class="form-control"
-                           id="canonical_url"
-                           name="canonical_url"
-                           value="{{ old('canonical_url', $post->canonical_url) }}"
-                           placeholder="{{ __('admin.posts.placeholders.canonical_url') }}">
-                    <p class="fs-2 text-muted mb-0">{{ __('admin.posts.placeholders.canonical_url_help') }}</p>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-sm-6">
-                        <input type="hidden" name="robots_index" value="0">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   role="switch"
-                                   id="robots_index"
-                                   name="robots_index"
-                                   value="1"
-                                   @checked((bool) old('robots_index', $post->exists ? $post->robots_index : true))>
-                            <label class="form-check-label fw-semibold" for="robots_index">Index</label>
+                <span class="rm-score {{ $seoTone }}" data-seo-score-pill><span data-seo-score>{{ $seoScore }}</span>&nbsp;/ 100</span>
+            </div>
+            <div class="rm-tabs nav" role="tablist">
+                <button type="button" class="rm-tab active" data-bs-toggle="tab" data-bs-target="#seo-tab-general" role="tab" aria-controls="seo-tab-general" aria-selected="true">
+                    <i class="ti ti-settings" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_general') }}
+                </button>
+                <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-advanced" role="tab" aria-controls="seo-tab-advanced" aria-selected="false">
+                    <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_advanced') }}
+                </button>
+            </div>
+            <div class="tab-content rm-panel__body">
+                <div class="tab-pane fade show active" id="seo-tab-general" role="tabpanel">
+                    <div class="rm-snippet">
+                        <div class="rm-snippet__bar">
+                            <span><i class="ti ti-brand-google me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.preview') }}</span>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="{{ __('admin.posts.seo_panel.preview') }}">
+                                <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop" aria-label="Desktop">
+                                    <i class="ti ti-device-desktop" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile" aria-label="Mobile">
+                                    <i class="ti ti-device-mobile" aria-hidden="true"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <input type="hidden" name="robots_follow" value="0">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   role="switch"
-                                   id="robots_follow"
-                                   name="robots_follow"
-                                   value="1"
-                                   @checked((bool) old('robots_follow', $post->exists ? $post->robots_follow : true))>
-                            <label class="form-check-label fw-semibold" for="robots_follow">Follow links</label>
+                        <div class="rm-serp" id="seo_google_preview_result">
+                            <div class="rm-serp__site">
+                                <span class="rm-serp__favicon" aria-hidden="true">{{ mb_strtoupper(mb_substr($siteHost, 0, 1)) }}</span>
+                                <div class="min-w-0">
+                                    <div class="seo-preview-site">{{ $siteHost }}</div>
+                                    <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
+                                </div>
+                            </div>
+                            <div class="seo-preview-title" id="seo_preview_title">{{ __('admin.posts.placeholders.seo_title') }}</div>
+                            <div class="seo-preview-description" id="seo_preview_description">{{ __('admin.posts.placeholders.seo_description') }}</div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="seo-google-preview">
-                    <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-                        <h5 class="mb-0">{{ __('admin.posts.sections.google_preview') }}</h5>
-                        <div class="btn-group btn-group-sm" role="group" aria-label="Google preview">
-                            <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop">
-                                <i class="ti ti-device-desktop" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile">
-                                <i class="ti ti-device-mobile" aria-hidden="true"></i>
+                        <div class="rm-snippet__foot">
+                            <button type="button" class="btn btn-sm btn-light" data-seo-edit-snippet>
+                                <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.edit_snippet') }}
                             </button>
                         </div>
                     </div>
-                    <div id="seo_google_preview_result">
-                        <div class="seo-preview-site">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com' }}</div>
-                        <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
-                        <div class="seo-preview-title" id="seo_preview_title">{{ __('admin.posts.placeholders.seo_title') }}</div>
-                        <div class="seo-preview-description" id="seo_preview_description">{{ __('admin.posts.placeholders.seo_description') }}</div>
+
+                    <div class="rm-keyword">
+                        <label class="form-label" for="seo_keys">{{ __('admin.posts.seo_panel.focus_keyword') }}</label>
+                        <div class="rm-keyword__field">
+                            <i class="ti ti-target-arrow rm-keyword__icon" aria-hidden="true"></i>
+                            <input type="text" class="form-control" id="seo_keys" name="seo_keys" value="{{ old('seo_keys', $post->seo_keys) }}" placeholder="{{ __('admin.posts.placeholders.focus_keyword') }}">
+                            <span class="rm-score {{ $seoTone }}" data-seo-score-pill><span data-seo-score>{{ $seoScore }}</span>&nbsp;/ 100</span>
+                        </div>
+                        <p class="form-text mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
+                    </div>
+
+                    @include('admin.shared.ai-seo-fix-button', ['post' => $post])
+
+                    <div class="rm-stats">
+                        <span><i class="ti ti-file-text me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_widget.word_count') }}: <strong id="seo_word_count">0</strong></span>
+                        <span><i class="ti ti-percentage me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_widget.keyword_density') }}: <strong id="seo_keyword_density">0%</strong></span>
+                    </div>
+
+                    <div data-tour="post-form.seo-analysis" class="rm-checks">
+                        @foreach($seoGroups as $group => $rules)
+                            <div class="rm-group" data-seo-group="{{ $group }}">
+                                <button type="button" class="rm-group__head" data-bs-toggle="collapse" data-bs-target="#seo-group-{{ $group }}" aria-expanded="true" aria-controls="seo-group-{{ $group }}">
+                                    <span>{{ __("admin.posts.seo_panel.groups.$group") }}</span>
+                                    <span class="rm-group__badge is-bad" data-seo-group-badge>{{ __('admin.posts.seo_panel.group_errors', ['count' => count($rules)]) }}</span>
+                                    <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                                </button>
+                                <div class="collapse show" id="seo-group-{{ $group }}">
+                                    <ul class="rm-group__list">
+                                        @foreach($rules as $rule)
+                                            <li class="seo-rule-item is-fail" id="rule_{{ $rule }}">
+                                                <span class="rm-check-icon" aria-hidden="true"><i class="ti ti-x"></i></span>
+                                                <span>{{ __("admin.posts.seo_widget.rules.$rule") }}</span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="seo-tab-advanced" role="tabpanel">
+                    <div class="mb-4">
+                        <label class="form-label" for="canonical_url">{{ __('admin.posts.fields.canonical_url') }}</label>
+                        <input type="url"
+                               class="form-control"
+                               id="canonical_url"
+                               name="canonical_url"
+                               value="{{ old('canonical_url', $post->canonical_url) }}"
+                               placeholder="{{ __('admin.posts.placeholders.canonical_url') }}">
+                        <p class="form-text mb-0">{{ __('admin.posts.placeholders.canonical_url_help') }}</p>
+                    </div>
+
+                    <div class="rm-robots">
+                        <div class="fw-bold mb-1">{{ __('admin.posts.seo_panel.robots') }}</div>
+                        <p class="form-text mt-0 mb-3">{{ __('admin.posts.seo_panel.robots_help') }}</p>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <input type="hidden" name="robots_index" value="0">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="robots_index"
+                                           name="robots_index"
+                                           value="1"
+                                           @checked((bool) old('robots_index', $post->exists ? $post->robots_index : true))>
+                                    <label class="form-check-label fw-semibold" for="robots_index">Index</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <input type="hidden" name="robots_follow" value="0">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="robots_follow"
+                                           name="robots_follow"
+                                           value="1"
+                                           @checked((bool) old('robots_follow', $post->exists ? $post->robots_follow : true))>
+                                    <label class="form-check-label fw-semibold" for="robots_follow">Follow links</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -199,6 +276,11 @@
                     <option value="0" @selected((string) old('is_active', $post->is_active) === '0')>{{ __('admin.posts.fields.inactive') }}</option>
                 </select>
                 <p class="fs-2 mb-0">{{ __('admin.posts.placeholders.status_help') }}</p>
+                {{-- The SEO score stays in sight while writing, as in Rank Math's publish box. --}}
+                <div class="d-flex align-items-center justify-content-between gap-2 mt-3 pt-3 border-top">
+                    <span class="fw-semibold">{{ __('admin.posts.seo_panel.score') }}</span>
+                    <span class="rm-score {{ $seoTone }}" data-seo-score-pill><span data-seo-score>{{ $seoScore }}</span>&nbsp;/ 100</span>
+                </div>
             </div>
         </div>
 
@@ -223,103 +305,6 @@
             </div>
         </div>
 
-        <!-- Live SEO Analyzer Widget (Yoast Style) -->
-        <div data-tour="post-form.seo-analysis" class="card">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                    <h4 class="card-title mb-0 text-success d-flex align-items-center gap-2">
-                        <iconify-icon icon="solar:ranking-bold-duotone" class="fs-6"></iconify-icon>{{ __('admin.posts.sections.seo_analysis') }}
-                    </h4>
-                    <span class="badge bg-secondary text-white fw-bold px-2 py-1 fs-1" id="seo_overall_badge">{{ __('admin.posts.seo_widget.status_need_optimize') }}</span>
-                </div>
-
-                <!-- Circular Progress Score -->
-                <div class="text-center my-4 d-flex flex-column align-items-center justify-content-center">
-                    <div class="position-relative d-inline-flex">
-                        <svg class="seo-progress-ring" width="100" height="100">
-                            <circle class="text-light-subtle" stroke="#e2e8f0" stroke-width="8" fill="transparent" r="40" cx="50" cy="50"/>
-                            <circle class="seo-progress-ring-circle" id="seo_progress_circle" stroke="#ef4444" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" fill="transparent" r="40" cx="50" cy="50"/>
-                        </svg>
-                        <div class="position-absolute top-50 start-50 translate-middle text-center">
-                            <span class="fs-6 fw-bold text-dark" id="seo_score_txt">{{ (int) ($post->seo_score ?? 0) }}</span><span class="fs-3 text-muted">/100</span>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <span class="fs-3 fw-bold" id="seo_rating_label" style="color: #ef4444;">{{ __('admin.posts.seo_widget.rating_too_short') }}</span>
-                    </div>
-                </div>
-                @include('admin.shared.ai-seo-fix-button', ['post' => $post])
-
-                <div class="row g-2 text-center mb-4">
-                    <div class="col-6">
-                        <div class="border rounded p-2 h-100">
-                            <div class="fw-bold" id="seo_word_count">0</div>
-                            <small class="text-muted">{{ __('admin.posts.seo_widget.word_count') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded p-2 h-100">
-                            <div class="fw-bold" id="seo_keyword_density">0%</div>
-                            <small class="text-muted">{{ __('admin.posts.seo_widget.keyword_density') }}</small>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Analysis Checklist -->
-                <div class="seo-checklist">
-                    <h6 class="fs-2 fw-bold text-muted text-uppercase mb-3">{{ __('admin.posts.sections.seo_results') }}</h6>
-                    
-                    <div class="seo-rule-item" id="rule_keyword_exists">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.keyword_exists') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_title_length">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.title_length') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_title_keyword">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.title_keyword') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_slug_keyword">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.slug_keyword') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_desc_length">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.desc_length') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_desc_keyword">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.desc_keyword') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_content_length">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.content_length') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_keyword_density">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.keyword_density') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_first_paragraph">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.first_paragraph') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_headings">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.headings') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_image_alts">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.image_alts') }}</span>
-                    </div>
-                    <div class="seo-rule-item" id="rule_internal_links">
-                        <span class="seo-status-dot seo-status-red"></span>
-                        <span>{{ __('admin.posts.seo_widget.rules.internal_links') }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 @include('admin.shared.translation-assets')

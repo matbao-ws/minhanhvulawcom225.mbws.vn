@@ -354,7 +354,7 @@ return [
             ['posts_form.thumbnail', 'post-form.thumbnail', 'left', false],
             ['posts_form.status', 'post-form.status', 'left', false],
             ['posts_form.category', 'post-form.category', 'left', false],
-            ['posts_form.seo_analysis', 'post-form.seo-analysis', 'left', false],
+            ['posts_form.seo_analysis', 'post-form.seo-analysis', 'top', false],
             ['form.save', 'form.save', 'top', false],
         ],
         'post_categories_index' => [

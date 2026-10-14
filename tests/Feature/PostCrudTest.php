@@ -183,6 +183,11 @@ class PostCrudTest extends TestCase
             ->assertOk()
             ->assertSee('seo_google_preview_result', false)
             ->assertSee('rule_internal_links', false)
+            ->assertSee('data-seo-group="basic"', false)
+            ->assertSee('data-seo-group="additional"', false)
+            ->assertSee('data-seo-group="title_readability"', false)
+            ->assertSee('id="seo-tab-advanced"', false)
+            ->assertSee('data-seo-length="vi-title"', false)
             ->assertSee('name="canonical_url"', false)
             ->assertSee('name="robots_index"', false)
             ->assertSee('name="robots_follow"', false);
