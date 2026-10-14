@@ -665,8 +665,11 @@ return [
             'schema_faq_missing' => 'No FAQ section yet: add an H2 "Frequently asked questions" then each question as an H3 with its answer, or use the AI "FAQ" button.',
             'schema_always' => 'Breadcrumbs and the website\'s Organization data are always added.',
             'placeholder_product_title' => 'Leave empty to use the product name...',
+            'placeholder_name_title' => 'Leave empty to use the name...',
             'placeholder_title' => 'Leave empty to use the title...',
             'schema_auto' => [
+                'category' => 'Categories get breadcrumbs on their own; turn on FAQ below if the description has a questions section.',
+                'post_category' => 'Blog categories get breadcrumbs on their own; turn on FAQ below if the description has a questions section.',
                 'post' => 'The post is declared to Google as an Article.',
                 'product' => 'Products get Product schema on their own: price, availability, reviews and brand, from real data.',
                 'page' => 'Policy pages need no schema type. Turn on FAQ below if the page has a questions section.',

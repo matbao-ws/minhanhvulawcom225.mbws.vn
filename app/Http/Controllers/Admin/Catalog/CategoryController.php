@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\CategoryRequest;
 use App\Models\Category;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
-    use HandlesBulkActions, HandlesPagination;
+    use HandlesBulkActions, HandlesPagination, OpensAiToolAfterCreate;
 
     public function __construct(private readonly CategoryService $categories) {}
 
@@ -161,11 +162,11 @@ class CategoryController extends Controller
 
     public function store(CategoryRequest $request)
     {
-        $this->categories->create($request->validated());
+        $category = $this->categories->create($request->validated());
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.categories.edit', $category, redirect()
             ->route('admin.categories.index')
-            ->with('success', __('catalog.categories.created'));
+            ->with('success', __('catalog.categories.created')));
     }
 
     public function edit(string $locale, Category $category)

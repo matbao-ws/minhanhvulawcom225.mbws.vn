@@ -20,7 +20,6 @@
         'tour' => 'post-form',                  // data-tour: seo-box.post-form, seo-box-meta.post-form, seo-box-analysis.post-form
         'mediaFolder' => 'posts',
         'schemaTypes' => Post::SCHEMA_TYPES,    // optional: the Schema tab's type choice
-        'aiFix' => true,                        // optional: "fix by SEO score" (posts)
         'placeholders' => ['title' => '…', 'description' => '…'], // optional
     ])
 --}}
@@ -37,7 +36,6 @@
     ];
     $siteHost = parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com';
     $schemaTypes = $schemaTypes ?? null;
-    $aiFix = $aiFix ?? false;
     $mediaFolder = $mediaFolder ?? 'general';
     $placeholders = ($placeholders ?? []) + [
         'title' => __('admin.posts.seo_panel.placeholder_title'),
@@ -115,11 +113,15 @@
                     <span class="rm-score {{ $seoTone }}" data-seo-score-pill><span data-seo-score>{{ $seoScore }}</span>&nbsp;/ 100</span>
                 </div>
                 <p class="form-text mb-0">{{ __('admin.posts.placeholders.focus_keyword_help') }}</p>
+                {{-- The keyword (and titles) the AI reads from the saved page, in the default language. --}}
+                @include('admin.shared.ai-meta-button', [
+                    'entityType' => $entityType, 'entity' => $record, 'locale' => $seoDefaultLocale,
+                    'titleField' => "{$titleField}[$seoDefaultLocale]", 'descriptionField' => "{$descriptionField}[$seoDefaultLocale]",
+                    'label' => __('ai.meta.keyword_button'), 'wrapperClass' => 'mt-2',
+                ])
             </div>
 
-            @if($aiFix)
-                @include('admin.shared.ai-seo-fix-button', ['post' => $record])
-            @endif
+            @include('admin.shared.ai-seo-fix-button', ['entityType' => $entityType, 'entity' => $record])
 
             <div class="rm-stats">
                 <span><i class="ti ti-file-text me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_widget.word_count') }}: <strong id="seo_word_count">0</strong></span>

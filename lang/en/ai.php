@@ -2,6 +2,10 @@
 
 return [
     'meta' => [
+        'keyword_button' => 'Suggest a keyword with AI',
+        'keyword_suggested' => 'Suggested focus keyword',
+        'keyword_use' => 'Use as focus keyword',
+        'keyword_added' => 'Set as the focus keyword. Save to keep it.',
         'button' => 'AI meta suggestions',
         'title' => 'AI meta suggestions',
         'loading' => 'The AI is reading the content and drafting suggestions…',
@@ -15,7 +19,6 @@ return [
         'reject' => 'Use none of these',
         'applied' => 'Meta suggestion applied.',
         'review_note' => 'The AI only proposes. You can edit the text first; nothing is saved until you click Apply.',
-        'save_first' => 'Save the record before asking for meta suggestions.',
         'credits' => ':used/:limit AI credits used this month.',
     ],
     'errors' => [
@@ -218,6 +221,32 @@ uPVC pipe glue',
         'apply' => 'Replace the current description',
         'applied' => 'Product description updated.',
         'note' => 'The AI uses the product name, category, brand, options and short description. Prices and stock are not sent.',
+    ],
+    'collection' => [
+        'button' => 'AI description',
+        'title' => 'Write the description with AI',
+        'applied' => 'Description updated.',
+        'note' => 'The AI uses the name, the parent and the names of the products or posts in it. Prices and stock are not sent.',
+    ],
+    'pending' => [
+        'title' => ':count unreviewed AI suggestions',
+        'note' => 'Credits already used, but not applied or dismissed yet (for example you left the page while the AI was working).',
+        'open' => 'Review',
+        'close' => 'Close',
+        'tasks' => [
+            'meta_suggest' => 'Meta suggestions',
+            'content_edit' => 'AI copy edit',
+            'content_faq' => 'FAQ',
+            'content_internal_links' => 'Internal links',
+            'content_product_description' => 'Product description',
+            'content_collection_intro' => 'Collection description',
+            'seo_fix_suggest' => 'Fix by SEO score',
+        ],
+    ],
+    'draft' => [
+        'hint' => 'An AI button saves a draft first, then opens the tool.',
+        'confirm' => 'AI tools need a saved record. Save as a draft (unpublished) and open the tool?',
+        'saved' => 'Draft saved. Opening the AI tool…',
     ],
     'usage' => [
         'title' => 'AI SEO Copilot',
