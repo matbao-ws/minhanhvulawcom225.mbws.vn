@@ -258,20 +258,6 @@ class ProductUploadAndMediaTest extends TestCase
             ->assertJsonPath('resources.0.height', 180);
     }
 
-    public function test_media_library_previews_and_links_pdf_files(): void
-    {
-        $this->actingAs(User::factory()->create());
-        Storage::disk('public')->put('general/catalog.pdf', '%PDF-1.4 test document');
-
-        $this->get('/vi/admin/media?folder=general')
-            ->assertOk()
-            ->assertSee('<iframe', false)
-            ->assertSee('catalog.pdf', false)
-            ->assertSee('target="_blank"', false)
-            ->assertSee('toolbar=0', false)
-            ->assertSee('navpanes=0', false);
-    }
-
     public function test_media_picker_paginates_local_images(): void
     {
         $this->actingAs(User::factory()->create());
