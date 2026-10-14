@@ -232,7 +232,7 @@ class PackageSyncTest extends TestCase
         }
     }
 
-    public function test_features_page_shows_the_package_and_superadmin_can_reset_feature_overrides(): void
+    public function test_features_page_allows_superadmin_to_reset_feature_overrides(): void
     {
         $this->fakeTool('BASIC');
         app(PackageSync::class)->sync();
@@ -240,8 +240,7 @@ class PackageSyncTest extends TestCase
 
         $this->actingAs($admin)->get('/vi/admin/features')
             ->assertOk()
-            ->assertSee('Web - Cơ bản')
-            ->assertSee(__('admin.package.badge_package'));
+            ->assertSee(route('admin.features.sync-package'), false);
 
         $this->actingAs($admin)->postJson('/vi/admin/features/toggle', ['feature_code' => 'voucher', 'is_enabled' => true])
             ->assertOk()
@@ -251,9 +250,8 @@ class PackageSyncTest extends TestCase
             ->assertRedirect('/vi/admin/features');
         $this->assertFalse(app(FeatureGate::class)->enabled('voucher'));
 
-        // Limits are shown, never editable: they follow the contract on the tool.
+        // Package limits live on the dashboard and are never editable from features.
         $this->actingAs($admin)->get('/vi/admin/features')
-            ->assertSee(__('admin.package.limits_help'))
             ->assertDontSee('name="limits[', false);
     }
 

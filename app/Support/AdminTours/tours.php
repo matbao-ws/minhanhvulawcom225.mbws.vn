@@ -534,8 +534,6 @@ return [
         'features' => [
             ['features.intro', null, 'bottom', false],
             ['features.sync', 'features.sync', 'bottom', true],
-            ['features.package', 'features.package', 'right', false],
-            ['features.limits', 'features.limits', 'left', false],
             ['features.tabs', 'features.tabs', 'bottom', false],
             ['features.group_switch', 'features.group-switch', 'left', false],
             ['features.card', 'features.card', 'right', true],
