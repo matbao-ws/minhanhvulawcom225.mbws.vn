@@ -198,6 +198,9 @@ class PostCrudTest extends TestCase
             ->assertSee('placeholder="Nhập tóm tắt thu hút hiển thị ở danh sách bài viết..."', false)
             ->assertSee('data-placeholder="Nhập nội dung chi tiết..."', false)
             ->assertSee(__('admin.posts.placeholders.content_paste_hint'))
+            ->assertSee("['link', 'image', 'video', 'table']", false)
+            ->assertSee('adminPostTableModule', false)
+            ->assertSee('fullWidth: true', false)
             ->assertSee('Mô tả ảnh (alt text)', false)
             ->assertSee('placeholder="Bỏ trống để tự động lấy theo tiêu đề bài viết..."', false)
             ->assertSee('placeholder="Mô tả ngắn gọn nội dung hiển thị trên kết quả tìm kiếm (120-160 ký tự)..."', false)
@@ -490,6 +493,26 @@ XML;
         $this->assertEquals('Bài viết được chỉnh sửa', $this->post->getTranslation('title', 'vi'));
         $this->assertStringContainsString('<div class="ql-image-caption">Chú thích ảnh</div>', $this->post->getTranslation('content', 'vi'));
         $this->assertNotNull($this->post->seo_score);
+    }
+
+    public function test_post_content_preserves_editor_tables(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->put('/vi/admin/posts/'.$this->post->id, [
+                'title' => 'Post with a table',
+                'slug' => 'post-with-a-table',
+                'summary' => 'A post summary containing a table.',
+                'content' => '<p class="ql-table-wrapper" data-table-id="table-1"><table class="ql-table" data-table-id="table-1" data-full=""><colgroup data-table-id="table-1"><col width="50%" data-full="1" data-table-id="table-1" data-col-id="column-1"></colgroup><tbody data-table-id="table-1"><tr data-table-id="table-1" data-row-id="row-1"><td class="ql-table-cell" data-table-id="table-1" data-row-id="row-1" data-col-id="column-1"><p>Cell 1</p></td></tr></tbody></table></p>',
+                'seo_title' => 'SEO title for table',
+                'seo_description' => 'SEO description for a post that contains a table.',
+                'seo_keys' => 'table',
+            ])
+            ->assertRedirect('/vi/admin/posts');
+
+        $content = $this->post->fresh()->getTranslation('content', 'vi');
+        $this->assertStringContainsString('<table class="ql-table" data-table-id="table-1" data-full="">', $content);
+        $this->assertStringContainsString('<colgroup data-table-id="table-1">', $content);
+        $this->assertStringContainsString('<td class="ql-table-cell" data-table-id="table-1" data-row-id="row-1" data-col-id="column-1"><p>Cell 1</p></td>', $content);
     }
 
     public function test_public_post_exposes_canonical_and_robots_metadata(): void

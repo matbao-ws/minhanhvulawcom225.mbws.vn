@@ -19,32 +19,67 @@
         .update-steps li.current .dot i { animation: update-spin 1.2s linear infinite; }
         @keyframes update-spin { to { transform: rotate(360deg); } }
         .update-clock { font-variant-numeric: tabular-nums; }
-        .core-update-card { overflow: hidden; border: 1px solid #e4ebf4; border-radius: 1rem; box-shadow: 0 .45rem 1.3rem rgba(43, 57, 82, .045); }
-        .core-update-card .card-body { padding: 1.35rem; }
+        .core-update-workspace { --core-border: #e4ebf4; }
+        .core-update-card { overflow: hidden; border: 1px solid var(--core-border); border-radius: 1rem; box-shadow: 0 .45rem 1.3rem rgba(43, 57, 82, .045); }
+        .core-update-card .card-body { padding: 1.5rem; }
+        .core-update-current { border: 0; background: linear-gradient(145deg, #102f57 0%, #1d4d83 100%); box-shadow: 0 .75rem 1.75rem rgba(16, 47, 87, .18); color: #eef5ff; }
+        .core-update-current .card-body { display: flex; flex-direction: column; }
+        .core-update-current .core-update-card__eyebrow { color: #b8cae5; }
+        .core-update-current .core-update-card__version { color: #fff; }
+        .core-update-current hr { border-color: rgba(255, 255, 255, .2); opacity: 1; }
+        .core-update-current > .card-body > .text-muted { color: #c7d6eb !important; }
+        .core-update-offer { background: #fff; }
+        .core-update-offer .card-body { display: flex; flex-direction: column; }
+        .core-update-offer [data-release-notes], .core-update-offer [data-current-release-notes] { border: 1px solid #e8edf5 !important; border-radius: .9rem !important; background: #f9fbfe !important; }
+        .core-update-offer form[action$="/update"] { margin-top: auto; padding: 1rem; border: 1px solid #d9e6f9; border-radius: .85rem; background: #f4f8ff; }
+        .core-update-offer form[action$="/update"] .btn { min-height: 2.5rem; }
         .core-update-card__eyebrow { color: #71809a; font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
         .core-update-card__version { margin: .2rem 0 1.15rem; color: #24344c; font-size: 2rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
-        .core-update-state { display: flex; align-items: flex-start; gap: .75rem; padding: .9rem; border: 1px solid; border-radius: .8rem; }
+        .core-update-state { display: flex; align-items: center; gap: .75rem; padding: .9rem; border: 1px solid; border-radius: .8rem; }
         .core-update-state + .core-update-state { margin-top: .65rem; }
         .core-update-state__icon, .core-update-empty__icon { display: inline-flex; width: 2.25rem; height: 2.25rem; flex: 0 0 2.25rem; align-items: center; justify-content: center; border-radius: .7rem; font-size: 1.1rem; }
         .core-update-state__title { margin-bottom: .2rem; color: #344256; font-size: .875rem; font-weight: 800; }
         .core-update-state--warning { border-color: #f2d29b; background: #fff9ed; }
         .core-update-state--warning .core-update-state__icon { color: #a76200; background: #fff0cf; }
+        .core-update-state--warning .small { color: #754700; }
         .core-update-state--danger { border-color: #efc4c7; background: #fff5f5; }
         .core-update-state--danger .core-update-state__icon { color: #b4232a; background: #ffe5e7; }
+        .core-update-state--danger .core-update-state__title { color: #8f1d28; }
+        .core-update-state--danger .small { color: #26374d; }
         .core-update-state--success { border-color: #bce6cc; background: #f2fcf6; }
         .core-update-state--success .core-update-state__icon { color: #187a42; background: #ddf6e7; }
-        .core-update-empty { display: flex; align-items: center; min-height: 100%; gap: 1rem; padding: 1.1rem; border: 1px dashed #d9e2ef; border-radius: .9rem; color: #5d6d84; background: #fbfcff; }
+        .core-update-state--success .small { color: #17633b; font-size: .9375rem; font-weight: 600; }
+        .core-update-up-to-date { color: #187a42; font-size: .95rem; font-weight: 600; }
+        .core-update-empty { display: flex; align-items: center; gap: 1rem; padding: 1.1rem; border: 1px dashed #d9e2ef; border-radius: .9rem; color: #5d6d84; background: #fbfcff; }
         .core-update-empty__icon { color: #365a8c; background: #eaf1ff; }
         .core-update-empty__title { margin: 0 0 .25rem; color: #344256; font-size: 1rem; font-weight: 800; }
-        .core-update-empty__copy { margin: 0; font-size: .85rem; line-height: 1.5; }
+        .core-update-empty__copy { margin: 0; color: #26374d; font-size: .9rem; line-height: 1.55; }
+        .core-update-offer .release-notes { color: #405169; }
+        .core-update-offer .release-notes h2, .core-update-offer .release-notes h3 { color: #1d2d42; }
+        .core-update-history .card-body { padding: 1.5rem; }
+        .core-update-history .table > :not(caption) > * > * { padding-top: .85rem; padding-bottom: .85rem; }
+        .core-update-access { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(255, 255, 255, .2); border-radius: .8rem; background: rgba(4, 27, 58, .22); }
+        .core-update-access .form-check { display: flex; align-items: center; gap: .55rem; min-height: 1.5rem; margin: 0; padding-left: 0; }
+        .core-update-access .form-check-input { float: none; flex: 0 0 auto; margin: 0; }
+        .core-update-current .core-update-access .form-check-label { color: #fff !important; }
+        .core-update-current .core-update-access .text-muted { color: #d7e5f7 !important; }
+        .core-update-access__hint { margin: .45rem 0 0 2.85rem; line-height: 1.5; }
         [data-bs-theme="dark"] .core-update-card { border-color: #3b4c64; background: #203046; }
         [data-bs-theme="dark"] .core-update-card__version, [data-bs-theme="dark"] .core-update-state__title, [data-bs-theme="dark"] .core-update-empty__title { color: #edf2f8; }
         [data-bs-theme="dark"] .core-update-card__eyebrow, [data-bs-theme="dark"] .core-update-empty { color: #c4cfde; }
         [data-bs-theme="dark"] .core-update-state--warning { border-color: #735f36; background: #3c3424; }
         [data-bs-theme="dark"] .core-update-state--danger { border-color: #70434a; background: #402a31; }
         [data-bs-theme="dark"] .core-update-state--success { border-color: #386a50; background: #243c31; }
+        [data-bs-theme="dark"] .core-update-state--danger .core-update-state__title { color: #ffb7bd; }
+        [data-bs-theme="dark"] .core-update-state--danger .small { color: #f4d6d9; }
         [data-bs-theme="dark"] .core-update-empty { border-color: #40536d; background: #293a51; }
-        @media (max-width: 575.98px) { .core-update-empty { align-items: flex-start; } }
+        [data-bs-theme="dark"] .core-update-current { background: linear-gradient(145deg, #142842 0%, #1d416d 100%); }
+        [data-bs-theme="dark"] .core-update-offer [data-release-notes], [data-bs-theme="dark"] .core-update-offer [data-current-release-notes] { border-color: #3b4c64 !important; background: #293a51 !important; }
+        [data-bs-theme="dark"] .core-update-offer form[action$="/update"] { border-color: #3b5274; background: #263954; }
+        [data-bs-theme="dark"] .core-update-empty__copy, [data-bs-theme="dark"] .core-update-offer .release-notes { color: #d2dceb; }
+        [data-bs-theme="dark"] .core-update-offer .release-notes h2, [data-bs-theme="dark"] .core-update-offer .release-notes h3 { color: #f1f5fb; }
+        @media (min-width: 1200px) { .core-update-current { position: sticky; top: 1.25rem; } }
+        @media (max-width: 575.98px) { .core-update-card .card-body, .core-update-history .card-body { padding: 1rem; } .core-update-empty { align-items: flex-start; } }
     </style>
 @endpush
 
@@ -111,9 +146,9 @@
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-5">
-            <div data-tour="core-update.current" class="card h-100 mb-0 core-update-card">
+    <div class="core-update-workspace row g-4 mb-4">
+        <div class="col-xl-4">
+            <div data-tour="core-update.current" class="card mb-0 core-update-card core-update-current">
                 <div class="card-body core-update-card__body">
                     <div class="core-update-card__eyebrow">{{ __('admin.core_update.current') }}</div>
                     <div class="core-update-card__version">{{ $version }}</div>
@@ -166,12 +201,29 @@
                             <div class="small text-muted mt-2">{{ __('admin.core_update.reference', ['ref' => $last['ref']]) }}</div>
                         @endif
                     @endif
+
+                    @if($isSuperAdmin)
+                        {{-- Per website, like WordPress' DISALLOW_FILE_MODS: on by default. --}}
+                        <div data-tour="core-update.access" class="core-update-access" data-core-update-access>
+                            <form method="POST" action="{{ route('admin.core-update.access') }}">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="admin_allowed" value="0">
+                                <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="admin_allowed" name="admin_allowed" value="1" @checked($adminAllowed) onchange="this.form.submit()">
+                                    <label class="form-check-label fw-semibold" for="admin_allowed" style="color: #fff !important;">{{ __('admin.core_update.access.label') }}</label>
+                                </div>
+                                <div class="core-update-access__hint small text-muted" style="color: #d7e5f7 !important;">{{ __('admin.core_update.access.hint') }}</div>
+                                <noscript><x-admin.action-button type="submit" size="sm" class="mt-2">{{ __('admin.core_update.access.save') }}</x-admin.action-button></noscript>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-7">
-            <div data-tour="core-update.offer" class="card h-100 mb-0 core-update-card">
+        <div class="col-xl-8">
+            <div data-tour="core-update.offer" class="card h-100 mb-0 core-update-card core-update-offer">
                 <div class="card-body core-update-card__body">
                     @if(! $enabled)
                         <div class="core-update-empty">
@@ -218,7 +270,7 @@
                             <div class="small text-muted mt-2">{{ __('admin.core_update.update_hint') }}</div>
                         </form>
                     @elseif(! empty($available['checked_at']))
-                        <p class="mb-0"><i class="ti ti-circle-check text-success me-1" aria-hidden="true"></i>{{ __('admin.core_update.up_to_date') }}</p>
+                        <p class="core-update-up-to-date mb-0"><i class="ti ti-circle-check text-success me-1" aria-hidden="true"></i>{{ __('admin.core_update.up_to_date') }}</p>
                     @endif
 
                     @if($enabled && ! $update && empty($available['checked_at']))
@@ -266,29 +318,8 @@
         </div>
     </div>
 
-    @if($isSuperAdmin)
-        {{-- Per website, like WordPress' DISALLOW_FILE_MODS: on by default. --}}
-        <div data-tour="core-update.access" class="card mb-4 core-update-card" data-core-update-access>
-            <div class="card-body core-update-card__body">
-                <form method="POST" action="{{ route('admin.core-update.access') }}" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="admin_allowed" value="0">
-                    <div>
-                        <div class="form-check form-switch mb-1">
-                            <input class="form-check-input" type="checkbox" role="switch" id="admin_allowed" name="admin_allowed" value="1" @checked($adminAllowed) onchange="this.form.submit()">
-                            <label class="form-check-label fw-semibold" for="admin_allowed">{{ __('admin.core_update.access.label') }}</label>
-                        </div>
-                        <div class="small text-muted">{{ __('admin.core_update.access.hint') }}</div>
-                    </div>
-                    <noscript><x-admin.action-button type="submit" size="sm">{{ __('admin.core_update.access.save') }}</x-admin.action-button></noscript>
-                </form>
-            </div>
-        </div>
-    @endif
-
     @if($history !== [])
-        <div data-tour="core-update.history" class="card">
+        <div data-tour="core-update.history" class="card core-update-card core-update-history">
             <div class="card-body">
                 <h5 class="fw-bold mb-3">{{ __('admin.core_update.history') }}</h5>
                 <div class="table-responsive">

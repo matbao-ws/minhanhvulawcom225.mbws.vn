@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FeatureSetting;
 use App\Services\Packages\PackageInfo;
-use App\Services\Packages\PackageLimits;
 use App\Services\Packages\PackageSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +14,6 @@ class FeatureController extends Controller
 {
     public function __construct(
         private readonly PackageSync $packages,
-        private readonly PackageLimits $limits,
     ) {}
 
     public function index()
@@ -33,10 +31,7 @@ class FeatureController extends Controller
 
         return view('admin.features.index', [
             'featureGroups' => $featureGroups,
-            'package' => $this->packages->snapshot(),
             'packageConfigured' => app(PackageInfo::class)->configured(),
-            'packageDomain' => config('packages.domain'),
-            'limitSummary' => $this->limits->summary(),
         ]);
     }
 
