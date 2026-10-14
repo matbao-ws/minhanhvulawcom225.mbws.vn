@@ -642,6 +642,7 @@ return [
             'title' => 'SEO',
             'score' => 'Điểm SEO',
             'tab_general' => 'Chung',
+            'tab_preview' => 'Xem trước trên Google',
             'tab_advanced' => 'Nâng cao',
             'preview' => 'Xem trước trên Google',
             'edit_snippet' => 'Sửa tiêu đề & mô tả SEO',

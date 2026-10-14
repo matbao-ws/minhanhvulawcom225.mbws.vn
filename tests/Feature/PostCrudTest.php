@@ -186,6 +186,7 @@ class PostCrudTest extends TestCase
             ->assertSee('data-seo-group="basic"', false)
             ->assertSee('data-seo-group="additional"', false)
             ->assertSee('data-seo-group="title_readability"', false)
+            ->assertSee('id="seo-tab-preview"', false)
             ->assertSee('id="seo-tab-advanced"', false)
             ->assertSee('data-seo-length="vi-title"', false)
             ->assertSee('name="canonical_url"', false)

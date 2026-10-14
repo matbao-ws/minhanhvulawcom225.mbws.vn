@@ -639,6 +639,7 @@ return [
             'title' => 'SEO',
             'score' => 'SEO score',
             'tab_general' => 'General',
+            'tab_preview' => 'Google preview',
             'tab_advanced' => 'Advanced',
             'preview' => 'Google preview',
             'edit_snippet' => 'Edit SEO title & description',

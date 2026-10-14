@@ -16,7 +16,7 @@
         .rm-tab { display: inline-flex; align-items: center; gap: 6px; padding: 12px 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: #5a6a85; font-size: 14px; font-weight: 600; }
         .rm-tab:hover { color: #1f2937; }
         .rm-tab.active { color: var(--bs-primary); border-bottom-color: var(--bs-primary); }
-        .rm-snippet { margin-bottom: 20px; border: 1px solid #e5eaf2; border-radius: 12px; overflow: hidden; }
+        .rm-snippet { border: 1px solid #e5eaf2; border-radius: 12px; overflow: hidden; }
         .rm-snippet__bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e5eaf2; color: #5a6a85; font-size: 13px; font-weight: 600; }
         .rm-serp { max-width: 640px; padding: 16px 18px; background: #fff; transition: max-width .2s ease; }
         .rm-serp.is-mobile { max-width: 380px; }

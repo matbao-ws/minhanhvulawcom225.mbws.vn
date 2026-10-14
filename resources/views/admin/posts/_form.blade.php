@@ -109,42 +109,15 @@
                 <button type="button" class="rm-tab active" data-bs-toggle="tab" data-bs-target="#seo-tab-general" role="tab" aria-controls="seo-tab-general" aria-selected="true">
                     <i class="ti ti-settings" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_general') }}
                 </button>
+                <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-preview" role="tab" aria-controls="seo-tab-preview" aria-selected="false">
+                    <i class="ti ti-brand-google" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_preview') }}
+                </button>
                 <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-advanced" role="tab" aria-controls="seo-tab-advanced" aria-selected="false">
                     <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_advanced') }}
                 </button>
             </div>
             <div class="tab-content rm-panel__body">
                 <div class="tab-pane fade show active" id="seo-tab-general" role="tabpanel">
-                    <div class="rm-snippet">
-                        <div class="rm-snippet__bar">
-                            <span><i class="ti ti-brand-google me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.preview') }}</span>
-                            <div class="btn-group btn-group-sm" role="group" aria-label="{{ __('admin.posts.seo_panel.preview') }}">
-                                <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop" aria-label="Desktop">
-                                    <i class="ti ti-device-desktop" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile" aria-label="Mobile">
-                                    <i class="ti ti-device-mobile" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="rm-serp" id="seo_google_preview_result">
-                            <div class="rm-serp__site">
-                                <span class="rm-serp__favicon" aria-hidden="true">{{ mb_strtoupper(mb_substr($siteHost, 0, 1)) }}</span>
-                                <div class="min-w-0">
-                                    <div class="seo-preview-site">{{ $siteHost }}</div>
-                                    <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
-                                </div>
-                            </div>
-                            <div class="seo-preview-title" id="seo_preview_title">{{ __('admin.posts.placeholders.seo_title') }}</div>
-                            <div class="seo-preview-description" id="seo_preview_description">{{ __('admin.posts.placeholders.seo_description') }}</div>
-                        </div>
-                        <div class="rm-snippet__foot">
-                            <button type="button" class="btn btn-sm btn-light" data-seo-edit-snippet>
-                                <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.edit_snippet') }}
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="rm-keyword">
                         <label class="form-label" for="seo_keys">{{ __('admin.posts.seo_panel.focus_keyword') }}</label>
                         <div class="rm-keyword__field">
@@ -182,6 +155,38 @@
                                 </div>
                             </div>
                         @endforeach
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="seo-tab-preview" role="tabpanel">
+                    <div class="rm-snippet">
+                        <div class="rm-snippet__bar">
+                            <span><i class="ti ti-brand-google me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.preview') }}</span>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="{{ __('admin.posts.seo_panel.preview') }}">
+                                <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop" aria-label="Desktop">
+                                    <i class="ti ti-device-desktop" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile" aria-label="Mobile">
+                                    <i class="ti ti-device-mobile" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="rm-serp" id="seo_google_preview_result">
+                            <div class="rm-serp__site">
+                                <span class="rm-serp__favicon" aria-hidden="true">{{ mb_strtoupper(mb_substr($siteHost, 0, 1)) }}</span>
+                                <div class="min-w-0">
+                                    <div class="seo-preview-site">{{ $siteHost }}</div>
+                                    <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
+                                </div>
+                            </div>
+                            <div class="seo-preview-title" id="seo_preview_title">{{ __('admin.posts.placeholders.seo_title') }}</div>
+                            <div class="seo-preview-description" id="seo_preview_description">{{ __('admin.posts.placeholders.seo_description') }}</div>
+                        </div>
+                        <div class="rm-snippet__foot">
+                            <button type="button" class="btn btn-sm btn-light" data-seo-edit-snippet>
+                                <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.edit_snippet') }}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
