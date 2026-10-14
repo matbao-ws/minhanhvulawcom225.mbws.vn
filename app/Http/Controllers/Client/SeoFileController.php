@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Services\Seo\IndexNow;
 use App\Services\Seo\SeoMetaFactory;
 use App\Services\Seo\SitemapService;
 use Illuminate\Http\Response;
@@ -31,6 +32,14 @@ class SeoFileController extends Controller
         }
 
         return response($body, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+    }
+
+    /** The IndexNow key file: proves to the search engines that this site sent its URLs. */
+    public function indexNowKey(string $indexNowKey, IndexNow $indexNow): Response
+    {
+        abort_unless(hash_equals($indexNow->key(), $indexNowKey), 404);
+
+        return response($indexNow->key(), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
     }
 
     public function sitemap(SitemapService $sitemap): Response

@@ -664,6 +664,13 @@ return [
             'schema_faq_found' => ':count questions found in the post.',
             'schema_faq_missing' => 'No FAQ section yet: add an H2 "Frequently asked questions" then each question as an H3 with its answer, or use the AI "FAQ" button.',
             'schema_always' => 'Breadcrumbs and the website\'s Organization data are always added.',
+            'placeholder_product_title' => 'Leave empty to use the product name...',
+            'placeholder_title' => 'Leave empty to use the title...',
+            'schema_auto' => [
+                'post' => 'The post is declared to Google as an Article.',
+                'product' => 'Products get Product schema on their own: price, availability, reviews and brand, from real data.',
+                'page' => 'Policy pages need no schema type. Turn on FAQ below if the page has a questions section.',
+            ],
             'tab_advanced' => 'Advanced',
             'preview' => 'Google preview',
             'edit_snippet' => 'Edit SEO title & description',

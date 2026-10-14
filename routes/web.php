@@ -15,6 +15,10 @@ Route::get('/api/docs', [PublicController::class, 'docs'])->name('api.docs');
 // There must be no robots.txt / sitemap.xml file in public/: the web server
 // would serve it before Laravel is asked.
 Route::get('/robots.txt', [SeoFileController::class, 'robots'])->name('seo.robots');
+// IndexNow's key file (App\Services\Seo\IndexNow): only this site's own 32-character key answers.
+Route::get('/{indexNowKey}.txt', [SeoFileController::class, 'indexNowKey'])
+    ->where('indexNowKey', '[a-f0-9]{32}')
+    ->name('seo.indexnow-key');
 Route::get('/sitemap.xml', [SeoFileController::class, 'sitemap'])
     ->middleware('throttle:60,1')
     ->name('seo.sitemap');

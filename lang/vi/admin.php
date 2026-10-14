@@ -667,6 +667,13 @@ return [
             'schema_faq_found' => 'Tìm thấy :count câu hỏi trong bài.',
             'schema_faq_missing' => 'Bài chưa có mục FAQ: thêm tiêu đề H2 "Câu hỏi thường gặp" rồi từng câu hỏi H3 kèm câu trả lời, hoặc dùng nút "Tạo FAQ" của AI.',
             'schema_always' => 'Breadcrumb và thông tin website (Organization) luôn được thêm tự động.',
+            'placeholder_product_title' => 'Bỏ trống để dùng tên sản phẩm...',
+            'placeholder_title' => 'Bỏ trống để dùng tiêu đề...',
+            'schema_auto' => [
+                'post' => 'Bài viết được khai báo là Article cho Google.',
+                'product' => 'Sản phẩm tự có schema Product: giá, tình trạng còn hàng, đánh giá và thương hiệu, lấy từ dữ liệu thật.',
+                'page' => 'Trang chính sách không cần chọn loại schema. Bật FAQ bên dưới nếu trang có mục câu hỏi thường gặp.',
+            ],
             'tab_advanced' => 'Nâng cao',
             'preview' => 'Xem trước trên Google',
             'edit_snippet' => 'Sửa tiêu đề & mô tả SEO',
