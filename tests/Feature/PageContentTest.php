@@ -48,6 +48,7 @@ class PageContentTest extends TestCase
             ->assertSee(__('admin.posts.fields.seo_title'))
             ->assertSee('data-seo-box', false)
             ->assertSee('name="meta_title[vi]"', false)
+            ->assertSee('data-translation-format="page_html"', false)
             ->assertSee('aria-label="breadcrumb"', false)
             ->assertSee(route('admin.pages.index'), false)
             ->assertDontSee('grapesjs', false)

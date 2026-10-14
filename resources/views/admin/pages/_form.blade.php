@@ -30,8 +30,9 @@
             @foreach($contentLanguages as $language)
                 @php $code = $language->code; @endphp
                 <div class="tab-pane fade @if($code === $defaultContentLocale) show active @endif" id="page-meta-{{ $code }}">
+                    @if($code !== $defaultContentLocale)<div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>@endif
                     <div class="row">
-                        <div class="col-md-8 mb-3"><label class="form-label" for="page-title-{{ $code }}">Tiêu đề @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input class="form-control" id="page-title-{{ $code }}" name="title[{{ $code }}]" value="{{ old("title.$code", $page->getTranslation('title', $code, false)) }}" @required($code === $defaultContentLocale)></div>
+                        <div class="col-md-8 mb-3"><label class="form-label" for="page-title-{{ $code }}">Tiêu đề @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input class="form-control" id="page-title-{{ $code }}" name="title[{{ $code }}]" value="{{ old("title.$code", $page->getTranslation('title', $code, false)) }}" data-i18n-locale="{{ $code }}" data-i18n-field="title" @required($code === $defaultContentLocale)></div>
                         <div class="col-md-4 mb-3"><label class="form-label" for="page-slug-{{ $code }}">Slug</label><input class="form-control" id="page-slug-{{ $code }}" name="slug[{{ $code }}]" value="{{ old("slug.$code", $page->localizedSlug($code) ?: ($code === $defaultContentLocale ? $page->slug : '')) }}" placeholder="Tự tạo từ tiêu đề"></div>
                         <div data-tour="page-form.content" class="col-12 mb-3">
                             @php $html = old("published_html.$code", $page->getTranslation('published_html', $code, false)); @endphp
@@ -40,7 +41,7 @@
                                  disabled field is not submitted, so saving title/SEO never pushes
                                  stored HTML through the admin editor, which normalises markup saved
                                  by the storefront editor. --}}
-                            <textarea class="d-none" name="published_html[{{ $code }}]" id="page-html-{{ $code }}" @disabled(old("published_html.$code") === null)>{{ $html }}</textarea>
+                            <textarea class="d-none" name="published_html[{{ $code }}]" id="page-html-{{ $code }}" data-i18n-locale="{{ $code }}" data-i18n-field="published_html" data-translation-format="page_html" @disabled(old("published_html.$code") === null)>{{ $html }}</textarea>
                             <div class="rich-editor" data-preset="page" data-sync="edited" data-media-folder="pages" data-target="page-html-{{ $code }}" data-placeholder="Nhập nội dung chính sách...">{!! app(\App\Support\PageHtmlSanitizer::class)->clean($html) !!}</div>
                             @include('admin.shared.ai-edit-button', ['entityType' => 'page', 'entity' => $page, 'locale' => $code, 'target' => "page-html-$code"])
                         </div>
@@ -80,3 +81,5 @@
 </div>
 
 @include('admin.shared.rich-editor-assets')
+
+@include('admin.shared.translation-assets')
