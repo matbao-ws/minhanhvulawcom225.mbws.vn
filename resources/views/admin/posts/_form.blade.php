@@ -53,10 +53,13 @@
             $seoTone = $seoScore >= 80 ? 'is-good' : ($seoScore >= 50 ? 'is-ok' : 'is-bad');
             $seoGroups = [
                 'basic' => ['keyword_exists', 'title_keyword', 'desc_keyword', 'slug_keyword', 'first_paragraph', 'content_length'],
-                'additional' => ['keyword_density', 'headings', 'image_alts', 'internal_links'],
-                'title_readability' => ['title_length', 'desc_length'],
+                'additional' => ['keyword_in_subheadings', 'keyword_image_alt', 'keyword_density', 'url_length', 'external_links', 'internal_links', 'image_alts'],
+                'title_readability' => ['title_length', 'desc_length', 'title_keyword_start', 'title_number'],
+                'content_readability' => ['headings', 'short_paragraphs', 'content_media'],
             ];
             $siteHost = parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com';
+            // The headings App\Support\Seo\FaqSchema recognises, for the Schema tab's FAQ status.
+            $faqHeadings = array_map(fn (string $code) => mb_strtolower((string) trans('ai.faq.heading', [], $code)), ['vi', 'en']);
         @endphp
         <div data-tour="post-form.seo" class="card rm-panel">
             <div class="rm-panel__head">
@@ -72,6 +75,12 @@
                 </button>
                 <button data-tour="post-form.seo-meta" type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-preview" role="tab" aria-controls="seo-tab-preview" aria-selected="false">
                     <i class="ti ti-brand-google" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_preview') }}
+                </button>
+                <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-social" role="tab" aria-controls="seo-tab-social" aria-selected="false">
+                    <i class="ti ti-share" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_social') }}
+                </button>
+                <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-schema" role="tab" aria-controls="seo-tab-schema" aria-selected="false">
+                    <i class="ti ti-code" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_schema') }}
                 </button>
                 <button type="button" class="rm-tab" data-bs-toggle="tab" data-bs-target="#seo-tab-advanced" role="tab" aria-controls="seo-tab-advanced" aria-selected="false">
                     <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.tab_advanced') }}
@@ -206,6 +215,90 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div class="tab-pane fade" id="seo-tab-social" role="tabpanel">
+                    <p class="form-text mt-0 mb-3">{{ __('admin.posts.seo_panel.social_help') }}</p>
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            @foreach($contentLanguages as $language)
+                                @php
+                                    $code = $language->code;
+                                    $ogTitle = old("og_title.$code", $post->getTranslation('og_title', $code, false));
+                                    $ogDescription = old("og_description.$code", $post->getTranslation('og_description', $code, false));
+                                @endphp
+                                {{-- Follows the language tab in view, like the snippet editor. --}}
+                                <div data-seo-meta-locale="{{ $code }}" @class(['d-none' => $code !== $defaultContentLocale])>
+                                    @if(count($contentLanguages) > 1)
+                                        <div class="rm-snippet__locale"><i class="ti ti-language me-1" aria-hidden="true"></i>{{ $language->native_name }}</div>
+                                    @endif
+                                    <div class="mb-3">
+                                        <label class="form-label" for="og_title_{{ $code }}">{{ __('admin.posts.seo_panel.social_title') }}</label>
+                                        <input type="text" class="form-control" id="og_title_{{ $code }}" name="og_title[{{ $code }}]" value="{{ $ogTitle }}" maxlength="255"
+                                               data-social-title placeholder="{{ __('admin.posts.seo_panel.social_title_placeholder') }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="og_description_{{ $code }}">{{ __('admin.posts.seo_panel.social_description') }}</label>
+                                        <textarea class="form-control" id="og_description_{{ $code }}" name="og_description[{{ $code }}]" rows="3" maxlength="500"
+                                                  data-social-description placeholder="{{ __('admin.posts.seo_panel.social_description_placeholder') }}">{{ $ogDescription }}</textarea>
+                                    </div>
+                                </div>
+                            @endforeach
+                            <label class="form-label d-block">{{ __('admin.posts.seo_panel.social_image') }}</label>
+                            <input type="hidden" name="og_image" id="og_image" value="{{ old('og_image', $post->og_image) }}" data-social-image>
+                            {{-- The media library opens on this input and writes the chosen URL into og_image. --}}
+                            <input type="file" class="d-none" id="og_image_file" accept="image/*" data-media-folder="posts" data-media-selected-field="og_image">
+                            <div class="d-flex flex-wrap gap-2">
+                                <label for="og_image_file" class="btn btn-sm btn-outline-primary mb-0"><i class="ti ti-photo me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.social_image_pick') }}</label>
+                                <button type="button" class="btn btn-sm btn-light" data-social-image-clear>{{ __('admin.posts.seo_panel.social_image_remove') }}</button>
+                            </div>
+                            <p class="form-text mb-0">{{ __('admin.posts.seo_panel.social_image_help') }}</p>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="small fw-semibold text-muted mb-2"><i class="ti ti-brand-facebook me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.preview_facebook') }}</div>
+                            <div class="rm-social-card mb-3">
+                                <div class="rm-social-card__image" data-social-preview-image><i class="ti ti-photo" aria-hidden="true"></i></div>
+                                <div class="rm-social-card__body">
+                                    <div class="rm-social-card__domain">{{ mb_strtoupper($siteHost) }}</div>
+                                    <div class="rm-social-card__title" data-social-preview-title></div>
+                                    <div class="rm-social-card__description" data-social-preview-description></div>
+                                </div>
+                            </div>
+                            <div class="small fw-semibold text-muted mb-2"><i class="ti ti-brand-x me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.preview_x') }}</div>
+                            <div class="rm-social-card rm-social-card--x">
+                                <div class="rm-social-card__image" data-social-preview-image><i class="ti ti-photo" aria-hidden="true"></i></div>
+                                <div class="rm-social-card__body">
+                                    <div class="rm-social-card__title" data-social-preview-title></div>
+                                    <div class="rm-social-card__domain">{{ $siteHost }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="seo-tab-schema" role="tabpanel">
+                    <div class="mb-4">
+                        <label class="form-label" for="schema_type">{{ __('admin.posts.seo_panel.schema_type') }}</label>
+                        <select class="form-select" id="schema_type" name="schema_type">
+                            @foreach(\App\Models\Post::SCHEMA_TYPES as $schemaType)
+                                <option value="{{ $schemaType }}" @selected(old('schema_type', $post->schema_type ?: 'Article') === $schemaType)>{{ __("admin.posts.seo_panel.schema_types.$schemaType") }}</option>
+                            @endforeach
+                        </select>
+                        <p class="form-text mb-0">{{ __('admin.posts.seo_panel.schema_type_help') }}</p>
+                    </div>
+                    <div class="rm-robots mb-3">
+                        <input type="hidden" name="schema_faq" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="schema_faq" name="schema_faq" value="1"
+                                   @checked((bool) old('schema_faq', $post->exists ? $post->schema_faq : true))>
+                            <label class="form-check-label fw-semibold" for="schema_faq">{{ __('admin.posts.seo_panel.schema_faq') }}</label>
+                        </div>
+                        <p class="form-text mb-0" data-schema-faq-status
+                           data-found="{{ __('admin.posts.seo_panel.schema_faq_found') }}"
+                           data-missing="{{ __('admin.posts.seo_panel.schema_faq_missing') }}"
+                           data-headings='@json($faqHeadings)'></p>
+                    </div>
+                    <p class="form-text mb-0"><i class="ti ti-info-circle me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.schema_always') }}</p>
                 </div>
 
                 <div class="tab-pane fade" id="seo-tab-advanced" role="tabpanel">

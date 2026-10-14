@@ -635,7 +635,11 @@ Kiểm kê toàn bộ theme/
     thể đang bán, còn hàng theo đúng luật tồn kho của checkout, `AggregateRating` chỉ từ review đang
     hiện) và breadcrumb qua danh mục;
   - **trang bài viết của theme**: `SeoMetaFactory::forPost($post)` — tôn trọng `seo_title`,
-    `seo_description`, `robots_index`/`robots_follow`, `canonical_url` của bài, JSON-LD `Article`.
+    `seo_description`, `robots_index`/`robots_follow`, `canonical_url` của bài; thẻ chia sẻ dùng
+    `og_title`/`og_description`/`og_image` riêng của bài nếu có (rỗng thì theo tiêu đề/mô tả SEO và ảnh
+    đại diện); JSON-LD theo `schema_type` (`Post::SCHEMA_TYPES`: Article, BlogPosting, NewsArticle) và
+    `FAQPage` dựng từ mục "Câu hỏi thường gặp" có thật trong bài (`App\Support\Seo\FaqSchema`, tắt bằng
+    `schema_faq`). Không bịa câu hỏi chỉ để có schema.
   Trang không truyền `$seo` vẫn có thẻ, dựng từ hai section trên. Không tự viết canonical, hreflang
   hay `robots` trong page Blade.
 - Route chi tiết của theme đặt tên `client.products.show` / `client.posts.show` với tham số `{slug}`:
@@ -649,7 +653,13 @@ Kiểm kê toàn bộ theme/
   hreflang và sitemap bỏ ngôn ngữ chưa dịch; mở bản ghi ở ngôn ngữ chưa dịch thì canonical trỏ về ngôn
   ngữ fallback đang hiển thị.
 - Chỉ **production** được index (`SeoMetaFactory::indexable()`): staging/local trả `noindex` trong
-  meta và `Disallow: /` trong `robots.txt`.
+  meta và `Disallow: /` trong `robots.txt`. Trang được index còn kèm `max-snippet:-1,
+  max-image-preview:large, max-video-preview:-1` (`SeoMeta::robots()`), để Google hiện ảnh lớn ở Search và
+  Discover; thẻ X là `summary_large_image` khi trang có ảnh.
+- Điểm SEO bài viết tính ở **hai nơi phải khớp nhau**: `App\Services\PostSeoAnalyzer` (server, lưu
+  `seo_score`) và `analyzeSEO` trong `admin/posts/_form-assets.blade.php` (trình duyệt). Trọng số chỉ khai
+  báo ở `PostSeoAnalyzer::WEIGHTS` (cộng đủ 100) và được đưa vào JS bằng `@json`. Thêm/sửa tiêu chí thì sửa
+  cả hai bên và nhóm hiển thị (`$seoGroups` trong `admin/posts/_form.blade.php`).
 - JSON-LD chỉ dựng từ dữ liệu có thật qua `App\Support\Seo\StructuredData`, in bằng
   `StructuredData::script()` (escape `<`/`>` để tên shop không đóng được thẻ `<script>`). Không bịa
   rating, giá hay tồn kho cho schema; sản phẩm giá 0 ("liên hệ") không có `offers`.

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasLocalizedSlugs;
 use App\Models\Concerns\HasMediaUrls;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
@@ -18,7 +19,12 @@ class Post extends Model
         'content',
         'seo_title',
         'seo_description',
+        'og_title',
+        'og_description',
     ];
+
+    /** schema.org types a post can be published as (the SEO box's Schema tab). */
+    public const SCHEMA_TYPES = ['Article', 'BlogPosting', 'NewsArticle'];
 
     protected $fillable = [
         'category_id',
@@ -31,6 +37,11 @@ class Post extends Model
         'seo_title',
         'seo_description',
         'seo_keys',
+        'og_title',
+        'og_description',
+        'og_image',
+        'schema_type',
+        'schema_faq',
         'canonical_url',
         'robots_index',
         'robots_follow',
@@ -43,6 +54,7 @@ class Post extends Model
         'is_active' => 'boolean',
         'robots_index' => 'boolean',
         'robots_follow' => 'boolean',
+        'schema_faq' => 'boolean',
         'seo_score' => 'integer',
         'seo_analysis' => 'array',
         'published_at' => 'datetime',
@@ -51,5 +63,15 @@ class Post extends Model
     public function category()
     {
         return $this->belongsTo(PostCategory::class, 'category_id');
+    }
+
+    /**
+     * The image shown when the post is shared: stored relative like image_url.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function ogImage(): Attribute
+    {
+        return self::mediaUrlAttribute();
     }
 }

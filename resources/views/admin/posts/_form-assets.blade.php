@@ -57,6 +57,16 @@
         .seo-rule-item.is-fail .rm-check-icon { background: #ef4444; }
         .seo-rule-item.is-pass .rm-check-icon { background: #10b981; }
         .rm-robots { padding: 14px 16px; border: 1px solid #e5eaf2; border-radius: 12px; }
+        .rm-social-card { overflow: hidden; border: 1px solid #dadde1; border-radius: 10px; background: #fff; }
+        .rm-social-card__image { display: flex; align-items: center; justify-content: center; aspect-ratio: 1.91 / 1; background: #f0f2f5 center / cover no-repeat; color: #b0b7c3; font-size: 32px; }
+        .rm-social-card__image.has-image i { display: none; }
+        .rm-social-card__body { padding: 10px 12px; background: #f0f2f5; }
+        .rm-social-card__domain { overflow: hidden; color: #65676b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        .rm-social-card__title { display: -webkit-box; overflow: hidden; margin-top: 2px; color: #1c1e21; font-size: 16px; font-weight: 600; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+        .rm-social-card__description { display: -webkit-box; overflow: hidden; margin-top: 2px; color: #65676b; font-size: 14px; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+        .rm-social-card--x { border-radius: 16px; }
+        .rm-social-card--x .rm-social-card__body { background: #fff; }
+        .rm-social-card--x .rm-social-card__title { font-size: 15px; font-weight: 400; -webkit-line-clamp: 1; }
         .rm-length { height: 4px; margin-top: 6px; overflow: hidden; border-radius: 4px; background: #eef2f7; }
         .rm-length span { display: block; width: 0; height: 100%; border-radius: 4px; background: #f59e0b; transition: width .2s, background-color .2s; }
         .rm-length span.is-good { background: #10b981; }
@@ -253,79 +263,57 @@
                 const words = textContent.split(/\s+/).filter(w => w.length > 0);
                 const wordCount = words.length;
 
-                // Rule statuses (0: fail, 1: pass, 2: neutral/optional)
-                const rules = {
-                    keyword_exists: keyword.length > 0,
-                    title_length: seoTitle.length >= 40 && seoTitle.length <= 60,
-                    title_keyword: keyword.length > 0 && seoTitle.toLowerCase().includes(keyword),
-                    slug_keyword: keyword.length > 0 && slug.toLowerCase().includes(generateSlug(keyword)),
-                    desc_length: seoDesc.length >= 120 && seoDesc.length <= 160,
-                    desc_keyword: keyword.length > 0 && seoDesc.toLowerCase().includes(keyword),
-                    content_length: wordCount >= 300,
-                    keyword_density: false, // will calculate
-                    first_paragraph: false, // will calculate
-                    headings: htmlContent.includes('<h2') || htmlContent.includes('<h3'),
-                    image_alts: false, // will check below
-                    internal_links: false
-                };
+                // The same checks and weights as PostSeoAnalyzer on the server (keep them in step).
+                const contentDocument = new DOMParser().parseFromString(htmlContent, 'text/html');
+                const plain = (node) => (node.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                const seoTitleLower = seoTitle.toLowerCase();
+                const ownHosts = [window.location.hostname.replace(/^www\./, '')];
+                const links = Array.from(contentDocument.querySelectorAll('a[href]')).map(link => (link.getAttribute('href') || '').trim());
+                const images = Array.from(contentDocument.querySelectorAll('img'));
+                const paragraphs = Array.from(contentDocument.querySelectorAll('p'));
+                const longestParagraph = (paragraphs.length ? paragraphs : [contentDocument.body])
+                    .reduce((longest, node) => Math.max(longest, plain(node).split(' ').filter(Boolean).length), 0);
 
-                // Calculate keyword density (recommended 0.5% to 2.5%)
+                // Density counts the keyword's words, as the server does.
                 let density = 0;
                 if (wordCount > 0 && keyword.length > 0) {
                     const occurrences = countOccurrences(textContent.toLowerCase(), keyword);
-                    density = (occurrences / wordCount) * 100;
-                    rules.keyword_density = density >= 0.5 && density <= 2.5;
+                    density = Math.round((occurrences * Math.max(1, keyword.split(/\s+/).filter(Boolean).length) / wordCount) * 10000) / 100;
                 }
+                const keywordAt = keyword ? seoTitleLower.indexOf(keyword) : -1;
 
-                // Check keyword in first paragraph (first 100 words of text)
-                if (keyword.length > 0 && wordCount > 0) {
-                    const firstParagraphText = words.slice(0, 100).join(' ').toLowerCase();
-                    rules.first_paragraph = firstParagraphText.includes(keyword);
-                }
+                const rules = {
+                    keyword_exists: keyword.length > 0,
+                    title_keyword: keyword.length > 0 && seoTitleLower.includes(keyword),
+                    desc_keyword: keyword.length > 0 && seoDesc.toLowerCase().includes(keyword),
+                    slug_keyword: keyword.length > 0 && generateSlug(slug).includes(generateSlug(keyword)),
+                    first_paragraph: keyword.length > 0 && words.slice(0, 100).join(' ').toLowerCase().includes(keyword),
+                    content_length: wordCount >= 300,
+                    keyword_in_subheadings: keyword.length > 0 && Array.from(contentDocument.querySelectorAll('h2, h3, h4')).some(node => plain(node).includes(keyword)),
+                    keyword_image_alt: keyword.length > 0 && images.some(img => (img.getAttribute('alt') || '').toLowerCase().includes(keyword)),
+                    keyword_density: density >= 0.5 && density <= 2.5,
+                    url_length: slug.length > 0 && slug.length <= 75,
+                    external_links: links.some(href => {
+                        if (!/^(https?:)?\/\//i.test(href)) return false;
+                        try { return !ownHosts.includes(new URL(href, window.location.origin).hostname.replace(/^www\./, '')); } catch (error) { return false; }
+                    }),
+                    internal_links: links.some(href => {
+                        if (href.startsWith('#') || (href.startsWith('/') && !href.startsWith('//'))) return true;
+                        try { return new URL(href, window.location.origin).origin === window.location.origin; } catch (error) { return false; }
+                    }),
+                    image_alts: images.every(img => (img.getAttribute('alt') || '').trim() !== ''),
+                    title_length: seoTitle.length >= 40 && seoTitle.length <= 60,
+                    desc_length: seoDesc.length >= 120 && seoDesc.length <= 160,
+                    // In the first half of the title, where it weighs most and survives truncation.
+                    title_keyword_start: keywordAt !== -1 && keywordAt <= seoTitle.length / 2,
+                    title_number: /\d/.test(seoTitle),
+                    headings: /<h[23]\b/i.test(htmlContent),
+                    short_paragraphs: wordCount > 0 && longestParagraph <= 150,
+                    content_media: /<(img|iframe|video)\b/i.test(htmlContent)
+                };
 
-                // Check image alt tags
-                const hasImages = htmlContent.includes('<img');
-                if (!hasImages) {
-                    rules.image_alts = true; // pass by default if no images
-                } else {
-                    // check if all images have alt tag
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlContent, 'text/html');
-                    const imgs = doc.querySelectorAll('img');
-                    let allHaveAlts = true;
-                    imgs.forEach(img => {
-                        if (!img.getAttribute('alt') || img.getAttribute('alt').trim() === '') {
-                            allHaveAlts = false;
-                        }
-                    });
-                    rules.image_alts = allHaveAlts;
-                }
-
-                const contentDocument = new DOMParser().parseFromString(htmlContent, 'text/html');
-                rules.internal_links = Array.from(contentDocument.querySelectorAll('a[href]')).some(link => {
-                    const href = (link.getAttribute('href') || '').trim();
-                    if (href.startsWith('/') || href.startsWith('#')) return true;
-                    try {
-                        return new URL(href, window.location.origin).origin === window.location.origin;
-                    } catch (error) {
-                        return false;
-                    }
-                });
-
-                // Compute overall SEO Score
-                let score = 0;
-                if (rules.keyword_exists) score += 5;
-                if (rules.title_length) score += 10;
-                if (rules.title_keyword) score += 10;
-                if (rules.slug_keyword) score += 10;
-                if (rules.desc_length) score += 10;
-                if (rules.desc_keyword) score += 10;
-                if (rules.content_length) score += 10;
-                if (rules.keyword_density) score += 10;
-                if (rules.first_paragraph) score += 10;
-                if (rules.headings) score += 5;
-                if (rules.image_alts) score += 5;
-                if (rules.internal_links) score += 5;
+                const weights = @json(\App\Services\PostSeoAnalyzer::WEIGHTS);
+                const score = Object.keys(weights).reduce((total, key) => total + (rules[key] ? weights[key] : 0), 0);
 
                 // Each check: a green tick or a red cross.
                 Object.keys(rules).forEach(function (key) {
@@ -362,6 +350,9 @@
                     previewUrl.textContent = canonicalInput?.value.trim() || generatedUrl;
                 }
 
+                updateSocialPreview(seoTitle, seoDesc);
+                updateFaqStatus(contentDocument);
+
                 // The score pills (panel header, keyword field, publish box).
                 const tone = score >= 80 ? 'is-good' : (score >= 50 ? 'is-ok' : 'is-bad');
                 document.querySelectorAll('[data-seo-score]').forEach(element => element.textContent = score);
@@ -369,6 +360,63 @@
                     pill.classList.remove('is-good', 'is-ok', 'is-bad');
                     pill.classList.add(tone);
                 });
+            }
+
+            // Facebook / X previews: the language in view, falling back like the storefront does
+            // (social title → SEO title → post title; social image → featured image).
+            const socialImageInput = document.querySelector('[data-social-image]');
+            function updateSocialPreview(seoTitle, seoDesc) {
+                const group = document.querySelector('#seo-tab-social [data-seo-meta-locale]:not(.d-none)');
+                const snippet = document.querySelector('#seo-snippet-editor [data-seo-meta-locale]:not(.d-none)');
+                const ownTitle = group?.querySelector('[data-social-title]')?.value.trim();
+                const ownDescription = group?.querySelector('[data-social-description]')?.value.trim();
+                const localTitle = snippet?.querySelector('[data-seo-title-input]')?.value.trim();
+                const localDescription = snippet?.querySelector('[data-seo-description-input]')?.value.trim();
+                const featured = document.getElementById('post_image_preview');
+                const featuredUrl = featured && !featured.classList.contains('d-none') ? featured.getAttribute('src') : '';
+                const image = (socialImageInput?.value || '').trim() || (featuredUrl && featuredUrl !== '#' ? featuredUrl : '');
+
+                document.querySelectorAll('[data-social-preview-title]').forEach(node => node.textContent = ownTitle || localTitle || seoTitle || translations.preview_title);
+                document.querySelectorAll('[data-social-preview-description]').forEach(node => node.textContent = ownDescription || localDescription || seoDesc || '');
+                document.querySelectorAll('[data-social-preview-image]').forEach(function (node) {
+                    node.style.backgroundImage = image ? 'url("' + image.replace(/"/g, '%22') + '")' : '';
+                    node.classList.toggle('has-image', image !== '');
+                });
+            }
+            document.querySelectorAll('[data-social-title], [data-social-description]').forEach(field => field.addEventListener('input', analyzeSEO));
+            socialImageInput?.addEventListener('change', analyzeSEO);
+            document.getElementById('og_image_file')?.addEventListener('media:selected', () => setTimeout(analyzeSEO, 0));
+            document.getElementById('post_image_file')?.addEventListener('media:selected', () => setTimeout(analyzeSEO, 0));
+            document.querySelector('[data-social-image-clear]')?.addEventListener('click', function () {
+                if (socialImageInput) socialImageInput.value = '';
+                isDirty = true;
+                analyzeSEO();
+            });
+
+            // FAQ schema status, read the way App\Support\Seo\FaqSchema reads the post.
+            const faqStatus = document.querySelector('[data-schema-faq-status]');
+            function updateFaqStatus(doc) {
+                if (!faqStatus) return;
+                const known = JSON.parse(faqStatus.dataset.headings || '[]');
+                let count = 0;
+                doc.querySelectorAll('h2').forEach(function (heading) {
+                    const text = (heading.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                    if (!known.includes(text) && !text.includes('câu hỏi thường gặp') && !text.includes('hỏi đáp') && !/\bfaqs?\b/.test(text)) return;
+                    let question = false;
+                    let answered = false;
+                    for (let node = heading.nextElementSibling; node && !/^H[12]$/.test(node.tagName); node = node.nextElementSibling) {
+                        if (node.tagName === 'H3') {
+                            if (question && answered) count++;
+                            question = (node.textContent || '').trim() !== '';
+                            answered = false;
+                        } else if (question && (node.textContent || '').trim() !== '') {
+                            answered = true;
+                        }
+                    }
+                    if (question && answered) count++;
+                });
+                faqStatus.textContent = count ? faqStatus.dataset.found.replace(':count', count) : faqStatus.dataset.missing;
+                faqStatus.classList.toggle('text-success', count > 0);
             }
 
             function escapeHtml(text) {
