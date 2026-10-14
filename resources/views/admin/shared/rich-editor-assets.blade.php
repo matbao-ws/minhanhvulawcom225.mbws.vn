@@ -17,6 +17,8 @@
             /* The layout's .card { overflow: hidden !important } (clipping to rounded corners) would stop
                the toolbar from sticking; an editor's card has padding, so nothing spills out. */
             .card:has(.rich-editor) { overflow: visible !important; }
+            /* In a modal the modal scrolls, not the window Jodit watches: plain CSS sticky at its top. */
+            .modal .jodit-container:not(.jodit_inline):not(.jodit_fullsize) .jodit-toolbar__box { position: sticky; top: 0; z-index: 3; }
             .jodit-wysiwyg { color: #111827; font-size: 15.5px; line-height: 1.65; }
             .jodit-wysiwyg img { max-width: 100%; height: auto; }
             .jodit-wysiwyg figure { margin: 1rem 0; }
