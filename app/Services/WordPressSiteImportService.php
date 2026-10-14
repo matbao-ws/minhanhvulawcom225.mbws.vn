@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
+use App\Services\Seo\RedirectService;
 use App\Support\HtmlSanitizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -21,6 +22,10 @@ use Throwable;
  * Posts go through WordPressPostImportService (the WXR importer's storage path), pages through
  * PageContentService, products straight into the catalogue; images are downloaded into this
  * site's library like the WXR import does.
+ *
+ * SEO carries over: each item's SEO title/description (Yoast's yoast_head_json, or Rank Math's
+ * headless getHead when the site enables it), a 301 from every old address to the new one, and
+ * links between imported items rewritten to the new URLs.
  */
 class WordPressSiteImportService
 {
@@ -35,6 +40,19 @@ class WordPressSiteImportService
 
     private string $userAgent = 'MatBaoWS-Importer/1.0';
 
+    /** Rank Math answers /rankmath/v1/getHead (its "Headless CMS support" setting). */
+    private bool $rankMathHead = false;
+
+    private string $siteName = '';
+
+    private string $siteDescription = '';
+
+    /** @var list<int> */
+    private array $touchedPages = [];
+
+    /** @var list<int> */
+    private array $touchedProducts = [];
+
     public function __construct(
         private readonly WordPressPostImportService $posts,
         private readonly PageContentService $pages,
@@ -43,6 +61,8 @@ class WordPressSiteImportService
         private readonly HtmlSanitizer $htmlSanitizer,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LanguageRegistry $languages,
+        private readonly RedirectService $redirects,
+        private readonly WordPressSeoMeta $seoMeta,
     ) {}
 
     /**
@@ -64,6 +84,13 @@ class WordPressSiteImportService
         }
         $this->detectApi();
         $this->images->reset();
+        $this->posts->startBatch([
+            'name' => $this->siteName,
+            'description' => $this->siteDescription,
+            'hosts' => [strtolower((string) parse_url($this->base, PHP_URL_HOST))],
+        ]);
+        $this->touchedPages = [];
+        $this->touchedProducts = [];
 
         $report = ['errors' => []];
         foreach (array_intersect(self::TYPES, $types) as $type) {
@@ -73,6 +100,9 @@ class WordPressSiteImportService
 
             foreach ($this->each($route, $query, $limit, $type === 'products') as $item) {
                 $title = (string) ($item['title']['rendered'] ?? $item['name'] ?? '#'.($item['id'] ?? ''));
+                if (! isset($item['yoast_head_json']) && $this->rankMathHead) {
+                    $item['seo_head'] = $this->rankMathHead((string) ($item['link'] ?? $item['permalink'] ?? ''));
+                }
                 try {
                     $result = match ($type) {
                         'posts' => $this->posts->importRestPost($item, $duplicateAction),
@@ -91,9 +121,66 @@ class WordPressSiteImportService
             $report[$type] = $counts;
         }
 
+        $report['redirects'] = $this->finish();
         $report['images'] = $this->images->report();
 
         return $report;
+    }
+
+    /**
+     * Old image addresses and links between imported posts, pages and products, once all of
+     * them exist here.
+     *
+     * @return array{redirects: int, image_redirects: int, links_rewritten: int}
+     */
+    private function finish(): array
+    {
+        $result = $this->posts->finishBatch();
+        $hosts = [strtolower((string) parse_url($this->base, PHP_URL_HOST))];
+
+        Page::query()->whereKey($this->touchedPages)->orderBy('id')->each(function (Page $page) use ($hosts, &$result): void {
+            foreach ($page->getTranslations('published_html') as $locale => $html) {
+                $linked = $this->redirects->rewriteLinks((string) $html, $hosts);
+                if ($linked !== $html) {
+                    $this->pages->updateLocale($page, (string) $locale, $linked, null);
+                    $result['links_rewritten']++;
+                }
+            }
+        });
+        Product::query()->whereKey($this->touchedProducts)->orderBy('id')->each(function (Product $product) use ($hosts, &$result): void {
+            $changed = [];
+            foreach (['short_description', 'description'] as $field) {
+                $values = $product->getTranslations($field);
+                foreach ($values as $locale => $html) {
+                    $values[$locale] = $this->redirects->rewriteLinks((string) $html, $hosts);
+                }
+                if ($values !== $product->getTranslations($field)) {
+                    $changed[$field] = $values;
+                }
+            }
+            if ($changed !== []) {
+                $product->update($changed);
+                $result['links_rewritten']++;
+            }
+        });
+
+        return $result;
+    }
+
+    /**
+     * The rendered head Rank Math gives a URL, in yoast_head_json's shape; [] when it fails.
+     *
+     * @return array<string, string>
+     */
+    private function rankMathHead(string $url): array
+    {
+        if ($url === '') {
+            return [];
+        }
+        $response = $this->request('/rankmath/v1/getHead', ['url' => $url]);
+        $head = $response?->successful() ? (string) $response->json('head') : '';
+
+        return $head === '' ? [] : $this->seoMeta->parseHead($head);
     }
 
     private function detectApi(): void
@@ -102,6 +189,10 @@ class WordPressSiteImportService
             $this->plainRoutes = $plain;
             $response = $this->request('/');
             if ($response?->successful() && is_array($response->json('routes'))) {
+                $this->rankMathHead = array_key_exists('/rankmath/v1/getHead', (array) $response->json('routes'));
+                $this->siteName = trim(html_entity_decode((string) $response->json('name'), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                $this->siteDescription = trim(html_entity_decode((string) $response->json('description'), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
                 return;
             }
         }
@@ -162,29 +253,29 @@ class WordPressSiteImportService
             return 'skipped';
         }
         $slug = Str::slug(rawurldecode((string) ($item['slug'] ?? ''))) ?: Str::slug($title);
+        $link = (string) ($item['link'] ?? '');
         $existing = Page::query()->where('slug', $slug)->first();
         if ($existing && $duplicateAction === 'skip') {
+            $this->posts->rememberUrl($link, $existing);
+
             return 'skipped';
         }
 
-        $yoast = (array) ($item['yoast_head_json'] ?? []);
+        $seo = $this->seoMeta->fromHead((array) ($item['seo_head'] ?? $item['yoast_head_json'] ?? []), $link);
         $data = [
             'title' => [$locale => Str::limit($title, 255, '')],
             'slug' => [$locale => $slug],
-            'meta_title' => array_filter([$locale => Str::limit(trim((string) ($yoast['title'] ?? '')), 255, '')]),
-            'meta_description' => array_filter([$locale => Str::limit(trim((string) ($yoast['description'] ?? '')), 500, '')]),
+            'meta_title' => array_filter([$locale => Str::limit($seo['title'], 255, '')]),
+            'meta_description' => array_filter([$locale => Str::limit($seo['description'], 500, '')]),
             'is_active' => true,
             'published_html' => [$locale => $this->images->localizeHtml($this->normalizer->normalize((string) ($item['content']['rendered'] ?? '')))],
         ];
 
-        if ($existing) {
-            $this->pages->update($existing, $data, null);
+        $page = $existing ? $this->pages->update($existing, $data, null) : $this->pages->create($data);
+        $this->touchedPages[] = (int) $page->getKey();
+        $this->posts->rememberUrl($link, $page);
 
-            return 'updated';
-        }
-        $this->pages->create($data);
-
-        return 'imported';
+        return $existing ? 'updated' : 'imported';
     }
 
     /** @param array<string, mixed> $item WooCommerce Store API product */
@@ -199,9 +290,13 @@ class WordPressSiteImportService
 
         return DB::transaction(function () use ($item, $locale, $name, $slug, $duplicateAction): string {
             $existing = Product::query()->where('slug', $slug)->lockForUpdate()->first();
+            $link = (string) ($item['permalink'] ?? '');
             if ($existing && $duplicateAction === 'skip') {
+                $this->posts->rememberUrl($link, $existing);
+
                 return 'skipped';
             }
+            $seo = $this->seoMeta->fromHead((array) ($item['seo_head'] ?? []), $link);
 
             $prices = (array) ($item['prices'] ?? []);
             $unit = 10 ** max(0, (int) ($prices['currency_minor_unit'] ?? 0));
@@ -219,6 +314,8 @@ class WordPressSiteImportService
                 'sku' => $sku !== '' && ! Product::query()->where('sku', $sku)->when($existing, fn ($q) => $q->whereKeyNot($existing->id))->exists() ? Str::limit($sku, 100, '') : null,
                 'short_description' => array_filter([$locale => $clean((string) ($item['short_description'] ?? ''))]),
                 'description' => array_filter([$locale => $clean((string) ($item['description'] ?? ''))]),
+                'meta_title' => array_filter([$locale => Str::limit($seo['title'], 255, '')]),
+                'meta_description' => array_filter([$locale => Str::limit($seo['description'], 500, '')]),
                 'image_url' => $this->images->localize((string) ($item['images'][0]['src'] ?? '')),
                 'price' => $price,
                 'compare_at_price' => $regular > $price ? $regular : null,
@@ -229,6 +326,11 @@ class WordPressSiteImportService
 
             $product = $existing ? tap($existing)->update($payload) : Product::query()->create($payload);
             $this->localizedSlugs->sync($product, [$locale => $slug], [$locale => $name]);
+            $this->touchedProducts[] = (int) $product->getKey();
+            $this->posts->rememberUrl($link, $product);
+            if ($category) {
+                $this->posts->rememberUrl((string) ((($item['categories'] ?? [])[0]['link'] ?? '')), $category);
+            }
 
             return $existing ? 'updated' : 'imported';
         });

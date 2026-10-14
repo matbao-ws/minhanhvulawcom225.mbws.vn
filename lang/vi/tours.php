@@ -252,6 +252,15 @@ return [
         'back' => ['title' => 'Quay lại', 'description' => 'Về danh sách đối tác mà không lưu.'],
     ],
 
+    'redirects_index' => [
+        'intro' => ['title' => 'Chuyển hướng & lỗi 404', 'description' => 'Link cũ (ví dụ từ website WordPress trước đây) tự chuyển 301 sang trang mới, để Google giữ thứ hạng. Chỉ áp dụng khi link cũ không còn trang nào trả lời.'],
+        'tabs' => ['title' => 'Chuyển hướng và Lỗi 404', 'description' => 'Tab Lỗi 404 liệt kê những link khách hoặc Google mở mà không có trang, nhiều lượt nhất ở trên. Bấm "Tạo chuyển hướng" để xử lý từng link.'],
+        'add' => ['title' => 'Thêm chuyển hướng', 'description' => 'Nhập link cũ, link mới và kiểu: 301 (chuyển hẳn, giữ thứ hạng), 302/307 (tạm thời) hoặc 410 (đã xoá hẳn).'],
+        'import' => ['title' => 'Nhập và xuất CSV', 'description' => 'Nhập nhiều chuyển hướng một lần từ file CSV (link cũ, link mới, mã), hoặc tải danh sách hiện có về máy.'],
+        'search' => ['title' => 'Tìm và lọc', 'description' => 'Tìm theo link cũ hoặc link mới; lọc theo nguồn: tạo tay, import WordPress hoặc từ lỗi 404.'],
+        'table' => ['title' => 'Danh sách', 'description' => 'Chuyển hướng tạo khi import WordPress tự đi theo trang mới, kể cả khi bạn đổi slug sau này. Cột Lượt cho biết link cũ còn được truy cập bao nhiêu.'],
+    ],
+
     'contact_submissions_index' => [
         'intro' => ['title' => 'Liên hệ', 'description' => 'Tin nhắn khách gửi qua form liên hệ trên website, mới nhất ở trên.'],
         'tabs' => ['title' => 'Hộp thư và Spam', 'description' => 'Tin bị bộ lọc chống spam giữ lại nằm ở tab Spam, không vào hộp thư và không gửi email báo.'],

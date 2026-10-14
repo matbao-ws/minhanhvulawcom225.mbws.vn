@@ -658,6 +658,38 @@ Kiểm kê toàn bộ theme/
   khi tới Laravel. `public/robots.txt` thuộc website nên cập nhật core không xoá nó: site cài trước
   bản này phải xoá tay một lần. Sitemap cache 1 giờ (`SitemapService::flush()`).
 
+### Chuyển hướng 301 và chuyển site từ WordPress
+
+Mục tiêu: site khách chuyển từ WordPress sang không mất thứ hạng. Mỗi link cũ phải dẫn tới đúng
+trang mới bằng 301, và tiêu đề/mô tả Google đang hiển thị phải được giữ nguyên.
+
+- `App\Services\Seo\RedirectService` chỉ được gọi từ handler `NotFoundHttpException` trong
+  `bootstrap/app.php`: redirect **chỉ áp dụng khi không route/record nào trả lời URL**. Trang đang tồn
+  tại không bao giờ bị chuyển hướng, và request bình thường không tốn query nào. Không chuyển nó thành
+  middleware chạy mọi request.
+- Bảng `redirects`: `source_path` lưu dạng chuẩn hoá (`RedirectService::normalize`: decode, chữ thường,
+  `/` đầu, bỏ `/` cuối, query sắp xếp). `redirectable_*` trỏ tới record đích, nên đích **đi theo slug
+  hiện tại** (`urlFor()` theo route theme `client.posts.show`, `client.products.show`, `client.pages.show`,
+  `client.categories.show`, `client.post-categories.show`). `target_url` là đích dự phòng hoặc đích tự
+  nhập. URL nội bộ lưu dạng **tương đối**, để dữ liệu dời được từ staging sang domain thật. Mã 301, 302,
+  307, 410; tự trỏ về chính nó thì bỏ qua (chống lặp); query của khách (utm…) đi kèm theo.
+- URL vẫn trả 404 được ghi vào `not_found_logs` (tối đa `NOT_FOUND_LOG_LIMIT` dòng; `redirects:prune-404`
+  chạy hằng tuần, giữ 90 ngày). Không ghi admin, `/api`, asset, và các đường dò lỗ hổng (`wp-login.php`,
+  `.env`, `*.php`…).
+- Admin `admin/redirects` (quyền `redirects.*`): danh sách, tab Lỗi 404 (bấm "Tạo chuyển hướng"), nhập/xuất
+  CSV `source,target,status`. Chuyển hướng admin tạo tay (`origin = manual`) **không bao giờ** bị import
+  ghi đè.
+- Import WordPress (WXR ở admin bài viết và `wp:import` qua REST) bắt buộc:
+  - đọc SEO qua `App\Services\WordPressSeoMeta`. Rank Math (`rank_math_*`) ưu tiên trước Yoast
+    (`_yoast_wpseo_*`). Biến mẫu `%title%`/`%%sitename%%`… được thay bằng chữ thật, biến không biết thì
+    bỏ. `rank_math_robots` đọc bằng so chuỗi, **không `unserialize()`** dữ liệu export. Canonical trỏ
+    về chính bài thì bỏ. REST lấy `yoast_head_json`, hoặc `/rankmath/v1/getHead` khi site bật Headless
+    của Rank Math;
+  - gọi `RedirectService::remember()` cho mọi bài, trang, sản phẩm, danh mục (kể cả bản bị bỏ qua vì
+    trùng) và ảnh `/wp-content/uploads/...` đã tải về;
+  - sau khi import hết, sửa link nội bộ trong nội dung đã import sang URL mới (`rewriteLinks()`), để
+    không tốn một bước chuyển hướng mỗi lần click.
+
 ### Trình soạn thảo trong admin
 
 Mọi ô nội dung HTML trong admin (bài viết, sản phẩm, trang chính sách, mô tả danh mục/thương hiệu/

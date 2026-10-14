@@ -270,9 +270,13 @@ class PostController extends Controller
             'failed' => $results['failed'],
             'images_downloaded' => $results['images_downloaded'],
             'images_failed' => $results['images_failed'],
+            'redirects' => $results['redirects'] + $results['image_redirects'],
+            'links_rewritten' => $results['links_rewritten'],
         ]);
 
-        $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi.";
+        $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi."
+            // Old WordPress addresses keep their rankings (admin/redirects).
+            .' Đã tạo '.($results['redirects'] + $results['image_redirects']).' chuyển hướng 301 từ link cũ, sửa link nội bộ trong '.$results['links_rewritten'].' bài.';
 
         if ($results['failed'] > 0 || $results['images_failed'] > 0) {
             $response = back()->with('warning', $message)->with('import_errors', [

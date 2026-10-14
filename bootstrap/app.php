@@ -15,6 +15,7 @@ use App\Http\Middleware\SyncPackageInfo;
 use App\Http\Middleware\UseDefaultLocale;
 use App\Http\Middleware\ValidateLocalizedAdminPath;
 use App\Services\LanguageRegistry;
+use App\Services\Seo\RedirectService;
 use App\Support\ErrorReference;
 use App\Support\ErrorReporting\GatewayErrorReporter;
 use App\Support\PackageManifestGuard;
@@ -30,6 +31,7 @@ use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes;
 use Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath;
 use Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect;
 use Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 // A package manifest left over from a vendor/ that has since been replaced would stop the boot
 // before package:discover could rebuild it (see PackageManifestGuard).
@@ -120,6 +122,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // The error page shows only this code; the log line carries it next to the detail.
         $exceptions->context(fn () => ['error_ref' => ErrorReference::current()]);
+
+        // An old URL that moved answers with its redirect (or 410); what stays a 404 is logged
+        // for admin/redirects. Only here, so a page that exists costs no lookup.
+        $exceptions->render(fn (NotFoundHttpException $e, Request $request) => app(RedirectService::class)->handleNotFound($request));
 
         // The same code reaches the internal console, so it is found without this hosting's log.
         $exceptions->reportable(function (Throwable $e): void {

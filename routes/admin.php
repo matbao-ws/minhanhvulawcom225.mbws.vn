@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PostCategoryController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\RedirectController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SearchController;
@@ -314,6 +315,17 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->middleware('can:reviews.update')->name('reviews.toggle-visibility');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->middleware('can:reviews.delete')->name('reviews.destroy');
     });
+
+    // Old URLs and where they now go; the storefront URLs that answered 404 (RedirectService).
+    Route::get('redirects', [RedirectController::class, 'index'])->middleware('can:redirects.view')->name('redirects.index');
+    Route::get('redirects/export', [RedirectController::class, 'export'])->middleware('can:redirects.view')->name('redirects.export');
+    Route::post('redirects', [RedirectController::class, 'store'])->middleware('can:redirects.create')->name('redirects.store');
+    Route::post('redirects/import', [RedirectController::class, 'import'])->middleware('can:redirects.create')->name('redirects.import');
+    Route::patch('redirects/bulk', [RedirectController::class, 'bulk'])->middleware('can:redirects.update')->name('redirects.bulk');
+    Route::put('redirects/{redirect}', [RedirectController::class, 'update'])->whereNumber('redirect')->middleware('can:redirects.update')->name('redirects.update');
+    Route::delete('redirects/{redirect}', [RedirectController::class, 'destroy'])->whereNumber('redirect')->middleware('can:redirects.delete')->name('redirects.destroy');
+    Route::delete('redirects/not-found', [RedirectController::class, 'clearNotFound'])->middleware('can:redirects.delete')->name('redirects.not-found.clear');
+    Route::delete('redirects/not-found/{notFoundLog}', [RedirectController::class, 'destroyNotFound'])->whereNumber('notFoundLog')->middleware('can:redirects.delete')->name('redirects.not-found.destroy');
 
     Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->middleware('can:contacts.view')->name('contact-submissions.index');
     Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');
