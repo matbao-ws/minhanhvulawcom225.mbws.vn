@@ -56,18 +56,46 @@
         @endif
     </x-admin.page-header>
 
-    <div class="card mb-4"><div class="card-body">
-        <form data-tour="activity.filters" class="row g-3" method="GET">
-            <div class="col-md-3"><select name="user_id" class="form-select"><option value="">Tất cả người thực hiện</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected(request('user_id') == $user->id)>{{ $user->name }} — {{ $user->email }}</option>@endforeach</select></div>
-            <div class="col-md-2"><select name="action" class="form-select"><option value="">Tất cả thao tác</option>@foreach($actions as $action)<option value="{{ $action }}" @selected(request('action') === $action)>{{ \App\Models\AdminActivityLog::actionLabelFor($action) }}</option>@endforeach</select></div>
-            <div class="col-md-2"><select name="subject_type" class="form-select"><option value="">Tất cả đối tượng</option>@foreach($subjectTypes as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ \App\Models\AdminActivityLog::subjectLabelFor($type) }}</option>@endforeach</select></div>
-            <div data-tour="activity.dates" class="col-md-2"><input type="date" name="from" value="{{ request('from') }}" class="form-control"></div>
-            <div class="col-md-2"><input type="date" name="to" value="{{ request('to') }}" class="form-control"></div>
-            <div class="col-md-1"><x-admin.action-button type="submit" icon="filter" class="w-100">Lọc</x-admin.action-button></div>
-        </form>
-    </div></div>
+    <div class="card">
+        <div class="card-body border-bottom p-3 p-md-4">
+            <button class="btn btn-outline-primary d-md-none w-100 d-flex align-items-center justify-content-between"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#activity-log-filters"
+                    aria-expanded="{{ request()->hasAny(['user_id', 'action', 'subject_type', 'from', 'to']) ? 'true' : 'false' }}"
+                    aria-controls="activity-log-filters">
+                <span><i class="ti ti-adjustments-horizontal me-2" aria-hidden="true"></i>Bộ lọc nhật ký</span>
+                <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            </button>
 
-    @if($canDelete)
+            <div data-tour="activity.filters" class="collapse d-md-block {{ request()->hasAny(['user_id', 'action', 'subject_type', 'from', 'to']) ? 'show' : '' }}" id="activity-log-filters">
+                <form class="row g-2 align-items-end mt-1 mt-md-0" method="GET">
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label small fw-bold text-muted mb-1" for="activity_user_id">Người thực hiện</label>
+                        <select name="user_id" id="activity_user_id" class="form-select"><option value="">Tất cả người thực hiện</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected(request('user_id') == $user->id)>{{ $user->name }} — {{ $user->email }}</option>@endforeach</select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-2">
+                        <label class="form-label small fw-bold text-muted mb-1" for="activity_action">Thao tác</label>
+                        <select name="action" id="activity_action" class="form-select"><option value="">Tất cả thao tác</option>@foreach($actions as $action)<option value="{{ $action }}" @selected(request('action') === $action)>{{ \App\Models\AdminActivityLog::actionLabelFor($action) }}</option>@endforeach</select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-2">
+                        <label class="form-label small fw-bold text-muted mb-1" for="activity_subject_type">Đối tượng</label>
+                        <select name="subject_type" id="activity_subject_type" class="form-select"><option value="">Tất cả đối tượng</option>@foreach($subjectTypes as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ \App\Models\AdminActivityLog::subjectLabelFor($type) }}</option>@endforeach</select>
+                    </div>
+                    <div data-tour="activity.dates" class="col-12 col-sm-6 col-lg-2">
+                        <label class="form-label small fw-bold text-muted mb-1" for="activity_from">Từ ngày</label>
+                        <input type="date" name="from" id="activity_from" value="{{ request('from') }}" class="form-control">
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-2">
+                        <label class="form-label small fw-bold text-muted mb-1" for="activity_to">Đến ngày</label>
+                        <input type="date" name="to" id="activity_to" value="{{ request('to') }}" class="form-control">
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-1"><x-admin.action-button type="submit" icon="search" class="w-100" title="Lọc" aria-label="Lọc"><span class="d-lg-none">Lọc</span></x-admin.action-button></div>
+                </form>
+            </div>
+        </div>
+
+        @if($canDelete)
         <form id="activity-bulk-form" method="POST" action="{{ route('admin.activity-logs.bulk-destroy') }}" class="js-delete-form d-none"
               data-confirm-title="Xóa các bản ghi đã chọn?"
               data-confirm-text="Các bản ghi đã chọn sẽ bị xóa vĩnh viễn và không thể khôi phục."
@@ -77,7 +105,6 @@
         </form>
     @endif
 
-    <div class="card">
     @if($canDelete)
         <div class="d-none align-items-center gap-2 px-4 py-3 border-bottom bg-light-subtle" data-activity-bulk-toolbar>
             <span class="fw-semibold text-dark"><span data-activity-bulk-count>0</span> bản ghi đã chọn</span>

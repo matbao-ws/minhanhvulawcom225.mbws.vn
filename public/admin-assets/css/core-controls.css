@@ -336,15 +336,54 @@ textarea::placeholder {
     background: var(--admin-scroll-thumb-hover);
 }
 
-/* Admin lists: the current page in the brand red, like the primary buttons. */
-.pagination .page-item.active > .page-link {
-    border-color: var(--core-control-primary, #c01e25);
-    background-color: var(--core-control-primary, #c01e25);
+/* Admin list pagination: separated touch targets with an unmistakable active page. */
+.pagination--admin {
+    gap: 6px;
+}
+
+.pagination--admin .page-item + .page-item .page-link {
+    margin-left: 0;
+}
+
+.pagination--admin .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #dfe5ef;
+    border-radius: 9px !important;
+    background: #fff;
+    color: #52637a;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.pagination--admin .page-item:not(.active):not(.disabled) .page-link:hover {
+    border-color: rgba(227, 35, 38, .32);
+    background: rgba(227, 35, 38, .08);
+    color: var(--core-control-primary, #e32326);
+    transform: translateY(-1px);
+}
+
+.pagination--admin .page-item.active > .page-link {
+    border-color: var(--core-control-primary, #e32326);
+    background: var(--core-control-primary, #e32326);
+    box-shadow: 0 4px 10px rgba(227, 35, 38, .22);
     color: #fff;
 }
 
-.pagination .page-link:focus {
-    box-shadow: 0 0 0 0.2rem rgba(192, 30, 37, 0.18);
+.pagination--admin .page-item.disabled:not(.active) > .page-link {
+    border-color: #e9edf3;
+    background: #f8fafc;
+    color: #a8b2c1;
+}
+
+.pagination--admin .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(227, 35, 38, .18);
 }
 
 /* Side column of a two-column admin form (posts, products): stays in view while the main
