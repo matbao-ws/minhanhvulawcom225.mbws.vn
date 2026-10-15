@@ -128,7 +128,7 @@
             const doc = new DOMParser().parseFromString(htmlContent, 'text/html');
             const plain = (node) => (node.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
             const seoTitleLower = seoTitle.toLowerCase();
-            const ownHosts = [window.location.hostname.replace(/^www\./, '')];
+            const ownHosts = [window.location.hostname, config.siteHost || ''].filter(Boolean).map(host => host.toLowerCase().replace(/^www\./, ''));
             const links = Array.from(doc.querySelectorAll('a[href]')).map(link => (link.getAttribute('href') || '').trim());
             const images = Array.from(doc.querySelectorAll('img'));
             const paragraphs = Array.from(doc.querySelectorAll('p'));
@@ -157,9 +157,10 @@
                     if (!/^(https?:)?\/\//i.test(href)) return false;
                     try { return !ownHosts.includes(new URL(href, window.location.origin).hostname.replace(/^www\./, '')); } catch (error) { return false; }
                 }),
+                // Same rule as PostSeoAnalyzer: a path, or this site's host with or without www, http or https.
                 internal_links: links.some(function (href) {
                     if (href.startsWith('#') || (href.startsWith('/') && !href.startsWith('//'))) return true;
-                    try { return new URL(href, window.location.origin).origin === window.location.origin; } catch (error) { return false; }
+                    try { return ownHosts.includes(new URL(href, window.location.origin).hostname.replace(/^www\./, '')); } catch (error) { return false; }
                 }),
                 image_alts: images.every(img => (img.getAttribute('alt') || '').trim() !== ''),
                 title_length: seoTitle.length >= 40 && seoTitle.length <= 60,

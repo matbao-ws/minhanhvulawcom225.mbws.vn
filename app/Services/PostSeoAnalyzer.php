@@ -181,10 +181,7 @@ class PostSeoAnalyzer
     private function hasExternalLink(string $html): bool
     {
         preg_match_all('/<a\b[^>]*href\s*=\s*(["\'])(.*?)\1/i', $html, $links);
-        $own = array_map(fn (?string $host) => preg_replace('/^www\./', '', mb_strtolower((string) $host)), [
-            parse_url((string) config('app.url'), PHP_URL_HOST),
-            request()->getHost(),
-        ]);
+        $own = $this->ownHosts();
 
         foreach ($links[2] as $href) {
             $host = preg_replace('/^www\./', '', mb_strtolower((string) parse_url(trim($href), PHP_URL_HOST)));
@@ -204,23 +201,33 @@ class PostSeoAnalyzer
         return (int) collect($blocks)->map(fn (string $block) => count($this->words($this->plainText($block))))->max();
     }
 
+    /** A link to this site: a path, or an address on its own host (with or without www, http or https). */
     private function hasInternalLink(string $html): bool
     {
         preg_match_all('/<a\b[^>]*href\s*=\s*(["\'])(.*?)\1/i', $html, $links);
-        $siteHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+        $own = $this->ownHosts();
 
         foreach ($links[2] ?? [] as $href) {
             $href = trim($href);
-            if (str_starts_with($href, '/') || str_starts_with($href, '#')) {
+            if (str_starts_with($href, '#') || (str_starts_with($href, '/') && ! str_starts_with($href, '//'))) {
                 return true;
             }
 
-            $host = parse_url($href, PHP_URL_HOST);
-            if ($siteHost && $host && mb_strtolower($host) === mb_strtolower((string) $siteHost)) {
+            $host = preg_replace('/^www\./', '', mb_strtolower((string) parse_url($href, PHP_URL_HOST)));
+            if ($host !== '' && in_array($host, $own, true)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /** @return list<string> this site's hosts without www: APP_URL's and the one being served */
+    private function ownHosts(): array
+    {
+        return array_values(array_filter(array_map(fn (?string $host) => preg_replace('/^www\./', '', mb_strtolower((string) $host)), [
+            parse_url((string) config('app.url'), PHP_URL_HOST),
+            request()->getHost(),
+        ])));
     }
 }

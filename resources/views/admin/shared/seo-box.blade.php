@@ -54,6 +54,8 @@
         'defaultLocale' => $seoDefaultLocale,
         'weights' => \App\Services\PostSeoAnalyzer::WEIGHTS,
         'urlPattern' => $urlPattern,
+        // The site's own host (APP_URL): a link to it counts as internal, as PostSeoAnalyzer counts it.
+        'siteHost' => (string) parse_url((string) config('app.url'), PHP_URL_HOST),
         'selectors' => $selectors + ['image' => null, 'imageInputs' => []],
         't' => [
             'group_errors' => __('admin.posts.seo_panel.group_errors'),
