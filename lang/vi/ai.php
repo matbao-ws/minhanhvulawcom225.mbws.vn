@@ -119,7 +119,7 @@ Keo dán ống uPVC',
         'intro' => 'AI xử lý nhiều nội dung một lần. Kết quả chờ bạn duyệt, không tự lưu; nội dung bị sửa sau khi chạy được giữ nguyên.',
         'locale' => 'Ngôn ngữ',
         'kind' => 'Loại',
-        'types' => ['product' => 'Sản phẩm', 'post' => 'Bài viết', 'page' => 'Trang chính sách'],
+        'types' => ['product' => 'Sản phẩm', 'post' => 'Bài viết', 'page' => 'Trang chính sách', 'category' => 'Danh mục sản phẩm', 'post_category' => 'Danh mục bài viết'],
         'kinds' => [
             'meta' => [
                 'title' => 'Tiêu đề & mô tả SEO còn thiếu',
@@ -244,7 +244,7 @@ Keo dán ống uPVC',
             'seo_fix_suggest' => 'Sửa theo điểm SEO',
         ],
     ],
-    'draft' => [
+    'draft_first' => [
         'hint' => 'Bấm nút AI sẽ lưu nháp trước, rồi mở công cụ.',
         'confirm' => 'Công cụ AI cần bản ghi đã lưu. Lưu nháp (chưa xuất bản) rồi mở công cụ?',
         'saved' => 'Đã lưu nháp. Đang mở công cụ AI…',

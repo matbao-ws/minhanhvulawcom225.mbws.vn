@@ -50,7 +50,7 @@
                 <i class="ti ti-sparkles me-1"></i>{{ __('ai.collection.button') }}
             </button>
         @endif
-        <span class="text-muted small">{{ $aiSaved ? __('ai.edit.saved_only') : __('ai.draft.hint') }}</span>
+        <span class="text-muted small">{{ $aiSaved ? __('ai.edit.saved_only') : __('ai.draft_first.hint') }}</span>
     </div>
     @include('admin.shared.ai-edit-assets')
     @include('admin.shared.ai-tools-assets')

@@ -119,7 +119,7 @@ uPVC pipe glue',
         'intro' => 'The AI works through many items at once. Results wait for your review and are never saved on their own; content edited after the run is left as it is.',
         'locale' => 'Language',
         'kind' => 'Kind',
-        'types' => ['product' => 'Products', 'post' => 'Posts', 'page' => 'Policy pages'],
+        'types' => ['product' => 'Products', 'post' => 'Posts', 'page' => 'Policy pages', 'category' => 'Product categories', 'post_category' => 'Blog categories'],
         'kinds' => [
             'meta' => [
                 'title' => 'Missing SEO titles & descriptions',
@@ -244,7 +244,7 @@ uPVC pipe glue',
             'seo_fix_suggest' => 'Fix by SEO score',
         ],
     ],
-    'draft' => [
+    'draft_first' => [
         'hint' => 'An AI button saves a draft first, then opens the tool.',
         'confirm' => 'AI tools need a saved record. Save as a draft (unpublished) and open the tool?',
         'saved' => 'Draft saved. Opening the AI tool…',

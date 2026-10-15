@@ -15,7 +15,7 @@
         <button type="button" class="btn btn-sm btn-outline-success {{ $entity?->exists ? 'js-ai-seo-fix' : 'js-ai-draft-first' }}" data-ai-tool="seo-fix" data-entity-type="{{ $entityType }}" data-entity-id="{{ $entity?->getKey() }}" data-locale="{{ app(\App\Services\LanguageRegistry::class)->defaultLocale() }}">
             <i class="ti ti-sparkles me-1"></i>{{ __('ai.seo.button') }}
         </button>
-        <div class="text-muted small mt-1">{{ $entity?->exists ? __('ai.seo.saved_only') : __('ai.draft.hint') }}</div>
+        <div class="text-muted small mt-1">{{ $entity?->exists ? __('ai.seo.saved_only') : __('ai.draft_first.hint') }}</div>
     </div>
     @include('admin.shared.ai-tools-assets')
     @include('admin.shared.ai-apply-guard')

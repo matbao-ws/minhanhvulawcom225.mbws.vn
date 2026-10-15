@@ -40,7 +40,7 @@ class AiDraftAndPendingTest extends TestCase
             ->assertSee('data-ai-tool="meta-suggest"', false)
             ->assertSee('data-ai-tool="seo-fix"', false)
             ->assertDontSee('js-ai-faq"', false)
-            ->assertSee(__('ai.draft.hint'));
+            ->assertSee(__('ai.draft_first.hint'));
         $this->actingAs($this->admin)->get('/vi/admin/brands/create')->assertOk()->assertSee('data-ai-tool="collection"', false);
     }
 

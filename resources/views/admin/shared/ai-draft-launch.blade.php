@@ -7,7 +7,7 @@
     @push('scripts')
         <script>
             (function () {
-                const confirmText = @json(__('ai.draft.confirm'));
+                const confirmText = @json(__('ai.draft_first.confirm'));
 
                 document.addEventListener('click', function (event) {
                     const button = event.target.closest('.js-ai-draft-first');

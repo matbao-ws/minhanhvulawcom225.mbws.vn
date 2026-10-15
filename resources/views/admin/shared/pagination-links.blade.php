@@ -3,7 +3,7 @@
      the storefront keeps Laravel's own view. --}}
 @php($single = ! $paginator->hasPages())
 <nav aria-label="{{ __('admin.pagination.label') }}">
-    <ul class="pagination pagination-sm mb-0">
+    <ul class="pagination pagination-sm pagination--admin mb-0">
         @if ($paginator->onFirstPage())
             <li class="page-item disabled" aria-disabled="true">
                 <span class="page-link" aria-hidden="true">&lsaquo;</span>
