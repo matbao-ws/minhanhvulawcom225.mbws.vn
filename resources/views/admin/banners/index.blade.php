@@ -58,7 +58,11 @@
             </form>
         </div>
 
-        <div class="card-body p-0">
+        {{-- Filters, pages, show/hide and delete update this part only (admin-ajax.js). --}}
+        @php
+            $canUpdateBanners = (bool) auth()->user()?->can('banners.update');
+        @endphp
+        <div class="card-body p-0" data-ajax-list="banners">
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-banners-form',
                 'bulkActionUrl' => route('admin.banners.bulk'),
@@ -111,15 +115,14 @@
                                     <span class="fw-bold text-dark fs-3">{{ $banner->sort_order }}</span>
                                 </td>
                                 <td>
-                                    @if($banner->is_active)
-                                        <span class="badge bg-success-subtle text-success fw-semibold fs-2">
-                                            {{ __('admin.banners.fields.active') }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-warning-subtle text-warning fw-semibold fs-2">
-                                            {{ __('admin.banners.fields.inactive') }}
-                                        </span>
-                                    @endif
+                                    @include('admin.shared.status-switch', [
+                                        'action' => route('admin.banners.bulk'),
+                                        'id' => $banner->id,
+                                        'active' => (bool) $banner->is_active,
+                                        'can' => $canUpdateBanners,
+                                        'activeLabel' => __('admin.banners.fields.active'),
+                                        'inactiveLabel' => __('admin.banners.fields.inactive'),
+                                    ])
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">

@@ -440,6 +440,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
         Route::patch('products/bulk', [ProductController::class, 'bulk'])->middleware('can:products.update')->name('products.bulk');
         Route::post('products/sort', [ProductController::class, 'sort'])->middleware('can:products.update')->name('products.sort');
+        Route::patch('products/{product}/quick-update', [ProductController::class, 'quickUpdate'])->middleware('can:products.update')->name('products.quick-update');
         Route::get('products/export', [ProductController::class, 'export'])->middleware('can:products.view')->name('products.export');
         Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
         Route::post('products/import', [ProductController::class, 'import'])->middleware(['can:products.create', 'throttle:admin-heavy'])->name('products.import');

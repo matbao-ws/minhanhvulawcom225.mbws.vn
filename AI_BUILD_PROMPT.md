@@ -415,6 +415,27 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Không thêm dependency nếu framework/core hiện có giải quyết được.
 - Không đổi kiến trúc hoặc public contract ngoài phạm vi mà không báo rõ.
 
+### Danh sách admin cập nhật tại chỗ (`admin-ajax.js`)
+
+`public/admin-assets/js/admin-ajax.js` (JS thuần, nạp ở layout admin) cho danh sách đổi dữ liệu mà
+không tải lại trang. Nó **không** quyết định gì: server trả lời y như submit thường (cùng route,
+`can:`, validation, `back()->with(...)`), script chỉ thay phần danh sách từ trang trả về.
+
+- View đánh dấu phần thay đổi bằng `data-ajax-list="<tên>"` (bảng, thanh thao tác hàng loạt, phân
+  trang). Form GET trỏ về chính trang đó và link trong phần đó cùng trang (phân trang, sắp xếp) chỉ
+  thay phần này, URL vẫn theo bộ lọc (F5, gửi link, nút Back đúng).
+- Form ghi (xoá, công tắc hiện/ẩn, thao tác hàng loạt) nằm **trong** phần đó, hoặc có
+  `data-ajax-form` (modal sửa nhanh), được gửi bằng `fetch`. Flash hiện thành toast nhờ
+  `<script data-admin-flash>` trong `admin.layouts.toast`. `data-no-ajax` để giữ submit thường (vd.
+  đăng nhập nhanh).
+- Script của trang gắn vào dòng phải đăng ký qua `AdminAjax.ready(fn)` (chạy lại cho phần mới thay)
+  hoặc lắng nghe ở `document`. Script tự xác nhận rồi gửi form thì gọi `AdminAjax.submit(form)`.
+- Đọc `action`/`target` của form bằng `getAttribute`: input tên `action` (form bulk) che thuộc tính
+  cùng tên.
+- Công tắc hiện/ẩn một dòng là `admin.shared.status-switch`, đi qua endpoint `bulk` sẵn có của module
+  với một id. Sửa nhanh giá/tồn kho ở danh sách sản phẩm qua `ProductService::quickUpdate()` (khoá
+  dòng, chỉ sản phẩm không có biến thể).
+
 ### Hướng dẫn sử dụng từng trang admin (driver.js)
 
 Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) được phép cho riêng tính năng này:

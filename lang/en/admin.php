@@ -9,6 +9,16 @@ return [
         'apply' => 'Apply',
         'label' => 'Pagination',
     ],
+    // Lists that change without a full reload (public/admin-assets/js/admin-ajax.js).
+    'ajax' => [
+        'failed' => 'That did not work. Reload the page and try again.',
+        'forbidden' => 'You are not allowed to do this.',
+        'missing' => 'Not found; it may have been deleted.',
+        'throttled' => 'Too fast; please try again in a few minutes.',
+        'offline' => 'Connection lost. Check the network and try again.',
+        'show' => 'Shown — click to hide',
+        'hide' => 'Hidden — click to show',
+    ],
     'dashboard' => 'Dashboard',
     'admin' => 'Admin',
     'home' => 'Home',

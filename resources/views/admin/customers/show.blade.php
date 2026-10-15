@@ -157,7 +157,8 @@
             <span class="text-muted fs-2">{{ __('admin.customers.newest_first') }}</span>
         </div>
 
-        <div class="card-body p-0">
+        {{-- Filters and pages update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="customer-orders">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>

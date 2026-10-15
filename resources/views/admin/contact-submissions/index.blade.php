@@ -57,7 +57,8 @@
             </form>
         </div>
 
-        <div class="card-body p-0">
+        {{-- Filters, pages, read/unread, not-spam and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="contacts">
             <div data-tour="contacts.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
@@ -161,14 +162,15 @@
 
 @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.js-view-meta').forEach(function (button) {
+        // Again after each in-place list update (admin-ajax.js): the rows are new.
+        AdminAjax.ready(function (root) {
+            root.querySelectorAll('.js-view-meta').forEach(function (button) {
                 button.addEventListener('click', function () {
                     document.getElementById('contactMetaContent').textContent = this.getAttribute('data-meta');
                 });
             });
 
-            document.querySelectorAll('.js-read-toggle').forEach(function (checkbox) {
+            root.querySelectorAll('.js-read-toggle').forEach(function (checkbox) {
                 checkbox.addEventListener('change', function () {
                     const url = this.getAttribute('data-url');
                     const isChecked = this.checked;
@@ -189,12 +191,6 @@
                     .catch(function () {
                         checkbox.checked = !isChecked;
                     });
-                });
-            });
-
-            document.querySelectorAll('.js-delete-form').forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                    if (!confirm('Xóa liên hệ này?')) event.preventDefault();
                 });
             });
         });

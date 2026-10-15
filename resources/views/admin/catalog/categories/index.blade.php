@@ -80,6 +80,11 @@
                 </div>
             @endif
         </div>
+        {{-- Filters, pages, show/hide, quick edit and delete update this part only (admin-ajax.js). --}}
+        @php
+            $canUpdateCatalog = (bool) auth()->user()?->can('products.update');
+        @endphp
+        <div data-ajax-list="categories">
         @include('admin.shared.bulk-actions', [
             'bulkFormId' => 'bulk-categories-form',
             'bulkActionUrl' => route('admin.categories.bulk'),
@@ -157,9 +162,14 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge {{ $category->is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
-                                {{ $category->is_active ? __('catalog.status.active') : __('catalog.status.inactive') }}
-                            </span>
+                            @include('admin.shared.status-switch', [
+                                'action' => route('admin.categories.bulk'),
+                                'id' => $category->id,
+                                'active' => (bool) $category->is_active,
+                                'can' => $canUpdateCatalog,
+                                'activeLabel' => __('catalog.status.active'),
+                                'inactiveLabel' => __('catalog.status.inactive'),
+                            ])
                             @if($category->is_draft)
                                 <span class="badge bg-warning-subtle text-warning">{{ __('catalog.status.draft') }}</span>
                             @endif
@@ -224,11 +234,12 @@
         <div class="card-body">
             @include('admin.shared.pagination', ['paginator' => $categories])
         </div>
+        </div>
     </div>
 
     <div class="modal fade" id="quickEditCategoryModal" tabindex="-1" aria-labelledby="quickEditCategoryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <form method="POST" action="" class="modal-content" enctype="multipart/form-data" id="quickEditCategoryForm">
+            <form method="POST" action="" class="modal-content" enctype="multipart/form-data" id="quickEditCategoryForm" data-ajax-form>
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
@@ -298,8 +309,9 @@
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const sortable = document.getElementById('category-table-sortable');
+        // Again after each in-place list update (admin-ajax.js): the rows are new.
+        AdminAjax.ready(function (root) {
+            const sortable = root.querySelector('#category-table-sortable');
             const csrfToken = @json(csrf_token());
             const sortUrl = @json(route('admin.categories.sort'));
             const quickUpdateUrlTemplate = @json(route('admin.categories.quick-update', ['category' => '__CATEGORY_ID__']));
@@ -411,7 +423,7 @@
                 }
             }
 
-            document.querySelectorAll('.js-category-quick-edit').forEach(function (button) {
+            root.querySelectorAll('.js-category-quick-edit').forEach(function (button) {
                 button.addEventListener('click', function () {
                     const form = document.getElementById('quickEditCategoryForm');
                     const parentSelect = document.getElementById('quick_parent_id');

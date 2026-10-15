@@ -45,6 +45,33 @@ class ProductService
         });
     }
 
+    /**
+     * Price and stock edited from the product list. Only for a product without variants: a variant
+     * product sells at its variants' price and stock, which are edited on the variants.
+     *
+     * @param  array{price: float|int|string, stock_quantity: int|string}  $data
+     * @return array{price: array{0: mixed, 1: mixed}, stock_quantity: array{0: mixed, 1: mixed}} before → after
+     *
+     * @throws DomainException when the product has variants
+     */
+    public function quickUpdate(Product $product, array $data): array
+    {
+        return DB::transaction(function () use ($product, $data) {
+            $locked = Product::query()->whereKey($product->getKey())->lockForUpdate()->firstOrFail();
+            if ($locked->variants()->exists()) {
+                throw new DomainException(__('catalog.products.quick_edit_variants'));
+            }
+
+            $before = ['price' => $locked->price, 'stock_quantity' => $locked->stock_quantity];
+            $locked->update(['price' => $data['price'], 'stock_quantity' => (int) $data['stock_quantity']]);
+
+            return [
+                'price' => [$before['price'], $locked->price],
+                'stock_quantity' => [$before['stock_quantity'], $locked->stock_quantity],
+            ];
+        });
+    }
+
     public function delete(Product $product): void
     {
         DB::transaction(fn () => $product->delete());

@@ -395,3 +395,24 @@ textarea::placeholder {
         align-self: flex-start;
     }
 }
+
+/* A list being refreshed in place (admin-ajax.js): dimmed and not clickable until it is back. */
+[data-ajax-list] {
+    transition: opacity .15s ease;
+}
+
+[data-ajax-list].is-ajax-loading {
+    opacity: .55;
+    pointer-events: none;
+}
+
+/* Show/hide switch in a list row (admin.shared.status-switch). */
+.status-switch .form-check-input {
+    cursor: pointer;
+}
+
+.status-switch .form-check-label {
+    padding-left: .35rem;
+    cursor: pointer;
+    white-space: nowrap;
+}

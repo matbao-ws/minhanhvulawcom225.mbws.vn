@@ -52,7 +52,8 @@
             </form>
         </div>
 
-        <!-- Users Table -->
+        <!-- Users Table: filters, pages, lock/unlock and delete update this part only (admin-ajax.js). -->
+        <div data-ajax-list="users">
         <div data-tour="users.table" class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead>
@@ -128,7 +129,7 @@
                                     <!-- Quick Login (Impersonate) Button (prevent self impersonation) -->
                                     @if ($userItem->id !== auth()->id())
                                         <form method="POST" action="{{ route('admin.users.impersonate', $userItem) }}"
-                                            class="d-inline">
+                                            class="d-inline" data-no-ajax>
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-info"
                                                 title="Đăng nhập nhanh"
@@ -183,5 +184,6 @@
                 @include('admin.shared.pagination', ['paginator' => $users])
             </div>
         @endif
+        </div>
     </div>
 @endsection

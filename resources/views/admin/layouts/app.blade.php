@@ -482,6 +482,8 @@
     <script src="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
     @include('admin.layouts.toast')
+    <script>window.AdminAjaxText = @json(__('admin.ajax'));</script>
+    <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/admin-ajax.js') }}"></script>
     @include('admin.shared.ai-locked-assets')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -530,7 +532,8 @@
                         focusCancel: true
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            form.submit();
+                            // Inside a list: deleted without leaving the page (admin-ajax.js).
+                            window.AdminAjax ? window.AdminAjax.submit(form) : form.submit();
                         }
                     });
                 }

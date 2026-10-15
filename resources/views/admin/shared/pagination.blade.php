@@ -21,7 +21,7 @@
                     @endif
                 @endforeach
                 <label class="form-label text-muted fs-2 mb-0 text-nowrap" for="per_page">{{ __('admin.pagination.per_page') }}</label>
-                <select name="per_page" id="per_page" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <select name="per_page" id="per_page" class="form-select form-select-sm w-auto" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                     @foreach($perPageOptions as $option)
                         <option value="{{ $option }}" @selected($currentPerPage === $option)>{{ $option }}</option>
                     @endforeach

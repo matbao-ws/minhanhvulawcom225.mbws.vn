@@ -111,6 +111,9 @@ return [
         'search_placeholder' => 'Search by name, SKU, or slug',
         'sorted' => 'Product order updated.',
         'sort_failed' => 'Could not update product order.',
+        'quick_updated' => 'Price and stock updated.',
+        'quick_edit_variants' => 'This product has variants: edit price and stock on each variant.',
+        'quick_edit_hint' => 'Edit, then press Enter (or click away) to save',
         'actions' => [
             'add_variation_row' => 'Add another variation',
         ],

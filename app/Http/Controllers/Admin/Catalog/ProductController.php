@@ -214,6 +214,28 @@ class ProductController extends Controller
         ]);
     }
 
+    /** Price and stock from the product list (a product without variants). */
+    public function quickUpdate(Request $request, string $locale, Product $product)
+    {
+        $validated = $request->validate([
+            'price' => ['required', 'numeric', 'min:0', 'max:999999999999'],
+            'stock_quantity' => ['required', 'integer', 'min:0', 'max:1000000000'],
+        ]);
+
+        try {
+            $changes = $this->products->quickUpdate($product, $validated);
+        } catch (DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        ActivityLogger::log('updated', $product, 'Sửa nhanh giá và tồn kho sản phẩm', [
+            'price' => $changes['price'],
+            'stock_quantity' => $changes['stock_quantity'],
+        ]);
+
+        return back()->with('success', __('catalog.products.quick_updated'));
+    }
+
     public function bulk(Request $request, string $locale)
     {
         $validated = $this->validatedBulkAction($request, 'products', 'products');
