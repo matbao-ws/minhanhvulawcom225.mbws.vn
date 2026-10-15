@@ -36,7 +36,10 @@
     ];
     // Each group's icon; its colour comes from seo-box.css ([data-seo-group]).
     $seoGroupIcons = ['basic' => 'ti-key', 'additional' => 'ti-list-check', 'title_readability' => 'ti-heading', 'content_readability' => 'ti-book'];
-    $siteHost = parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com';
+    // The previews show the site as Google and social networks will: its name and favicon (Settings).
+    $siteBranding = $siteBranding ?? app(\App\Services\SiteBranding::class)->current();
+    $siteName = $siteBranding['name'];
+    $faviconUrl = $siteBranding['favicon_url'];
     $schemaTypes = $schemaTypes ?? null;
     $mediaFolder = $mediaFolder ?? 'general';
     $placeholders = ($placeholders ?? []) + [
@@ -171,9 +174,9 @@
                 </div>
                 <div class="rm-serp" id="seo_google_preview_result">
                     <div class="rm-serp__site">
-                        <span class="rm-serp__favicon" aria-hidden="true">{{ mb_strtoupper(mb_substr($siteHost, 0, 1)) }}</span>
+                        <span class="rm-serp__favicon" aria-hidden="true"><img src="{{ $faviconUrl }}" alt=""></span>
                         <div class="min-w-0">
-                            <div class="seo-preview-site">{{ $siteHost }}</div>
+                            <div class="seo-preview-site">{{ $siteName }}</div>
                             <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
                         </div>
                     </div>
@@ -242,7 +245,10 @@
         </div>
 
         <div class="tab-pane fade" id="seo-tab-social" role="tabpanel">
-            <p class="form-text mt-0 mb-3">{{ __('admin.posts.seo_panel.social_help') }}</p>
+            <div class="alert alert-danger d-flex align-items-start gap-2 mt-0 mb-3 py-2" role="alert">
+                <i class="ti ti-info-circle mt-1" aria-hidden="true"></i>
+                <span>{{ __('admin.posts.seo_panel.social_help') }}</span>
+            </div>
             <div class="row g-4">
                 <div class="col-lg-6">
                     @foreach($seoLanguages as $language)
@@ -283,7 +289,7 @@
                     <div class="rm-social-card mb-3">
                         <div class="rm-social-card__image" data-social-preview-image><i class="ti ti-photo" aria-hidden="true"></i></div>
                         <div class="rm-social-card__body">
-                            <div class="rm-social-card__domain">{{ mb_strtoupper($siteHost) }}</div>
+                            <div class="rm-social-card__domain"><img src="{{ $faviconUrl }}" alt=""><span>{{ $siteName }}</span></div>
                             <div class="rm-social-card__title" data-social-preview-title></div>
                             <div class="rm-social-card__description" data-social-preview-description></div>
                         </div>
@@ -293,7 +299,7 @@
                         <div class="rm-social-card__image" data-social-preview-image><i class="ti ti-photo" aria-hidden="true"></i></div>
                         <div class="rm-social-card__body">
                             <div class="rm-social-card__title" data-social-preview-title></div>
-                            <div class="rm-social-card__domain">{{ $siteHost }}</div>
+                            <div class="rm-social-card__domain"><img src="{{ $faviconUrl }}" alt=""><span>{{ $siteName }}</span></div>
                         </div>
                     </div>
                 </div>

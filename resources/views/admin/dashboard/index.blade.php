@@ -124,8 +124,8 @@
         border-radius: 12px;
         background: #fbfcff;
     }
-    .dashboard-package-usage__meta { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #8190a8; font-size: 12px; font-weight: 600; }
-    .dashboard-package-usage__meta strong { color: #627391; font-weight: 800; white-space: nowrap; }
+    .dashboard-package-usage__meta { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #1f2937; font-size: 12px; font-weight: 600; }
+    .dashboard-package-usage__meta strong { color: #fd7e14; font-weight: 800; white-space: nowrap; }
     .dashboard-package-usage .progress { height: 5px !important; border-radius: 999px; background-color: #e8edf5; }
     .dashboard-package-usage .progress-bar { border-radius: inherit; background-color: #d11e28 !important; }
     .dashboard-ai-usage { display: flex; align-items: center; gap: 16px; padding: 13px 14px; }

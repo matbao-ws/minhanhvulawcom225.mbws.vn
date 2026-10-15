@@ -15,6 +15,7 @@ use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Services\Packages\PackageLimits;
 use App\Services\PostSeoAnalyzer;
+use App\Services\SiteBranding;
 use App\Services\WordPressPostImportService;
 use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
@@ -31,6 +32,7 @@ class PostController extends Controller
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly HtmlSanitizer $htmlSanitizer,
         private readonly PostSeoAnalyzer $seoAnalyzer,
+        private readonly SiteBranding $siteBranding,
     ) {}
 
     /**
@@ -69,7 +71,11 @@ class PostController extends Controller
         ]);
         $categories = $this->categoryOptions();
 
-        return view('admin.posts.create', compact('post', 'categories'));
+        return view('admin.posts.create', [
+            'post' => $post,
+            'categories' => $categories,
+            'siteBranding' => $this->siteBranding->current(),
+        ]);
     }
 
     /**
@@ -144,7 +150,11 @@ class PostController extends Controller
     {
         $categories = $this->categoryOptions();
 
-        return view('admin.posts.edit', compact('post', 'categories'));
+        return view('admin.posts.edit', [
+            'post' => $post,
+            'categories' => $categories,
+            'siteBranding' => $this->siteBranding->current(),
+        ]);
     }
 
     /**
