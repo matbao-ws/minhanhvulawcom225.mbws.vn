@@ -2,7 +2,19 @@
 
 return [
     'title' => 'Redirects & 404 errors',
-    'subtitle' => 'Old links redirect 301 to their new page so Google keeps their rankings. They apply only when nothing else answers the old link.',
+    'subtitle' => 'Change links without losing Google rankings.',
+    'guide' => [
+        'what_title' => 'What is this page for?',
+        'what' => 'When an old link has no page any more (slug changed, moved from WordPress, deleted), visitors and Google opening it are sent to the new link, and Google moves its ranking along.',
+        'codes_title' => 'Which code?',
+        'code_301' => 'permanent, keeps rankings. Almost always this one.',
+        'code_302' => 'temporary (page under maintenance).',
+        'code_410' => 'gone for good, Google drops it faster.',
+        'when_title' => 'When to use it?',
+        'when_wordpress' => 'WordPress import: redirects are created for you.',
+        'when_slug' => 'Changed a slug: add a 301 from the old link to the new one.',
+        'when_404' => '404 errors tab: links visitors opened with no page; one click makes a redirect.',
+    ],
     'tabs' => [
         'redirects' => 'Redirects',
         'not_found' => '404 errors',

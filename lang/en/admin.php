@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'page_help' => 'What is this page for?',
     'all' => 'All',
     'pagination' => [
         'per_page' => 'Rows',
