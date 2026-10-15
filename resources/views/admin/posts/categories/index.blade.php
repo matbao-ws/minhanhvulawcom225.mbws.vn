@@ -174,7 +174,7 @@
                 </table>
             </div>
             <div class="card-body">
-                {{ $categories->links() }}
+                @include('admin.shared.pagination', ['paginator' => $categories])
             </div>
         </div>
     </div>

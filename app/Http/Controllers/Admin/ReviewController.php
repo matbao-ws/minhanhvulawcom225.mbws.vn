@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Review;
@@ -9,6 +10,8 @@ use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
+    use HandlesPagination;
+
     /**
      * Display a listing of reviews.
      */
@@ -43,7 +46,7 @@ class ReviewController extends Controller
         }
 
         $reviews = $query->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         // Get products with reviews to populate the filter dropdown

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendOrderStatusEmail;
 use App\Models\Brand;
@@ -27,6 +28,8 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+    use HandlesPagination;
+
     public function __construct(
         private readonly ShippingService $shippingService,
         private readonly OrderStockService $orderStockService,
@@ -68,7 +71,7 @@ class OrderController extends Controller
             $query->where('shipping_status', $request->input('shipping_status'));
         }
 
-        $orders = $query->paginate(10)->withQueryString();
+        $orders = $query->paginate($this->perPage(10))->withQueryString();
         $shippingStatuses = Order::shippingStatusKeys();
 
         return view('admin.orders.index', compact('orders', 'shippingStatuses'));

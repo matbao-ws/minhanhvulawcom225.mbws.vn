@@ -104,9 +104,9 @@
                 </table>
             </div>
 
-            @if($roles->hasPages())
+            @if($roles->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $roles->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $roles])
                 </div>
             @endif
         </div>

@@ -69,9 +69,9 @@
                     </div>
                 @endforelse
             </div>
-            @if($notifications->hasPages())
+            @if($notifications->total() > 0)
                 <div class="card-footer bg-transparent border-top p-4">
-                    {{ $notifications->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $notifications])
                 </div>
             @endif
         </div>

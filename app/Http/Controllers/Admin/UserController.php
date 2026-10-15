@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\AuthorizesPermissionGrants;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
 use App\Models\Permission;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends Controller
 {
     use AuthorizesPermissionGrants;
+    use HandlesPagination;
 
     public function __construct(
         private readonly CloudinaryService $cloudinaryService,
@@ -180,7 +182,7 @@ class UserController extends Controller
                 $query->where('is_active', request('status'));
             })
             ->latest()
-            ->paginate(10)
+            ->paginate($this->perPage(10))
             ->withQueryString();
 
         $roles = $this->getAvailableRoles();

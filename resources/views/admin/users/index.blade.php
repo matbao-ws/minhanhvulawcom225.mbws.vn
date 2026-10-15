@@ -178,9 +178,9 @@
             </table>
         </div>
 
-        @if ($users->hasPages())
+        @if($users->total() > 0)
             <div class="card-footer bg-transparent border-top">
-                {{ $users->links() }}
+                @include('admin.shared.pagination', ['paginator' => $users])
             </div>
         @endif
     </div>

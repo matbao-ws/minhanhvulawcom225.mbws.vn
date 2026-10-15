@@ -606,7 +606,7 @@
                          </div>
                     @endif
 
-                    @if ($resources->hasPages())<div class="pt-3 mt-3 border-top">@include('admin.shared.pagination', ['paginator' => $resources])</div>@endif
+                    @if($resources->total() > 0)<div class="pt-3 mt-3 border-top">@include('admin.shared.pagination', ['paginator' => $resources])</div>@endif
                 </section>
             </main>
         </div>

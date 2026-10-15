@@ -64,8 +64,8 @@
             </table>
         </div>
 
-        @if($menus->hasPages())
-            <div class="pt-3">{{ $menus->links() }}</div>
+        @if($menus->total() > 0)
+            <div class="pt-3">@include('admin.shared.pagination', ['paginator' => $menus])</div>
         @endif
     </div>
 </div>

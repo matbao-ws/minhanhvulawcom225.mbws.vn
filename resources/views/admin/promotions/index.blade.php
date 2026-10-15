@@ -22,6 +22,6 @@
             'emptyMessage' => 'Chưa có chương trình khuyến mãi.',
         ])</td></tr>@endforelse
         </tbody></table></div>
-        @if($promotions->hasPages())<div class="p-3">{{ $promotions->links() }}</div>@endif
+        @if($promotions->total() > 0)<div class="p-3">@include('admin.shared.pagination', ['paginator' => $promotions])</div>@endif
     </div>
 @endsection

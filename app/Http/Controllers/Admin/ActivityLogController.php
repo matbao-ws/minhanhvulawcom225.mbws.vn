@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Models\User;
@@ -10,12 +11,14 @@ use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
+    use HandlesPagination;
+
     public function index(Request $request)
     {
         $viewer = $request->user();
 
         return view('admin.activity_logs.index', [
-            'logs' => $this->filtered($request)->with('user')->latest('created_at')->paginate(20)->withQueryString(),
+            'logs' => $this->filtered($request)->with('user')->latest('created_at')->paginate($this->perPage(20))->withQueryString(),
             'canDelete' => $viewer->isSuperAdmin(),
             'users' => User::query()
                 ->whereNotNull('role_id')

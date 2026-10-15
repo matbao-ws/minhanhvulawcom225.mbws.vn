@@ -142,9 +142,9 @@
                 </table>
             </div>
 
-            @if($banners->hasPages())
+            @if($banners->total() > 0)
                 <div class="p-4 border-top">
-                    {{ $banners->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $banners])
                 </div>
             @endif
         </div>

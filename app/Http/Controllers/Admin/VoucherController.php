@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\VoucherRequest;
 use App\Models\Voucher;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 class VoucherController extends Controller
 {
     use HandlesBulkActions;
+    use HandlesPagination;
 
     /**
      * Display a listing of the resource.
@@ -30,7 +32,7 @@ class VoucherController extends Controller
                 $query->where('is_active', request('status'));
             })
             ->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         return view('admin.vouchers.index', compact('vouchers'));

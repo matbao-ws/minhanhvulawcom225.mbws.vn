@@ -107,7 +107,7 @@
             'emptyImage' => asset('admin-assets/images/icons/empty-nhatkyhoatdong.png'),
             'emptyMessage' => 'Chưa có hoạt động nào.',
         ])</td></tr>@endforelse</tbody>
-    </table></div>@if($logs->hasPages())<div class="card-body border-top">{{ $logs->links() }}</div>@endif</div>
+    </table></div>@if($logs->total() > 0)<div class="card-body border-top">@include('admin.shared.pagination', ['paginator' => $logs])</div>@endif</div>
 @endsection
 
 @if($canDelete)
