@@ -328,7 +328,9 @@ class AiToolsTest extends TestCase
             ->assertSee(__('ai.usage.title'))->assertSee('12 / 100');
 
         $noAi = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Viewer', 'permissions' => ['products.view']])->id]);
-        $this->actingAs($noAi)->get('/vi/admin')->assertOk()->assertDontSee(__('ai.usage.title'));
+        // Shown, locked: no credits fetched, the reason one click away.
+        $this->actingAs($noAi)->get('/vi/admin')->assertOk()->assertSee(__('ai.usage.title'))
+            ->assertSee('data-ai-usage-locked', false)->assertDontSee('12 / 100');
     }
 
     public function test_the_tool_buttons_sit_beside_the_editors(): void

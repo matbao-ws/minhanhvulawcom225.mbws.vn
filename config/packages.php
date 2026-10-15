@@ -75,7 +75,8 @@ return [
         ],
         // Hero 4 → 7: everything the core has today, keyword research (ai_research) included. Their extra items (loyalty,
         // ZNS, CRO, omni-channel, AI, Stripe/PayPal) do not exist in the core yet.
-        'HERO4' => ['features' => '*'],
+        // AI SEO (ai_seo) from Hero 4; Từ khoá & đối thủ (ai_research, a paid data provider) from Hero 5.
+        'HERO4' => ['features' => '*', 'except' => ['ai_research']],
         'HERO5' => ['features' => '*'],
         'HERO6' => ['features' => '*'],
         'HERO7' => ['features' => '*'],

@@ -186,9 +186,12 @@ class AiKeywordResearchTest extends TestCase
         $this->actingAs($this->user(['posts.view']))->get('/vi/admin/ai/research')->assertForbidden();
 
         FeatureSetting::query()->where('feature_code', 'ai_research')->update(['is_enabled' => false]);
-        $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/research')->assertRedirect();
-        $this->actingAs($this->user(['ai.use']))->postJson('/vi/admin/ai/research/topics')->assertForbidden();
-        $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/seo-tasks')->assertOk()->assertDontSee(route('admin.ai.research.index'), false);
+        // Switched off: the page says so in place of the tool, and the menu keeps it, locked.
+        $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/research')->assertForbidden()
+            ->assertSee('data-ai-locked-page="off"', false)->assertSee(__('ai.locked.off', ['feature' => __('ai.locked.features.ai_research')]));
+        $this->actingAs($this->user(['ai.use']))->postJson('/vi/admin/ai/research/topics')->assertForbidden()
+            ->assertJsonPath('reason', 'ai_locked')->assertJsonPath('locked.reason', 'off');
+        $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/seo-tasks')->assertOk()->assertSee('data-sidebar-ai-locked="seo_research"', false);
         $this->assertSame([], collect($this->sent)->filter(fn (Request $request) => str_contains($request->url(), '/v1/research'))->all());
     }
 
