@@ -204,10 +204,13 @@ fieldset:disabled .btn-primary {
 
 /* The theme's overflow-x: hidden makes .page-wrapper a scroll box of its own, while the page
    scrolls the window: nothing inside could stick (editor toolbars, form side columns).
-   clip cuts the same overflow without making a scroll box. */
+   clip cuts the same overflow without making a scroll box. Unlike hidden, clip does not let the
+   flex item shrink below its content: min-width: 0 keeps it at the window's width, so a wide
+   table scrolls in its .table-responsive instead of widening the whole page. */
 @supports (overflow: clip) {
     .page-wrapper {
         overflow-x: clip;
+        min-width: 0;
     }
 }
 
