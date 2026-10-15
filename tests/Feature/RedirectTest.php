@@ -161,8 +161,7 @@ class RedirectTest extends TestCase
         $this->assertSame(0, NotFoundLog::query()->count(), 'the 404 it fixes leaves the log');
 
         $this->actingAs($admin)->get('/vi/admin/redirects')->assertOk()->assertSee('/link-hong')->assertSee('/bai-viet/moi')
-            // A one-line subtitle; what the page is for sits behind the "?" beside the title.
-            ->assertSee(__('redirects.subtitle'))
+            // No subtitle: what the page is for sits behind the "?" beside the title.
             ->assertSee('admin-page-help__toggle', false)
             ->assertSee(__('redirects.guide.code_301'))
             ->assertSee(__('redirects.guide.when_404'));

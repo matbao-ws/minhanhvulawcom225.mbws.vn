@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Redirects & 404 errors',
-    'subtitle' => 'Change links without losing Google rankings.',
     'guide' => [
         'what_title' => 'What is this page for?',
         'what' => 'When an old link has no page any more (slug changed, moved from WordPress, deleted), visitors and Google opening it are sent to the new link, and Google moves its ranking along.',

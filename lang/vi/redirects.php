@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Chuyển hướng & lỗi 404',
-    'subtitle' => 'Đổi link không mất thứ hạng Google.',
     'guide' => [
         'what_title' => 'Trang này để làm gì?',
         'what' => 'Khi link cũ không còn trang (đổi slug, chuyển từ WordPress, xoá bài), khách và Google mở link đó sẽ được đưa sang link mới, và Google chuyển thứ hạng theo.',
