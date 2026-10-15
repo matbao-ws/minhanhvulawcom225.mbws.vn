@@ -173,7 +173,7 @@
         @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-lg-4 admin-sticky-aside">
         <div data-tour="product-form.side" class="offcanvas-md offcanvas-end overflow-auto" tabindex="-1" id="productSidePanel" aria-labelledby="productSidePanelLabel">
             <div class="card">
                 <div class="card-body">
