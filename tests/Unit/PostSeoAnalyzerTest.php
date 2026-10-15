@@ -28,6 +28,23 @@ class PostSeoAnalyzerTest extends TestCase
         $this->assertGreaterThanOrEqual(300, $analysis['metrics']['word_count']);
     }
 
+    public function test_a_link_to_the_sites_own_host_is_internal_with_or_without_www(): void
+    {
+        config(['app.url' => 'https://mascomglobal.com']);
+        $internal = fn (string $href) => app(PostSeoAnalyzer::class)->analyze([
+            'title' => 'Bài', 'slug' => 'bai', 'content' => '<p><a href="'.$href.'">xem</a></p>',
+            'seo_title' => '', 'seo_description' => '', 'focus_keyword' => '',
+        ])['rules']['internal_links'];
+
+        $this->assertTrue($internal('/blog/caco3'));
+        $this->assertTrue($internal('https://mascomglobal.com/blog/caco3'));
+        $this->assertTrue($internal('https://www.mascomglobal.com/blog/caco3'));
+        $this->assertTrue($internal('http://WWW.MascomGlobal.com/blog/caco3'));
+        // Another site, and a protocol-relative address to it, are not.
+        $this->assertFalse($internal('https://maskaglobal.com/product/black-masterbatch/'));
+        $this->assertFalse($internal('//maskaglobal.com/product/'));
+    }
+
     public function test_the_weights_add_up_to_a_hundred(): void
     {
         $this->assertSame(100, array_sum(PostSeoAnalyzer::WEIGHTS));

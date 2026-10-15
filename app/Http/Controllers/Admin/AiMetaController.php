@@ -28,7 +28,7 @@ class AiMetaController extends Controller
         ]);
 
         try {
-            [$suggestion, $usage] = $this->suggestions->suggest(
+            [$suggestion, $usage, $focusKeyword] = $this->suggestions->suggest(
                 $data['entity_type'], (int) $data['entity_id'], $data['content_locale'], $request->user(),
             );
         } catch (GatewayUnavailable $e) {
@@ -41,6 +41,7 @@ class AiMetaController extends Controller
                 'suggestion_id' => $suggestion->id,
                 'current' => $suggestion->old_values,
                 'options' => $suggestion->options,
+                'focus_keyword' => $focusKeyword,
                 'usage' => $usage,
                 'apply_url' => route('admin.ai.meta.apply', ['locale' => $locale, 'suggestion' => $suggestion->id]),
                 'reject_url' => route('admin.ai.meta.reject', ['locale' => $locale, 'suggestion' => $suggestion->id]),

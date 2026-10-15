@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\WordPressPostImportRequest;
 use App\Models\Post;
@@ -24,7 +25,7 @@ use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
-    use HandlesBulkActions;
+    use HandlesBulkActions, OpensAiToolAfterCreate;
 
     public function __construct(
         private readonly LanguageRegistry $languages,
@@ -129,9 +130,9 @@ class PostController extends Controller
             return $post;
         });
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.posts.edit', $post, redirect()
             ->route('admin.posts.index')
-            ->with('success', __('admin.posts.created'));
+            ->with('success', __('admin.posts.created')));
     }
 
     /**
@@ -283,6 +284,15 @@ class PostController extends Controller
             $reason = $exception::class === \RuntimeException::class ? $exception->getMessage() : 'Lỗi hệ thống, xem log để biết chi tiết.';
 
             return back()->with('error', 'Import WordPress thất bại: '.$reason);
+        }
+
+        if ($results['imported'] + $results['updated'] + $results['skipped'] + $results['failed'] === 0) {
+            // Nothing in the file is a post: say what it holds instead of a row of zeros.
+            $found = collect($results['other_types'])->map(fn (int $count, string $type) => "$count $type")->implode(', ');
+
+            return back()->with('error', $found === ''
+                ? 'File WordPress này không có bài viết nào.'
+                : "File WordPress này không có bài viết. File chứa: $found. Sản phẩm WooCommerce nhập ở Sản phẩm → Nhập (file CSV).");
         }
 
         ActivityLogger::log('wordpress_posts_imported', null, 'Import bài viết từ WordPress XML', [

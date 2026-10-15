@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\InlinePageUpdateRequest;
 use App\Http\Requests\Admin\PageRequest;
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
+    use OpensAiToolAfterCreate;
+
     public function __construct(
         private readonly PageContentService $pages,
         private readonly LanguageRegistry $languages,
@@ -51,7 +54,7 @@ class PageController extends Controller
         $page = $this->pages->create($request->validated());
         ActivityLogger::log('created', $page, "Tạo trang {$page->slug}");
 
-        return redirect()->route('admin.pages.edit', $page)->with('success', 'Đã tạo trang.');
+        return $this->redirectAfterCreate($request, 'admin.pages.edit', $page, redirect()->route('admin.pages.edit', $page)->with('success', 'Đã tạo trang.'));
     }
 
     public function edit(string $locale, Page $page)

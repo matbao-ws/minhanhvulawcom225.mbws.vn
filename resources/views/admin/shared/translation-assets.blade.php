@@ -51,6 +51,8 @@
                                 const value = payload.data?.fields?.[element.dataset.i18nField];
                                 if (typeof value !== 'string') return;
                                 element.value = value;
+                                // A policy page body stays disabled until edited (data-sync="edited"); a translation is an edit.
+                                element.disabled = false;
                                 window.AdminRichEditor?.forTarget(element.id)?.setHTML(value);
                                 element.dispatchEvent(new Event('input', { bubbles: true }));
                             });

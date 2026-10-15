@@ -4,6 +4,7 @@ namespace App\Services\Translation;
 
 use App\Contracts\TranslationProvider;
 use App\Support\HtmlSanitizer;
+use App\Support\PageHtmlSanitizer;
 use Illuminate\Support\Facades\Cache;
 
 class TranslationService
@@ -11,9 +12,13 @@ class TranslationService
     public function __construct(
         private readonly TranslationProvider $provider,
         private readonly HtmlSanitizer $htmlSanitizer,
+        private readonly PageHtmlSanitizer $pageSanitizer,
     ) {}
 
     /**
+     * Formats: text, html (rich text: posts, products…) and page_html (a policy page's body,
+     * which keeps the markup the page sanitizer allows).
+     *
      * @param  array<string, string>  $fields
      * @param  array<string, string>  $formats
      * @return array<string, string>
@@ -21,7 +26,7 @@ class TranslationService
     public function preview(array $fields, string $sourceLocale, string $targetLocale, array $formats = []): array
     {
         $result = [];
-        $missing = ['text' => [], 'html' => []];
+        $missing = ['text' => [], 'html' => [], 'page_html' => []];
 
         foreach ($fields as $key => $value) {
             if (trim($value) === '') {
@@ -30,7 +35,7 @@ class TranslationService
                 continue;
             }
 
-            $format = ($formats[$key] ?? 'text') === 'html' ? 'html' : 'text';
+            $format = in_array($formats[$key] ?? 'text', ['html', 'page_html'], true) ? $formats[$key] : 'text';
             $cacheKey = $this->cacheKey($value, $sourceLocale, $targetLocale, $format);
             $cached = Cache::get($cacheKey);
             if (is_string($cached)) {
@@ -42,12 +47,14 @@ class TranslationService
 
         foreach ($missing as $format => $values) {
             foreach (array_chunk($values, 128, true) as $chunk) {
-                $translated = $this->provider->translate(array_values($chunk), $sourceLocale, $targetLocale, $format);
+                $translated = $this->provider->translate(array_values($chunk), $sourceLocale, $targetLocale, $format === 'text' ? 'text' : 'html');
                 foreach (array_keys($chunk) as $index => $key) {
                     $value = html_entity_decode((string) ($translated[$index] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                    if ($format === 'html') {
-                        $value = $this->htmlSanitizer->cleanRichText($value);
-                    }
+                    $value = match ($format) {
+                        'html' => $this->htmlSanitizer->cleanRichText($value),
+                        'page_html' => $this->pageSanitizer->clean($value),
+                        default => $value,
+                    };
 
                     $result[$key] = $value;
                     Cache::put(

@@ -4,14 +4,14 @@ namespace App\Models;
 
 use App\Models\Concerns\HasLocalizedSlugs;
 use App\Models\Concerns\HasMediaUrls;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Concerns\HasSeoBox;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class Post extends Model
 {
-    use HasFactory, HasLocalizedSlugs, HasMediaUrls, HasTranslations;
+    use HasFactory, HasLocalizedSlugs, HasMediaUrls, HasSeoBox, HasTranslations;
 
     public array $translatable = [
         'title',
@@ -63,15 +63,5 @@ class Post extends Model
     public function category()
     {
         return $this->belongsTo(PostCategory::class, 'category_id');
-    }
-
-    /**
-     * The image shown when the post is shared: stored relative like image_url.
-     *
-     * @return Attribute<?string, ?string>
-     */
-    protected function ogImage(): Attribute
-    {
-        return self::mediaUrlAttribute();
     }
 }

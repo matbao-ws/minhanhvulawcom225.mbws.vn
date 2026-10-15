@@ -167,6 +167,15 @@
                         modal.hide();
                     });
 
+                    // A suggestion asked for earlier and never reviewed (admin.shared.ai-pending).
+                    (window.AdminAiResume = window.AdminAiResume || {})['content.edit'] = function (button, data) {
+                        state = { button, data };
+                        reset();
+                        show('.js-ai-edit-start', false);
+                        render(data);
+                        modal.show();
+                    };
+
                     document.querySelectorAll('.js-ai-edit').forEach(function (button) {
                         button.addEventListener('click', function () {
                             state = { button, data: null };

@@ -3,6 +3,7 @@
 namespace App\Services\Seo;
 
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
 use App\Services\LanguageRegistry;
@@ -125,13 +126,75 @@ class SeoMetaFactory
             'brand' => $product->brand ? (string) $this->content->get($product->brand, 'name') : null,
         ], $this->offers($product), $this->rating($product));
 
+        $nodes = array_values(array_filter([$schema, $this->faqNode($product, 'description')]));
+        $image = MediaUrl::resolve($product->og_image) ?: ($images[0] ?? null);
+
         // A theme route under another name: the page still gets its tags, at the URL it was opened on.
         if (! Route::has($routeName)) {
-            return $this->fallback($this->content->get($product, 'meta_title') ?: $name, $description, [$schema], $images[0] ?? null, 'product');
+            return $this->fallback($this->content->get($product, 'meta_title') ?: $name, $description, $nodes, $image, 'product');
         }
 
         return $this->forRecord($product, $routeName, $this->content->get($product, 'meta_title') ?: $name, $description,
-            image: $images[0] ?? null, type: 'product', breadcrumbs: $breadcrumbs, structuredData: [$schema]);
+            image: $image, type: 'product', breadcrumbs: $breadcrumbs,
+            index: $product->robots_index ?? true, follow: $product->robots_follow ?? true,
+            canonical: $product->canonical_url, structuredData: $nodes,
+            socialTitle: $this->content->get($product, 'og_title') ?: null,
+            socialDescription: $this->content->get($product, 'og_description') ?: null);
+    }
+
+    /**
+     * A policy page (`client.pages.show`): its SEO title and description, robots and canonical
+     * choices, share fields and the FAQ its own text holds.
+     */
+    public function forPage(Page $page, string $routeName = 'client.pages.show'): SeoMeta
+    {
+        $title = (string) ($this->content->get($page, 'meta_title') ?: $this->content->get($page, 'title'));
+        $description = $this->content->get($page, 'meta_description') ?: $this->content->get($page, 'published_html');
+        $faq = $this->faqNode($page, 'published_html');
+        $nodes = $faq ? [$faq] : [];
+        $image = MediaUrl::resolve($page->og_image);
+
+        if (! Route::has($routeName)) {
+            return $this->fallback($title, $description, $nodes, $image);
+        }
+
+        return $this->forRecord($page, $routeName, $title, $description,
+            image: $image,
+            index: $page->robots_index ?? true, follow: $page->robots_follow ?? true,
+            canonical: $page->canonical_url, structuredData: $nodes,
+            socialTitle: $this->content->get($page, 'og_title') ?: null,
+            socialDescription: $this->content->get($page, 'og_description') ?: null);
+    }
+
+    /**
+     * A product category or blog category page: its SEO title and description (else its name and
+     * description), robots and canonical choices, share fields and the FAQ its description holds.
+     *
+     * @param  list<array{name: string, url: string}>  $breadcrumbs
+     */
+    public function forCollection(Model $record, string $routeName, ?string $image = null, array $breadcrumbs = []): SeoMeta
+    {
+        $title = (string) ($this->content->get($record, 'meta_title') ?: $this->content->get($record, 'name'));
+        $description = $this->content->get($record, 'meta_description') ?: $this->content->get($record, 'description');
+        $faq = $this->faqNode($record, 'description');
+
+        return $this->forRecord($record, $routeName, $title, $description,
+            image: MediaUrl::resolve($record->getAttribute('og_image')) ?: $image,
+            breadcrumbs: $breadcrumbs,
+            index: $record->getAttribute('robots_index') ?? true, follow: $record->getAttribute('robots_follow') ?? true,
+            canonical: $record->getAttribute('canonical_url'), structuredData: $faq ? [$faq] : [],
+            socialTitle: $this->content->get($record, 'og_title') ?: null,
+            socialDescription: $this->content->get($record, 'og_description') ?: null);
+    }
+
+    /** FAQPage from the record's own "Câu hỏi thường gặp" section, unless switched off. */
+    private function faqNode(Model $record, string $field): ?array
+    {
+        if (! ($record->getAttribute('schema_faq') ?? true)) {
+            return null;
+        }
+
+        return StructuredData::faq(FaqSchema::fromHtml((string) $this->content->get($record, $field)));
     }
 
     /**
