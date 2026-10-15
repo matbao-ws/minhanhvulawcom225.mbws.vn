@@ -17,11 +17,27 @@
 @endphp
 
 @section('content')
-    <x-admin.page-header :title="__('redirects.title')" :subtitle="__('redirects.subtitle')">
+    <x-admin.page-header :title="__('redirects.title')">
         <x-slot:breadcrumbs>
             <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('redirects.title') }}</li>
         </x-slot:breadcrumbs>
+        <x-slot:help>
+            <h6>{{ __('redirects.guide.what_title') }}</h6>
+            <p class="mb-2">{{ __('redirects.guide.what') }}</p>
+            <h6>{{ __('redirects.guide.codes_title') }}</h6>
+            <ul>
+                <li><code>301</code> {{ __('redirects.guide.code_301') }}</li>
+                <li><code>302</code> / <code>307</code> {{ __('redirects.guide.code_302') }}</li>
+                <li><code>410</code> {{ __('redirects.guide.code_410') }}</li>
+            </ul>
+            <h6>{{ __('redirects.guide.when_title') }}</h6>
+            <ul>
+                <li>{{ __('redirects.guide.when_wordpress') }}</li>
+                <li>{{ __('redirects.guide.when_slug') }}</li>
+                <li>{{ __('redirects.guide.when_404') }}</li>
+            </ul>
+        </x-slot:help>
         <x-slot:actions>
             @if($canCreate)
                 <x-admin.action-button data-tour="redirects.add" type="button" icon="plus" data-redirect-open="create">{{ __('redirects.actions.add') }}</x-admin.action-button>
@@ -165,8 +181,8 @@
                 @if($redirectList->isEmpty())
                     @include('admin.shared.empty-state', ['emptyMessage' => __('redirects.empty')])
                 @endif
-                @if($redirectList->hasPages())
-                    <div class="px-4 py-3 border-top">{{ $redirectList->links() }}</div>
+                @if($redirectList->total() > 0)
+                    <div class="card-body border-top">@include('admin.shared.pagination', ['paginator' => $redirectList])</div>
                 @endif
             @else
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-4 py-3 border-bottom">
@@ -219,8 +235,8 @@
                 @if($notFoundList->isEmpty())
                     @include('admin.shared.empty-state', ['emptyMessage' => __('redirects.empty_404')])
                 @endif
-                @if($notFoundList->hasPages())
-                    <div class="px-4 py-3 border-top">{{ $notFoundList->links() }}</div>
+                @if($notFoundList->total() > 0)
+                    <div class="card-body border-top">@include('admin.shared.pagination', ['paginator' => $notFoundList])</div>
                 @endif
             @endif
         </div>

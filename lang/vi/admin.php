@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'page_help' => 'Trang này dùng để làm gì?',
     'all' => 'Tất cả',
     'pagination' => [
         'per_page' => 'Số dòng',

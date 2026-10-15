@@ -2,7 +2,18 @@
 
 return [
     'title' => 'Chuyển hướng & lỗi 404',
-    'subtitle' => 'Link cũ tự chuyển 301 sang trang mới để Google giữ thứ hạng. Chỉ áp dụng khi link cũ không còn trang nào trả lời.',
+    'guide' => [
+        'what_title' => 'Trang này để làm gì?',
+        'what' => 'Khi link cũ không còn trang (đổi slug, chuyển từ WordPress, xoá bài), khách và Google mở link đó sẽ được đưa sang link mới, và Google chuyển thứ hạng theo.',
+        'codes_title' => 'Chọn mã nào?',
+        'code_301' => 'chuyển vĩnh viễn, giữ thứ hạng. Dùng gần như mọi lúc.',
+        'code_302' => 'chuyển tạm thời (trang đang bảo trì).',
+        'code_410' => 'trang đã xoá hẳn, Google gỡ khỏi kết quả nhanh hơn.',
+        'when_title' => 'Khi nào dùng?',
+        'when_wordpress' => 'Nhập từ WordPress: chuyển hướng được tạo tự động.',
+        'when_slug' => 'Đổi slug một bài: thêm 301 từ link cũ sang link mới.',
+        'when_404' => 'Tab Lỗi 404: link khách mở mà không có trang; bấm để tạo chuyển hướng.',
+    ],
     'tabs' => [
         'redirects' => 'Chuyển hướng',
         'not_found' => 'Lỗi 404',
