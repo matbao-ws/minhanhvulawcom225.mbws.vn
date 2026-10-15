@@ -275,6 +275,15 @@ class PostController extends Controller
             return back()->with('error', 'Import WordPress thất bại: '.$reason);
         }
 
+        if ($results['imported'] + $results['updated'] + $results['skipped'] + $results['failed'] === 0) {
+            // Nothing in the file is a post: say what it holds instead of a row of zeros.
+            $found = collect($results['other_types'])->map(fn (int $count, string $type) => "$count $type")->implode(', ');
+
+            return back()->with('error', $found === ''
+                ? 'File WordPress này không có bài viết nào.'
+                : "File WordPress này không có bài viết. File chứa: $found. Sản phẩm WooCommerce nhập ở Sản phẩm → Nhập (file CSV).");
+        }
+
         ActivityLogger::log('wordpress_posts_imported', null, 'Import bài viết từ WordPress XML', [
             'imported' => $results['imported'],
             'updated' => $results['updated'],

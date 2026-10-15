@@ -84,7 +84,16 @@ class WordPressPostImportService
     }
 
     /**
-     * @return array{imported: int, updated: int, skipped: int, failed: int, errors: list<string>, images_downloaded: int, images_failed: int, image_errors: list<string>, redirects: int, image_redirects: int, links_rewritten: int}
+     * WXR post types imported as posts: WordPress's own, and the one the MBWS bridge plugin
+     * stores a Laravel site's posts as (with its public address in _mbws_frontend_url).
+     */
+    public const POST_TYPES = ['post', 'mbws_post'];
+
+    /** Never content: left out of the count of what else a file holds. */
+    private const NOT_CONTENT = ['attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_global_styles', 'wp_navigation', 'wp_template', 'wp_template_part', 'wp_block'];
+
+    /**
+     * @return array{imported: int, updated: int, skipped: int, failed: int, errors: list<string>, other_types: array<string, int>, images_downloaded: int, images_failed: int, image_errors: list<string>, redirects: int, image_redirects: int, links_rewritten: int}
      */
     public function import(string $filePath, string $duplicateAction = 'skip'): array
     {
@@ -99,12 +108,17 @@ class WordPressPostImportService
         $this->images->reset();
         $this->startBatch($this->channelInfo($filePath));
         $attachments = $this->attachmentMap($filePath);
-        $results = ['imported' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+        // other_types: what else the file holds (products, pages…), so a file without posts says so.
+        $results = ['imported' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => [], 'other_types' => []];
         $postNumber = 0;
 
         $this->eachItem($filePath, function (SimpleXMLElement $item) use ($attachments, $duplicateAction, &$results, &$postNumber): void {
             $data = $this->itemData($item);
-            if ($data['post_type'] !== 'post') {
+            if (! in_array($data['post_type'], self::POST_TYPES, true)) {
+                if (! in_array($data['post_type'], self::NOT_CONTENT, true)) {
+                    $results['other_types'][$data['post_type']] = ($results['other_types'][$data['post_type']] ?? 0) + 1;
+                }
+
                 return;
             }
 
@@ -316,7 +330,8 @@ class WordPressPostImportService
             'post_password' => trim((string) ($wp?->post_password ?? '')),
             'attachment_url' => trim((string) ($wp?->attachment_url ?? '')),
             'title' => trim((string) $item->title),
-            'link' => trim((string) $item->link),
+            // The MBWS bridge keeps the page's public address apart from WordPress's permalink.
+            'link' => trim((string) ($meta['_mbws_frontend_url'] ?? '')) ?: trim((string) $item->link),
             'content' => (string) ($content?->encoded ?? ''),
             'excerpt' => (string) ($excerpt?->encoded ?? ''),
             'categories' => $categories,
@@ -331,9 +346,11 @@ class WordPressPostImportService
         $slug = Str::slug((string) ($data['slug'] ?: $data['title'])) ?: Str::lower(Str::random(8));
         $existing = Post::query()->where('slug', $slug)->lockForUpdate()->first();
 
+        $oldCanonical = $this->ownCanonical($data['meta']);
         if ($existing && $duplicateAction === 'skip') {
-            // Already here: its old address still has to lead to it.
+            // Already here: its old addresses still have to lead to it.
             $this->rememberUrl((string) ($data['link'] ?? ''), $existing);
+            $this->rememberUrl((string) $oldCanonical, $existing);
 
             return 'skipped';
         }
@@ -354,6 +371,10 @@ class WordPressPostImportService
             'date' => (string) $data['post_date'],
             'link' => (string) ($data['link'] ?? ''),
         ]);
+        if ($oldCanonical !== null) {
+            // An address of the old site itself: here the post has its own URL, the old one redirects to it.
+            $seo['canonical'] = null;
+        }
         $seoTitle = $seo['title'];
         $seoDescription = $seo['description'];
         $focusKeyword = $seo['keywords'];
@@ -402,6 +423,7 @@ class WordPressPostImportService
         $this->localizedSlugs->sync($post, [$locale => $slug], [$locale => (string) $data['title']]);
         $this->touched[] = (int) $post->getKey();
         $this->rememberUrl((string) ($data['link'] ?? ''), $post);
+        $this->rememberUrl((string) $oldCanonical, $post);
         if ($category) {
             // WXR names the category but not its URL: WordPress's default /category/{slug}/.
             $categoryData = (array) $data['categories'][0];
@@ -409,6 +431,20 @@ class WordPressPostImportService
         }
 
         return $result;
+    }
+
+    /**
+     * A Rank Math / Yoast canonical on the old site's own host. Copied as it is, it would point
+     * Google at an address the new site does not have.
+     *
+     * @param  array<string, string>  $meta
+     */
+    private function ownCanonical(array $meta): ?string
+    {
+        $canonical = trim((string) ($meta['rank_math_canonical_url'] ?? $meta['_yoast_wpseo_canonical'] ?? ''));
+        $host = strtolower((string) parse_url($canonical, PHP_URL_HOST));
+
+        return $host !== '' && in_array($host, $this->site['hosts'], true) ? $canonical : null;
     }
 
     /** The old WordPress address of an item now redirects (301) to where it lives here. */

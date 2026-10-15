@@ -6,10 +6,13 @@ use App\Models\FeatureSetting;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Redirect;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\WordPressPostImportService;
 use App\Services\WordPressSeoMeta;
 use App\Services\WordPressSiteImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -97,6 +100,42 @@ class WordPressSeoMigrationTest extends TestCase
         $this->get('/cach-chon-giay-chay-bo/')->assertRedirect('/bai-viet/cach-chon-giay-chay-bo');
     }
 
+    public function test_an_mbws_bridge_export_brings_its_posts_and_both_old_addresses(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'wxr');
+        file_put_contents($path, $this->bridgeWxr());
+
+        $result = app(WordPressPostImportService::class)->import($path);
+        @unlink($path);
+
+        // Posts are stored as mbws_post; the product is counted, not imported as a post.
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(['mbws_product' => 1], $result['other_types']);
+
+        $post = Post::query()->where('slug', 'what-is-color-masterbatch')->sole();
+        $this->assertSame('What is color masterbatch? | Mascom Global', $post->getTranslation('seo_title', 'vi'));
+        $this->assertSame('Masterbatch', $post->seo_keys);
+        // Rank Math's canonical named an address of the old site: copied, it would point Google at a page the new site does not have.
+        $this->assertNull($post->canonical_url);
+
+        // The public address (_mbws_frontend_url) and the old canonical both lead to the post.
+        $this->get('/blog/what-is-color-masterbatch')->assertStatus(301)->assertRedirect('/bai-viet/what-is-color-masterbatch');
+        $this->get('/what-is-color-masterbatch')->assertStatus(301)->assertRedirect('/bai-viet/what-is-color-masterbatch');
+    }
+
+    public function test_a_file_without_posts_says_what_it_holds(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Admin', 'permissions' => ['*']])->id]);
+        $xml = str_replace('<wp:post_type>mbws_post</wp:post_type>', '<wp:post_type>mbws_product</wp:post_type>', $this->bridgeWxr());
+        $file = UploadedFile::fake()->createWithContent('export.xml', $xml);
+
+        $this->actingAs($admin)->from('/vi/admin/posts')
+            ->post('/vi/admin/posts/import-wordpress', ['import_file' => $file, 'duplicate_action' => 'skip'])
+            ->assertRedirect('/vi/admin/posts')
+            ->assertSessionHas('error', 'File WordPress này không có bài viết. File chứa: 2 mbws_product. Sản phẩm WooCommerce nhập ở Sản phẩm → Nhập (file CSV).');
+        $this->assertSame(0, Post::query()->count());
+    }
+
     public function test_a_live_site_with_rank_math_headless_brings_its_rendered_seo(): void
     {
         $head = '<title>Bài A thật &#8211; Shop cũ</title><meta name="description" content="Mô tả thật của bài A."/>'
@@ -147,6 +186,54 @@ class WordPressSeoMigrationTest extends TestCase
     {
         $png = base64_decode(self::PNG);
         Http::fake(['8.8.8.8/*' => Http::response($png, 200, ['Content-Type' => 'image/png', 'Content-Length' => (string) strlen($png)])]);
+    }
+
+    /** The shape of an export from a WordPress fed by the MBWS bridge plugin (a Laravel site's posts). */
+    private function bridgeWxr(): string
+    {
+        return <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/">
+    <channel>
+        <title>Mascom Global</title>
+        <link>https://8.8.8.8/cms</link>
+        <wp:wxr_version>1.2</wp:wxr_version>
+        <wp:base_site_url>https://8.8.8.8/cms</wp:base_site_url>
+        <item>
+            <title><![CDATA[What is color masterbatch?]]></title>
+            <link>https://8.8.8.8/cms/?mbws_post=what-is-color-masterbatch</link>
+            <content:encoded><![CDATA[<p>Color masterbatch is a concentrated mixture of pigments.</p>]]></content:encoded>
+            <wp:post_id>410</wp:post_id>
+            <wp:post_date_gmt><![CDATA[2026-08-20 16:19:54]]></wp:post_date_gmt>
+            <wp:post_name><![CDATA[what-is-color-masterbatch]]></wp:post_name>
+            <wp:status><![CDATA[publish]]></wp:status>
+            <wp:post_type>mbws_post</wp:post_type>
+            <wp:postmeta><wp:meta_key><![CDATA[_mbws_frontend_url]]></wp:meta_key><wp:meta_value><![CDATA[https://8.8.8.8/blog/what-is-color-masterbatch]]></wp:meta_value></wp:postmeta>
+            <wp:postmeta><wp:meta_key><![CDATA[rank_math_focus_keyword]]></wp:meta_key><wp:meta_value><![CDATA[Masterbatch]]></wp:meta_value></wp:postmeta>
+            <wp:postmeta><wp:meta_key><![CDATA[rank_math_title]]></wp:meta_key><wp:meta_value><![CDATA[What is color masterbatch? | Mascom Global]]></wp:meta_value></wp:postmeta>
+            <wp:postmeta><wp:meta_key><![CDATA[rank_math_canonical_url]]></wp:meta_key><wp:meta_value><![CDATA[https://8.8.8.8/what-is-color-masterbatch]]></wp:meta_value></wp:postmeta>
+            <wp:postmeta><wp:meta_key><![CDATA[rank_math_robots]]></wp:meta_key><wp:meta_value><![CDATA[a:1:{i:0;s:5:"index";}]]></wp:meta_value></wp:postmeta>
+        </item>
+        <item>
+            <title><![CDATA[Filler Masterbatch]]></title>
+            <link>https://8.8.8.8/san-pham/filler-masterbatch</link>
+            <wp:post_id>500</wp:post_id>
+            <wp:post_name><![CDATA[filler-masterbatch]]></wp:post_name>
+            <wp:status><![CDATA[publish]]></wp:status>
+            <wp:post_type>mbws_product</wp:post_type>
+        </item>
+        <item>
+            <title><![CDATA[image]]></title>
+            <wp:post_id>501</wp:post_id>
+            <wp:post_type>attachment</wp:post_type>
+            <wp:attachment_url>https://8.8.8.8/cms/wp-content/uploads/a.jpg</wp:attachment_url>
+        </item>
+    </channel>
+</rss>
+XML;
     }
 
     private function wxr(): string
