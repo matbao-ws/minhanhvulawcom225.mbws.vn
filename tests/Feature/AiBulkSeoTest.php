@@ -8,6 +8,9 @@ use App\Models\FeatureSetting;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AiGateway\AltTextService;
+use App\Services\AiGateway\MetaSuggestionService;
+use App\Services\AiGateway\SeoFixService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -129,6 +132,21 @@ class AiBulkSeoTest extends TestCase
 
         config(['ai_gateway.webhook_secret' => null]);
         $this->call('POST', '/api/ai/webhook', [], [], [], $this->headers($time, hash_hmac('sha256', $time.'.'.$body, '')), $body)->assertStatus(401);
+    }
+
+    public function test_every_record_type_bulk_can_list_has_a_name_in_every_language(): void
+    {
+        $types = array_unique([
+            ...array_keys(MetaSuggestionService::ENTITIES),
+            ...array_keys(SeoFixService::ENTITY_TYPES),
+            ...AltTextService::ENTITY_TYPES,
+        ]);
+
+        foreach (['vi', 'en'] as $locale) {
+            foreach ($types as $type) {
+                $this->assertNotSame("ai.bulk.types.$type", __("ai.bulk.types.$type", [], $locale), "$locale: ai.bulk.types.$type");
+            }
+        }
     }
 
     public function test_bulk_needs_the_permissions(): void

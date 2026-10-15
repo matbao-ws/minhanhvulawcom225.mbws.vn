@@ -246,31 +246,6 @@
             background-color: #f8f9fa !important;
         }
         
-        /* Pagination overrides to use the brand primary cherry red (#c01e25) */
-        .page-link {
-            color: #c01e25 !important;
-            font-weight: 600 !important;
-            border-color: #dee2e6 !important;
-        }
-        .page-link:hover {
-            color: #9c151a !important;
-            background-color: #f8f9fa !important;
-            border-color: #dee2e6 !important;
-        }
-        .page-item.active .page-link {
-            background-color: #c01e25 !important;
-            border-color: #c01e25 !important;
-            color: #ffffff !important;
-        }
-        .page-item.disabled .page-link {
-            color: #6c757d !important;
-            background-color: #ffffff !important;
-            border-color: #dee2e6 !important;
-        }
-        .page-link:focus {
-            box-shadow: 0 0 0 0.25rem rgba(192, 30, 37, 0.25) !important;
-        }
-
         /* Increase font weight of the table footer pagination text */
         .card-footer,
         .card-footer p,

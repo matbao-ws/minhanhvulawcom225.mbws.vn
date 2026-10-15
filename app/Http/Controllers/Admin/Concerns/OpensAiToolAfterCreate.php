@@ -25,6 +25,6 @@ trait OpensAiToolAfterCreate
         $locale = $request->input('_ai_locale');
         $query = ['ai' => $tool] + (is_string($locale) && preg_match('/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/', $locale) ? ['ai_locale' => $locale] : []);
 
-        return redirect()->route($editRoute, [$record] + $query)->with('success', __('ai.draft.saved'));
+        return redirect()->route($editRoute, [$record] + $query)->with('success', __('ai.draft_first.saved'));
     }
 }

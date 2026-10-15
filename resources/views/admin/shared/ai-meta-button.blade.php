@@ -27,7 +27,7 @@
             <button type="button" class="btn btn-sm btn-outline-primary js-ai-draft-first" data-ai-tool="meta-suggest" data-locale="{{ $locale }}">
                 <i class="ti ti-sparkles me-1"></i>{{ $label ?? __('ai.meta.button') }}
             </button>
-            <div class="text-muted small mt-1">{{ __('ai.draft.hint') }}</div>
+            <div class="text-muted small mt-1">{{ __('ai.draft_first.hint') }}</div>
         @endif
     </div>
     @include('admin.shared.ai-meta-assets')
