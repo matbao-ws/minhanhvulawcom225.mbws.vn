@@ -34,6 +34,8 @@
         'title_readability' => ['title_length', 'desc_length', 'title_keyword_start', 'title_number'],
         'content_readability' => ['headings', 'short_paragraphs', 'content_media'],
     ];
+    // Each group's icon; its colour comes from seo-box.css ([data-seo-group]).
+    $seoGroupIcons = ['basic' => 'ti-key', 'additional' => 'ti-list-check', 'title_readability' => 'ti-heading', 'content_readability' => 'ti-book'];
     $siteHost = parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com';
     $schemaTypes = $schemaTypes ?? null;
     $mediaFolder = $mediaFolder ?? 'general';
@@ -52,6 +54,8 @@
         'defaultLocale' => $seoDefaultLocale,
         'weights' => \App\Services\PostSeoAnalyzer::WEIGHTS,
         'urlPattern' => $urlPattern,
+        // The site's own host (APP_URL): a link to it counts as internal, as PostSeoAnalyzer counts it.
+        'siteHost' => (string) parse_url((string) config('app.url'), PHP_URL_HOST),
         'selectors' => $selectors + ['image' => null, 'imageInputs' => []],
         't' => [
             'group_errors' => __('admin.posts.seo_panel.group_errors'),
@@ -130,8 +134,9 @@
 
             <div data-tour="seo-box-analysis.{{ $tour }}" class="rm-checks">
                 @foreach($seoGroups as $group => $rules)
-                    <div class="rm-group" data-seo-group="{{ $group }}">
+                    <div class="rm-group is-bad" data-seo-group="{{ $group }}">
                         <button type="button" class="rm-group__head" data-bs-toggle="collapse" data-bs-target="#seo-group-{{ $group }}" aria-expanded="true" aria-controls="seo-group-{{ $group }}">
+                            <span class="rm-group__icon" aria-hidden="true"><i class="ti {{ $seoGroupIcons[$group] }}"></i></span>
                             <span>{{ __("admin.posts.seo_panel.groups.$group") }}</span>
                             <span class="rm-group__badge is-bad" data-seo-group-badge>{{ __('admin.posts.seo_panel.group_errors', ['count' => count($rules)]) }}</span>
                             <i class="ti ti-chevron-down" aria-hidden="true"></i>

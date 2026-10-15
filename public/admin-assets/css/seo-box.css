@@ -40,13 +40,24 @@
 .rm-tags .rm-score { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); }
 .rm-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; color: #5a6a85; font-size: 13px; }
 .rm-stats strong { color: #1f2937; }
-.rm-group { margin-bottom: 12px; border: 1px solid #e5eaf2; border-radius: 12px; overflow: hidden; }
-.rm-group__head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: 0; background: #fff; color: #1f2937; font-size: 14.5px; font-weight: 700; text-align: left; }
+.rm-group { margin-bottom: 12px; border: 1px solid #e5eaf2; border-left-width: 4px; border-radius: 12px; overflow: hidden; }
+.rm-group__head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: 0; background: #fff; color: #1f2937; font-size: 14.5px; font-weight: 700; text-align: left; transition: background-color .2s; }
+/* State of the group, on the whole header: something to fix (red) or all passed (green). */
+.rm-group.is-bad { border-color: #fde2e2; border-left-color: #ef4444; }
+.rm-group.is-bad .rm-group__head { background: #fff6f6; }
+.rm-group.is-good { border-color: #d7f2e4; border-left-color: #10b981; }
+.rm-group.is-good .rm-group__head { background: #f3fcf7; }
+/* Which group it is: its own icon colour. */
+.rm-group__icon { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 8px; font-size: 16px; }
+[data-seo-group="basic"] .rm-group__icon { color: #2563eb; background: #e8f0fe; }
+[data-seo-group="additional"] .rm-group__icon { color: #7c3aed; background: #f1ebfe; }
+[data-seo-group="title_readability"] .rm-group__icon { color: #ea580c; background: #fff0e6; }
+[data-seo-group="content_readability"] .rm-group__icon { color: #0d9488; background: #e3f6f3; }
 .rm-group__head .ti-chevron-down { margin-left: auto; color: #94a3b8; transition: transform .2s; }
 .rm-group__head[aria-expanded="false"] .ti-chevron-down { transform: rotate(-90deg); }
 .rm-group__badge { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
-.rm-group__badge.is-bad { color: #dc2626; background: #fef2f2; }
-.rm-group__badge.is-good { color: #059669; background: #ecfdf5; }
+.rm-group__badge.is-bad { color: #fff; background: #dc2626; }
+.rm-group__badge.is-good { color: #fff; background: #059669; }
 .rm-group__list { margin: 0; padding: 4px 16px 10px; border-top: 1px solid #f1f5f9; list-style: none; }
 .seo-rule-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px dashed #eef2f7; color: #334155; font-size: 14px; }
 .seo-rule-item:last-child { border-bottom: 0; }

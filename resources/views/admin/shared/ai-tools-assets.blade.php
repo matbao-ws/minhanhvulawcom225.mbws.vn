@@ -121,6 +121,11 @@
                         <p class="small text-muted js-ai-seo-nothing d-none">{{ __('ai.seo.nothing') }}</p>
                         <h6>{{ __('ai.seo.notes') }}</h6>
                         <ul class="small js-ai-seo-notes"></ul>
+                        {{-- Rules this tool may not touch (links, image alts) have their own tools: open them from here. --}}
+                        <div class="border rounded p-2 mb-3 bg-light-subtle d-none js-ai-seo-tools">
+                            <div class="small fw-semibold mb-2">{{ __('ai.seo.other_tools') }}</div>
+                            <div class="d-flex flex-wrap gap-2 js-ai-seo-tool-buttons"></div>
+                        </div>
                         <p class="small text-muted mb-0 js-ai-usage"></p>
                     </div>
                 </div>
@@ -141,6 +146,12 @@
                     altGenerate: @json(__('ai.alt.generate')), altApply: @json(__('ai.alt.apply')),
                     seoFields: { seo_title: @json(__('ai.seo.seo_title')), seo_description: @json(__('ai.seo.seo_description')), intro_html: @json(__('ai.seo.intro_html')) },
                     seoUse: @json(__('ai.seo.use')),
+                    // Failing rules another tool fixes: [button selector, label].
+                    seoTools: {
+                        internal_links: ['.js-ai-links', @json(__('ai.links.button'))],
+                        image_alts: ['.js-ai-alt', @json(__('ai.alt.button'))],
+                        keyword_image_alt: ['.js-ai-alt', @json(__('ai.alt.button'))],
+                    },
                     linkReview: @json(__('ai.links.review')), linkTo: @json(__('ai.links.to')),
                 };
                 const urls = {
@@ -421,6 +432,7 @@
                     function seoOpen() {
                         Object.assign(seoState, { button: null, data: null });
                         seo.part('.js-ai-seo-fields').replaceChildren(); seo.part('.js-ai-seo-notes').replaceChildren();
+                        seo.part('.js-ai-seo-tool-buttons').replaceChildren(); seo.show('.js-ai-seo-tools', false);
                         ['.js-ai-error', '.js-ai-seo-result', '.js-ai-apply', '.js-ai-reject'].forEach((s) => seo.show(s, false));
                         seo.show('.js-ai-loading', true);
                         seo.modal.show();
@@ -452,10 +464,32 @@
                             seo.part('.js-ai-seo-fields').appendChild(box);
                         });
                         (data.proposal.notes || []).forEach((note) => seo.part('.js-ai-seo-notes').appendChild(el('li', {}, note.note)));
+                        seoTools(data.proposal.failing || []);
                         seo.show('.js-ai-seo-nothing', offered === 0);
                         usage(seo.element, data);
                         seo.show('.js-ai-loading', false); seo.show('.js-ai-seo-result', true);
                         seo.show('.js-ai-apply', offered > 0); seo.show('.js-ai-reject', true);
+                    }
+                    // A button per failing rule another tool on this page fixes: closes this review, opens that tool
+                    // in the default language (the score is taken there).
+                    function seoTools(failing) {
+                        const list = seo.part('.js-ai-seo-tool-buttons');
+                        const seen = new Set();
+                        failing.forEach(function (rule) {
+                            const tool = t.seoTools[rule];
+                            if (!tool || seen.has(tool[0])) return;
+                            const locale = document.querySelector('.js-ai-seo-fix')?.dataset.locale;
+                            const target = (locale && document.querySelector(tool[0] + '[data-locale="' + CSS.escape(locale) + '"]')) || document.querySelector(tool[0]);
+                            if (!target) return;
+                            seen.add(tool[0]);
+                            const open = el('button', { type: 'button', class: 'btn btn-sm btn-outline-primary', 'data-seo-tool': rule }, tool[1]);
+                            open.addEventListener('click', function () {
+                                seo.element.addEventListener('hidden.bs.modal', () => target.click(), { once: true });
+                                seo.modal.hide();
+                            });
+                            list.appendChild(open);
+                        });
+                        seo.show('.js-ai-seo-tools', seen.size > 0);
                     }
                     resume['seo.fix_suggest'] = (button, data) => { seoOpen(); seoShow(data); };
                     document.querySelectorAll('.js-ai-seo-fix').forEach((button) => button.addEventListener('click', async function () {

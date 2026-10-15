@@ -208,6 +208,7 @@ uPVC pipe glue',
         'all_good' => 'The post already passes every SEO rule.',
         'saved_only' => 'Scored on the saved post (default language).',
         'nothing' => 'No text changes proposed; see the notes below.',
+        'other_tools' => 'This tool never changes links or images. Continue with:',
     ],
     'product' => [
         'button' => 'AI description',
