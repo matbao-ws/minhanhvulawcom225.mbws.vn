@@ -1,5 +1,19 @@
-{{-- Top of "This week's SEO work", loaded after the page so the gateway never slows the dashboard. --}}
-@if($seoTasksVisible)
+{{-- Top of "This week's SEO work", loaded after the page so the gateway never slows the dashboard.
+     Always shown; while AI is locked (App\Support\AiAccess) it says why instead of loading. --}}
+@if($seoTasksVisible && ! $seoTasksAccess['allowed'])
+    <div class="card shadow-sm mb-4" data-seo-tasks-locked="{{ $seoTasksAccess['reason'] }}">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-3 bg-warning-subtle text-warning flex-shrink-0" style="width: 40px; height: 40px;"><i class="ti ti-lock fs-5" aria-hidden="true"></i></span>
+            <div class="flex-grow-1" style="min-width: 0;">
+                <h5 class="fw-semibold text-dark mb-1">{{ __('ai.tasks.title') }}</h5>
+                <p class="small text-muted mb-0">{{ $seoTasksAccess['message'] }}</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary is-ai-locked"{!! \App\Support\AiAccess::lockAttributes($seoTasksAccess) !!}>
+                <i class="ti ti-lock me-1" aria-hidden="true"></i>{{ $seoTasksAccess['action_label'] ?? $seoTasksAccess['title'] }}
+            </button>
+        </div>
+    </div>
+@elseif($seoTasksVisible)
     @push('styles')
         <style>
             .dashboard-seo-tasks {

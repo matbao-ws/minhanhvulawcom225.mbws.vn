@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureActiveAdminApiUser;
 use App\Http\Middleware\EnsureActiveApiUser;
+use App\Http\Middleware\EnsureAiAccess;
 use App\Http\Middleware\EnsureCoreUpdateAccess;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsurePackageLimit;
@@ -102,6 +103,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'superadmin' => EnsureUserIsSuperadmin::class,
             'core-update.access' => EnsureCoreUpdateAccess::class,
             'feature' => EnsureFeatureEnabled::class,
+            'ai.access' => EnsureAiAccess::class,
             'package.sync' => SyncPackageInfo::class,
             'package.limit' => EnsurePackageLimit::class,
             'setLocale' => SetLocaleFromRoute::class,

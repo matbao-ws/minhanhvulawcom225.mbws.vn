@@ -199,7 +199,14 @@
                               // One place decides what each account sees; a section heading shows only above visible items.
                               $sidebarCatalog = $sidebarFeatures->availableTo($sidebarUser, 'catalog');
                               $sidebarCms = $sidebarFeatures->availableTo($sidebarUser, 'cms_page');
-                              $sidebarSeo = $sidebarFeatures->availableTo($sidebarUser, 'ai_seo') && $sidebarUser?->can('ai.use');
+                              // AI items are always listed; a locked one says why when clicked (App\Support\AiAccess).
+                              $sidebarAi = app(\App\Support\AiAccess::class);
+                              $sidebarAiAccess = [
+                                  'seo_tasks' => $sidebarAi->check($sidebarUser, 'ai_seo'),
+                                  'seo_research' => $sidebarAi->check($sidebarUser, 'ai_research'),
+                                  'seo_bulk' => $sidebarAi->check($sidebarUser, 'ai_seo'),
+                                  'seo_draft' => $sidebarAi->check($sidebarUser, 'ai_seo', 'posts.create'),
+                              ];
                               $sidebarCan = fn (string $ability): bool => (bool) $sidebarUser?->can($ability);
                               $sidebarShow = [
                                   'orders' => $sidebarCatalog && $sidebarCan('orders.view'),
@@ -214,10 +221,11 @@
                                   'banners' => $sidebarFeatures->availableTo($sidebarUser, 'banner') && $sidebarCan('banners.view'),
                                   'menus' => $sidebarFeatures->availableTo($sidebarUser, 'menu') && $sidebarCan('menus.view'),
                                   'media' => $sidebarCan('media.view'),
-                                  'seo_tasks' => $sidebarSeo,
-                                  'seo_research' => $sidebarSeo && $sidebarFeatures->availableTo($sidebarUser, 'ai_research'),
-                                  'seo_bulk' => $sidebarSeo,
-                                  'seo_draft' => $sidebarSeo && $sidebarCms && $sidebarCan('posts.create'),
+                                  'seo_tasks' => true,
+                                  'seo_research' => true,
+                                  'seo_bulk' => true,
+                                  // Writing a post needs the CMS; without it there is nothing to unlock.
+                                  'seo_draft' => $sidebarCms,
                                   'redirects' => $sidebarCan('redirects.view'),
                                   'users' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('users.view'),
                                   'roles' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('roles.view'),
@@ -350,18 +358,25 @@
                                   <span class="hide-menu">{{ __('admin.sidebar.seo') }}</span>
                               </a>
                               <ul aria-expanded="false" class="collapse first-level">
-                                  @if($sidebarShow['seo_tasks'])
-                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.seo-tasks.index') }}"><span class="icon-small"></span>{{ __('ai.tasks.title') }}</a></li>
-                                  @endif
-                                  @if($sidebarShow['seo_research'])
-                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.research.index') }}"><span class="icon-small"></span>{{ __('ai.research.title') }}</a></li>
-                                  @endif
-                                  @if($sidebarShow['seo_bulk'])
-                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.bulk.index') }}"><span class="icon-small"></span>{{ __('ai.bulk.title') }}</a></li>
-                                  @endif
-                                  @if($sidebarShow['seo_draft'])
-                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.post-drafts.create') }}"><span class="icon-small"></span>{{ __('ai.draft.button') }}</a></li>
-                                  @endif
+                                  @foreach([
+                                      'seo_tasks' => ['admin.ai.seo-tasks.index', __('ai.tasks.title')],
+                                      'seo_research' => ['admin.ai.research.index', __('ai.research.title')],
+                                      'seo_bulk' => ['admin.ai.bulk.index', __('ai.bulk.title')],
+                                      'seo_draft' => ['admin.ai.post-drafts.create', __('ai.draft.button')],
+                                  ] as $sidebarKey => [$sidebarRoute, $sidebarLabel])
+                                      @if($sidebarShow[$sidebarKey])
+                                          @php
+                                              $sidebarAccess = $sidebarAiAccess[$sidebarKey];
+                                          @endphp
+                                          <li class="sidebar-item">
+                                              @if($sidebarAccess['allowed'])
+                                                  <a class="sidebar-link" href="{{ route($sidebarRoute) }}"><span class="icon-small"></span>{{ $sidebarLabel }}</a>
+                                              @else
+                                                  <a class="sidebar-link is-ai-locked" href="{{ route($sidebarRoute) }}"{!! \App\Support\AiAccess::lockAttributes($sidebarAccess) !!} title="{{ $sidebarAccess['message'] }}" data-sidebar-ai-locked="{{ $sidebarKey }}"><span class="icon-small"></span>{{ $sidebarLabel }}<i class="ti ti-lock ai-lock-icon" aria-hidden="true"></i></a>
+                                              @endif
+                                          </li>
+                                      @endif
+                                  @endforeach
                                   @if($sidebarShow['redirects'])
                                   <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.redirects.index') }}"><span class="icon-small"></span>{{ __('redirects.title') }}</a></li>
                                   @endif

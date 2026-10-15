@@ -148,10 +148,12 @@ class PackageSync
         }
 
         $all = config('features.codes', []);
-
-        return $plan['features'] === '*'
+        // '*' with 'except': every feature but those (e.g. Hero 4: all but Từ khoá & đối thủ).
+        $features = $plan['features'] === '*'
             ? $all
             : array_values(array_intersect($all, (array) $plan['features']));
+
+        return array_values(array_diff($features, (array) ($plan['except'] ?? [])));
     }
 
     /**

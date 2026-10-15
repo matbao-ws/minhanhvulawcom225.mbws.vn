@@ -96,9 +96,10 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
-    // AI SEO Copilot. ai.use asks for suggestions; ai.apply writes them, and applying also checks
-    // the record's own update permission (MetaSuggestionService).
-    Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
+    // AI SEO Copilot. ai.access: the plan has it, it is on, the role has ai.use (App\Support\AiAccess;
+    // the buttons are always shown, a locked one is stopped here with the reason). ai.apply writes
+    // suggestions, and applying also checks the record's own update permission.
+    Route::middleware(['ai.access', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
         Route::post('meta-suggestions', [AiMetaController::class, 'suggest'])
             ->middleware('throttle:admin-ai')->name('meta.suggest');
         Route::post('meta-suggestions/{suggestion}/apply', [AiMetaController::class, 'apply'])
@@ -137,8 +138,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('bulk/{job}', [AiBulkController::class, 'show'])->whereNumber('job')->middleware('throttle:admin-gateway-read')->name('bulk.show');
         Route::post('bulk/{job}/apply', [AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
-        // Keywords & competitors (Hero 4+). Data from a paid provider, limited on the gateway.
-        Route::middleware('feature:ai_research')->prefix('research')->name('research.')
+        // Keywords & competitors (Hero 5+). Data from a paid provider, limited on the gateway.
+        Route::middleware('ai.access:ai_research')->prefix('research')->name('research.')
             ->controller(AiResearchController::class)->group(function () {
                 Route::get('/', 'index')->middleware('throttle:admin-gateway-read')->name('index');
                 Route::get('status', 'status')->middleware('throttle:admin-gateway-read')->name('status');

@@ -30,6 +30,7 @@ use App\Services\SiteSectionService;
 use App\Services\Translation\GoogleTranslationProvider;
 use App\Services\WordPressImageImportService;
 use App\Support\AdminTours;
+use App\Support\AiAccess;
 use App\Support\ClientEditorChrome;
 use App\Support\CoreUpdate\ArtisanRunner;
 use App\Support\CoreUpdate\ReleaseVerifier;
@@ -182,18 +183,25 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        // Shown to staff who can use AI; the gateway is asked at most every five minutes.
+        // Always shown; locked (and saying why) when AI is not available. The gateway is asked at
+        // most every five minutes, and never for a locked card.
         view()->composer('admin.dashboard._ai-usage', function ($view) {
             $user = auth()->user();
-            $visible = $user && $user->can('ai.use') && app(FeatureGate::class)->availableTo($user, 'ai_seo');
-            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(AiUsage::class)->current() : null]);
+            $access = app(AiAccess::class)->check($user, 'ai_seo');
+            $view->with([
+                'aiUsageVisible' => $user !== null,
+                'aiUsageAccess' => $access,
+                'aiUsage' => $user && $access['allowed'] ? app(AiUsage::class)->current() : null,
+            ]);
         });
 
         // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
         view()->composer('admin.dashboard._seo-tasks', function ($view) {
             $user = auth()->user();
             $view->with([
-                'seoTasksVisible' => $user && $user->can('ai.use') && app(FeatureGate::class)->availableTo($user, 'ai_seo'),
+                // Always shown; locked, it says why instead of loading the list.
+                'seoTasksVisible' => $user !== null,
+                'seoTasksAccess' => app(AiAccess::class)->check($user, 'ai_seo'),
                 // A connection changes shared settings, so only expose this shortcut
                 // to staff who can both open and save that screen.
                 'seoTasksSettingsUrl' => $user && $user->can('settings.view') && $user->can('settings.update')
