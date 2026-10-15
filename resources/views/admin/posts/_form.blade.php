@@ -57,7 +57,8 @@
                 'title_readability' => ['title_length', 'desc_length', 'title_keyword_start', 'title_number'],
                 'content_readability' => ['headings', 'short_paragraphs', 'content_media'],
             ];
-            $siteHost = parse_url(config('app.url'), PHP_URL_HOST) ?: 'example.com';
+            $siteName = $siteBranding['name'] ?? config('app.name', 'Laravel Ecommerce Core');
+            $faviconUrl = $siteBranding['favicon_url'] ?? asset('admin-assets/images/logos/favicon.png');
             // The headings App\Support\Seo\FaqSchema recognises, for the Schema tab's FAQ status.
             $faqHeadings = array_map(fn (string $code) => mb_strtolower((string) trans('ai.faq.heading', [], $code)), ['vi', 'en']);
         @endphp
@@ -148,9 +149,9 @@
                         </div>
                         <div class="rm-serp" id="seo_google_preview_result">
                             <div class="rm-serp__site">
-                                <span class="rm-serp__favicon" aria-hidden="true">{{ mb_strtoupper(mb_substr($siteHost, 0, 1)) }}</span>
+                                <span class="rm-serp__favicon" aria-hidden="true"><img src="{{ $faviconUrl }}" alt=""></span>
                                 <div class="min-w-0">
-                                    <div class="seo-preview-site">{{ $siteHost }}</div>
+                                    <div class="seo-preview-site">{{ $siteName }}</div>
                                     <div class="seo-preview-url" id="seo_preview_url">{{ url('/') }}/...</div>
                                 </div>
                             </div>
@@ -218,7 +219,10 @@
                 </div>
 
                 <div class="tab-pane fade" id="seo-tab-social" role="tabpanel">
-                    <p class="form-text mt-0 mb-3">{{ __('admin.posts.seo_panel.social_help') }}</p>
+                    <div class="alert alert-danger d-flex align-items-start gap-2 mt-0 mb-3 py-2" role="alert">
+                        <i class="ti ti-info-circle mt-1" aria-hidden="true"></i>
+                        <span>{{ __('admin.posts.seo_panel.social_help') }}</span>
+                    </div>
                     <div class="row g-4">
                         <div class="col-lg-6">
                             @foreach($contentLanguages as $language)
@@ -259,7 +263,7 @@
                             <div class="rm-social-card mb-3">
                                 <div class="rm-social-card__image" data-social-preview-image><i class="ti ti-photo" aria-hidden="true"></i></div>
                                 <div class="rm-social-card__body">
-                                    <div class="rm-social-card__domain">{{ mb_strtoupper($siteHost) }}</div>
+                                    <div class="rm-social-card__domain"><img src="{{ $faviconUrl }}" alt=""><span>{{ $siteName }}</span></div>
                                     <div class="rm-social-card__title" data-social-preview-title></div>
                                     <div class="rm-social-card__description" data-social-preview-description></div>
                                 </div>
@@ -269,7 +273,7 @@
                                 <div class="rm-social-card__image" data-social-preview-image><i class="ti ti-photo" aria-hidden="true"></i></div>
                                 <div class="rm-social-card__body">
                                     <div class="rm-social-card__title" data-social-preview-title></div>
-                                    <div class="rm-social-card__domain">{{ $siteHost }}</div>
+                                    <div class="rm-social-card__domain"><img src="{{ $faviconUrl }}" alt=""><span>{{ $siteName }}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -349,7 +353,6 @@
             </div>
         </div>
 
-        @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
     </div>
 
     <!-- Right column: Sidebar settings & SEO Analyzer Widget -->
@@ -419,6 +422,11 @@
                 </div>
                 <p class="fs-2 mb-0">{{ __('admin.posts.placeholders.category_help') }}</p>
             </div>
+        </div>
+
+        <div data-tour="form.save" class="d-flex justify-content-end gap-3 mb-4">
+            <button type="submit" class="btn btn-primary px-4">{{ __('catalog.actions.save') }}</button>
+            <a href="{{ $cancelUrl }}" class="btn bg-secondary-subtle text-secondary px-4">{{ __('catalog.actions.cancel') }}</a>
         </div>
 
     </div>

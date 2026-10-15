@@ -4,6 +4,7 @@
     <style>
         /* SEO box, Rank Math style. Tones: is-bad < 50 <= is-ok < 80 <= is-good. */
         .rm-panel { overflow: hidden; }
+        .rm-panel .form-text { color: #64748b; font-size: 12px; line-height: 1.45; }
         .rm-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #e5eaf2; }
         .rm-panel__brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: #1f2937; }
         .rm-panel__logo { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(var(--bs-primary-rgb), .1); color: var(--bs-primary); font-size: 18px; }
@@ -21,7 +22,8 @@
         .rm-serp { max-width: 640px; padding: 16px 18px; background: #fff; transition: max-width .2s ease; }
         .rm-serp.is-mobile { max-width: 380px; }
         .rm-serp__site { display: flex; align-items: center; gap: 10px; }
-        .rm-serp__favicon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid #e5eaf2; border-radius: 50%; background: #f1f3f4; color: #5f6368; font-size: 13px; font-weight: 700; }
+        .rm-serp__favicon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; overflow: hidden; border: 1px solid #e5eaf2; border-radius: 50%; background: #f1f3f4; }
+        .rm-serp__favicon img { width: 100%; height: 100%; object-fit: cover; }
         .rm-snippet__foot { padding: 10px 14px; border-top: 1px dashed #e5eaf2; }
         .rm-snippet__editor { padding: 16px 18px; border-top: 1px solid #e5eaf2; background: #f8fafc; }
         .rm-snippet__locale { margin-bottom: 10px; color: #5a6a85; font-size: 13px; font-weight: 700; }
@@ -44,12 +46,13 @@
         .rm-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; color: #5a6a85; font-size: 13px; }
         .rm-stats strong { color: #1f2937; }
         .rm-group { margin-bottom: 12px; border: 1px solid #e5eaf2; border-radius: 12px; overflow: hidden; }
-        .rm-group__head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: 0; background: #fff; color: #1f2937; font-size: 14.5px; font-weight: 700; text-align: left; }
+        .rm-group__head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: 0; background: rgba(227, 35, 38, .08); color: #1f2937; font-size: 14.5px; font-weight: 700; text-align: left; }
+        .rm-group.is-good .rm-group__head { background: rgba(16, 185, 129, .12); }
         .rm-group__head .ti-chevron-down { margin-left: auto; color: #94a3b8; transition: transform .2s; }
         .rm-group__head[aria-expanded="false"] .ti-chevron-down { transform: rotate(-90deg); }
         .rm-group__badge { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
-        .rm-group__badge.is-bad { color: #dc2626; background: #fef2f2; }
-        .rm-group__badge.is-good { color: #059669; background: #ecfdf5; }
+        .rm-group__badge.is-bad { color: #c01e25; background: #fff; box-shadow: inset 0 0 0 1px rgba(227, 35, 38, .24); }
+        .rm-group__badge.is-good { color: #047857; background: #fff; box-shadow: inset 0 0 0 1px rgba(4, 120, 87, .2); }
         .rm-group__list { margin: 0; padding: 4px 16px 10px; border-top: 1px solid #f1f5f9; list-style: none; }
         .seo-rule-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px dashed #eef2f7; color: #334155; font-size: 14px; }
         .seo-rule-item:last-child { border-bottom: 0; }
@@ -61,7 +64,9 @@
         .rm-social-card__image { display: flex; align-items: center; justify-content: center; aspect-ratio: 1.91 / 1; background: #f0f2f5 center / cover no-repeat; color: #b0b7c3; font-size: 32px; }
         .rm-social-card__image.has-image i { display: none; }
         .rm-social-card__body { padding: 10px 12px; background: #f0f2f5; }
-        .rm-social-card__domain { overflow: hidden; color: #65676b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        .rm-social-card__domain { display: flex; align-items: center; gap: 6px; overflow: hidden; color: #65676b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        .rm-social-card__domain img { width: 16px; height: 16px; flex: 0 0 16px; border-radius: 50%; object-fit: cover; }
+        .rm-social-card__domain span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .rm-social-card__title { display: -webkit-box; overflow: hidden; margin-top: 2px; color: #1c1e21; font-size: 16px; font-weight: 600; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
         .rm-social-card__description { display: -webkit-box; overflow: hidden; margin-top: 2px; color: #65676b; font-size: 14px; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
         .rm-social-card--x { border-radius: 16px; }
@@ -330,6 +335,7 @@
                     const failed = group.querySelectorAll('.seo-rule-item.is-fail').length;
                     const badge = group.querySelector('[data-seo-group-badge]');
                     if (!badge) return;
+                    group.classList.toggle('is-good', failed === 0);
                     badge.textContent = failed ? translations.group_errors.replace(':count', failed) : translations.group_all_good;
                     badge.className = 'rm-group__badge ' + (failed ? 'is-bad' : 'is-good');
                 });

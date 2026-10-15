@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\FeatureSetting;
 use App\Models\Post;
 use App\Models\PostCategory;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\PostSeoAnalyzer;
@@ -179,10 +180,15 @@ class PostCrudTest extends TestCase
 
     public function test_post_form_contains_live_seo_preview_and_analysis_controls(): void
     {
+        ProjectSetting::query()->create(['setting_key' => 'shop_name', 'setting_value' => 'Website đã cấu hình']);
+        ProjectSetting::query()->create(['setting_key' => 'favicon_url', 'setting_value' => '/storage/settings/favicon-preview.png']);
+
         $this->actingAs($this->adminUser)
             ->get('/vi/admin/posts/'.$this->post->id.'/edit')
             ->assertOk()
             ->assertSee('seo_google_preview_result', false)
+            ->assertSee('Website đã cấu hình')
+            ->assertSee('/storage/settings/favicon-preview.png', false)
             ->assertSee('rule_internal_links', false)
             ->assertSee('data-seo-group="basic"', false)
             ->assertSee('data-seo-group="additional"', false)
