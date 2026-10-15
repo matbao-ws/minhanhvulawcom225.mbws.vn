@@ -2,6 +2,10 @@
 
 return [
     'meta' => [
+        'keyword_button' => 'Gợi ý từ khóa bằng AI',
+        'keyword_suggested' => 'Từ khóa chính gợi ý',
+        'keyword_use' => 'Dùng làm từ khóa chính',
+        'keyword_added' => 'Đã đặt làm từ khóa chính. Bấm Lưu để giữ thay đổi.',
         'button' => 'Gợi ý meta bằng AI',
         'title' => 'Gợi ý meta bằng AI',
         'loading' => 'AI đang đọc nội dung và soạn gợi ý…',
@@ -15,7 +19,6 @@ return [
         'reject' => 'Không dùng gợi ý nào',
         'applied' => 'Đã áp dụng gợi ý meta.',
         'review_note' => 'AI chỉ đề xuất. Bạn có thể sửa chữ trước khi áp dụng; thay đổi chỉ được lưu khi bạn bấm Áp dụng.',
-        'save_first' => 'Lưu bản ghi trước rồi mới dùng gợi ý meta.',
         'credits' => 'Đã dùng :used/:limit lượt AI tháng này.',
     ],
     'errors' => [
@@ -218,6 +221,32 @@ Keo dán ống uPVC',
         'apply' => 'Thay mô tả hiện tại',
         'applied' => 'Đã cập nhật mô tả sản phẩm.',
         'note' => 'AI dùng tên, danh mục, thương hiệu, thuộc tính và mô tả ngắn của sản phẩm. Không gửi giá hay tồn kho.',
+    ],
+    'collection' => [
+        'button' => 'AI viết mô tả',
+        'title' => 'Viết mô tả bằng AI',
+        'applied' => 'Đã cập nhật mô tả.',
+        'note' => 'AI dùng tên, danh mục cha và tên các sản phẩm hoặc bài viết đang thuộc mục này. Không gửi giá hay tồn kho.',
+    ],
+    'pending' => [
+        'title' => ':count gợi ý AI chưa xem',
+        'note' => 'Lượt AI đã dùng nhưng bạn chưa áp dụng hay bỏ qua (ví dụ do rời trang khi AI đang chạy).',
+        'open' => 'Xem',
+        'close' => 'Đóng',
+        'tasks' => [
+            'meta_suggest' => 'Gợi ý meta',
+            'content_edit' => 'AI biên tập',
+            'content_faq' => 'FAQ',
+            'content_internal_links' => 'Liên kết nội bộ',
+            'content_product_description' => 'Mô tả sản phẩm',
+            'content_collection_intro' => 'Mô tả danh mục',
+            'seo_fix_suggest' => 'Sửa theo điểm SEO',
+        ],
+    ],
+    'draft' => [
+        'hint' => 'Bấm nút AI sẽ lưu nháp trước, rồi mở công cụ.',
+        'confirm' => 'Công cụ AI cần bản ghi đã lưu. Lưu nháp (chưa xuất bản) rồi mở công cụ?',
+        'saved' => 'Đã lưu nháp. Đang mở công cụ AI…',
     ],
     'usage' => [
         'title' => 'Trợ lý AI SEO',

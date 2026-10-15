@@ -656,6 +656,17 @@ Kiểm kê toàn bộ theme/
   meta và `Disallow: /` trong `robots.txt`. Trang được index còn kèm `max-snippet:-1,
   max-image-preview:large, max-video-preview:-1` (`SeoMeta::robots()`), để Google hiện ảnh lớn ở Search và
   Discover; thẻ X là `summary_large_image` khi trang có ảnh.
+- **Khung SEO admin dùng chung** cho bài viết, sản phẩm và trang chính sách: partial
+  `admin.shared.seo-box` (+ `admin-assets/js/forms/seo-box.js`, `admin-assets/css/seo-box.css`), cấu hình
+  bằng tham số (trường tiêu đề/mô tả SEO, selector tiêu đề/slug/thân bài/ảnh, tab ngôn ngữ). Phía server:
+  `App\Support\Seo\SeoBox` (luật validate, chỉ lưu trường form có gửi để import/API không xoá mất,
+  tính `seo_score`). Loại record mới muốn có khung thì thêm vào `SeoBox::MODELS` và dùng lại partial,
+  không chép khung thứ hai. `SeoMetaFactory::forProduct()`/`forPage()` đọc robots, canonical, trường
+  chia sẻ và FAQ của record giống `forPost()`.
+- **IndexNow** (`App\Services\Seo\IndexNow`, `config/seo.php`, `SEO_INDEXNOW`): bài viết/sản phẩm/trang
+  công khai và cho index khi được tạo, sửa, ẩn hoặc xoá thì URL được gom và gửi **một lần mỗi request**
+  (job `SubmitIndexNow`), chỉ ở production. Khoá suy ra từ `APP_KEY`, file `/{khoá}.txt` do
+  `SeoFileController::indexNowKey` trả. Google không dùng IndexNow (Bing, Yandex, Naver… có).
 - Điểm SEO bài viết tính ở **hai nơi phải khớp nhau**: `App\Services\PostSeoAnalyzer` (server, lưu
   `seo_score`) và `analyzeSEO` trong `admin/posts/_form-assets.blade.php` (trình duyệt). Trọng số chỉ khai
   báo ở `PostSeoAnalyzer::WEIGHTS` (cộng đủ 100) và được đưa vào JS bằng `@json`. Thêm/sửa tiêu chí thì sửa

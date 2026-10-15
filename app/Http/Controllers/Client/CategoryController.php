@@ -50,11 +50,9 @@ class CategoryController extends Controller
             'metaTitle' => $metaTitle,
             'metaDescription' => $metaDescription,
             'products' => $products,
-            'seo' => $this->seo->forRecord(
+            'seo' => $this->seo->forCollection(
                 $category,
                 'client.categories.show',
-                $metaTitle ?: $title,
-                $metaDescription ?: $description,
                 image: MediaUrl::resolve($category->image_url),
                 breadcrumbs: $this->seo->ancestorTrail($category, 'client.categories.show', 'name', fn (Category $parent) => $parent->is_active && ! $parent->is_draft),
             ),

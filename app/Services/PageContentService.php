@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Page;
 use App\Models\PageRevision;
 use App\Support\PageHtmlSanitizer;
+use App\Support\Seo\SeoBox;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,13 +16,15 @@ class PageContentService
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly PageHtmlSanitizer $htmlSanitizer,
+        private readonly SeoBox $seoBox,
     ) {}
 
     public function create(array $data): Page
     {
         return DB::transaction(function () use ($data): Page {
-            $page = Page::query()->create($this->payload($data));
+            $page = Page::query()->create($this->payload($data) + $this->seoBox->payload($data));
             $this->localizedSlugs->sync($page, $data['slug'] ?? [], $data['title']);
+            $this->seoBox->refreshScore($page);
 
             return $page;
         });
@@ -31,8 +34,9 @@ class PageContentService
     {
         return DB::transaction(function () use ($page, $data, $userId): Page {
             $this->snapshot($page, $userId);
-            $page->update($this->payload($data, $page));
+            $page->update($this->payload($data, $page) + $this->seoBox->payload($data, $page));
             $this->localizedSlugs->sync($page, $data['slug'] ?? [], $data['title']);
+            $this->seoBox->refreshScore($page);
 
             return $page->refresh();
         });
@@ -60,6 +64,8 @@ class PageContentService
             $translations = $page->getTranslations('published_html');
             $translations[$locale] = $clean;
             $page->update(['published_html' => $translations]);
+            // Edited on the storefront: the admin list's score follows the new text.
+            $this->seoBox->refreshScore($page);
 
             return $page->refresh();
         });

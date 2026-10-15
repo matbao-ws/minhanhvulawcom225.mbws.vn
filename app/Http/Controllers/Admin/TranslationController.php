@@ -32,7 +32,7 @@ class TranslationController extends Controller
             'fields' => ['required', 'array', 'min:1', 'max:20'],
             'fields.*' => ['nullable', 'string', 'max:50000'],
             'formats' => ['nullable', 'array'],
-            'formats.*' => ['nullable', Rule::in(['text', 'html'])],
+            'formats.*' => ['nullable', Rule::in(['text', 'html', 'page_html'])],
         ]);
 
         if (! $translations->configured()) {

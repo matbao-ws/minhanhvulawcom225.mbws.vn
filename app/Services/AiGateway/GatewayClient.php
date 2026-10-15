@@ -123,6 +123,10 @@ class GatewayClient
      */
     public function task(string $code, array $input, string $idempotencyKey, ?int $timeout = null): array
     {
+        // The credit is spent once the gateway answers: finish and store the suggestion even if the
+        // admin closed the tab meanwhile, so the form can offer it again (PendingSuggestions).
+        ignore_user_abort(true);
+
         return $this->send(fn () => $this->request()
             ->withHeaders(['Idempotency-Key' => $idempotencyKey])
             // The model may take most of the gateway's own 30 s budget; drafts pass a longer one.

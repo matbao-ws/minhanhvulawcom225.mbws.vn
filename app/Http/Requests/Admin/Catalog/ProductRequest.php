@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Catalog;
 use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use App\Services\LanguageRegistry;
 use App\Support\FeatureGate;
+use App\Support\Seo\SeoBox;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,6 +35,7 @@ class ProductRequest extends FormRequest
             ...$this->localizedStringRules('description'),
             ...$this->localizedStringRules('meta_title', false, 255),
             ...$this->localizedStringRules('meta_description', false, 500),
+            ...app(SeoBox::class)->rules(),
             'image_url' => ['nullable', 'string', 'max:255'],
             'image_file' => ['nullable', 'file', 'image', 'max:5120'],
             'gallery_images' => ['nullable', 'array', 'max:20'],

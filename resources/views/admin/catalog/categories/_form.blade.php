@@ -34,7 +34,7 @@
                             <div class="row">
                                 <div data-tour="category-form.name" class="col-md-8 mb-3"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" placeholder="Nhập tên danh mục..." @required($code === $defaultContentLocale)></div>
                                 <div class="col-md-4 mb-3"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }} <span class="text-muted fw-normal">(bỏ trống để tự tạo từ tên)</span></label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug" placeholder="Ví dụ: dien-thoai"></div>
-                                <div data-tour="category-form.description" class="col-12 mb-3"><label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label><textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html" placeholder="Nhập mô tả danh mục...">{{ $description }}</textarea><div id="description_editor_{{ $code }}" class="rich-editor" data-preset="basic" data-media-folder="categories" data-target="description_{{ $code }}" data-placeholder="Nhập mô tả danh mục...">{!! app(\App\Support\HtmlSanitizer::class)->cleanRichText($description) !!}</div></div>
+                                <div data-tour="category-form.description" class="col-12 mb-3"><label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label><textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html" placeholder="Nhập mô tả danh mục...">{{ $description }}</textarea><div id="description_editor_{{ $code }}" class="rich-editor" data-preset="basic" data-media-folder="categories" data-target="description_{{ $code }}" data-placeholder="Nhập mô tả danh mục...">{!! app(\App\Support\HtmlSanitizer::class)->cleanRichText($description) !!}</div>@include('admin.shared.ai-edit-button', ['entityType' => 'category', 'entity' => $category, 'locale' => $code, 'target' => "description_$code"])</div>
                             </div>
                         </div>
                     @endforeach
@@ -77,6 +77,24 @@
         </div>
     </div>
 </div>
+
+@include('admin.shared.seo-box', [
+    'record' => $category,
+    'entityType' => 'category',
+    'titleField' => 'meta_title',
+    'descriptionField' => 'meta_description',
+    'selectors' => [
+        'title' => '#name_'.$defaultContentLocale,
+        'slug' => '#slug_'.$defaultContentLocale,
+        'content' => 'description_'.$defaultContentLocale,
+        'image' => '[data-media-preview-image]',
+        'imageInputs' => ['#image_file'],
+        'languageTabs' => '#category-language-',
+    ],
+    'tour' => 'category-form',
+    'mediaFolder' => 'categories',
+    'placeholders' => ['title' => __('admin.posts.seo_panel.placeholder_name_title')],
+])
 
 @include('admin.shared.form-actions', ['cancelUrl' => route('admin.categories.index')])
 @include('admin.shared.translation-assets')

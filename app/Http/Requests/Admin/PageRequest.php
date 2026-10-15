@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Services\LanguageRegistry;
+use App\Support\Seo\SeoBox;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PageRequest extends FormRequest
@@ -22,6 +23,7 @@ class PageRequest extends FormRequest
             'meta_description' => ['nullable', 'array'],
             'published_html' => ['nullable', 'array'],
             'is_active' => ['required', 'boolean'],
+            ...app(SeoBox::class)->rules(),
         ];
 
         foreach ($languages->codes() as $locale) {

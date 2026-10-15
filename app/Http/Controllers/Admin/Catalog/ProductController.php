@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\ProductRequest;
 use App\Models\Brand;
@@ -25,7 +26,7 @@ use RuntimeException;
 
 class ProductController extends Controller
 {
-    use HandlesBulkActions, HandlesPagination;
+    use HandlesBulkActions, HandlesPagination, OpensAiToolAfterCreate;
 
     public function __construct(
         private readonly ProductService $products,
@@ -119,11 +120,11 @@ class ProductController extends Controller
             return back()->withInput()->with('error', $exception->getMessage());
         }
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.products.edit', $product, redirect()
             ->route('admin.products.show', $product)
             ->with('success', $variantCount > 0
                 ? __('catalog.products.created')." Đã tạo {$variantCount} SKU tổ hợp."
-                : __('catalog.products.created'));
+                : __('catalog.products.created')));
     }
 
     public function show(string $locale, Product $product)

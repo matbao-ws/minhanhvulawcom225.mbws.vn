@@ -3,8 +3,10 @@
 namespace App\Services\AiGateway;
 
 use App\Models\AiSuggestion;
+use App\Models\Category;
 use App\Models\Page;
 use App\Models\Post;
+use App\Models\PostCategory;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\ActivityLogger;
@@ -45,6 +47,10 @@ class MetaSuggestionService
             'title' => 'title', 'content' => 'content', 'meta_title' => 'seo_title', 'meta_description' => 'seo_description'],
         'page' => ['model' => Page::class, 'feature' => 'cms_page', 'permission' => 'pages.update',
             'title' => 'title', 'content' => 'published_html', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'],
+        'category' => ['model' => Category::class, 'feature' => 'catalog', 'permission' => 'products.update',
+            'title' => 'name', 'content' => 'description', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'],
+        'post_category' => ['model' => PostCategory::class, 'feature' => 'cms_page', 'permission' => 'posts.update',
+            'title' => 'name', 'content' => 'description', 'meta_title' => 'meta_title', 'meta_description' => 'meta_description'],
     ];
 
     /** Limits of the admin forms the values end up in. */
@@ -61,7 +67,8 @@ class MetaSuggestionService
     ) {}
 
     /**
-     * @return array{0: AiSuggestion, 1: array<string, int>} the suggestion and the credit usage after it
+     * @return array{0: AiSuggestion, 1: array<string, int>, 2: string} the suggestion, the credit usage after it,
+     *                                                                  and the focus keyword the model chose (or echoed)
      *
      * @throws GatewayUnavailable
      */
@@ -87,7 +94,7 @@ class MetaSuggestionService
             'user_id' => $user->id,
         ]);
 
-        return [$suggestion, (array) ($response['usage'] ?? [])];
+        return [$suggestion, (array) ($response['usage'] ?? []), trim((string) ($response['result']['focus_keyword'] ?? ''))];
     }
 
     /**
@@ -119,6 +126,7 @@ class MetaSuggestionService
             }
 
             $record->save();
+            $this->refreshBoxScore($record);
 
             $suggestion->update([
                 'status' => AiSuggestion::APPLIED,
@@ -163,7 +171,10 @@ class MetaSuggestionService
             'current_meta_description' => $current['description'] !== '' ? $current['description'] : null,
             'site_name' => Str::limit((string) ($this->branding->current()['name'] ?? ''), 120, ''),
             // Posts carry a focus keyword the SEO checker scores the meta against.
-            'focus_keyword' => $record instanceof Post && filled($record->seo_keys) ? Str::limit((string) $record->seo_keys, 120, '') : null,
+            // The focus keyword (the first of the SEO box's badges) of any record that has one.
+            'focus_keyword' => filled($record->getAttribute('seo_keys'))
+                ? Str::limit(PostSeoAnalyzer::primaryKeyword((string) $record->getAttribute('seo_keys')), 120, '')
+                : null,
         ];
     }
 

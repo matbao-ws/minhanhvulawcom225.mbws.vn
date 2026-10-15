@@ -26,7 +26,7 @@ class PageController extends Controller
         $page = $this->localizedSlugs->find(Page::class, $slug, app()->getLocale());
 
         abort_unless(
-            $page
+            $page instanceof Page
                 && $page->is_active
                 && $page->published_at
                 && ! $page->published_at->isFuture(),
@@ -45,7 +45,7 @@ class PageController extends Controller
             'html' => $this->content->get($page, 'published_html'),
             'metaTitle' => $metaTitle,
             'metaDescription' => $metaDescription,
-            'seo' => $this->seo->forRecord($page, 'client.pages.show', $metaTitle ?: $title, $metaDescription),
+            'seo' => $this->seo->forPage($page),
         ]);
     }
 }

@@ -3,13 +3,18 @@
 namespace Tests\Feature;
 
 use App\Models\AiSuggestion;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\FeatureSetting;
+use App\Models\Page;
 use App\Models\Post;
+use App\Models\PostCategory;
 use App\Models\Product;
 use App\Models\ProductOptionGroup;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\PostSeoAnalyzer;
+use App\Support\Seo\SeoBox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,7 +22,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-/** FAQ, image alts, fixes by SEO score, product descriptions and the dashboard credits card. */
+/** FAQ, image alts, fixes by SEO score, product and collection descriptions and the dashboard credits card. */
 class AiToolsTest extends TestCase
 {
     use RefreshDatabase;
@@ -148,6 +153,60 @@ class AiToolsTest extends TestCase
         $this->assertSame($post->seo_score, $result->json('data.after'));
     }
 
+    public function test_seo_fix_works_on_a_product_and_rescores_it(): void
+    {
+        $product = Product::query()->create([
+            'name' => ['vi' => 'Máy bơm nước'], 'slug' => 'may-bom-nuoc', 'price' => 1000000, 'is_active' => true,
+            'description' => ['vi' => '<p>Máy bơm nước gia đình chạy êm.</p>'], 'seo_keys' => 'máy bơm nước',
+            'meta_title' => ['vi' => 'Bơm'],
+        ]);
+        $this->answers['seo.fix_suggest'] = [
+            'seo_title' => 'Máy bơm nước gia đình chạy êm, tiết kiệm điện 2026',
+            'seo_description' => '', 'intro_html' => '', 'notes' => [],
+        ];
+
+        $id = $this->ask('/vi/admin/ai/seo-fixes', ['entity_type' => 'product', 'entity_id' => $product->id])->assertOk()->json('data.suggestion_id');
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v1/tasks/seo.fix_suggest')
+            && $r['entity_type'] === 'product' && $r['seo_title'] === 'Bơm' && $r['focus_keyword'] === 'máy bơm nước');
+
+        $result = $this->actingAs($this->editor)->postJson("/vi/admin/ai/seo-fixes/$id/apply", [
+            'seo_title' => $this->answers['seo.fix_suggest']['seo_title'],
+        ])->assertOk();
+
+        $product->refresh();
+        $this->assertSame('Máy bơm nước gia đình chạy êm, tiết kiệm điện 2026', $product->getTranslation('meta_title', 'vi'));
+        $this->assertGreaterThan($result->json('data.before'), $result->json('data.after'));
+        $this->assertSame($product->seo_score, $result->json('data.after'));
+    }
+
+    public function test_seo_fix_rewrites_a_policy_pages_opening_through_its_revision_path(): void
+    {
+        $page = Page::query()->create([
+            'title' => ['vi' => 'Chính sách đổi trả'], 'slug' => 'doi-tra', 'is_active' => true, 'seo_keys' => 'đổi trả',
+            'published_html' => ['vi' => '<p>Khách được hoàn tiền.</p><h2>Điều kiện</h2><p>Còn tem.</p>'],
+        ]);
+        $this->answers['seo.fix_suggest'] = [
+            'seo_title' => '', 'seo_description' => '',
+            'intro_html' => '<p>Chính sách đổi trả: khách được hoàn tiền.</p>', 'notes' => [],
+        ];
+
+        $id = $this->ask('/vi/admin/ai/seo-fixes', ['entity_type' => 'page', 'entity_id' => $page->id])->assertOk()->json('data.suggestion_id');
+        $this->actingAs($this->editor)->postJson("/vi/admin/ai/seo-fixes/$id/apply", [
+            'intro_html' => $this->answers['seo.fix_suggest']['intro_html'],
+        ])->assertOk();
+
+        $page->refresh();
+        $this->assertSame('<p>Chính sách đổi trả: khách được hoàn tiền.</p><h2>Điều kiện</h2><p>Còn tem.</p>', $page->getTranslation('published_html', 'vi'));
+        $this->assertSame(1, $page->revisions()->count(), 'the old text is a revision');
+        $this->assertNotNull($page->seo_score);
+    }
+
+    public function test_seo_fix_refuses_a_record_type_without_an_seo_box(): void
+    {
+        $this->ask('/vi/admin/ai/seo-fixes', ['entity_type' => 'brand', 'entity_id' => 1])->assertStatus(422);
+        $this->assertSame(0, AiSuggestion::query()->count());
+    }
+
     public function test_the_checker_not_a_stored_score_decides_what_fails(): void
     {
         $post = $this->makePost('<p>x</p>');
@@ -184,6 +243,66 @@ class AiToolsTest extends TestCase
         $this->assertStringContainsString('Ống uPVC phi 21 cho nước sạch.', $html);
         $this->assertStringNotContainsString('<a ', $html);
         $this->assertStringNotContainsString('<img', $html);
+    }
+
+    public function test_a_category_description_is_written_from_its_products_and_rescores_the_category(): void
+    {
+        $parent = Category::query()->create(['name' => ['vi' => 'Vật tư nước'], 'slug' => 'vat-tu-nuoc', 'is_active' => true]);
+        $category = Category::query()->create([
+            'name' => ['vi' => 'Ống nhựa'], 'slug' => 'ong-nhua', 'is_active' => true, 'parent_id' => $parent->id,
+            'description' => ['vi' => '<p>Cũ</p>'], 'seo_keys' => 'ống nhựa, ống uPVC',
+        ]);
+        Product::query()->create(['name' => ['vi' => 'Ống uPVC phi 21'], 'slug' => 'ong-21', 'sku' => 'U21', 'price' => 25000, 'is_active' => true, 'category_id' => $category->id]);
+        Product::query()->create(['name' => ['vi' => 'Ống đã ẩn'], 'slug' => 'ong-an', 'sku' => 'U00', 'price' => 1, 'is_active' => false, 'category_id' => $category->id]);
+        $this->answers['content.collection_intro'] = [
+            'html' => '<h2>Ống nhựa</h2><p>Ống nhựa cho cấp nước gia đình. <a href="https://spam.example">Mua</a></p><script>x</script>',
+            'missing_info' => [],
+        ];
+
+        $id = $this->ask('/vi/admin/ai/collection-intros', ['entity_type' => 'category', 'entity_id' => $category->id, 'target_words' => 150])
+            ->assertOk()->json('data.suggestion_id');
+
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/v1/tasks/content.collection_intro')
+            && $r['entity_type'] === 'category'
+            && $r['name'] === 'Ống nhựa' && $r['parent'] === 'Vật tư nước'
+            && $r['items'] === ['Ống uPVC phi 21']
+            && $r['focus_keyword'] === 'ống nhựa'
+            && $r['current_description'] === '<p>Cũ</p>'
+            && ! str_contains(json_encode($r->data()), '25000'));
+
+        $this->actingAs($this->editor)->postJson("/vi/admin/ai/collection-intros/$id/apply")->assertOk();
+        $category->refresh();
+        $html = $category->getTranslation('description', 'vi', false);
+        $this->assertStringContainsString('Ống nhựa cho cấp nước gia đình.', $html);
+        $this->assertStringNotContainsString('<a ', $html);
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertSame(app(SeoBox::class)->analyze($category)['score'], $category->seo_score);
+    }
+
+    public function test_blog_category_and_brand_descriptions_and_their_form_buttons(): void
+    {
+        $blog = PostCategory::query()->create(['name' => ['vi' => 'Kinh nghiệm'], 'slug' => 'kinh-nghiem', 'is_active' => true, 'sort_order' => 1]);
+        $this->makePost('<p>x</p>', ['category_id' => $blog->id]);
+        $brand = Brand::query()->create(['name' => ['vi' => 'Bình Minh'], 'slug' => 'binh-minh', 'is_active' => true]);
+        Product::query()->create(['name' => ['vi' => 'Ống Bình Minh 27'], 'slug' => 'bm-27', 'sku' => 'B27', 'price' => 1, 'is_active' => true, 'brand_id' => $brand->id]);
+        $this->answers['content.collection_intro'] = ['html' => '<p>Giới thiệu đủ dài cho mục này.</p>', 'missing_info' => ['xuất xứ']];
+
+        $this->ask('/vi/admin/ai/collection-intros', ['entity_type' => 'post_category', 'entity_id' => $blog->id, 'target_words' => 100])->assertOk();
+        Http::assertSent(fn (Request $r) => $r['entity_type'] === 'post_category' && $r['items'] === ['Thi công nhà phố']);
+
+        $id = $this->ask('/vi/admin/ai/collection-intros', ['entity_type' => 'brand', 'entity_id' => $brand->id, 'target_words' => 100])
+            ->assertOk()->assertJsonPath('data.missing_info.0', 'xuất xứ')->json('data.suggestion_id');
+        Http::assertSent(fn (Request $r) => $r['entity_type'] === 'brand' && $r['items'] === ['Ống Bình Minh 27'] && $r['focus_keyword'] === null);
+
+        // Someone saved the brand in between: the suggestion no longer applies.
+        $brand->setTranslation('description', 'vi', '<p>Mới sửa</p>')->save();
+        $this->actingAs($this->editor)->postJson("/vi/admin/ai/collection-intros/$id/apply")->assertStatus(409);
+
+        // Brands get only the description button; categories also get the copy edit.
+        $this->actingAs($this->editor)->get("/vi/admin/brands/{$brand->id}/edit")
+            ->assertOk()->assertSee('js-ai-collection', false)->assertDontSee('js-ai-edit"', false);
+        $this->actingAs($this->editor)->get("/vi/admin/post-categories/{$blog->id}/edit")
+            ->assertOk()->assertSee('js-ai-collection', false)->assertSee('js-ai-edit"', false);
     }
 
     public function test_tools_need_the_records_own_permission_and_reject_is_reported(): void

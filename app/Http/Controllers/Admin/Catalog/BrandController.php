@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\BrandRequest;
 use App\Models\Brand;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class BrandController extends Controller
 {
-    use HandlesBulkActions, HandlesPagination;
+    use HandlesBulkActions, HandlesPagination, OpensAiToolAfterCreate;
 
     public function __construct(private readonly BrandService $brands) {}
 
@@ -50,11 +51,11 @@ class BrandController extends Controller
 
     public function store(BrandRequest $request)
     {
-        $this->brands->create($request->validated());
+        $brand = $this->brands->create($request->validated());
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.brands.edit', $brand, redirect()
             ->route('admin.brands.index')
-            ->with('success', __('catalog.brands.created'));
+            ->with('success', __('catalog.brands.created')));
     }
 
     public function edit(string $locale, Brand $brand)

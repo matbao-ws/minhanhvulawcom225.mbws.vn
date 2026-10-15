@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\WordPressPostImportRequest;
 use App\Models\Post;
@@ -23,7 +24,7 @@ use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
-    use HandlesBulkActions;
+    use HandlesBulkActions, OpensAiToolAfterCreate;
 
     public function __construct(
         private readonly LanguageRegistry $languages,
@@ -123,9 +124,9 @@ class PostController extends Controller
             return $post;
         });
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.posts.edit', $post, redirect()
             ->route('admin.posts.index')
-            ->with('success', __('admin.posts.created'));
+            ->with('success', __('admin.posts.created')));
     }
 
     /**
