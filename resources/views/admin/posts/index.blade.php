@@ -92,7 +92,8 @@
                 </div>
             </form>
         </div>
-        <div class="card-body p-0">
+        {{-- Filters, pages, show/hide and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="posts">
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-posts-form',
                 'bulkActionUrl' => route('admin.posts.bulk'),
@@ -111,6 +112,9 @@
                             <th></th>
                         </tr>
                     </thead>
+                    @php
+                        $canUpdatePosts = (bool) auth()->user()?->can('posts.update');
+                    @endphp
                     <tbody>
                         @forelse($posts as $post)
                             @php
@@ -155,15 +159,14 @@
                                     </span>
                                 </td>
                                 <td>
-                                    @if($post->is_active)
-                                        <span class="badge bg-success-subtle text-success fw-semibold">
-                                            {{ __('admin.posts.fields.active') }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-warning-subtle text-warning fw-semibold">
-                                            {{ __('admin.posts.fields.inactive') }}
-                                        </span>
-                                    @endif
+                                    @include('admin.shared.status-switch', [
+                                        'action' => route('admin.posts.bulk'),
+                                        'id' => $post->id,
+                                        'active' => (bool) $post->is_active,
+                                        'can' => $canUpdatePosts,
+                                        'activeLabel' => __('admin.posts.fields.active'),
+                                        'inactiveLabel' => __('admin.posts.fields.inactive'),
+                                    ])
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">

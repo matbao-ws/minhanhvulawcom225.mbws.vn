@@ -9,6 +9,16 @@ return [
         'apply' => 'Áp dụng',
         'label' => 'Phân trang',
     ],
+    // Lists that change without a full reload (public/admin-assets/js/admin-ajax.js).
+    'ajax' => [
+        'failed' => 'Không thực hiện được. Vui lòng tải lại trang và thử lại.',
+        'forbidden' => 'Bạn không có quyền thực hiện thao tác này.',
+        'missing' => 'Không tìm thấy dữ liệu, có thể đã bị xoá.',
+        'throttled' => 'Thao tác quá nhanh, vui lòng thử lại sau ít phút.',
+        'offline' => 'Mất kết nối. Kiểm tra mạng rồi thử lại.',
+        'show' => 'Đang hiển thị — bấm để ẩn',
+        'hide' => 'Đang ẩn — bấm để hiển thị',
+    ],
     'dashboard' => 'Trang quản trị',
     'admin' => 'Quản trị',
     'home' => 'Trang chủ',

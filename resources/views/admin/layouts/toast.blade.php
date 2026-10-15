@@ -17,7 +17,23 @@
             'message' => $errors->first(),
         ];
     }
+
+    $limitKey = \App\Exceptions\PackageLimitExceeded::FLASH_KEY;
+    $flashData = [
+        'toast' => $toast,
+        'limit' => session()->has($limitKey) ? [
+            'title' => __('admin.package.limit_reached_title'),
+            'html' => e(session($limitKey))
+                .(auth()->user()?->isSuperAdmin() ? '<div class="small text-muted mt-3">'.e(__('admin.package.limit_superadmin_hint')).'</div>' : ''),
+            'upgrade' => __('admin.package.alert.upgrade_contact'),
+            'ok' => __('admin.package.limit_ok'),
+            'url' => 'https://support.matbao.ws/submitticket.php',
+        ] : null,
+    ];
 @endphp
+
+{{-- The same message as data: a list updated by admin-ajax.js reads it from the fetched page. --}}
+<script type="application/json" data-admin-flash>{!! json_encode($flashData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!}</script>
 
 @if(session()->has(\App\Exceptions\PackageLimitExceeded::FLASH_KEY))
     {{-- A package refusal stays on screen until acknowledged: a toast that fades

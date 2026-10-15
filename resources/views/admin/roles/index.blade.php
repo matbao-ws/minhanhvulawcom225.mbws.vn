@@ -22,7 +22,8 @@
     @endif
 
     <div class="card">
-        <div class="card-body p-0">
+        {{-- Filters, pages and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="roles">
             <div data-tour="roles.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>

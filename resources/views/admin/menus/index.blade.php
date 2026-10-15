@@ -17,7 +17,8 @@
 
 
 <div class="card">
-    <div class="card-body">
+    {{-- Pages and delete update this part only (admin-ajax.js). --}}
+    <div class="card-body" data-ajax-list="menus">
         <div data-tour="menus.table" class="table-responsive">
             <table class="table align-middle">
                 <thead>

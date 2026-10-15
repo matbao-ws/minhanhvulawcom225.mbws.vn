@@ -88,7 +88,8 @@
             </form>
         </div>
 
-        <div class="card-body p-0">
+        {{-- Search, pages, on/off, saving and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="redirects">
             @if($tab === 'redirects')
                 @if($canUpdate)
                     @include('admin.shared.bulk-actions', [
@@ -149,9 +150,14 @@
                                         <div class="small text-muted">{{ $redirect->last_hit_at?->diffForHumans() ?? __('redirects.state.never') }}</div>
                                     </td>
                                     <td>
-                                        <span @class(['badge fw-semibold', 'bg-success-subtle text-success' => $redirect->is_active, 'bg-secondary-subtle text-secondary' => ! $redirect->is_active])>
-                                            {{ $redirect->is_active ? __('redirects.state.active') : __('redirects.state.inactive') }}
-                                        </span>
+                                        @include('admin.shared.status-switch', [
+                                            'action' => route('admin.redirects.bulk'),
+                                            'id' => $redirect->id,
+                                            'active' => (bool) $redirect->is_active,
+                                            'can' => $canUpdate,
+                                            'activeLabel' => __('redirects.state.active'),
+                                            'inactiveLabel' => __('redirects.state.inactive'),
+                                        ])
                                     </td>
                                     <td class="text-end pe-4 text-nowrap">
                                         @if($canUpdate)
@@ -246,7 +252,7 @@
         {{-- One form for create and edit; the open button fills it. --}}
         <div class="modal fade" id="redirectModal" tabindex="-1" aria-labelledby="redirectModalTitle" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <form method="POST" action="{{ route('admin.redirects.store') }}" class="modal-content" data-redirect-form data-store-action="{{ route('admin.redirects.store') }}">
+                <form method="POST" action="{{ route('admin.redirects.store') }}" class="modal-content" data-redirect-form data-ajax-form data-store-action="{{ route('admin.redirects.store') }}">
                     @csrf
                     <input type="hidden" name="_method" value="POST" data-redirect-method>
                     <input type="hidden" name="not_found_id" value="{{ old('not_found_id') }}" data-redirect-not-found>
@@ -342,8 +348,11 @@
             };
             status.addEventListener('change', syncTarget);
 
-            document.querySelectorAll('[data-redirect-open]').forEach(function (button) {
-                button.addEventListener('click', function () {
+            // On the document: rows swapped in by admin-ajax.js open it too.
+            document.addEventListener('click', function (event) {
+                const button = event.target.closest('[data-redirect-open]');
+                if (!button) return;
+                {
                     const editing = button.dataset.redirectOpen === 'edit';
                     form.action = editing ? button.dataset.action : form.dataset.storeAction;
                     form.querySelector('[data-redirect-method]').value = editing ? 'PUT' : 'POST';
@@ -358,7 +367,7 @@
                     syncTarget();
                     focusField = button.dataset.source ? '[name="target"]' : '[name="source"]';
                     modal.show();
-                });
+                }
             });
 
             syncTarget();

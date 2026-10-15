@@ -62,7 +62,8 @@
                 </div>
             </form>
         </div>
-        <div class="card-body p-0">
+        {{-- Search, pages, quick edit and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="post-categories">
             <div data-tour="post-categories.table" class="table-responsive">
                 <table class="table text-nowrap mb-0 align-middle" id="category-table-sortable" data-start-order="{{ max(0, ($categories->firstItem() ?? 1) - 1) }}">
                     <thead>
@@ -151,7 +152,7 @@
                                             <form method="POST" action="{{ route('admin.post-categories.destroy', $category) }}" class="js-delete-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="dropdown-item d-flex align-items-center gap-3 text-danger" onclick="return confirm('{{ __('admin.blog_categories.confirm_delete') }}')">
+                                                <button type="submit" class="dropdown-item d-flex align-items-center gap-3 text-danger">
                                                     <i class="fs-4 ti ti-trash"></i>{{ __('admin.blog_categories.delete_category') }}
                                                 </button>
                                             </form>
@@ -182,7 +183,7 @@
     <!-- Quick Edit Modal -->
     <div class="modal fade" id="quickEditCategoryModal" tabindex="-1" aria-labelledby="quickEditCategoryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <form method="POST" action="" class="modal-content" id="quickEditCategoryForm">
+            <form method="POST" action="" class="modal-content" id="quickEditCategoryForm" data-ajax-form>
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
@@ -241,8 +242,9 @@
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const sortable = document.getElementById('category-table-sortable');
+        // Again after each in-place list update (admin-ajax.js): the rows are new.
+        AdminAjax.ready(function (root) {
+            const sortable = root.querySelector('#category-table-sortable');
             const csrfToken = @json(csrf_token());
             const sortUrl = @json(route('admin.post-categories.sort'));
             const quickUpdateUrlTemplate = @json(route('admin.post-categories.quick-update', ['post_category' => '__CATEGORY_ID__']));
@@ -352,7 +354,7 @@
             }
 
             // Bind values to quick edit modal
-            document.querySelectorAll('.js-category-quick-edit').forEach(function (button) {
+            root.querySelectorAll('.js-category-quick-edit').forEach(function (button) {
                 button.addEventListener('click', function () {
                     const form = document.getElementById('quickEditCategoryForm');
                     const parentSelect = document.getElementById('quick_parent_id');

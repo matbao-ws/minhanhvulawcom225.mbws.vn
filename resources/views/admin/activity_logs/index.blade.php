@@ -95,6 +95,8 @@
             </div>
         </div>
 
+        {{-- Filters, pages and delete update this part only (admin-ajax.js). --}}
+        <div data-ajax-list="activity">
         @if($canDelete)
         <form id="activity-bulk-form" method="POST" action="{{ route('admin.activity-logs.bulk-destroy') }}" class="js-delete-form d-none"
               data-confirm-title="Xóa các bản ghi đã chọn?"
@@ -134,17 +136,18 @@
             'emptyImage' => asset('admin-assets/images/icons/empty-nhatkyhoatdong.png'),
             'emptyMessage' => 'Chưa có hoạt động nào.',
         ])</td></tr>@endforelse</tbody>
-    </table></div>@if($logs->total() > 0)<div class="card-body border-top">@include('admin.shared.pagination', ['paginator' => $logs])</div>@endif</div>
+    </table></div>@if($logs->total() > 0)<div class="card-body border-top">@include('admin.shared.pagination', ['paginator' => $logs])</div>@endif</div></div>
 @endsection
 
 @if($canDelete)
     @push('scripts')
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const toolbar = document.querySelector('[data-activity-bulk-toolbar]');
-                const selectAll = document.querySelector('[data-activity-select-all]');
-                const boxes = Array.from(document.querySelectorAll('[data-activity-select]'));
-                const form = document.getElementById('activity-bulk-form');
+            // Again after each in-place list update (admin-ajax.js): the rows are new.
+            AdminAjax.ready(function (root) {
+                const toolbar = root.querySelector('[data-activity-bulk-toolbar]');
+                const selectAll = root.querySelector('[data-activity-select-all]');
+                const boxes = Array.from(root.querySelectorAll('[data-activity-select]'));
+                const form = root.querySelector('#activity-bulk-form');
                 if (!toolbar || !form || !boxes.length) return;
 
                 const refresh = function () {

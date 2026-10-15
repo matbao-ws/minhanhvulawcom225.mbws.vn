@@ -27,72 +27,82 @@
 @once
     @push('scripts')
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                document.querySelectorAll('[data-bulk-toolbar]').forEach(function (toolbar) {
-                    const formId = toolbar.dataset.bulkToolbar;
-                    const form = document.getElementById(formId);
-                    const selectAll = document.querySelector('[data-bulk-select-all="' + formId + '"]');
-                    const checkboxes = Array.from(document.querySelectorAll('[data-bulk-select="' + formId + '"]'));
-                    const count = toolbar.querySelector('[data-bulk-count]');
-                    const actionInput = form ? form.querySelector('[data-bulk-action-input]') : null;
+            // Listens on the document, so it keeps working after admin-ajax.js swaps the list in.
+            (function () {
+                const boxes = function (formId) {
+                    return Array.from(document.querySelectorAll('[data-bulk-select="' + formId + '"]'));
+                };
 
-                    if (!form || !actionInput || !checkboxes.length) {
+                const refresh = function (formId) {
+                    const toolbar = document.querySelector('[data-bulk-toolbar="' + formId + '"]');
+                    if (!toolbar) return;
+                    const all = boxes(formId);
+                    const total = all.filter(function (box) { return box.checked; }).length;
+                    toolbar.classList.toggle('d-none', total === 0);
+                    toolbar.classList.toggle('d-flex', total > 0);
+                    toolbar.querySelector('[data-bulk-count]').textContent = String(total);
+
+                    const selectAll = document.querySelector('[data-bulk-select-all="' + formId + '"]');
+                    if (selectAll) {
+                        selectAll.checked = total > 0 && total === all.length;
+                        selectAll.indeterminate = total > 0 && total < all.length;
+                    }
+                };
+
+                document.addEventListener('change', function (event) {
+                    const box = event.target.closest('[data-bulk-select], [data-bulk-select-all]');
+                    if (!box) return;
+                    const formId = box.dataset.bulkSelect || box.dataset.bulkSelectAll;
+                    if (box.hasAttribute('data-bulk-select-all')) {
+                        boxes(formId).forEach(function (item) { item.checked = box.checked; });
+                    }
+                    refresh(formId);
+                });
+
+                document.addEventListener('click', function (event) {
+                    const toolbar = event.target.closest('[data-bulk-toolbar]');
+                    if (!toolbar) return;
+                    const formId = toolbar.dataset.bulkToolbar;
+
+                    if (event.target.closest('[data-bulk-clear]')) {
+                        boxes(formId).forEach(function (item) { item.checked = false; });
+                        refresh(formId);
                         return;
                     }
 
-                    const selected = function () {
-                        return checkboxes.filter(function (checkbox) { return checkbox.checked; });
+                    const button = event.target.closest('[data-bulk-action]');
+                    const form = document.getElementById(formId);
+                    const actionInput = form ? form.querySelector('[data-bulk-action-input]') : null;
+                    const total = boxes(formId).filter(function (item) { return item.checked; }).length;
+                    if (!button || !actionInput || total === 0) return;
+
+                    const action = button.dataset.bulkAction;
+                    const run = function () {
+                        actionInput.value = action;
+                        window.AdminAjax ? window.AdminAjax.submit(form) : form.submit();
                     };
 
-                    const refresh = function () {
-                        const selectedItems = selected();
-                        const total = selectedItems.length;
-                        toolbar.classList.toggle('d-none', total === 0);
-                        toolbar.classList.toggle('d-flex', total > 0);
-                        count.textContent = String(total);
-
-                        if (selectAll) {
-                            selectAll.checked = total > 0 && total === checkboxes.length;
-                            selectAll.indeterminate = total > 0 && total < checkboxes.length;
-                        }
-                    };
-
-                    checkboxes.forEach(function (checkbox) {
-                        checkbox.addEventListener('change', refresh);
-                    });
-
-                    if (selectAll) {
-                        selectAll.addEventListener('change', function () {
-                            checkboxes.forEach(function (checkbox) {
-                                checkbox.checked = selectAll.checked;
-                            });
-                            refresh();
-                        });
+                    if (action !== 'delete') return run();
+                    const message = 'Xóa vĩnh viễn ' + total + ' mục đã chọn? Hành động này không thể hoàn tác.';
+                    if (!window.Swal) {
+                        if (window.confirm(message)) run();
+                        return;
                     }
-
-                    toolbar.querySelector('[data-bulk-clear]').addEventListener('click', function () {
-                        checkboxes.forEach(function (checkbox) { checkbox.checked = false; });
-                        refresh();
-                    });
-
-                    toolbar.querySelectorAll('[data-bulk-action]').forEach(function (button) {
-                        button.addEventListener('click', function () {
-                            const total = selected().length;
-                            const action = button.dataset.bulkAction;
-                            if (total === 0) {
-                                return;
-                            }
-
-                            if (action === 'delete' && !window.confirm('Xóa vĩnh viễn ' + total + ' mục đã chọn? Hành động này không thể hoàn tác.')) {
-                                return;
-                            }
-
-                            actionInput.value = action;
-                            form.submit();
-                        });
+                    Swal.fire({
+                        title: @json(__('catalog.actions.confirm_delete')),
+                        text: message,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#e32326',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: @json(__('catalog.actions.delete')),
+                        cancelButtonText: @json(__('catalog.actions.cancel')),
+                        focusCancel: true,
+                    }).then(function (result) {
+                        if (result.isConfirmed) run();
                     });
                 });
-            });
+            })();
         </script>
     @endpush
 @endonce
