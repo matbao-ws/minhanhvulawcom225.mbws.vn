@@ -208,6 +208,7 @@ Keo dán ống uPVC',
         'all_good' => 'Bài viết đã đạt mọi quy tắc SEO.',
         'saved_only' => 'AI chấm trên bản đã lưu (ngôn ngữ mặc định).',
         'nothing' => 'AI không đề xuất thay đổi chữ nào; xem ghi chú bên dưới.',
+        'other_tools' => 'Phần này AI không tự sửa (để không tạo link hay ảnh sai). Sửa tiếp bằng:',
     ],
     'product' => [
         'button' => 'AI viết mô tả',

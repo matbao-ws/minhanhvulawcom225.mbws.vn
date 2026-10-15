@@ -189,6 +189,9 @@
                 if (!badge) return;
                 badge.textContent = failed ? String(t.group_errors || '').replace(':count', failed) : t.group_all_good;
                 badge.className = 'rm-group__badge ' + (failed ? 'is-bad' : 'is-good');
+                // The whole header takes the group's state (seo-box.css).
+                group.classList.toggle('is-bad', failed > 0);
+                group.classList.toggle('is-good', failed === 0);
             });
 
             const wordCountElement = box.querySelector('#seo_word_count');
