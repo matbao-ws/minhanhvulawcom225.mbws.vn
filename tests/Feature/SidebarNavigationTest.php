@@ -118,7 +118,7 @@ class SidebarNavigationTest extends TestCase
         foreach ($xpath->query('//li[@data-sidebar-seo-menu]//ul//a') as $anchor) {
             $seo[] = parse_url($anchor->getAttribute('href'), PHP_URL_PATH);
         }
-        $this->assertSame(['/vi/admin/ai/seo-tasks', '/vi/admin/ai/research', '/vi/admin/ai/bulk', '/vi/admin/ai/post-drafts/create'], $seo);
+        $this->assertSame(['/vi/admin/ai/seo-tasks', '/vi/admin/ai/research', '/vi/admin/ai/bulk', '/vi/admin/ai/post-drafts/create', '/vi/admin/redirects'], $seo);
         // Nowhere else in the menu: grouped, not duplicated (the dashboard links it too, outside the menu).
         $this->assertSame(1, $xpath->query('//ul[@id="sidebarnav"]//a[@href="'.route('admin.ai.seo-tasks.index').'"]')->length);
 
@@ -133,6 +133,19 @@ class SidebarNavigationTest extends TestCase
         $html = $this->actingAs($admin)->get('/vi/admin')->assertOk()->getContent();
 
         $this->assertStringNotContainsString('data-sidebar-seo-menu', $html);
+    }
+
+    public function test_redirects_alone_open_the_seo_dropdown_without_the_ai_pages(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Redirects only', 'permissions' => ['redirects.view']])->id]);
+
+        $xpath = $this->xpath($this->actingAs($admin)->get('/vi/admin')->assertOk()->getContent());
+
+        $seo = [];
+        foreach ($xpath->query('//li[@data-sidebar-seo-menu]//ul//a') as $anchor) {
+            $seo[] = parse_url($anchor->getAttribute('href'), PHP_URL_PATH);
+        }
+        $this->assertSame(['/vi/admin/redirects'], $seo);
     }
 
     private function xpath(string $html): \DOMXPath

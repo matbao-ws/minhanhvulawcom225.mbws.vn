@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Models\Concerns\HasLocalizedSlugs;
 use App\Models\Concerns\HasMediaUrls;
+use App\Models\Concerns\HasSeoBox;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class Product extends Model
 {
-    use HasLocalizedSlugs, HasMediaUrls, HasTranslations;
+    use HasLocalizedSlugs, HasMediaUrls, HasSeoBox, HasTranslations;
 
     public array $translatable = [
         'name',
@@ -17,6 +18,8 @@ class Product extends Model
         'description',
         'meta_title',
         'meta_description',
+        'og_title',
+        'og_description',
     ];
 
     protected $fillable = [
@@ -29,6 +32,15 @@ class Product extends Model
         'description',
         'meta_title',
         'meta_description',
+        'seo_keys',
+        'seo_score',
+        'canonical_url',
+        'robots_index',
+        'robots_follow',
+        'og_title',
+        'og_description',
+        'og_image',
+        'schema_faq',
         'image_url',
         'price',
         'compare_at_price',
@@ -51,6 +63,10 @@ class Product extends Model
         'is_featured' => 'boolean',
         'sort_order' => 'integer',
         'published_at' => 'datetime',
+        'seo_score' => 'integer',
+        'robots_index' => 'boolean',
+        'robots_follow' => 'boolean',
+        'schema_faq' => 'boolean',
     ];
 
     public function category()

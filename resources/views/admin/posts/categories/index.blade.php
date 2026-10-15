@@ -4,7 +4,6 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/dragula/dist/dragula.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
     <style>
         /* Dynamic table borders for drag-and-drop */
         #category-table-sortable tbody.category-group-sortable tr td {
@@ -217,7 +216,7 @@
                         <div class="col-12 mb-3">
                             <label class="form-label" for="quick_description">{{ __('admin.blog_categories.fields.description') }}</label>
                             <textarea class="form-control d-none" id="quick_description" name="description"></textarea>
-                            <div id="quick_description_editor" class="catalog-quill" data-target="quick_description" style="height: 150px;"></div>
+                            <div id="quick_description_editor" class="rich-editor" data-preset="basic" data-media-folder="posts" data-target="quick_description"></div>
                         </div>
                         <div class="col-12">
                             <input type="hidden" name="is_active" value="1">
@@ -237,9 +236,10 @@
     </div>
 @endsection
 
+@include('admin.shared.rich-editor-assets')
+
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const sortable = document.getElementById('category-table-sortable');
@@ -260,30 +260,6 @@
                     timerProgressBar: true
                 }).fire({ icon, title: message });
             };
-
-            // Initialize Quick Edit Quill editor
-            const quickEditorElement = document.getElementById('quick_description_editor');
-            if (quickEditorElement && window.Quill) {
-                const target = document.getElementById(quickEditorElement.dataset.target);
-                const quill = new Quill(quickEditorElement, {
-                    theme: 'snow',
-                    modules: {
-                        toolbar: [
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['link', 'clean']
-                        ]
-                    }
-                });
-                quickEditorElement.__quill = quill;
-
-                const form = quickEditorElement.closest('form');
-                if (form && target) {
-                    form.addEventListener('submit', function () {
-                        target.value = quill.root.innerHTML;
-                    });
-                }
-            }
 
             // Dragula initialization for reordering root categories (tbody elements)
             if (sortable && sortable.querySelector('tbody.category-group-sortable') && window.dragula) {
@@ -387,10 +363,7 @@
                     
                     const descriptionVal = button.dataset.description || '';
                     document.getElementById('quick_description').value = descriptionVal;
-                    const quickEditor = document.getElementById('quick_description_editor');
-                    if (quickEditor && quickEditor.__quill) {
-                        quickEditor.__quill.root.innerHTML = descriptionVal;
-                    }
+                    window.AdminRichEditor?.forTarget('quick_description')?.setHTML(descriptionVal);
 
                     document.getElementById('quick_is_active').checked = button.dataset.isActive !== '1';
 

@@ -19,6 +19,11 @@
                                 <div class="small"><span class="text-muted">{{ __('ai.meta.meta_title') }}:</span> <span class="js-ai-current-title"></span></div>
                                 <div class="small"><span class="text-muted">{{ __('ai.meta.meta_description') }}:</span> <span class="js-ai-current-description"></span></div>
                             </div>
+                            {{-- The focus keyword the AI read from the page: one click puts it in the SEO box. --}}
+                            <div class="border rounded p-3 mb-3 bg-light-subtle text-dark d-flex flex-wrap align-items-center gap-2 d-none js-ai-meta-keyword">
+                                <span><i class="ti ti-target-arrow me-1" aria-hidden="true"></i>{{ __('ai.meta.keyword_suggested') }}: <strong class="js-ai-meta-keyword-value"></strong></span>
+                                <button type="button" class="btn btn-sm btn-primary ms-auto js-ai-meta-keyword-use">{{ __('ai.meta.keyword_use') }}</button>
+                            </div>
                             <div class="js-ai-meta-options"></div>
                             <p class="small text-muted mb-0 js-ai-meta-usage"></p>
                         </div>
@@ -49,6 +54,7 @@
         <script>
             (function () {
                 const text = {
+                    keywordAdded: @json(__('ai.meta.keyword_added')),
                     empty: @json(__('ai.meta.empty')),
                     option: @json(__('ai.meta.option', ['number' => '#'])),
                     credits: @json(__('ai.meta.credits', ['used' => ':used', 'limit' => ':limit'])),
@@ -105,6 +111,20 @@
                         part('.js-ai-current-title').textContent = data.current.title || text.empty;
                         part('.js-ai-current-description').textContent = data.current.description || text.empty;
 
+                        // Offered when it is not already the box's focus keyword (only boxes with keywords).
+                        const keywordBox = part('.js-ai-meta-keyword');
+                        const keywordsInput = document.querySelector('[data-seo-keys]');
+                        const currentKeyword = keywordsInput ? (keywordsInput.value.split(',')[0] || '').trim().toLowerCase() : null;
+                        const suggestedKeyword = (data.focus_keyword || '').trim();
+                        keywordBox.classList.toggle('d-none', !keywordsInput || !suggestedKeyword || suggestedKeyword.toLowerCase() === currentKeyword);
+                        part('.js-ai-meta-keyword-value').textContent = suggestedKeyword;
+                        part('.js-ai-meta-keyword-use').disabled = false;
+                        part('.js-ai-meta-keyword-use').onclick = function () {
+                            document.dispatchEvent(new CustomEvent('seo-box:use-keyword', { detail: { keyword: suggestedKeyword } }));
+                            this.disabled = true;
+                            notify('success', text.keywordAdded);
+                        };
+
                         const template = document.getElementById('ai-meta-option-template');
                         data.options.forEach(function (option, index) {
                             const card = template.content.firstElementChild.cloneNode(true);
@@ -158,6 +178,14 @@
                         }
                         modal.hide();
                     });
+
+                    // A suggestion asked for earlier and never reviewed (admin.shared.ai-pending).
+                    (window.AdminAiResume = window.AdminAiResume || {})['meta.suggest'] = function (button, data) {
+                        state = { button, data, done: false };
+                        reset();
+                        render(data);
+                        modal.show();
+                    };
 
                     document.querySelectorAll('.js-ai-meta-suggest').forEach(function (button) {
                         button.addEventListener('click', async function () {

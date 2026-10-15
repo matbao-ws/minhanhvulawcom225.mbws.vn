@@ -45,7 +45,10 @@ class PageContentTest extends TestCase
             ->assertOk()
             ->assertSee('Tạo trang chính sách')
             ->assertSee('Tiêu đề')
-            ->assertSee('SEO title')
+            ->assertSee(__('admin.posts.fields.seo_title'))
+            ->assertSee('data-seo-box', false)
+            ->assertSee('name="meta_title[vi]"', false)
+            ->assertSee('data-translation-format="page_html"', false)
             ->assertSee('aria-label="breadcrumb"', false)
             ->assertSee(route('admin.pages.index'), false)
             ->assertDontSee('grapesjs', false)
@@ -491,7 +494,8 @@ class PageContentTest extends TestCase
             ->get('/vi/admin/pages/create')
             ->assertOk()
             ->assertSee('name="published_html[vi]"', false)
-            ->assertSee('quill.min.js', false)
+            ->assertSee('jodit.min.js', false)
+            ->assertSee('data-sync="edited"', false)
             ->assertDontSee('page-open-inline-editor', false);
     }
 

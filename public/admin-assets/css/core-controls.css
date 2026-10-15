@@ -5,35 +5,6 @@
     --core-control-primary-rgb: 227, 35, 38;
 }
 
-.catalog-quill.quill-is-fullscreen {
-    position: fixed;
-    z-index: 1060;
-    inset: 1rem;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: var(--bs-body-bg, #fff);
-    border: 1px solid var(--bs-border-color, #dee2e6);
-    border-radius: 0.5rem;
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
-}
-
-.catalog-quill.quill-is-fullscreen .ql-container {
-    flex: 1 1 auto;
-    min-height: 0;
-}
-
-.catalog-quill.quill-is-fullscreen .ql-editor {
-    min-height: 100%;
-    font-size: 1rem;
-    padding: 1.5rem;
-}
-
-.ql-toolbar .ql-fullscreen .ti {
-    font-size: 1.1rem;
-    line-height: 1;
-}
-
 [style*="#10203C"],
 .product-show-hero {
     position: relative;
@@ -231,6 +202,15 @@ fieldset:disabled .btn-primary {
     padding-bottom: 92px;
 }
 
+/* The theme's overflow-x: hidden makes .page-wrapper a scroll box of its own, while the page
+   scrolls the window: nothing inside could stick (editor toolbars, form side columns).
+   clip cuts the same overflow without making a scroll box. */
+@supports (overflow: clip) {
+    .page-wrapper {
+        overflow-x: clip;
+    }
+}
+
 .admin-sticky-actions {
     position: fixed;
     right: 0;
@@ -362,4 +342,14 @@ textarea::placeholder {
 
 .pagination .page-link:focus {
     box-shadow: 0 0 0 0.2rem rgba(192, 30, 37, 0.18);
+}
+
+/* Side column of a two-column admin form (posts, products): stays in view while the main
+   column scrolls. --admin-aside-top comes from js/forms/sticky-aside.js. */
+@media (min-width: 992px) {
+    .admin-sticky-aside {
+        position: sticky;
+        top: var(--admin-aside-top, 108px);
+        align-self: flex-start;
+    }
 }

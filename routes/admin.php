@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PostCategoryController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\RedirectController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SearchController;
@@ -122,6 +123,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('seo.apply');
             Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
             Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('product.apply');
+            Route::post('collection-intros', 'collectionSuggest')->middleware('throttle:admin-ai')->name('collection.suggest');
+            Route::post('collection-intros/{suggestion}/apply', 'collectionApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('collection.apply');
             Route::post('internal-links', 'linksSuggest')->middleware('throttle:admin-ai')->name('links.suggest');
             Route::post('internal-links/{suggestion}/apply', 'linksApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('links.apply');
             Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
@@ -299,7 +302,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::resource('vouchers', VoucherController::class)->only(['destroy'])->middleware('can:vouchers.delete');
     });
 
-    Route::middleware('feature:catalog')->group(function () {
+    // Promotions / flash sales belong to the voucher feature ("Khuyến mãi & mã giảm giá", Hero 2+)
+    // and discount products, so the catalogue must be on too.
+    Route::middleware(['feature:catalog', 'feature:voucher'])->group(function () {
         Route::resource('promotions', PromotionController::class)->only(['create', 'store'])->middleware('can:promotions.create');
         Route::resource('promotions', PromotionController::class)->only(['index'])->middleware('can:promotions.view');
         Route::resource('promotions', PromotionController::class)->only(['edit', 'update'])->middleware('can:promotions.update');
@@ -312,6 +317,17 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->middleware('can:reviews.update')->name('reviews.toggle-visibility');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->middleware('can:reviews.delete')->name('reviews.destroy');
     });
+
+    // Old URLs and where they now go; the storefront URLs that answered 404 (RedirectService).
+    Route::get('redirects', [RedirectController::class, 'index'])->middleware('can:redirects.view')->name('redirects.index');
+    Route::get('redirects/export', [RedirectController::class, 'export'])->middleware('can:redirects.view')->name('redirects.export');
+    Route::post('redirects', [RedirectController::class, 'store'])->middleware('can:redirects.create')->name('redirects.store');
+    Route::post('redirects/import', [RedirectController::class, 'import'])->middleware('can:redirects.create')->name('redirects.import');
+    Route::patch('redirects/bulk', [RedirectController::class, 'bulk'])->middleware('can:redirects.update')->name('redirects.bulk');
+    Route::put('redirects/{redirect}', [RedirectController::class, 'update'])->whereNumber('redirect')->middleware('can:redirects.update')->name('redirects.update');
+    Route::delete('redirects/{redirect}', [RedirectController::class, 'destroy'])->whereNumber('redirect')->middleware('can:redirects.delete')->name('redirects.destroy');
+    Route::delete('redirects/not-found', [RedirectController::class, 'clearNotFound'])->middleware('can:redirects.delete')->name('redirects.not-found.clear');
+    Route::delete('redirects/not-found/{notFoundLog}', [RedirectController::class, 'destroyNotFound'])->whereNumber('notFoundLog')->middleware('can:redirects.delete')->name('redirects.not-found.destroy');
 
     Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->middleware('can:contacts.view')->name('contact-submissions.index');
     Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');

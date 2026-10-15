@@ -37,8 +37,6 @@
                             $slug = old("slug.$code", $product->localizedSlug($code) ?: ($code === $defaultContentLocale ? $product->slug : ''));
                             $shortDescription = old("short_description.$code", $product->getTranslation('short_description', $code, false));
                             $description = old("description.$code", $product->getTranslation('description', $code, false));
-                            $metaTitle = old("meta_title.$code", $product->getTranslation('meta_title', $code, false));
-                            $metaDescription = old("meta_description.$code", $product->getTranslation('meta_description', $code, false));
                         @endphp
                         <div class="tab-pane fade @if($code === $defaultContentLocale) show active @endif" id="product-language-{{ $code }}">
                             @if($code !== $defaultContentLocale)
@@ -47,18 +45,12 @@
                             <div class="mb-4"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div>
                             <div class="mb-4"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }}</label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug"><p class="fs-2 mb-0">Để trống để tự tạo từ tên {{ strtoupper($code) }}.</p></div>
                             <div class="mb-4"><label class="form-label" for="short_description_{{ $code }}">{{ __('catalog.fields.short_description') }}</label><textarea class="form-control" id="short_description_{{ $code }}" name="short_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="short_description">{{ $shortDescription }}</textarea></div>
-                            <div data-tour="product-form.description" class="mb-4 position-relative" @if($code === $defaultContentLocale) id="editor_wrapper" @endif>
+                            <div data-tour="product-form.description" class="mb-4">
                                 <label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label>
-                                @if($code === $defaultContentLocale)
-                                    <button type="button" id="toggle_fullscreen" class="btn btn-sm btn-outline-primary position-absolute top-0 end-0">
-                                        <i id="fullscreen_icon" class="ti ti-maximize fs-4"></i><span id="fullscreen_text" class="ms-1">Phóng to</span>
-                                    </button>
-                                @endif
                                 <textarea class="form-control d-none" id="description_{{ $code }}" name="description[{{ $code }}]" data-i18n-locale="{{ $code }}" data-i18n-field="description" data-translation-format="html">{{ $description }}</textarea>
-                                <div id="description_editor_{{ $code }}" class="catalog-quill" data-target="description_{{ $code }}" style="height: 350px;">{!! app(\App\Support\HtmlSanitizer::class)->clean($description) !!}</div>
+                                <div id="description_editor_{{ $code }}" class="rich-editor" data-preset="full" data-media-folder="products" data-target="description_{{ $code }}">{!! app(\App\Support\HtmlSanitizer::class)->cleanRichText($description) !!}</div>
                                 @include('admin.shared.ai-edit-button', ['entityType' => 'product', 'entity' => $product, 'locale' => $code, 'target' => "description_$code"])
                             </div>
-                            <div data-tour="product-form.seo" class="card border bg-light-subtle mt-4"><div class="card-body"><h5 class="mb-3">{{ __('catalog.fields.seo') }}</h5>@include('admin.shared.ai-meta-button', ['entityType' => 'product', 'entity' => $product, 'locale' => $code, 'titleField' => "meta_title[$code]", 'descriptionField' => "meta_description[$code]"])<div class="mb-3"><label class="form-label" for="meta_title_{{ $code }}">{{ __('catalog.fields.meta_title') }}</label><input type="text" maxlength="255" class="form-control" id="meta_title_{{ $code }}" name="meta_title[{{ $code }}]" value="{{ $metaTitle }}" data-i18n-locale="{{ $code }}" data-i18n-field="meta_title"></div><div class="mb-0"><label class="form-label" for="meta_description_{{ $code }}">{{ __('catalog.fields.meta_description') }}</label><textarea maxlength="500" class="form-control" id="meta_description_{{ $code }}" name="meta_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="meta_description">{{ $metaDescription }}</textarea></div></div></div>
                         </div>
                     @endforeach
                 </div>
@@ -70,6 +62,24 @@
             // "images" column on products, which would shadow the relation and yield null.
             $galleryImages = old('gallery_images', $product->exists ? $product->images()->get()->pluck('image_url')->all() : []);
         @endphp
+        @include('admin.shared.seo-box', [
+            'record' => $product,
+            'entityType' => 'product',
+            'titleField' => 'meta_title',
+            'descriptionField' => 'meta_description',
+            'selectors' => [
+                'title' => '#name_'.$defaultContentLocale,
+                'slug' => '#slug_'.$defaultContentLocale,
+                'content' => 'description_'.$defaultContentLocale,
+                'image' => '#product_image_preview',
+                'imageInputs' => ['#product_image_file'],
+                'languageTabs' => '#product-language-',
+            ],
+            'tour' => 'product-form',
+            'mediaFolder' => 'products',
+            'placeholders' => ['title' => __('admin.posts.seo_panel.placeholder_product_title')],
+        ])
+
         <div data-tour="product-form.media" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-1">{{ __('catalog.products.sections.media') }}</h4>
@@ -110,6 +120,7 @@
             $variantGroups ??= [];
             $hasVariants = (bool) old('has_variants', ! empty($variantGroups));
         @endphp
+            @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'product_variant'))
             <div data-tour="product-form.variants" class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
@@ -146,6 +157,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
         <div data-tour="product-form.pricing" class="card">
             <div class="card-body">
@@ -176,7 +188,7 @@
         @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-lg-4 admin-sticky-aside">
         <div data-tour="product-form.side" class="offcanvas-md offcanvas-end overflow-auto" tabindex="-1" id="productSidePanel" aria-labelledby="productSidePanelLabel">
             <div class="card">
                 <div class="card-body">

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AdminActivityLog;
+use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
@@ -19,6 +20,11 @@ class DashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // A selling website: products, orders and reviews are on.
+        foreach (['catalog', 'review'] as $feature) {
+            FeatureSetting::query()->updateOrCreate(['feature_code' => $feature], ['is_enabled' => true]);
+        }
 
         $adminRole = Role::query()->create([
             'name' => 'Admin',

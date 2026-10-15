@@ -4,7 +4,6 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/dragula/dist/dragula.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
 @endpush
 
 @section('content')
@@ -168,7 +167,7 @@
                         <div class="col-12 mb-3">
                             <label class="form-label" for="quick_description">{{ __('catalog.fields.description') }}</label>
                             <textarea class="form-control d-none" id="quick_description" name="description"></textarea>
-                            <div id="quick_description_editor" class="catalog-quill" data-target="quick_description"></div>
+                            <div id="quick_description_editor" class="rich-editor" data-preset="basic" data-media-folder="brands" data-target="quick_description"></div>
                         </div>
                         <div class="col-12">
                             <input type="hidden" name="is_active" value="1">
@@ -188,9 +187,10 @@
     </div>
 @endsection
 
+@include('admin.shared.rich-editor-assets')
+
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const sortable = document.getElementById('brand-table-sortable');
@@ -211,30 +211,6 @@
                     timerProgressBar: true
                 }).fire({ icon, title: message });
             };
-
-            // Initialize Quick Edit Quill editor
-            const quickEditorElement = document.getElementById('quick_description_editor');
-            if (quickEditorElement && window.Quill) {
-                const target = document.getElementById(quickEditorElement.dataset.target);
-                const quill = new Quill(quickEditorElement, {
-                    theme: 'snow',
-                    modules: {
-                        toolbar: [
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['link', 'clean']
-                        ]
-                    }
-                });
-                quickEditorElement.__quill = quill;
-
-                const form = quickEditorElement.closest('form');
-                if (form && target) {
-                    form.addEventListener('submit', function () {
-                        target.value = quill.root.innerHTML;
-                    });
-                }
-            }
 
             if (sortable && sortable.querySelectorAll('tr').length > 1 && window.dragula) {
                 dragula([sortable], {
@@ -286,10 +262,7 @@
                     
                     const descriptionVal = button.dataset.description || '';
                     document.getElementById('quick_description').value = descriptionVal;
-                    const quickEditor = document.getElementById('quick_description_editor');
-                    if (quickEditor && quickEditor.__quill) {
-                        quickEditor.__quill.root.innerHTML = descriptionVal;
-                    }
+                    window.AdminRichEditor?.forTarget('quick_description')?.setHTML(descriptionVal);
 
                     document.getElementById('quick_is_active').checked = button.dataset.isActive !== '1';
                     document.getElementById('quick_image_file').value = '';

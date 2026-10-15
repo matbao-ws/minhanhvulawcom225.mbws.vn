@@ -36,7 +36,7 @@ return [
         'intro' => ['title' => 'Thông tin sản phẩm', 'description' => 'Điền thông tin từ trên xuống. Chỉ tên và giá bán là bắt buộc, phần còn lại có thể bổ sung sau.'],
         'languages' => ['title' => 'Nội dung theo ngôn ngữ', 'description' => 'Mỗi tab là một ngôn ngữ của website. Tên ở ngôn ngữ mặc định là bắt buộc; đường dẫn để trống sẽ tự tạo từ tên.'],
         'description' => ['title' => 'Mô tả sản phẩm', 'description' => 'Soạn mô tả chi tiết bằng trình soạn thảo. Nút Phóng to mở trình soạn thảo toàn màn hình.'],
-        'seo' => ['title' => 'SEO', 'description' => 'Tiêu đề và mô tả hiển thị trên Google cho từng ngôn ngữ.'],
+        'seo' => ['title' => 'SEO', 'description' => 'Điểm SEO, từ khóa chính và các tiêu chí cần sửa; xem trước Google, nội dung khi chia sẻ, canonical và cho phép Google index.'],
         'media' => ['title' => 'Thư viện ảnh', 'description' => 'Thêm nhiều ảnh phụ để hiển thị trong thư viện ảnh của trang chi tiết sản phẩm.'],
         'variants' => ['title' => 'Biến thể và SKU', 'description' => 'Bật Có biến thể rồi khai báo nhóm như Màu sắc, Kích thước. Khi lưu, các tổ hợp SKU còn thiếu được tạo tự động.'],
         'pricing' => ['title' => 'Giá bán', 'description' => 'Giá bán, giá so sánh (gạch ngang) và giá vốn. Giá khách trả sau khuyến mãi luôn do hệ thống tính.'],
@@ -252,6 +252,15 @@ return [
         'back' => ['title' => 'Quay lại', 'description' => 'Về danh sách đối tác mà không lưu.'],
     ],
 
+    'redirects_index' => [
+        'intro' => ['title' => 'Chuyển hướng & lỗi 404', 'description' => 'Link cũ (ví dụ từ website WordPress trước đây) tự chuyển 301 sang trang mới, để Google giữ thứ hạng. Chỉ áp dụng khi link cũ không còn trang nào trả lời.'],
+        'tabs' => ['title' => 'Chuyển hướng và Lỗi 404', 'description' => 'Tab Lỗi 404 liệt kê những link khách hoặc Google mở mà không có trang, nhiều lượt nhất ở trên. Bấm "Tạo chuyển hướng" để xử lý từng link.'],
+        'add' => ['title' => 'Thêm chuyển hướng', 'description' => 'Nhập link cũ, link mới và kiểu: 301 (chuyển hẳn, giữ thứ hạng), 302/307 (tạm thời) hoặc 410 (đã xoá hẳn).'],
+        'import' => ['title' => 'Nhập và xuất CSV', 'description' => 'Nhập nhiều chuyển hướng một lần từ file CSV (link cũ, link mới, mã), hoặc tải danh sách hiện có về máy.'],
+        'search' => ['title' => 'Tìm và lọc', 'description' => 'Tìm theo link cũ hoặc link mới; lọc theo nguồn: tạo tay, import WordPress hoặc từ lỗi 404.'],
+        'table' => ['title' => 'Danh sách', 'description' => 'Chuyển hướng tạo khi import WordPress tự đi theo trang mới, kể cả khi bạn đổi slug sau này. Cột Lượt cho biết link cũ còn được truy cập bao nhiêu.'],
+    ],
+
     'contact_submissions_index' => [
         'intro' => ['title' => 'Liên hệ', 'description' => 'Tin nhắn khách gửi qua form liên hệ trên website, mới nhất ở trên.'],
         'tabs' => ['title' => 'Hộp thư và Spam', 'description' => 'Tin bị bộ lọc chống spam giữ lại nằm ở tab Spam, không vào hộp thư và không gửi email báo.'],
@@ -294,7 +303,7 @@ return [
         'intro' => ['title' => 'Soạn bài viết', 'description' => 'Cột trái là nội dung và SEO, cột phải là ảnh, trạng thái, chuyên mục và điểm SEO.'],
         'general' => ['title' => 'Nội dung theo ngôn ngữ', 'description' => 'Mỗi tab là một ngôn ngữ, với tiêu đề, slug và tóm tắt riêng. Ngôn ngữ chính bắt buộc có tiêu đề và nội dung.'],
         'editor' => ['title' => 'Trình soạn nội dung', 'description' => 'Soạn bài với tiêu đề, chữ đậm, danh sách, liên kết và ảnh. Có thể dán từ website khác; định dạng lạ sẽ được loại bỏ.'],
-        'seo_meta' => ['title' => 'Tiêu đề và mô tả SEO', 'description' => 'Tiêu đề và mô tả hiển thị trên Google cho ngôn ngữ đang xem. Tiêu đề nên dưới 60 ký tự.'],
+        'seo_meta' => ['title' => 'Xem trước trên Google', 'description' => 'Bài viết hiện trên Google ra sao. Bấm Sửa tiêu đề & mô tả SEO để chỉnh cho ngôn ngữ đang xem; tiêu đề nên dưới 60 ký tự.'],
         'seo' => ['title' => 'Cài đặt SEO', 'description' => 'Từ khoá chính, link canonical, cho phép Google index và theo link, kèm bản xem trước kết quả tìm kiếm.'],
         'thumbnail' => ['title' => 'Ảnh đại diện', 'description' => 'Bấm vào khung để chọn ảnh từ thư viện Media hoặc tải ảnh mới lên.'],
         'status' => ['title' => 'Trạng thái', 'description' => 'Chọn hiển thị hoặc tạm ẩn bài trên website.'],
@@ -331,7 +340,7 @@ return [
         'toolbar' => ['title' => 'Lối tắt', 'description' => 'Quay lại danh sách, xem trang trên website (khi đã xuất bản) hoặc lưu ngay.'],
         'languages' => ['title' => 'Các ngôn ngữ', 'description' => 'Mỗi tab là một ngôn ngữ. Tiêu đề ở ngôn ngữ chính là bắt buộc.'],
         'content' => ['title' => 'Nội dung', 'description' => 'Soạn nội dung trang. Nếu không chạm vào ô này, nội dung đã lưu được giữ nguyên khi bạn lưu tiêu đề hay SEO.'],
-        'seo' => ['title' => 'SEO', 'description' => 'Tiêu đề và mô tả hiển thị trên Google cho ngôn ngữ đang xem.'],
+        'seo' => ['title' => 'SEO', 'description' => 'Điểm SEO, từ khóa chính và các tiêu chí cần sửa; xem trước Google, nội dung khi chia sẻ, canonical và cho phép Google index.'],
         'status' => ['title' => 'Trạng thái', 'description' => 'Bản nháp chưa hiện trên website; chọn Xuất bản để khách xem được.'],
         'save' => ['title' => 'Lưu trang', 'description' => 'Bấm để lưu mọi thay đổi. Thay đổi chỉ được ghi khi bạn bấm lưu.'],
         'revisions' => ['title' => 'Phiên bản gần đây', 'description' => 'Các bản đã lưu trước đây của trang, tối đa 20 bản gần nhất. Bấm Khôi phục để đưa trang về bản đó.'],

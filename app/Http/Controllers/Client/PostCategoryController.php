@@ -45,13 +45,9 @@ class PostCategoryController extends Controller
             'title' => $title,
             'description' => $description,
             'posts' => $posts,
-            // PostCategory carries no SEO fields of its own; the name and
-            // description are the honest source for the document head.
-            'seo' => $this->seo->forRecord(
+            'seo' => $this->seo->forCollection(
                 $category,
                 'client.post-categories.show',
-                $title,
-                $description,
                 breadcrumbs: $this->seo->ancestorTrail($category, 'client.post-categories.show', 'name', fn (PostCategory $parent) => $parent->is_active),
             ),
         ]);

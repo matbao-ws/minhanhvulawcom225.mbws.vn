@@ -207,7 +207,7 @@
                                   'contacts' => $sidebarCan('contacts.view'),
                                   'products' => $sidebarCatalog && $sidebarCan('products.view'),
                                   'vouchers' => $sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarCan('vouchers.view'),
-                                  'promotions' => $sidebarCatalog && $sidebarCan('promotions.view'),
+                                  'promotions' => $sidebarCatalog && $sidebarFeatures->availableTo($sidebarUser, 'voucher') && $sidebarCan('promotions.view'),
                                   'reviews' => $sidebarFeatures->availableTo($sidebarUser, 'review') && $sidebarCan('reviews.view'),
                                   'posts' => $sidebarCms && $sidebarCan('posts.view'),
                                   'pages' => $sidebarCms && $sidebarCan('pages.view'),
@@ -218,6 +218,7 @@
                                   'seo_research' => $sidebarSeo && $sidebarFeatures->availableTo($sidebarUser, 'ai_research'),
                                   'seo_bulk' => $sidebarSeo,
                                   'seo_draft' => $sidebarSeo && $sidebarCms && $sidebarCan('posts.create'),
+                                  'redirects' => $sidebarCan('redirects.view'),
                                   'users' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('users.view'),
                                   'roles' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('roles.view'),
                                   'settings' => $sidebarCan('settings.view') || $sidebarCan('shipping.view') || $sidebarCan('payments.view') || $sidebarCan('languages.view') || (bool) $sidebarUser?->isSuperAdmin(),
@@ -342,7 +343,7 @@
                               </a>
                           </li>
                           @endif
-                          @if($sidebarAny('seo_tasks', 'seo_research', 'seo_bulk', 'seo_draft'))
+                          @if($sidebarAny('seo_tasks', 'seo_research', 'seo_bulk', 'seo_draft', 'redirects'))
                           <li class="sidebar-item" data-sidebar-seo-menu>
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                   <iconify-icon icon="solar:graph-up-line-duotone"></iconify-icon>
@@ -360,6 +361,9 @@
                                   @endif
                                   @if($sidebarShow['seo_draft'])
                                   <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.ai.post-drafts.create') }}"><span class="icon-small"></span>{{ __('ai.draft.button') }}</a></li>
+                                  @endif
+                                  @if($sidebarShow['redirects'])
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.redirects.index') }}"><span class="icon-small"></span>{{ __('redirects.title') }}</a></li>
                                   @endif
                               </ul>
                           </li>

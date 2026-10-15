@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\WordPressPostImportRequest;
 use App\Models\Post;
@@ -20,11 +21,11 @@ use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
-    use HandlesBulkActions;
-    use HandlesPagination;
+    use HandlesBulkActions, HandlesPagination, OpensAiToolAfterCreate;
 
     public function __construct(
         private readonly LanguageRegistry $languages,
@@ -100,13 +101,18 @@ class PostController extends Controller
                 'category_id' => $validated['category_id'] ?? null,
                 'title' => $titles,
                 'slug' => $legacySlug,
-                'summary' => $this->cleanTranslations($validated['summary'] ?? []),
+                'summary' => $this->summaries([], $this->cleanTranslations($validated['summary'] ?? []), $contents, $seoDescriptions),
                 'content' => $contents,
                 'image_url' => $imageUrl,
                 'is_active' => $active,
                 'seo_title' => $seoTitles,
                 'seo_description' => $seoDescriptions,
                 'seo_keys' => $validated['seo_keys'] ?? null,
+                'og_title' => $this->cleanTranslations($validated['og_title'] ?? []),
+                'og_description' => $this->cleanTranslations($validated['og_description'] ?? []),
+                'og_image' => $validated['og_image'] ?? null,
+                'schema_type' => $validated['schema_type'] ?? null,
+                'schema_faq' => $request->has('schema_faq') ? $request->boolean('schema_faq') : true,
                 'canonical_url' => $validated['canonical_url'] ?? null,
                 'robots_index' => $request->has('robots_index') ? $request->boolean('robots_index') : true,
                 'robots_follow' => $request->has('robots_follow') ? $request->boolean('robots_follow') : true,
@@ -119,9 +125,9 @@ class PostController extends Controller
             return $post;
         });
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.posts.edit', $post, redirect()
             ->route('admin.posts.index')
-            ->with('success', __('admin.posts.created'));
+            ->with('success', __('admin.posts.created')));
     }
 
     /**
@@ -170,13 +176,26 @@ class PostController extends Controller
                 'category_id' => $validated['category_id'] ?? null,
                 'title' => $titles,
                 'slug' => $legacySlug,
-                'summary' => $this->mergeTranslations($post, 'summary', $validated['summary'] ?? []),
+                'summary' => $this->summaries(
+                    $post->getTranslations('summary'),
+                    $this->cleanTranslations($validated['summary'] ?? []),
+                    $contents,
+                    $seoDescriptions,
+                    $post->getTranslations('content'),
+                    $post->getTranslations('seo_description'),
+                ),
                 'content' => $contents,
                 'image_url' => $imageUrl,
                 'is_active' => $active,
                 'seo_title' => $seoTitles,
                 'seo_description' => $seoDescriptions,
                 'seo_keys' => $validated['seo_keys'] ?? null,
+                // Sent emptied, a field goes back to following the SEO title/description.
+                'og_title' => $request->has('og_title') ? $this->replaceTranslations($post, 'og_title', $validated['og_title'] ?? []) : $post->getTranslations('og_title'),
+                'og_description' => $request->has('og_description') ? $this->replaceTranslations($post, 'og_description', $validated['og_description'] ?? []) : $post->getTranslations('og_description'),
+                'og_image' => $request->has('og_image') ? ($validated['og_image'] ?? null) : $post->getRawOriginal('og_image'),
+                'schema_type' => $request->has('schema_type') ? ($validated['schema_type'] ?? null) : $post->schema_type,
+                'schema_faq' => $request->has('schema_faq') ? $request->boolean('schema_faq') : $post->schema_faq,
                 'canonical_url' => $validated['canonical_url'] ?? null,
                 'robots_index' => $request->has('robots_index') ? $request->boolean('robots_index') : $post->robots_index,
                 'robots_follow' => $request->has('robots_follow') ? $request->boolean('robots_follow') : $post->robots_follow,
@@ -258,6 +277,15 @@ class PostController extends Controller
             return back()->with('error', 'Import WordPress thất bại: '.$reason);
         }
 
+        if ($results['imported'] + $results['updated'] + $results['skipped'] + $results['failed'] === 0) {
+            // Nothing in the file is a post: say what it holds instead of a row of zeros.
+            $found = collect($results['other_types'])->map(fn (int $count, string $type) => "$count $type")->implode(', ');
+
+            return back()->with('error', $found === ''
+                ? 'File WordPress này không có bài viết nào.'
+                : "File WordPress này không có bài viết. File chứa: $found. Sản phẩm WooCommerce nhập ở Sản phẩm → Nhập (file CSV).");
+        }
+
         ActivityLogger::log('wordpress_posts_imported', null, 'Import bài viết từ WordPress XML', [
             'imported' => $results['imported'],
             'updated' => $results['updated'],
@@ -265,9 +293,13 @@ class PostController extends Controller
             'failed' => $results['failed'],
             'images_downloaded' => $results['images_downloaded'],
             'images_failed' => $results['images_failed'],
+            'redirects' => $results['redirects'] + $results['image_redirects'],
+            'links_rewritten' => $results['links_rewritten'],
         ]);
 
-        $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi.";
+        $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi."
+            // Old WordPress addresses keep their rankings (admin/redirects).
+            .' Đã tạo '.($results['redirects'] + $results['image_redirects']).' chuyển hướng 301 từ link cũ, sửa link nội bộ trong '.$results['links_rewritten'].' bài.';
 
         if ($results['failed'] > 0 || $results['images_failed'] > 0) {
             $response = back()->with('warning', $message)->with('import_errors', [
@@ -330,6 +362,10 @@ class PostController extends Controller
             'robots_index' => ['nullable', 'boolean'],
             'robots_follow' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'og_title' => ['nullable', 'array'], 'og_description' => ['nullable', 'array'],
+            'og_image' => ['nullable', 'string', 'max:2048'],
+            'schema_type' => ['nullable', Rule::in(Post::SCHEMA_TYPES)],
+            'schema_faq' => ['nullable', 'boolean'],
         ];
         foreach ($this->languages->codes() as $code) {
             $required = $code === $this->languages->defaultLocale() ? 'required' : 'nullable';
@@ -339,6 +375,8 @@ class PostController extends Controller
             $rules["content.$code"] = [$required, 'string'];
             $rules["seo_title.$code"] = ['nullable', 'string', 'max:255'];
             $rules["seo_description.$code"] = ['nullable', 'string', 'max:500'];
+            $rules["og_title.$code"] = ['nullable', 'string', 'max:255'];
+            $rules["og_description.$code"] = ['nullable', 'string', 'max:500'];
         }
 
         return $rules;
@@ -361,7 +399,70 @@ class PostController extends Controller
     private function cleanTranslations(array $values, bool $html = false): array
     {
         return collect($values)->filter(fn ($value, $code) => $this->languages->supports((string) $code) && is_string($value) && trim($value) !== '')
-            ->map(fn (string $value) => $html ? $this->htmlSanitizer->clean(trim($value)) : trim($value))->all();
+            ->map(fn (string $value) => $html ? $this->htmlSanitizer->cleanRichText(trim($value)) : trim($value))->all();
+    }
+
+    /**
+     * The summary (post cards, meta description fallback) has no field in the form any more:
+     * like WordPress' automatic excerpt it follows the SEO description, else the opening of
+     * the content. A summary sent explicitly, typed earlier or imported from WordPress stays.
+     *
+     * @param  array<string, string>  $stored
+     * @param  array<string, string>  $submitted
+     * @param  array<string, string>  $contents
+     * @param  array<string, string>  $seoDescriptions
+     * @param  array<string, string>  $oldContents
+     * @param  array<string, string>  $oldSeoDescriptions
+     * @return array<string, string>
+     */
+    private function summaries(array $stored, array $submitted, array $contents, array $seoDescriptions, array $oldContents = [], array $oldSeoDescriptions = []): array
+    {
+        $summaries = [...$stored, ...$submitted];
+        foreach ($contents as $locale => $html) {
+            if (isset($submitted[$locale])) {
+                continue;
+            }
+            $current = trim((string) ($summaries[$locale] ?? ''));
+            // Still the automatic one from the last save: follow the new content.
+            if ($current === '' || $current === $this->autoSummary($oldSeoDescriptions[$locale] ?? null, $oldContents[$locale] ?? null)) {
+                $summaries[$locale] = $this->autoSummary($seoDescriptions[$locale] ?? null, $html);
+            }
+        }
+
+        return array_filter($summaries, fn (string $summary) => trim($summary) !== '');
+    }
+
+    private function autoSummary(?string $seoDescription, ?string $html): string
+    {
+        $text = trim((string) $seoDescription);
+        if ($text === '') {
+            $plain = html_entity_decode((string) preg_replace('/<[^>]+>/', ' ', (string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $text = trim((string) preg_replace('/\s+/u', ' ', $plain));
+        }
+
+        return Str::limit($text, 200, '…');
+    }
+
+    /**
+     * Like mergeTranslations(), but a language sent empty is cleared instead of kept: optional
+     * fields whose emptiness means "use the default".
+     */
+    private function replaceTranslations(Post $post, string $field, array $values): array
+    {
+        $current = $post->getTranslations($field);
+        foreach ($values as $code => $value) {
+            if (! $this->languages->supports((string) $code)) {
+                continue;
+            }
+            $value = is_string($value) ? trim($value) : '';
+            if ($value === '') {
+                unset($current[$code]);
+            } else {
+                $current[$code] = $value;
+            }
+        }
+
+        return $current;
     }
 
     private function mergeTranslations(Post $post, string $field, array $values, bool $html = false): array

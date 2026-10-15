@@ -12,19 +12,22 @@
     <link rel="alternate" hreflang="x-default" href="{{ $seo->xDefault }}">
 @endif
 <meta property="og:type" content="{{ $seo->type }}">
-<meta property="og:title" content="{{ $seo->title }}">
-@if($seo->description)
-    <meta property="og:description" content="{{ $seo->description }}">
+<meta property="og:title" content="{{ $seo->ogTitle() }}">
+@if($seo->ogDescription())
+    <meta property="og:description" content="{{ $seo->ogDescription() }}">
 @endif
 <meta property="og:url" content="{{ $seo->canonical }}">
 <meta property="og:site_name" content="{{ $seoSiteName }}">
 @if($seo->image)
     <meta property="og:image" content="{{ $seo->image }}">
 @endif
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{{ $seo->title }}">
-@if($seo->description)
-    <meta name="twitter:description" content="{{ $seo->description }}">
+<meta name="twitter:card" content="{{ $seo->twitterCard() }}">
+<meta name="twitter:title" content="{{ $seo->ogTitle() }}">
+@if($seo->ogDescription())
+    <meta name="twitter:description" content="{{ $seo->ogDescription() }}">
+@endif
+@if($seo->image)
+    <meta name="twitter:image" content="{{ $seo->image }}">
 @endif
 {{ $seoOrganization }}
 @foreach($seo->structuredData as $node)

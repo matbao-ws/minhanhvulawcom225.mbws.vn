@@ -7,6 +7,7 @@ use App\Services\CloudinaryService;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Support\HtmlSanitizer;
+use App\Support\Seo\SeoBox;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,13 +19,15 @@ class CategoryService
         private readonly HtmlSanitizer $htmlSanitizer,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LanguageRegistry $languages,
+        private readonly SeoBox $seoBox,
     ) {}
 
     public function create(array $data): Category
     {
         return DB::transaction(function () use ($data) {
-            $category = Category::query()->create($this->payload($data));
+            $category = Category::query()->create($this->payload($data) + $this->seoBox->payload($data));
             $this->localizedSlugs->sync($category, $this->localizedValues($data['slug'] ?? []), $category->getTranslations('name'));
+            $this->seoBox->refreshScore($category);
 
             return $category->refresh();
         });
@@ -33,8 +36,9 @@ class CategoryService
     public function update(Category $category, array $data): Category
     {
         return DB::transaction(function () use ($category, $data) {
-            $category->update($this->payload($data, $category));
+            $category->update($this->payload($data, $category) + $this->seoBox->payload($data, $category));
             $this->localizedSlugs->sync($category, $this->localizedValues($data['slug'] ?? []), $category->getTranslations('name'));
+            $this->seoBox->refreshScore($category);
 
             return $category->refresh();
         });
@@ -92,13 +96,13 @@ class CategoryService
         if (is_array($value)) {
             foreach ($value as $lang => $translation) {
                 if ($this->languages->supports((string) $lang) && is_string($translation) && trim($translation) !== '') {
-                    $translations[$lang] = $attribute === 'description' ? $this->htmlSanitizer->clean(trim($translation)) : trim($translation);
+                    $translations[$lang] = $attribute === 'description' ? $this->htmlSanitizer->cleanRichText(trim($translation)) : trim($translation);
                 }
             }
         } else {
             $value = is_string($value) ? trim($value) : '';
             if ($attribute === 'description') {
-                $value = $this->htmlSanitizer->clean($value);
+                $value = $this->htmlSanitizer->cleanRichText($value);
             }
             if ($value !== '') {
                 $translations[$locale] = $value;

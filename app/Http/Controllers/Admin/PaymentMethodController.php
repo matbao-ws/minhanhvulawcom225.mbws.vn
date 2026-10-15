@@ -327,6 +327,9 @@ class PaymentMethodController extends Controller
         }
 
         $this->features->require($method->method_code === 'cod' ? 'cod_order' : 'online_payment');
+        if ($method->method_code === 'vnpay') {
+            $this->features->require('payment_vnpay');
+        }
     }
 
     private function requireOnlinePayment(): void

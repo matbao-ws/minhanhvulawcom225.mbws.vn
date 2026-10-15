@@ -147,7 +147,7 @@ class ContentEditService
 
     private function sanitize(Model $record, string $html): string
     {
-        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->clean($html);
+        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->cleanRichText($html);
     }
 
     /**

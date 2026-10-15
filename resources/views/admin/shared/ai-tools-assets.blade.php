@@ -81,6 +81,33 @@
             </div></div>
         </div>
 
+        {{-- Category, blog category or brand description --}}
+        <div class="modal fade" id="ai-collection-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title"><i class="ti ti-sparkles me-1"></i>{{ __('ai.collection.title') }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <p class="text-muted small">{{ __('ai.collection.note') }}</p>
+                    <div class="js-ai-collection-start">
+                        <label class="form-label" for="ai-collection-words">{{ __('ai.product.length') }}</label>
+                        <input type="number" class="form-control mb-3" id="ai-collection-words" min="{{ \App\Services\AiGateway\CollectionIntroService::MIN_WORDS }}" max="{{ \App\Services\AiGateway\CollectionIntroService::MAX_WORDS }}" step="20" value="150" style="max-width: 160px">
+                        <button type="button" class="btn btn-primary js-ai-collection-run"><i class="ti ti-sparkles me-1"></i>{{ __('ai.product.run') }}</button>
+                    </div>
+                    <div class="js-ai-loading text-center py-4 d-none"><span class="spinner-border spinner-border-sm me-2"></span>{{ __('ai.product.loading') }}</div>
+                    <div class="js-ai-error alert alert-danger d-none mt-3"></div>
+                    <div class="js-ai-collection-result d-none">
+                        <div class="alert alert-warning small js-ai-collection-missing d-none"><div class="fw-semibold">{{ __('ai.product.missing') }}</div><ul class="mb-0"></ul></div>
+                        {{-- HTML the server already ran through the rich-text sanitizer. --}}
+                        <div class="border rounded p-3 bg-white js-ai-collection-preview" style="max-height: 420px; overflow: auto;"></div>
+                        <p class="small text-muted mt-2 mb-0 js-ai-usage"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary js-ai-reject d-none">{{ __('ai.edit.reject') }}</button>
+                    <button type="button" class="btn btn-primary js-ai-apply d-none">{{ __('ai.product.apply') }}</button>
+                </div>
+            </div></div>
+        </div>
+
         {{-- Fix by SEO score --}}
         <div class="modal fade" id="ai-seo-modal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
@@ -94,6 +121,11 @@
                         <p class="small text-muted js-ai-seo-nothing d-none">{{ __('ai.seo.nothing') }}</p>
                         <h6>{{ __('ai.seo.notes') }}</h6>
                         <ul class="small js-ai-seo-notes"></ul>
+                        {{-- Rules this tool may not touch (links, image alts) have their own tools: open them from here. --}}
+                        <div class="border rounded p-2 mb-3 bg-light-subtle d-none js-ai-seo-tools">
+                            <div class="small fw-semibold mb-2">{{ __('ai.seo.other_tools') }}</div>
+                            <div class="d-flex flex-wrap gap-2 js-ai-seo-tool-buttons"></div>
+                        </div>
                         <p class="small text-muted mb-0 js-ai-usage"></p>
                     </div>
                 </div>
@@ -114,12 +146,18 @@
                     altGenerate: @json(__('ai.alt.generate')), altApply: @json(__('ai.alt.apply')),
                     seoFields: { seo_title: @json(__('ai.seo.seo_title')), seo_description: @json(__('ai.seo.seo_description')), intro_html: @json(__('ai.seo.intro_html')) },
                     seoUse: @json(__('ai.seo.use')),
+                    // Failing rules another tool fixes: [button selector, label].
+                    seoTools: {
+                        internal_links: ['.js-ai-links', @json(__('ai.links.button'))],
+                        image_alts: ['.js-ai-alt', @json(__('ai.alt.button'))],
+                        keyword_image_alt: ['.js-ai-alt', @json(__('ai.alt.button'))],
+                    },
                     linkReview: @json(__('ai.links.review')), linkTo: @json(__('ai.links.to')),
                 };
                 const urls = {
                     faq: @json(route('admin.ai.faq.suggest')), altMissing: @json(route('admin.ai.alt.missing')),
                     alt: @json(route('admin.ai.alt.suggest')), product: @json(route('admin.ai.product.suggest')), seo: @json(route('admin.ai.seo.suggest')),
-                    links: @json(route('admin.ai.links.suggest')),
+                    links: @json(route('admin.ai.links.suggest')), collection: @json(route('admin.ai.collection.suggest')),
                 };
                 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const notify = (icon, message) => window.Swal
@@ -138,8 +176,7 @@
                 // Keep the open form in step, so saving it later does not write the old body back.
                 function syncEditor(target, html) {
                     const textarea = document.getElementById(target);
-                    const editor = document.querySelector(`.catalog-quill[data-target="${target}"]`);
-                    if (editor && editor.__quill) editor.__quill.root.innerHTML = html;
+                    window.AdminRichEditor?.forTarget(target)?.setHTML(html);
                     if (textarea) { textarea.value = html; textarea.dispatchEvent(new Event('input', { bubbles: true })); }
                 }
                 function el(tag, attrs, text) {
@@ -176,32 +213,39 @@
 
                 document.addEventListener('DOMContentLoaded', function () {
                     if (!window.bootstrap) return;
+                    // Reopens a suggestion asked for earlier and never reviewed (admin.shared.ai-pending).
+                    const resume = (window.AdminAiResume = window.AdminAiResume || {});
 
                     // FAQ
                     const faq = setup('ai-faq-modal');
                     const faqState = {};
                     wireReject(faq, faqState);
-                    document.querySelectorAll('.js-ai-faq').forEach((button) => button.addEventListener('click', async function () {
+                    function faqOpen(button) {
                         Object.assign(faqState, { button, data: null });
                         faq.part('.js-ai-faq-items').replaceChildren();
                         ['.js-ai-error', '.js-ai-apply', '.js-ai-reject'].forEach((s) => faq.show(s, false));
                         faq.show('.js-ai-loading', true);
                         faq.modal.show();
-                        try {
-                            const payload = await post(urls.faq, record(button));
-                            faqState.data = payload.data;
-                            payload.data.items.forEach(function (item) {
-                                const card = el('div', { class: 'border rounded p-2 mb-2 js-ai-faq-item' });
-                                const q = el('input', { class: 'form-control form-control-sm mb-1 js-q', maxlength: '200', 'aria-label': t.question }); q.value = item.question;
-                                const a = el('textarea', { class: 'form-control form-control-sm mb-1 js-a', rows: '2', maxlength: '600', 'aria-label': t.answer }); a.value = item.answer;
-                                const remove = el('button', { type: 'button', class: 'btn btn-link btn-sm text-danger p-0' }, t.remove);
-                                remove.addEventListener('click', () => card.remove());
-                                card.append(q, a, remove);
-                                faq.part('.js-ai-faq-items').appendChild(card);
-                            });
-                            usage(faq.element, payload.data);
-                            faq.show('.js-ai-loading', false); faq.show('.js-ai-apply', true); faq.show('.js-ai-reject', true);
-                        } catch (error) { faq.fail(error.message); }
+                    }
+                    function faqShow(data) {
+                        faqState.data = data;
+                        data.items.forEach(function (item) {
+                            const card = el('div', { class: 'border rounded p-2 mb-2 js-ai-faq-item' });
+                            const q = el('input', { class: 'form-control form-control-sm mb-1 js-q', maxlength: '200', 'aria-label': t.question }); q.value = item.question;
+                            const a = el('textarea', { class: 'form-control form-control-sm mb-1 js-a', rows: '2', maxlength: '600', 'aria-label': t.answer }); a.value = item.answer;
+                            const remove = el('button', { type: 'button', class: 'btn btn-link btn-sm text-danger p-0' }, t.remove);
+                            remove.addEventListener('click', () => card.remove());
+                            card.append(q, a, remove);
+                            faq.part('.js-ai-faq-items').appendChild(card);
+                        });
+                        usage(faq.element, data);
+                        faq.show('.js-ai-loading', false); faq.show('.js-ai-apply', true); faq.show('.js-ai-reject', true);
+                    }
+                    resume['content.faq'] = (button, data) => { faqOpen(button); faqShow(data); };
+                    document.querySelectorAll('.js-ai-faq').forEach((button) => button.addEventListener('click', async function () {
+                        faqOpen(button);
+                        try { faqShow((await post(urls.faq, record(button))).data); }
+                        catch (error) { faq.fail(error.message); }
                     }));
                     faq.part('.js-ai-apply').addEventListener('click', async function () {
                         const items = Array.from(faq.element.querySelectorAll('.js-ai-faq-item')).map((card) => ({
@@ -217,33 +261,38 @@
                     const links = setup('ai-links-modal');
                     const linksState = {};
                     wireReject(links, linksState);
-                    document.querySelectorAll('.js-ai-links').forEach((button) => button.addEventListener('click', async function () {
+                    function linksOpen(button) {
                         Object.assign(linksState, { button, data: null });
                         links.part('.js-ai-links-items').replaceChildren();
                         ['.js-ai-error', '.js-ai-apply', '.js-ai-reject', '.js-ai-links-none'].forEach((s) => links.show(s, false));
                         links.show('.js-ai-loading', true);
                         links.modal.show();
-                        try {
-                            const payload = await post(urls.links, record(button));
-                            linksState.data = payload.data;
-                            payload.data.links.forEach(function (link, index) {
-                                const row = el('label', { class: 'd-flex gap-2 border rounded p-2 mb-2' });
-                                const check = el('input', { type: 'checkbox', class: 'form-check-input mt-1 js-link', value: String(index) });
-                                check.checked = !link.needs_review;
-                                const body = el('div', { class: 'small' });
-                                const head = el('div', {});
-                                head.append(el('strong', {}, '“' + link.anchor + '”'), document.createTextNode(' ' + t.linkTo + ' '), el('span', { class: 'fw-semibold' }, link.title || link.url));
-                                if (link.needs_review) head.append(el('span', { class: 'badge bg-warning-subtle text-warning ms-2' }, t.linkReview));
-                                body.append(head, el('div', { class: 'text-muted text-break' }, link.url));
-                                if (link.reason) body.append(el('div', { class: 'mt-1' }, link.reason));
-                                row.append(check, body);
-                                links.part('.js-ai-links-items').appendChild(row);
-                            });
-                            usage(links.element, payload.data);
-                            links.show('.js-ai-loading', false);
-                            links.show('.js-ai-links-none', payload.data.links.length === 0);
-                            links.show('.js-ai-apply', payload.data.links.length > 0); links.show('.js-ai-reject', payload.data.links.length > 0);
-                        } catch (error) { links.fail(error.message); }
+                    }
+                    function linksShow(data) {
+                        linksState.data = data;
+                        data.links.forEach(function (link, index) {
+                            const row = el('label', { class: 'd-flex gap-2 border rounded p-2 mb-2' });
+                            const check = el('input', { type: 'checkbox', class: 'form-check-input mt-1 js-link', value: String(index) });
+                            check.checked = !link.needs_review;
+                            const body = el('div', { class: 'small' });
+                            const head = el('div', {});
+                            head.append(el('strong', {}, '“' + link.anchor + '”'), document.createTextNode(' ' + t.linkTo + ' '), el('span', { class: 'fw-semibold' }, link.title || link.url));
+                            if (link.needs_review) head.append(el('span', { class: 'badge bg-warning-subtle text-warning ms-2' }, t.linkReview));
+                            body.append(head, el('div', { class: 'text-muted text-break' }, link.url));
+                            if (link.reason) body.append(el('div', { class: 'mt-1' }, link.reason));
+                            row.append(check, body);
+                            links.part('.js-ai-links-items').appendChild(row);
+                        });
+                        usage(links.element, data);
+                        links.show('.js-ai-loading', false);
+                        links.show('.js-ai-links-none', data.links.length === 0);
+                        links.show('.js-ai-apply', data.links.length > 0); links.show('.js-ai-reject', data.links.length > 0);
+                    }
+                    resume['content.internal_links'] = (button, data) => { linksOpen(button); linksShow(data); };
+                    document.querySelectorAll('.js-ai-links').forEach((button) => button.addEventListener('click', async function () {
+                        linksOpen(button);
+                        try { linksShow((await post(urls.links, record(button))).data); }
+                        catch (error) { links.fail(error.message); }
                     }));
                     links.part('.js-ai-apply').addEventListener('click', async function () {
                         const chosen = Array.from(links.element.querySelectorAll('.js-link:checked')).map((check) => Number(check.value));
@@ -305,12 +354,24 @@
                     const product = setup('ai-product-modal');
                     const productState = {};
                     wireReject(product, productState);
-                    document.querySelectorAll('.js-ai-product').forEach((button) => button.addEventListener('click', function () {
+                    function productOpen(button) {
                         Object.assign(productState, { button, data: null });
                         ['.js-ai-loading', '.js-ai-error', '.js-ai-product-result', '.js-ai-apply', '.js-ai-reject'].forEach((s) => product.show(s, false));
                         product.show('.js-ai-product-start', true);
                         product.modal.show();
-                    }));
+                    }
+                    function productShow(data) {
+                        productState.data = data;
+                        product.part('.js-ai-product-preview').innerHTML = data.html;
+                        const list = product.part('.js-ai-product-missing ul'); list.replaceChildren();
+                        (data.missing_info || []).forEach((item) => list.appendChild(el('li', {}, item)));
+                        product.show('.js-ai-product-missing', (data.missing_info || []).length > 0);
+                        usage(product.element, data);
+                        product.show('.js-ai-product-start', false); product.show('.js-ai-loading', false); product.show('.js-ai-product-result', true);
+                        product.show('.js-ai-apply', true); product.show('.js-ai-reject', true);
+                    }
+                    resume['content.product_description'] = (button, data) => { productOpen(button); productShow(data); };
+                    document.querySelectorAll('.js-ai-product').forEach((button) => button.addEventListener('click', () => productOpen(button)));
                     product.part('.js-ai-product-run').addEventListener('click', async function () {
                         product.show('.js-ai-product-start', false); product.show('.js-ai-error', false); product.show('.js-ai-loading', true);
                         try {
@@ -318,14 +379,7 @@
                                 entity_id: Number(productState.button.dataset.entityId), content_locale: productState.button.dataset.locale,
                                 selling_points: document.getElementById('ai-product-points').value, target_words: Number(document.getElementById('ai-product-words').value),
                             });
-                            productState.data = payload.data;
-                            product.part('.js-ai-product-preview').innerHTML = payload.data.html;
-                            const list = product.part('.js-ai-product-missing ul'); list.replaceChildren();
-                            (payload.data.missing_info || []).forEach((item) => list.appendChild(el('li', {}, item)));
-                            product.show('.js-ai-product-missing', (payload.data.missing_info || []).length > 0);
-                            usage(product.element, payload.data);
-                            product.show('.js-ai-loading', false); product.show('.js-ai-product-result', true);
-                            product.show('.js-ai-apply', true); product.show('.js-ai-reject', true);
+                            productShow(payload.data);
                         } catch (error) { product.fail(error.message); product.show('.js-ai-product-start', true); }
                     });
                     product.part('.js-ai-apply').addEventListener('click', async function () {
@@ -335,49 +389,113 @@
                         finally { this.disabled = false; }
                     });
 
+                    // Category, blog category or brand description
+                    const collection = setup('ai-collection-modal');
+                    const collectionState = {};
+                    wireReject(collection, collectionState);
+                    function collectionOpen(button) {
+                        Object.assign(collectionState, { button, data: null });
+                        ['.js-ai-loading', '.js-ai-error', '.js-ai-collection-result', '.js-ai-apply', '.js-ai-reject'].forEach((s) => collection.show(s, false));
+                        collection.show('.js-ai-collection-start', true);
+                        collection.modal.show();
+                    }
+                    function collectionShow(data) {
+                        collectionState.data = data;
+                        collection.part('.js-ai-collection-preview').innerHTML = data.html;
+                        const list = collection.part('.js-ai-collection-missing ul'); list.replaceChildren();
+                        (data.missing_info || []).forEach((item) => list.appendChild(el('li', {}, item)));
+                        collection.show('.js-ai-collection-missing', (data.missing_info || []).length > 0);
+                        usage(collection.element, data);
+                        collection.show('.js-ai-collection-start', false); collection.show('.js-ai-loading', false); collection.show('.js-ai-collection-result', true);
+                        collection.show('.js-ai-apply', true); collection.show('.js-ai-reject', true);
+                    }
+                    resume['content.collection_intro'] = (button, data) => { collectionOpen(button); collectionShow(data); };
+                    document.querySelectorAll('.js-ai-collection').forEach((button) => button.addEventListener('click', () => collectionOpen(button)));
+                    collection.part('.js-ai-collection-run').addEventListener('click', async function () {
+                        collection.show('.js-ai-collection-start', false); collection.show('.js-ai-error', false); collection.show('.js-ai-loading', true);
+                        try {
+                            const payload = await post(urls.collection, { ...record(collectionState.button), target_words: Number(document.getElementById('ai-collection-words').value) });
+                            collectionShow(payload.data);
+                        } catch (error) { collection.fail(error.message); collection.show('.js-ai-collection-start', true); }
+                    });
+                    collection.part('.js-ai-apply').addEventListener('click', async function () {
+                        this.disabled = true;
+                        try { applied(collectionState, await post(collectionState.data.apply_url), collection); }
+                        catch (error) { notify('error', error.message); }
+                        finally { this.disabled = false; }
+                    });
+
                     // Fix by SEO score
                     const seo = setup('ai-seo-modal');
                     const seoState = {};
                     wireReject(seo, seoState);
-                    document.querySelectorAll('.js-ai-seo-fix').forEach((button) => button.addEventListener('click', async function () {
+                    function seoOpen() {
                         Object.assign(seoState, { button: null, data: null });
                         seo.part('.js-ai-seo-fields').replaceChildren(); seo.part('.js-ai-seo-notes').replaceChildren();
+                        seo.part('.js-ai-seo-tool-buttons').replaceChildren(); seo.show('.js-ai-seo-tools', false);
                         ['.js-ai-error', '.js-ai-seo-result', '.js-ai-apply', '.js-ai-reject'].forEach((s) => seo.show(s, false));
                         seo.show('.js-ai-loading', true);
                         seo.modal.show();
-                        try {
-                            const payload = await post(urls.seo, { entity_id: Number(button.dataset.entityId) });
-                            seoState.data = payload.data;
-                            seo.part('.js-ai-seo-score').textContent = payload.data.score;
-                            let offered = 0;
-                            ['seo_title', 'seo_description', 'intro_html'].forEach(function (field) {
-                                const value = payload.data.proposal[field] || '';
-                                if (!value) return;
-                                offered++;
-                                const box = el('div', { class: 'border rounded p-2 mb-2' });
-                                const id = 'ai-seo-use-' + field;
-                                const check = el('input', { type: 'checkbox', class: 'form-check-input me-1 js-use', id, 'data-field': field }); check.checked = true;
-                                const label = el('label', { class: 'form-check-label fw-semibold', for: id }, t.seoFields[field] + ' — ' + t.seoUse);
-                                box.append(check, label);
-                                if (field === 'intro_html') {
-                                    // Server-sanitized HTML, shown as the reader will see it.
-                                    const preview = el('div', { class: 'small border-top mt-2 pt-2 js-value', 'data-html': '1' });
-                                    preview.innerHTML = value; preview.dataset.value = value;
-                                    box.appendChild(preview);
-                                } else {
-                                    const input = el(field === 'seo_title' ? 'input' : 'textarea', { class: 'form-control form-control-sm mt-2 js-value', maxlength: field === 'seo_title' ? '255' : '500' });
-                                    input.value = value;
-                                    const old = el('div', { class: 'small text-muted mt-1' }, (payload.data.current[field] || '—'));
-                                    box.append(input, old);
-                                }
-                                seo.part('.js-ai-seo-fields').appendChild(box);
+                    }
+                    function seoShow(data) {
+                        seoState.data = data;
+                        seo.part('.js-ai-seo-score').textContent = data.score ?? '—';
+                        let offered = 0;
+                        ['seo_title', 'seo_description', 'intro_html'].forEach(function (field) {
+                            const value = data.proposal[field] || '';
+                            if (!value) return;
+                            offered++;
+                            const box = el('div', { class: 'border rounded p-2 mb-2' });
+                            const id = 'ai-seo-use-' + field;
+                            const check = el('input', { type: 'checkbox', class: 'form-check-input me-1 js-use', id, 'data-field': field }); check.checked = true;
+                            const label = el('label', { class: 'form-check-label fw-semibold', for: id }, t.seoFields[field] + ' — ' + t.seoUse);
+                            box.append(check, label);
+                            if (field === 'intro_html') {
+                                // Server-sanitized HTML, shown as the reader will see it.
+                                const preview = el('div', { class: 'small border-top mt-2 pt-2 js-value', 'data-html': '1' });
+                                preview.innerHTML = value; preview.dataset.value = value;
+                                box.appendChild(preview);
+                            } else {
+                                const input = el(field === 'seo_title' ? 'input' : 'textarea', { class: 'form-control form-control-sm mt-2 js-value', maxlength: field === 'seo_title' ? '255' : '500' });
+                                input.value = value;
+                                const old = el('div', { class: 'small text-muted mt-1' }, (data.current[field] || '—'));
+                                box.append(input, old);
+                            }
+                            seo.part('.js-ai-seo-fields').appendChild(box);
+                        });
+                        (data.proposal.notes || []).forEach((note) => seo.part('.js-ai-seo-notes').appendChild(el('li', {}, note.note)));
+                        seoTools(data.proposal.failing || []);
+                        seo.show('.js-ai-seo-nothing', offered === 0);
+                        usage(seo.element, data);
+                        seo.show('.js-ai-loading', false); seo.show('.js-ai-seo-result', true);
+                        seo.show('.js-ai-apply', offered > 0); seo.show('.js-ai-reject', true);
+                    }
+                    // A button per failing rule another tool on this page fixes: closes this review, opens that tool
+                    // in the default language (the score is taken there).
+                    function seoTools(failing) {
+                        const list = seo.part('.js-ai-seo-tool-buttons');
+                        const seen = new Set();
+                        failing.forEach(function (rule) {
+                            const tool = t.seoTools[rule];
+                            if (!tool || seen.has(tool[0])) return;
+                            const locale = document.querySelector('.js-ai-seo-fix')?.dataset.locale;
+                            const target = (locale && document.querySelector(tool[0] + '[data-locale="' + CSS.escape(locale) + '"]')) || document.querySelector(tool[0]);
+                            if (!target) return;
+                            seen.add(tool[0]);
+                            const open = el('button', { type: 'button', class: 'btn btn-sm btn-outline-primary', 'data-seo-tool': rule }, tool[1]);
+                            open.addEventListener('click', function () {
+                                seo.element.addEventListener('hidden.bs.modal', () => target.click(), { once: true });
+                                seo.modal.hide();
                             });
-                            (payload.data.proposal.notes || []).forEach((note) => seo.part('.js-ai-seo-notes').appendChild(el('li', {}, note.note)));
-                            seo.show('.js-ai-seo-nothing', offered === 0);
-                            usage(seo.element, payload.data);
-                            seo.show('.js-ai-loading', false); seo.show('.js-ai-seo-result', true);
-                            seo.show('.js-ai-apply', offered > 0); seo.show('.js-ai-reject', true);
-                        } catch (error) { seo.fail(error.message); }
+                            list.appendChild(open);
+                        });
+                        seo.show('.js-ai-seo-tools', seen.size > 0);
+                    }
+                    resume['seo.fix_suggest'] = (button, data) => { seoOpen(); seoShow(data); };
+                    document.querySelectorAll('.js-ai-seo-fix').forEach((button) => button.addEventListener('click', async function () {
+                        seoOpen();
+                        try { seoShow((await post(urls.seo, { entity_type: button.dataset.entityType || 'post', entity_id: Number(button.dataset.entityId) })).data); }
+                        catch (error) { seo.fail(error.message); }
                     }));
                     seo.part('.js-ai-apply').addEventListener('click', async function () {
                         const values = {};

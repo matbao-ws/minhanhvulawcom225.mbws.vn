@@ -6,12 +6,17 @@ use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\PaymentMethod;
 use App\Models\Permission;
+use App\Models\Product;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Catalog\ProductService;
 use App\Services\MultilingualSettings;
+use App\Support\NotificationHelper;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -53,6 +58,13 @@ class FeatureDisablesAdminScreensTest extends TestCase
     private function disable(string ...$codes): void
     {
         FeatureSetting::query()->whereIn('feature_code', $codes)->update(['is_enabled' => false]);
+    }
+
+    private function enable(string ...$codes): void
+    {
+        foreach ($codes as $code) {
+            FeatureSetting::query()->updateOrCreate(['feature_code' => $code], ['is_enabled' => true]);
+        }
     }
 
     private function sidebar(): string
@@ -173,6 +185,82 @@ class FeatureDisablesAdminScreensTest extends TestCase
         $this->actingAs($this->admin)->postJson('/vi/admin/translations/preview', [])->assertForbidden();
         $this->assertFalse(app(MultilingualSettings::class)->enabled());
         $this->assertStringNotContainsString(route('admin.languages.index'), $this->sidebar());
+    }
+
+    public function test_vnpay_settings_need_the_vnpay_feature_too(): void
+    {
+        $vnpay = PaymentMethod::query()->updateOrCreate(['method_code' => 'vnpay'], [
+            'name' => 'VNPAY Gateway', 'type' => 'connected', 'status' => 'active', 'settings' => [],
+        ]);
+        $this->enable('online_payment');
+        $this->disable('payment_vnpay');
+        $staff = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Kế toán', 'permissions' => ['payments.view', 'payments.update']])->id]);
+
+        // Reached by its URL, not only hidden from the list.
+        $this->actingAs($staff)->get('/vi/admin/payment-methods/'.$vnpay->id.'/settings')->assertForbidden();
+    }
+
+    public function test_variants_are_neither_offered_nor_saved_without_the_variant_feature(): void
+    {
+        $this->enable('catalog');
+        $this->disable('product_variant');
+        $staff = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Kho', 'permissions' => ['products.view', 'products.create', 'products.update']])->id]);
+
+        $this->actingAs($staff)->get('/vi/admin/products/create')->assertOk()->assertDontSee('name="has_variants"', false);
+
+        $this->actingAs($staff)->post('/vi/admin/products', [
+            'name' => ['vi' => 'Áo'], 'price' => 100000, 'stock_quantity' => 5, 'is_active' => 1,
+            'has_variants' => 1, 'variant_groups' => [['name' => 'Màu', 'values' => ['Đỏ', 'Xanh']]],
+        ]);
+
+        $product = Product::query()->latest('id')->first();
+        $this->assertNotNull($product, 'the product itself is saved');
+        $this->assertSame(0, $product->optionGroups()->count());
+        $this->assertSame(0, $product->variants()->count());
+    }
+
+    public function test_the_features_page_says_what_a_feature_needs(): void
+    {
+        $this->disable('online_payment');
+
+        // The features page is superadmin only: the system Superadmin role.
+        $root = User::factory()->create(['is_active' => true, 'role_id' => Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_system' => true])->id]);
+        $this->actingAs($root)->get('/vi/admin/features')->assertOk()
+            ->assertSee(__('admin.features.requires', ['features' => __('admin.features.online_payment')]))
+            ->assertSee('data-feature-requires="online_payment"', false);
+    }
+
+    public function test_the_zalo_bot_stays_silent_while_the_zalo_feature_is_off(): void
+    {
+        Http::fake();
+        Mail::fake();
+        ProjectSetting::query()->updateOrCreate(['setting_key' => 'notification_settings'], ['setting_value' => [
+            'zalo_personal' => ['enabled' => true, 'bot_token' => 'bot-token', 'chat_id' => 'chat-1'],
+        ]]);
+        $order = Order::query()->create([
+            'order_number' => 'ORD-ZALO-1', 'customer_name' => 'Khách', 'customer_email' => 'k@example.com',
+            'customer_phone' => '0900000000', 'shipping_address' => '1 Lê Lợi', 'payment_method' => 'cod',
+            'payment_status' => 'pending', 'status' => 'pending', 'subtotal' => 100000, 'discount' => 0, 'grand_total' => 100000,
+        ]);
+
+        $this->disable('zalo_oa');
+        NotificationHelper::deliverNewOrderNotification($order);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'zaloplatforms'));
+
+        $this->enable('zalo_oa');
+        NotificationHelper::deliverNewOrderNotification($order);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'zaloplatforms'));
+    }
+
+    public function test_feature_requirements_name_real_features(): void
+    {
+        $codes = config('features.codes');
+        foreach (config('features.requires') as $feature => $parents) {
+            $this->assertContains($feature, $codes);
+            foreach ($parents as $parent) {
+                $this->assertContains($parent, $codes, "{$feature} requires an unknown {$parent}");
+            }
+        }
     }
 
     public function test_disabled_vnpay_feature_hides_vnpay_from_payment_methods(): void

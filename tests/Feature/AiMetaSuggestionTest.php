@@ -9,6 +9,7 @@ use App\Models\Post;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Seo\SeoBox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -112,6 +113,36 @@ class AiMetaSuggestionTest extends TestCase
         $this->assertSame([501, 'proposed', ['title' => 'Ống nhựa', 'description' => '']], [$suggestion->gateway_suggestion_id, $suggestion->status, $suggestion->old_values]);
         // Asking changes nothing on the record.
         $this->assertSame('Ống nhựa', $this->product->fresh()->getTranslation('meta_title', 'vi', false));
+    }
+
+    public function test_the_focus_keyword_goes_out_for_any_record_and_the_suggested_one_comes_back(): void
+    {
+        $this->product->update(['seo_keys' => 'ống nhựa upvc, ống cấp nước']);
+
+        $this->actingAs($this->editor)
+            ->postJson('/vi/admin/ai/meta-suggestions', ['entity_type' => 'product', 'entity_id' => $this->product->id, 'content_locale' => 'vi'])
+            ->assertOk()
+            ->assertJsonPath('data.focus_keyword', 'ống nhựa upvc');
+
+        // Only the first badge, the one the checker scores, is the focus keyword.
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://gw.test/v1/tasks/meta.suggest'
+            && $request['focus_keyword'] === 'ống nhựa upvc');
+    }
+
+    public function test_applying_meta_to_a_product_rescores_it_and_the_box_offers_the_keyword_button(): void
+    {
+        $this->product->update(['seo_keys' => 'ống nhựa upvc']);
+        $suggestion = $this->suggest();
+
+        $this->actingAs($this->editor)->postJson("/vi/admin/ai/meta-suggestions/{$suggestion->id}/apply", [
+            'option' => 0, 'title' => 'Ống nhựa uPVC cấp thoát nước bền, dễ lắp', 'description' => 'Ống nhựa uPVC chịu áp tốt cho cấp thoát nước gia đình.',
+        ])->assertOk();
+
+        $this->assertSame(app(SeoBox::class)->analyze($this->product->fresh())['score'], $this->product->fresh()->seo_score);
+
+        $this->actingAs($this->editor)->get("/vi/admin/products/{$this->product->id}/edit")->assertOk()
+            ->assertSee(__('ai.meta.keyword_button'))
+            ->assertSee('js-ai-meta-keyword-use', false);
     }
 
     public function test_applying_writes_only_the_meta_of_that_locale_logs_it_and_reports_back(): void

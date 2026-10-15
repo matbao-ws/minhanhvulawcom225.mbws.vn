@@ -9,22 +9,45 @@ class PostSeoAnalyzerTest extends TestCase
 {
     public function test_it_scores_an_optimized_vietnamese_post_on_the_server(): void
     {
-        $filler = implode(' ', array_fill(0, 300, 'nội dung'));
+        $paragraph = '<p>'.implode(' ', array_fill(0, 50, 'nội dung')).'</p>';
         $analysis = app(PostSeoAnalyzer::class)->analyze([
             'title' => 'Hướng dẫn tối ưu SEO bài viết cho website hiệu quả',
             'slug' => 'huong-dan-toi-uu-seo-bai-viet',
-            'seo_title' => 'Hướng dẫn tối ưu SEO bài viết hiệu quả năm 2026',
+            'seo_title' => 'Tối ưu SEO bài viết: 7 bước hiệu quả cho website',
             'seo_description' => 'Tối ưu SEO bài viết đúng cách với hướng dẫn chi tiết về tiêu đề, nội dung, liên kết và từ khóa giúp website tiếp cận đúng khách hàng mục tiêu.',
-            'focus_keyword' => 'tối ưu SEO',
-            'content' => '<p>Tối ưu SEO là bước đầu tiên. '.$filler.' tối ưu SEO nội dung tối ưu SEO.</p>'
-                .'<h2>Cấu trúc bài viết</h2>'
-                .'<p><a href="/san-pham">Xem sản phẩm</a><img src="/image.jpg" alt="Tối ưu SEO"></p>',
+            'focus_keyword' => 'tối ưu SEO, viết bài chuẩn SEO',
+            'content' => '<p>Tối ưu SEO là bước đầu tiên.</p>'.str_repeat($paragraph, 6)
+                .'<h2>Tối ưu SEO cho cấu trúc bài viết</h2>'
+                .'<p>Hai bước tối ưu SEO nội dung. <a href="/san-pham">Xem sản phẩm</a> và <a href="https://developers.google.com/search">hướng dẫn của Google</a>.</p>'
+                .'<p><img src="/image.jpg" alt="Tối ưu SEO"></p>',
         ]);
 
+        $this->assertEqualsCanonicalizing(array_keys(PostSeoAnalyzer::WEIGHTS), array_keys(array_filter($analysis['rules'])), 'every rule passes');
         $this->assertSame(100, $analysis['score']);
         $this->assertSame('good', $analysis['status']);
-        $this->assertTrue($analysis['rules']['internal_links']);
         $this->assertGreaterThanOrEqual(300, $analysis['metrics']['word_count']);
+    }
+
+    public function test_a_link_to_the_sites_own_host_is_internal_with_or_without_www(): void
+    {
+        config(['app.url' => 'https://mascomglobal.com']);
+        $internal = fn (string $href) => app(PostSeoAnalyzer::class)->analyze([
+            'title' => 'Bài', 'slug' => 'bai', 'content' => '<p><a href="'.$href.'">xem</a></p>',
+            'seo_title' => '', 'seo_description' => '', 'focus_keyword' => '',
+        ])['rules']['internal_links'];
+
+        $this->assertTrue($internal('/blog/caco3'));
+        $this->assertTrue($internal('https://mascomglobal.com/blog/caco3'));
+        $this->assertTrue($internal('https://www.mascomglobal.com/blog/caco3'));
+        $this->assertTrue($internal('http://WWW.MascomGlobal.com/blog/caco3'));
+        // Another site, and a protocol-relative address to it, are not.
+        $this->assertFalse($internal('https://maskaglobal.com/product/black-masterbatch/'));
+        $this->assertFalse($internal('//maskaglobal.com/product/'));
+    }
+
+    public function test_the_weights_add_up_to_a_hundred(): void
+    {
+        $this->assertSame(100, array_sum(PostSeoAnalyzer::WEIGHTS));
     }
 
     public function test_it_reports_missing_seo_requirements_without_trusting_a_client_score(): void
@@ -35,9 +58,27 @@ class PostSeoAnalyzerTest extends TestCase
             'content' => '<p>Ít nội dung</p><img src="/image.jpg">',
         ]);
 
-        $this->assertSame(0, $analysis['score']);
+        // Only what needs no keyword passes: a short URL, short paragraphs, an image.
+        $this->assertEqualsCanonicalizing(['url_length', 'short_paragraphs', 'content_media'], array_keys(array_filter($analysis['rules'])));
+        $this->assertSame(12, $analysis['score']);
         $this->assertSame('needs_work', $analysis['status']);
-        $this->assertFalse($analysis['rules']['keyword_exists']);
         $this->assertFalse($analysis['rules']['image_alts']);
+    }
+
+    public function test_long_paragraphs_links_out_and_where_the_keyword_sits_are_checked(): void
+    {
+        $analyzer = app(PostSeoAnalyzer::class);
+        $base = ['title' => 'x', 'slug' => 'giay-chay-bo', 'focus_keyword' => 'giày chạy bộ'];
+
+        $wall = $analyzer->analyze($base + ['content' => '<p>'.str_repeat('chữ ', 160).'</p>', 'seo_title' => 'Mẹo hay khi chọn mua giày chạy bộ']);
+        $this->assertFalse($wall['rules']['short_paragraphs']);
+        $this->assertFalse($wall['rules']['title_keyword_start'], 'keyword in the second half of the title');
+        $this->assertFalse($wall['rules']['external_links']);
+
+        $good = $analyzer->analyze($base + ['content' => '<p>Ngắn. <a href="https://www.runnersworld.com/">Nguồn</a></p>', 'seo_title' => 'Giày chạy bộ: mẹo hay khi chọn mua']);
+        $this->assertTrue($good['rules']['short_paragraphs']);
+        $this->assertTrue($good['rules']['title_keyword_start']);
+        $this->assertTrue($good['rules']['external_links']);
+        $this->assertFalse($analyzer->analyze($base + ['content' => '<a href="/noi-bo">x</a>'])['rules']['external_links'], 'an internal link is not an outside source');
     }
 }

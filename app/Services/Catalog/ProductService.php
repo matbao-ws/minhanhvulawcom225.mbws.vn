@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Support\HtmlSanitizer;
+use App\Support\Seo\SeoBox;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,13 +20,15 @@ class ProductService
         private readonly HtmlSanitizer $htmlSanitizer,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly LanguageRegistry $languages,
+        private readonly SeoBox $seoBox,
     ) {}
 
     public function create(array $data): Product
     {
         return DB::transaction(function () use ($data) {
-            $product = Product::query()->create($this->payload($data));
+            $product = Product::query()->create($this->payload($data) + $this->seoBox->payload($data));
             $this->localizedSlugs->sync($product, $this->localizedValues($data['slug'] ?? []), $product->getTranslations('name'));
+            $this->seoBox->refreshScore($product);
 
             return $product->refresh();
         });
@@ -34,8 +37,9 @@ class ProductService
     public function update(Product $product, array $data): Product
     {
         return DB::transaction(function () use ($product, $data) {
-            $product->update($this->payload($data, $product));
+            $product->update($this->payload($data, $product) + $this->seoBox->payload($data, $product));
             $this->localizedSlugs->sync($product, $this->localizedValues($data['slug'] ?? []), $product->getTranslations('name'));
+            $this->seoBox->refreshScore($product);
 
             return $product->refresh();
         });
@@ -301,14 +305,14 @@ class ProductService
                 if (is_string($val) && trim($val) !== '') {
                     $cleanValue = trim($val);
                     $translations[$lang] = in_array($attribute, ['short_description', 'description'], true)
-                        ? $this->htmlSanitizer->clean($cleanValue)
+                        ? $this->htmlSanitizer->cleanRichText($cleanValue)
                         : $cleanValue;
                 }
             }
         } else {
             $value = is_string($value) ? trim($value) : '';
             if (in_array($attribute, ['short_description', 'description'], true)) {
-                $value = $this->htmlSanitizer->clean($value);
+                $value = $this->htmlSanitizer->cleanRichText($value);
             }
             if ($value !== '') {
                 $translations[$locale] = $value;
