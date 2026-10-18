@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Validator;
  */
 class ContactController extends Controller
 {
-    private const SENT = 'Yêu cầu báo giá của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!';
+    private const SENT = 'Yêu cầu của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!';
 
     public function store(Request $request, ContactSpamGuard $guard): JsonResponse
     {

@@ -24,7 +24,7 @@ class ContactInquiryMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Yêu cầu báo giá mới từ khách hàng: '.($this->inquiry['name'] ?? ''),
+            subject: 'Thông báo liên hệ mới từ khách hàng: '.($this->inquiry['name'] ?? ''),
         );
     }
 
