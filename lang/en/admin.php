@@ -90,6 +90,7 @@ return [
             'never_logged_in' => 'Never logged in',
             'status_active' => 'Activate Account',
             'status_help' => 'If not activated, this account will temporarily be unable to log in to the system.',
+            'self_role_status_help' => 'You cannot change your own role or suspend your own account. Ask another administrator if it needs to change.',
         ],
         'placeholders' => [
             'name_placeholder' => 'Enter full name...',

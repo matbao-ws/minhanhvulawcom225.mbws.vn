@@ -102,35 +102,54 @@
             <div class="card-body">
                 <h4 class="card-title mb-7">{{ __('admin.users.sections.role_status') }}</h4>
 
-                <!-- Role Select -->
-                <div data-tour="user-form.role" class="mb-3">
-                    <label class="form-label" for="role_id">{{ __('admin.users.fields.role') }} <span
-                            class="text-danger">*</span></label>
-                    <select class="form-select @error('role_id') is-invalid @enderror" id="role_id" name="role_id"
-                        required>
-                        @foreach ($roles as $role)
-                            <option value="{{ $role->id }}" @selected((string) old('role_id', $user->role_id) === (string) $role->id)>
-                                {{ $role->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('role_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+                @if ($user->exists && $user->is(auth()->user()))
+                    {{-- The controller refuses a change of one's own role or status: shown, not offered. --}}
+                    <input type="hidden" name="role_id" value="{{ $user->role_id }}">
+                    <input type="hidden" name="is_active" value="{{ $user->is_active ? 1 : 0 }}">
 
-                <!-- Status Checkbox -->
-                <div data-tour="user-form.status" class="mt-4">
-                    <input type="hidden" name="is_active" value="0">
-                    <div class="form-check">
-                        <input class="form-check-input primary" type="checkbox" name="is_active" value="1"
-                            id="is_active" @checked(old('is_active', $user->is_active))>
-                        <label class="form-check-label fw-semibold" for="is_active">
-                            {{ __('admin.users.fields.status_active') }}
-                        </label>
+                    <div data-tour="user-form.role" class="mb-3">
+                        <span class="form-label d-block">{{ __('admin.users.fields.role') }}</span>
+                        <span class="fw-semibold">{{ $user->role?->name }}</span>
                     </div>
-                    <p class="fs-2 text-muted mt-1 mb-0">{{ __('admin.users.fields.status_help') }}</p>
-                </div>
+
+                    <div data-tour="user-form.status" class="mt-4">
+                        <span class="form-label d-block">{{ __('admin.users.fields.status') }}</span>
+                        <span @class(['badge', 'bg-success-subtle text-success' => $user->is_active, 'bg-danger-subtle text-danger' => ! $user->is_active])>
+                            {{ $user->is_active ? __('admin.users.fields.active') : __('admin.users.fields.suspended') }}
+                        </span>
+                        <p class="fs-2 text-muted mt-2 mb-0">{{ __('admin.users.fields.self_role_status_help') }}</p>
+                    </div>
+                @else
+                    <!-- Role Select -->
+                    <div data-tour="user-form.role" class="mb-3">
+                        <label class="form-label" for="role_id">{{ __('admin.users.fields.role') }} <span
+                                class="text-danger">*</span></label>
+                        <select class="form-select @error('role_id') is-invalid @enderror" id="role_id" name="role_id"
+                            required>
+                            @foreach ($roles as $role)
+                                <option value="{{ $role->id }}" @selected((string) old('role_id', $user->role_id) === (string) $role->id)>
+                                    {{ $role->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('role_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Status Checkbox -->
+                    <div data-tour="user-form.status" class="mt-4">
+                        <input type="hidden" name="is_active" value="0">
+                        <div class="form-check">
+                            <input class="form-check-input primary" type="checkbox" name="is_active" value="1"
+                                id="is_active" @checked(old('is_active', $user->is_active))>
+                            <label class="form-check-label fw-semibold" for="is_active">
+                                {{ __('admin.users.fields.status_active') }}
+                            </label>
+                        </div>
+                        <p class="fs-2 text-muted mt-1 mb-0">{{ __('admin.users.fields.status_help') }}</p>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
