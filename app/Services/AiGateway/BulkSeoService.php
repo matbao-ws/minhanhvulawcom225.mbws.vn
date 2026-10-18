@@ -115,7 +115,18 @@ class BulkSeoService
             return $job;
         }
 
-        $remote = (array) $this->gateway->get('v1/jobs/'.$job->gateway_job_id)['job'];
+        try {
+            $remote = (array) $this->gateway->get('v1/jobs/'.$job->gateway_job_id)['job'];
+        } catch (GatewayUnavailable $e) {
+            if ($e->reason !== 'not_found') {
+                throw $e;
+            }
+            // The gateway no longer holds this job: asking again can only get the same answer, and
+            // left "queued" the page would say it is still running forever.
+            $job->fill(['status' => 'stopped', 'stop_reason' => 'job_lost', 'imported_at' => now()])->save();
+
+            return $job;
+        }
         $job->fill(['status' => (string) $remote['status'], 'stop_reason' => $remote['stop_reason'] ?? null]);
 
         if ($job->isFinished()) {
