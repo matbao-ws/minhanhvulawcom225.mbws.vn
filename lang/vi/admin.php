@@ -93,6 +93,7 @@ return [
             'never_logged_in' => 'Chưa đăng nhập',
             'status_active' => 'Kích hoạt tài khoản',
             'status_help' => 'Nếu không kích hoạt, tài khoản sẽ tạm thời không thể đăng nhập hệ thống.',
+            'self_role_status_help' => 'Bạn không thể tự đổi vai trò hay khoá tài khoản của chính mình. Cần đổi thì nhờ một quản trị viên khác.',
         ],
         'placeholders' => [
             'name_placeholder' => 'Nhập họ và tên...',

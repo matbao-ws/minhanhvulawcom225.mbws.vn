@@ -231,6 +231,34 @@ class UserControllerTest extends TestCase
             ->assertSee(__('admin.users.unsaved.body_without_draft'));
     }
 
+    public function test_editing_ones_own_account_shows_role_and_status_without_offering_them(): void
+    {
+        $admin = User::factory()->create(['name' => 'Me', 'role_id' => $this->adminRole->id, 'is_active' => true]);
+        $other = User::factory()->create(['role_id' => $this->editorRole->id]);
+        $this->actingAs($admin);
+
+        // The controller refuses a change of one's own role or status, so the form does not offer one.
+        $this->get("/vi/admin/users/{$admin->id}/edit")->assertOk()
+            ->assertDontSee('id="role_id"', false)
+            ->assertDontSee('id="is_active"', false)
+            ->assertSee(__('admin.users.fields.self_role_status_help'))
+            ->assertSee('data-tour="user-form.role"', false)
+            ->assertSee('data-tour="user-form.status"', false);
+
+        // Saving one's own name still works with what the form sends.
+        $this->put("/vi/admin/users/{$admin->id}", [
+            'name' => 'Me Renamed', 'email' => $admin->email,
+            'role_id' => (string) $admin->role_id, 'is_active' => '1', 'password' => '',
+        ])->assertRedirect();
+        $this->assertSame('Me Renamed', $admin->refresh()->name);
+
+        // Another account keeps both controls.
+        $this->get("/vi/admin/users/{$other->id}/edit")->assertOk()
+            ->assertSee('id="role_id"', false)
+            ->assertSee('id="is_active"', false)
+            ->assertDontSee(__('admin.users.fields.self_role_status_help'));
+    }
+
     public function test_users_routes_cannot_manage_or_convert_customer_accounts(): void
     {
         $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
