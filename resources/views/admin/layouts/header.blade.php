@@ -23,6 +23,14 @@
                           </button>
                       </li>
                       <li class="nav-item d-none d-xl-flex align-items-center">
+                          <button type="button" class="sidebar-dark-toggle" data-sidebar-dark-toggle
+                              aria-label="{{ __('admin.sidebar.dark_on') }}" title="{{ __('admin.sidebar.dark_on') }}"
+                              aria-pressed="false">
+                              <iconify-icon icon="solar:moon-line-duotone" class="sidebar-dark-icon-off" aria-hidden="true"></iconify-icon>
+                              <iconify-icon icon="solar:sun-2-line-duotone" class="sidebar-dark-icon-on" aria-hidden="true"></iconify-icon>
+                          </button>
+                      </li>
+                      <li class="nav-item d-none d-xl-flex align-items-center">
                           <a class="nav-link d-flex align-items-center gap-2" href="{{ url('/') }}" target="_blank"
                               style="padding: 0 8px;">
                               <span
@@ -172,6 +180,14 @@
                                       data-bs-toggle="modal" data-bs-target="#exampleModal">
                                       <iconify-icon icon="solar:magnifer-line-duotone" class="fs-6"></iconify-icon>
                                   </a>
+                              </li>
+                              <li class="nav-item d-block d-xl-none">
+                                  <button type="button" class="nav-link nav-icon-hover-bg rounded-circle border-0 bg-transparent" data-sidebar-dark-toggle
+                                      aria-label="{{ __('admin.sidebar.dark_on') }}" title="{{ __('admin.sidebar.dark_on') }}"
+                                      aria-pressed="false">
+                                      <iconify-icon icon="solar:moon-line-duotone" class="fs-6 sidebar-dark-icon-off" aria-hidden="true"></iconify-icon>
+                                      <iconify-icon icon="solar:sun-2-line-duotone" class="fs-6 sidebar-dark-icon-on" aria-hidden="true"></iconify-icon>
+                                  </button>
                               </li>
 
                               @if(! empty($adminTour))
@@ -610,6 +626,14 @@
                                       data-bs-toggle="modal" data-bs-target="#exampleModal">
                                       <iconify-icon icon="solar:magnifer-line-duotone" class="fs-6"></iconify-icon>
                                   </a>
+                              </li>
+                              <li class="nav-item d-block d-xl-none">
+                                  <button type="button" class="nav-link nav-icon-hover-bg rounded-circle border-0 bg-transparent" data-sidebar-dark-toggle
+                                      aria-label="{{ __('admin.sidebar.dark_on') }}" title="{{ __('admin.sidebar.dark_on') }}"
+                                      aria-pressed="false">
+                                      <iconify-icon icon="solar:moon-line-duotone" class="fs-6 sidebar-dark-icon-off" aria-hidden="true"></iconify-icon>
+                                      <iconify-icon icon="solar:sun-2-line-duotone" class="fs-6 sidebar-dark-icon-on" aria-hidden="true"></iconify-icon>
+                                  </button>
                               </li>
 
                               @if(! empty($adminTour))

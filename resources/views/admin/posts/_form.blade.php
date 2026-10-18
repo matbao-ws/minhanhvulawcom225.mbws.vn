@@ -65,7 +65,6 @@
             'placeholders' => ['title' => __('admin.posts.placeholders.seo_title')],
         ])
 
-        @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
     </div>
 
     <!-- Right column: Sidebar settings & SEO Analyzer Widget -->
@@ -140,6 +139,8 @@
                 <p class="fs-2 mb-0">{{ __('admin.posts.placeholders.category_help') }}</p>
             </div>
         </div>
+
+        @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
 
     </div>
 </div>

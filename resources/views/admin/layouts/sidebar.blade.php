@@ -7,36 +7,37 @@
   <style>
       /* Override double sidebar styles to create a clean single sidebar layout */
       .side-mini-panel {
-          width: 240px !important;
+          width: 264px !important;
       }
       .side-mini-panel .nav-logo {
           left: 0 !important;
-          width: 240px !important;
+          width: 264px !important;
           border-right: 1px solid rgba(0, 0, 0, 0.05);
           padding: 0 20px !important;
+          justify-content: center;
       }
       .side-mini-panel .sidebarmenu .sidebar-nav {
           left: 0 !important;
           display: block !important;
-          width: 240px !important;
+          width: 264px !important;
           border-right: 1px solid rgba(0, 0, 0, 0.05);
       }
       
       /* Page wrapper margins */
       @media (min-width: 1300px) {
           html[data-layout="vertical"] .topbar {
-              width: calc(100% - 240px) !important;
+              width: calc(100% - 264px) !important;
           }
           html[data-layout="vertical"] .page-wrapper {
-              margin-left: 240px !important;
+              margin-left: 264px !important;
           }
       }
       
       /* Mobile drawer sidebar position */
       @media (max-width: 1299px) {
           .side-mini-panel {
-              left: -240px !important;
-              width: 240px !important;
+              left: -264px !important;
+              width: 264px !important;
           }
           .show-sidebar .side-mini-panel {
               left: 0 !important;
@@ -53,6 +54,28 @@
       .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link .hide-menu {
           font-weight: 600 !important;
           font-size: 15px !important;
+      }
+      /* Long labels (translations, extension entries) wrap instead of running past the panel. */
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link {
+          white-space: normal !important;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link .hide-menu {
+          flex: 1 1 auto;
+          min-width: 0;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link > iconify-icon,
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link > i,
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link > .icon-small {
+          flex-shrink: 0;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item > .sidebar-link {
+          gap: 10px !important;
+          padding-right: 12px !important;
+      }
+      .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link.has-arrow {
+          padding-right: 32px !important;
       }
       .side-mini-panel .sidebar-nav ul .nav-small-cap .hide-menu {
           font-weight: 600 !important;
@@ -162,12 +185,139 @@
               display: none !important;
           }
       }
+
+      /* Compact mode: the label of a hovered icon floats beside the sidebar (filled by the script below). */
+      .sidebar-tooltip {
+          position: fixed;
+          z-index: 1080;
+          padding: 6px 12px;
+          border-radius: 8px;
+          background: #2a3547;
+          color: #fff;
+          font-size: 13.5px;
+          font-weight: 600;
+          white-space: nowrap;
+          pointer-events: none;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+          opacity: 0;
+          transform: translate(-4px, -50%);
+          transition: opacity 0.12s ease, transform 0.12s ease;
+      }
+      .sidebar-tooltip::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: -5px;
+          margin-top: -5px;
+          border-width: 5px 5px 5px 0;
+          border-style: solid;
+          border-color: transparent #2a3547 transparent transparent;
+      }
+      .sidebar-tooltip.is-visible {
+          opacity: 1;
+          transform: translate(0, -50%);
+      }
+      body.sidebar-dark .sidebar-tooltip {
+          background: #fff;
+          color: #2a3547;
+      }
+      body.sidebar-dark .sidebar-tooltip::before {
+          border-right-color: #fff;
+      }
+
+      /* Header switch for the dark sidebar. */
+      .sidebar-dark-toggle {
+          display: inline-flex;
+          align-items: center;
+          padding: 0 8px;
+          border: 0;
+          background: transparent;
+          color: #2a3547;
+          font-size: 20px;
+      }
+      .sidebar-dark-toggle:hover,
+      .sidebar-dark-toggle:focus-visible {
+          color: #d11e28;
+      }
+      [data-sidebar-dark-toggle] .sidebar-dark-icon-on,
+      body.sidebar-dark [data-sidebar-dark-toggle] .sidebar-dark-icon-off {
+          display: none;
+      }
+      body.sidebar-dark [data-sidebar-dark-toggle] .sidebar-dark-icon-on {
+          display: inline-block;
+      }
+
+      /* Dark sidebar. */
+      body.sidebar-dark .side-mini-panel,
+      body.sidebar-dark .side-mini-panel .nav-logo,
+      body.sidebar-dark .side-mini-panel .sidebarmenu .sidebar-nav {
+          background: #1f2633 !important;
+          border-right-color: rgba(255, 255, 255, 0.06) !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link .hide-menu,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .nav-small-cap {
+          color: #c9d1de !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link iconify-icon,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link i {
+          color: #c9d1de !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .icon-small {
+          background-color: #c9d1de !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link.has-arrow::after {
+          border-color: #c9d1de !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link:hover,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link:hover .hide-menu,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link:hover iconify-icon,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .sidebar-link:hover i {
+          color: #fff !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link:hover {
+          background-color: rgba(255, 255, 255, 0.06);
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .sidebar-link:hover .icon-small {
+          background-color: #fff !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link.active,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active {
+          background-color: rgba(209, 30, 40, 0.22) !important;
+          color: #ff8a90 !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link .hide-menu,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link iconify-icon,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link i,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active .hide-menu,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active iconify-icon,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active i {
+          color: #ff8a90 !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item.selected > .sidebar-link.has-arrow::after,
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item > .sidebar-link.active.has-arrow::after {
+          border-color: #ff8a90 !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .sidebar-link.active {
+          background-color: transparent !important;
+          color: #ff8a90 !important;
+      }
+      body.sidebar-dark .side-mini-panel .sidebar-nav ul .sidebar-item .first-level .sidebar-item .sidebar-link.active .icon-small {
+          background-color: #ff8a90 !important;
+      }
+      body.sidebar-dark .side-mini-panel .simplebar-scrollbar::before {
+          background: rgba(255, 255, 255, 0.4);
+      }
   </style>
 
   <script>
       try {
           if (window.localStorage.getItem('admin-sidebar-icons-only') === 'true') {
               document.body.classList.add('sidebar-icons-only');
+          }
+          if (window.localStorage.getItem('admin-sidebar-dark') === 'true') {
+              document.body.classList.add('sidebar-dark');
           }
       } catch (error) {
           // Storage can be unavailable in private browsing; the toggle still works for this page.
@@ -205,7 +355,6 @@
                                   'seo_tasks' => $sidebarAi->check($sidebarUser, 'ai_seo'),
                                   'seo_research' => $sidebarAi->check($sidebarUser, 'ai_research'),
                                   'seo_bulk' => $sidebarAi->check($sidebarUser, 'ai_seo'),
-                                  'seo_draft' => $sidebarAi->check($sidebarUser, 'ai_seo', 'posts.create'),
                               ];
                               $sidebarCan = fn (string $ability): bool => (bool) $sidebarUser?->can($ability);
                               $sidebarShow = [
@@ -224,8 +373,7 @@
                                   'seo_tasks' => true,
                                   'seo_research' => true,
                                   'seo_bulk' => true,
-                                  // Writing a post needs the CMS; without it there is nothing to unlock.
-                                  'seo_draft' => $sidebarCms,
+                                  // "Viết bằng AI" is not listed: it starts from the post list (and keyword research).
                                   'redirects' => $sidebarCan('redirects.view'),
                                   'users' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('users.view'),
                                   'roles' => $sidebarFeatures->availableTo($sidebarUser, 'multi_admin') && $sidebarCan('roles.view'),
@@ -351,7 +499,7 @@
                               </a>
                           </li>
                           @endif
-                          @if($sidebarAny('seo_tasks', 'seo_research', 'seo_bulk', 'seo_draft', 'redirects'))
+                          @if($sidebarAny('seo_tasks', 'seo_research', 'seo_bulk', 'redirects'))
                           <li class="sidebar-item" data-sidebar-seo-menu>
                               <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                   <iconify-icon icon="solar:graph-up-line-duotone"></iconify-icon>
@@ -361,9 +509,7 @@
                                   @foreach([
                                       'seo_tasks' => ['admin.ai.seo-tasks.index', __('ai.tasks.title')],
                                       'seo_research' => ['admin.ai.research.index', __('ai.research.title')],
-                                      'seo_bulk' => ['admin.ai.bulk.index', __('ai.bulk.title')],
-                                      'seo_draft' => ['admin.ai.post-drafts.create', __('ai.draft.button')],
-                                  ] as $sidebarKey => [$sidebarRoute, $sidebarLabel])
+                                      'seo_bulk' => ['admin.ai.bulk.index', __('ai.bulk.title')],                                  ] as $sidebarKey => [$sidebarRoute, $sidebarLabel])
                                       @if($sidebarShow[$sidebarKey])
                                           @php
                                               $sidebarAccess = $sidebarAiAccess[$sidebarKey];
@@ -517,6 +663,73 @@
           const compactClass = 'sidebar-icons-only';
           const storageKey = 'admin-sidebar-icons-only';
           const toggles = [...document.querySelectorAll('[data-sidebar-collapse-toggle]')];
+          const darkClass = 'sidebar-dark';
+          const darkStorageKey = 'admin-sidebar-dark';
+          const darkToggles = [...document.querySelectorAll('[data-sidebar-dark-toggle]')];
+
+          const syncDarkToggle = () => {
+              const dark = document.body.classList.contains(darkClass);
+              const label = dark ? @json(__('admin.sidebar.dark_off')) : @json(__('admin.sidebar.dark_on'));
+              darkToggles.forEach((toggle) => {
+                  toggle.setAttribute('aria-pressed', String(dark));
+                  toggle.setAttribute('aria-label', label);
+                  toggle.setAttribute('title', label);
+              });
+          };
+
+          darkToggles.forEach((toggle) => {
+              toggle.addEventListener('click', () => {
+                  const dark = document.body.classList.toggle(darkClass);
+                  try {
+                      window.localStorage.setItem(darkStorageKey, String(dark));
+                  } catch (error) {
+                      // Keep the chosen state for the current page when storage is unavailable.
+                  }
+                  syncDarkToggle();
+              });
+          });
+          syncDarkToggle();
+
+          // Compact mode hides every label, so the hovered icon shows its label beside the sidebar.
+          // The bubble lives on <body>: the scrolling nav would clip anything placed inside it.
+          const tooltip = document.createElement('div');
+          tooltip.className = 'sidebar-tooltip';
+          tooltip.setAttribute('role', 'tooltip');
+          tooltip.hidden = true;
+          document.body.appendChild(tooltip);
+
+          const hideTooltip = () => {
+              tooltip.classList.remove('is-visible');
+              tooltip.hidden = true;
+          };
+          const showTooltip = (link) => {
+              const label = link.dataset.sidebarTooltip;
+              if (!label || !document.body.classList.contains(compactClass) || !window.matchMedia('(min-width: 1300px)').matches) {
+                  return;
+              }
+              const rect = link.getBoundingClientRect();
+              tooltip.textContent = label;
+              tooltip.style.left = `${rect.right + 10}px`;
+              tooltip.style.top = `${rect.top + rect.height / 2}px`;
+              tooltip.hidden = false;
+              requestAnimationFrame(() => tooltip.classList.add('is-visible'));
+          };
+
+          document.querySelectorAll('#sidebarnav > .sidebar-item > .sidebar-link').forEach((link) => {
+              const label = link.querySelector('.hide-menu')?.textContent?.trim();
+              if (!label) {
+                  return;
+              }
+              link.dataset.sidebarTooltip = label;
+              link.setAttribute('aria-label', label);
+              link.addEventListener('mouseenter', () => showTooltip(link));
+              link.addEventListener('focus', () => showTooltip(link));
+              link.addEventListener('mouseleave', hideTooltip);
+              link.addEventListener('blur', hideTooltip);
+              link.addEventListener('click', hideTooltip);
+          });
+          document.querySelector('#sidebarnav')?.closest('.sidebar-nav')?.addEventListener('scroll', hideTooltip, true);
+          window.addEventListener('resize', hideTooltip);
 
           if (!toggles.length) {
               return;
@@ -532,15 +745,9 @@
               });
           };
 
-          document.querySelectorAll('#sidebarnav .sidebar-menu > .sidebar-item > .sidebar-link').forEach((link) => {
-              const label = link.querySelector('.hide-menu')?.textContent?.trim();
-              if (label) {
-                  link.setAttribute('title', label);
-              }
-          });
-
           toggles.forEach((toggle) => {
               toggle.addEventListener('click', () => {
+                  hideTooltip();
                   const compact = document.body.classList.toggle(compactClass);
                   try {
                       window.localStorage.setItem(storageKey, String(compact));

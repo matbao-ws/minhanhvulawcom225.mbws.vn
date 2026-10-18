@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\NotFoundLog;
+use App\Models\Redirect;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,5 +55,20 @@ class AdminPaginationTest extends TestCase
 
         $this->actingAs($this->admin)->get('/vi/admin/roles?per_page=25')->assertOk()
             ->assertSee(__('admin.pagination.summary', ['from' => 1, 'to' => min(25, $total), 'total' => $total]));
+    }
+
+    public function test_lists_built_outside_the_usual_controllers_honour_per_page_too(): void
+    {
+        foreach (range(1, 30) as $i) {
+            Redirect::query()->create(['source_path' => '/cu-'.$i, 'target_url' => '/moi-'.$i, 'status_code' => 301, 'origin' => Redirect::ORIGIN_MANUAL, 'is_active' => true]);
+            NotFoundLog::query()->create(['path' => '/hong-'.$i, 'hits' => $i, 'last_seen_at' => now()]);
+        }
+
+        $this->actingAs($this->admin);
+        $this->assertSame(50, $this->get('/vi/admin/redirects?per_page=50')->assertOk()->viewData('redirectList')->perPage());
+        $this->assertSame(50, $this->get('/vi/admin/redirects?tab=not-found&per_page=50')->assertOk()->viewData('notFoundList')->perPage());
+        $this->assertSame(50, $this->get('/vi/admin/notifications?per_page=50')->assertOk()->viewData('notifications')->perPage());
+        // Outside the allow-list: the screen default.
+        $this->assertSame(25, $this->get('/vi/admin/redirects?per_page=5000')->assertOk()->viewData('redirectList')->perPage());
     }
 }

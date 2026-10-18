@@ -83,7 +83,7 @@ class AiBulkSeoTest extends TestCase
 
     public function test_missing_meta_is_counted_estimated_run_reviewed_and_applied(): void
     {
-        $this->actingAs($this->editor)->get('/vi/admin/ai/bulk')->assertOk()->assertSee(__('ai.bulk.types.product').': <strong>3</strong>', false);
+        $this->actingAs($this->editor)->get('/vi/admin/ai/bulk')->assertOk()->assertSee('<span>'.__('ai.bulk.types.product').'</span>', false)->assertSee('<span class="ai-bulk-pill">3</span>', false);
 
         $this->actingAs($this->editor)->postJson('/vi/admin/ai/bulk/estimate', ['kind' => 'meta', 'content_locale' => 'vi', 'types' => ['product']])
             ->assertOk()->assertJsonPath('data.count', 3)->assertJsonPath('data.credits_estimated', 3);

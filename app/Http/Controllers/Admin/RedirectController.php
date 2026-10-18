@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\NotFoundLog;
 use App\Models\Redirect;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class RedirectController extends Controller
 {
     use HandlesBulkActions;
+    use HandlesPagination;
 
     private const IMPORT_MAX_ROWS = 5000;
 
@@ -38,12 +40,12 @@ class RedirectController extends Controller
             ->when(in_array($request->query('origin'), [Redirect::ORIGIN_MANUAL, Redirect::ORIGIN_WORDPRESS, Redirect::ORIGIN_NOT_FOUND], true),
                 fn ($query) => $query->where('origin', $request->query('origin')))
             ->latest('id')
-            ->paginate(30, ['*'], 'page')->withQueryString();
+            ->paginate($this->perPage(25))->withQueryString();
 
         $notFoundList = NotFoundLog::query()
             ->when($search !== '', fn ($query) => $query->where('path', 'like', '%'.mb_strtolower($search).'%'))
             ->orderByDesc('hits')->orderByDesc('last_seen_at')
-            ->paginate(30, ['*'], 'page')->withQueryString();
+            ->paginate($this->perPage(25))->withQueryString();
 
         return view('admin.redirects.index', [
             'tab' => $tab,

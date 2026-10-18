@@ -998,6 +998,8 @@ return [
         'media_library' => 'Media Library',
         'collapse' => 'Collapse sidebar',
         'expand' => 'Expand sidebar',
+        'dark_on' => 'Dark sidebar',
+        'dark_off' => 'Light sidebar',
     ],
     'shipping_partners' => [
         'created' => 'Successfully added a new custom shipping partner.',

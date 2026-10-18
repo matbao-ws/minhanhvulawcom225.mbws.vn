@@ -389,6 +389,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
     Route::middleware('feature:banner')->group(function () {
         Route::patch('banners/bulk', [BannerController::class, 'bulk'])->middleware('can:banners.update')->name('banners.bulk');
+        Route::post('banners/sort', [BannerController::class, 'sort'])->middleware('can:banners.update')->name('banners.sort');
         Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware(['can:banners.create']);
         Route::resource('banners', BannerController::class)->only(['index'])->middleware('can:banners.view');
         Route::resource('banners', BannerController::class)->only(['edit', 'update'])->middleware('can:banners.update');
