@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\ContactSubmission;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class ContactSubmissionController extends Controller
 {
+    use HandlesBulkActions;
     use HandlesPagination;
 
     public function index(Request $request)
@@ -75,5 +78,21 @@ class ContactSubmissionController extends Controller
         return redirect()
             ->route('admin.contact-submissions.index')
             ->with('success', __('controller.admin.contact_deleted'));
+    }
+
+    /** Delete the messages ticked in the list; the only bulk action a message has. */
+    public function bulk(Request $request, string $locale)
+    {
+        $validated = $this->validatedBulkAction($request, 'contact_submissions', 'contacts');
+        abort_unless($validated['action'] === 'delete', 422);
+
+        $deleted = ContactSubmission::query()->whereIn('id', $validated['ids'])->delete();
+        ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt liên hệ', [
+            'model' => ContactSubmission::class,
+            'ids' => $validated['ids'],
+            'count' => $deleted,
+        ]);
+
+        return back()->with('success', 'Đã xóa '.$deleted.' liên hệ.');
     }
 }

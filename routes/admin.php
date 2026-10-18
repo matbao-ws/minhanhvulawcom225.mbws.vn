@@ -331,6 +331,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::delete('redirects/not-found/{notFoundLog}', [RedirectController::class, 'destroyNotFound'])->whereNumber('notFoundLog')->middleware('can:redirects.delete')->name('redirects.not-found.destroy');
 
     Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->middleware('can:contacts.view')->name('contact-submissions.index');
+    Route::patch('contact-submissions/bulk', [ContactSubmissionController::class, 'bulk'])->middleware('can:contacts.delete')->name('contact-submissions.bulk');
     Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');
     Route::patch('contact-submissions/{contactSubmission}/not-spam', [ContactSubmissionController::class, 'notSpam'])->middleware('can:contacts.update')->name('contact-submissions.not-spam');
     Route::delete('contact-submissions/{contactSubmission}', [ContactSubmissionController::class, 'destroy'])->middleware('can:contacts.delete')->name('contact-submissions.destroy');
