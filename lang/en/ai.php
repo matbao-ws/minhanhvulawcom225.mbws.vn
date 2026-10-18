@@ -35,6 +35,7 @@ return [
         'quota_exceeded' => 'This month\'s AI credits are used up. Contact MatBao to upgrade.',
         'cost_cap_reached' => 'The website has reached its AI limit for this month.',
         'too_many_failures' => 'Too many AI requests failed in a row. Try again in about an hour.',
+        'job_lost' => 'The AI service no longer holds this run, so its results cannot be fetched. Start a new run.',
         'ai_disabled' => 'AI features are switched off for now.',
         'refused' => 'The AI cannot process this content. Please review the page content.',
         'input_too_large' => 'The content is too long for this task.',

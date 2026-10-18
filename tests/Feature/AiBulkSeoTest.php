@@ -115,6 +115,28 @@ class AiBulkSeoTest extends TestCase
         $this->assertSame(AiSuggestion::PROPOSED, AiSuggestion::query()->find($ids[2])->status);
     }
 
+    public function test_a_run_the_gateway_no_longer_holds_stops_instead_of_running_forever(): void
+    {
+        Http::fake(['gw.test/v1/jobs/777' => function () {
+            $this->jobReads++;
+
+            return Http::response(['ok' => false, 'reason' => 'not_found'], 404);
+        }]);
+        $job = AiBulkJob::query()->create([
+            'gateway_job_id' => 777, 'type' => 'bulk.meta', 'locale' => 'vi', 'status' => 'queued',
+            'items_total' => 1, 'credits_estimated' => 1, 'items' => [], 'user_id' => $this->editor->id,
+        ]);
+
+        $this->actingAs($this->editor)->get("/vi/admin/ai/bulk/{$job->id}")->assertOk()
+            ->assertDontSee(__('ai.bulk.running'))
+            ->assertSee(__('ai.errors.job_lost'));
+        $this->assertSame(['stopped', 'job_lost'], [$job->fresh()->status, $job->fresh()->stop_reason]);
+
+        // Settled: the gateway is not asked again.
+        $this->actingAs($this->editor)->get("/vi/admin/ai/bulk/{$job->id}")->assertOk();
+        $this->assertSame(1, $this->jobReads);
+    }
+
     public function test_a_signed_webhook_imports_the_results_and_a_bad_one_is_refused(): void
     {
         $this->actingAs($this->editor)->post('/vi/admin/ai/bulk', ['kind' => 'meta', 'content_locale' => 'vi', 'types' => ['product']]);

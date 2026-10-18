@@ -35,6 +35,7 @@ return [
         'quota_exceeded' => 'Đã hết lượt AI của tháng này. Liên hệ Mắt Bão để nâng gói.',
         'cost_cap_reached' => 'Dịch vụ AI của website đã đạt giới hạn tháng này.',
         'too_many_failures' => 'Có quá nhiều yêu cầu AI lỗi liên tiếp. Thử lại sau khoảng một giờ.',
+        'job_lost' => 'Dịch vụ AI không còn giữ tác vụ này nên không lấy được kết quả. Hãy tạo tác vụ mới.',
         'ai_disabled' => 'Tính năng AI đang tạm tắt.',
         'refused' => 'AI không thể xử lý nội dung này. Kiểm tra lại nội dung trang.',
         'input_too_large' => 'Nội dung quá dài cho tác vụ này.',
