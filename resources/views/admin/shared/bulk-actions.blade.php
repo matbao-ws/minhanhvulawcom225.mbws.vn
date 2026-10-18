@@ -2,6 +2,8 @@
     $bulkFormId = $bulkFormId ?? 'bulk-actions-form';
     $bulkActionUrl = $bulkActionUrl ?? '#';
     $bulkItemLabel = $bulkItemLabel ?? 'mục';
+    // A list whose records have no shown/hidden state offers only what applies to it.
+    $bulkActions = $bulkActions ?? ['activate', 'deactivate', 'delete'];
 @endphp
 
 <form id="{{ $bulkFormId }}" method="POST" action="{{ $bulkActionUrl }}" class="d-none">
@@ -12,15 +14,21 @@
 
 <div class="d-none flex-wrap align-items-center gap-2 px-4 py-3 border-bottom bg-light-subtle" data-bulk-toolbar="{{ $bulkFormId }}">
     <span class="fw-semibold text-dark me-1"><span data-bulk-count>0</span> {{ $bulkItemLabel }} đã chọn</span>
-    <button type="button" class="btn btn-sm btn-outline-success" data-bulk-action="activate">
-        <i class="ti ti-circle-check me-1"></i>Hiển thị
-    </button>
-    <button type="button" class="btn btn-sm btn-outline-secondary" data-bulk-action="deactivate">
-        <i class="ti ti-eye-off me-1"></i>Tạm ẩn
-    </button>
-    <button type="button" class="btn btn-sm btn-outline-danger" data-bulk-action="delete">
-        <i class="ti ti-trash me-1"></i>Xóa đã chọn
-    </button>
+    @if(in_array('activate', $bulkActions, true))
+        <button type="button" class="btn btn-sm btn-outline-success" data-bulk-action="activate">
+            <i class="ti ti-circle-check me-1"></i>Hiển thị
+        </button>
+    @endif
+    @if(in_array('deactivate', $bulkActions, true))
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bulk-action="deactivate">
+            <i class="ti ti-eye-off me-1"></i>Tạm ẩn
+        </button>
+    @endif
+    @if(in_array('delete', $bulkActions, true))
+        <button type="button" class="btn btn-sm btn-outline-danger" data-bulk-action="delete">
+            <i class="ti ti-trash me-1"></i>Xóa đã chọn
+        </button>
+    @endif
     <button type="button" class="btn btn-sm btn-link text-secondary ms-auto" data-bulk-clear>Bỏ chọn</button>
 </div>
 

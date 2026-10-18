@@ -266,9 +266,10 @@ return [
         'tabs' => ['title' => 'Hộp thư và Spam', 'description' => 'Tin bị bộ lọc chống spam giữ lại nằm ở tab Spam, không vào hộp thư và không gửi email báo.'],
         'search' => ['title' => 'Tìm liên hệ', 'description' => 'Tìm theo tên, số điện thoại, email hoặc nội dung.'],
         'read_filter' => ['title' => 'Lọc đã đọc', 'description' => 'Chỉ xem tin chưa đọc hoặc đã đọc.'],
-        'table' => ['title' => 'Danh sách liên hệ', 'description' => 'Tin chưa đọc in đậm. Tin có thông tin thêm có liên kết để xem chi tiết.'],
-        'read' => ['title' => 'Đánh dấu đã đọc', 'description' => 'Gạt công tắc ở mỗi dòng để đánh dấu tin đã đọc hoặc chưa đọc.'],
-        'actions' => ['title' => 'Xoá và gỡ spam', 'description' => 'Xoá tin. Ở tab Spam, bấm "Không phải spam" để đưa tin của khách thật về hộp thư.'],
+        'table' => ['title' => 'Danh sách liên hệ', 'description' => 'Tin chưa đọc in đậm, có chấm xanh. Bấm vào một tin để đọc đủ nội dung, số điện thoại, email và thông tin thêm.'],
+        'select_all' => ['title' => 'Chọn nhiều để xoá', 'description' => 'Tick ô ở từng tin, hoặc "Chọn tất cả" cho cả trang, rồi bấm "Xóa đã chọn" trên thanh vừa hiện.'],
+        'read' => ['title' => 'Đã đọc / chưa đọc', 'description' => 'Mở một tin là tự đánh dấu đã đọc. Bấm nút này để đánh dấu lại là chưa đọc.'],
+        'actions' => ['title' => 'Xoá và gỡ spam', 'description' => 'Xoá tin. Ở tab Spam, bấm "Không phải spam" để đưa tin của khách thật về hộp thư. Nút Gọi, Zalo, Email ở trên để liên hệ lại khách ngay.'],
     ],
 
     'notifications_index' => [

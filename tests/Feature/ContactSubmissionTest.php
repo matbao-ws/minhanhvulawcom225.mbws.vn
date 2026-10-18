@@ -110,7 +110,9 @@ class ContactSubmissionTest extends TestCase
         $this->actingAs($admin)
             ->get('/vi/admin/contact-submissions')
             ->assertOk()
-            ->assertSee('Lê Văn C');
+            ->assertSee('Lê Văn C')
+            ->assertSee('data-read-url="', false)
+            ->assertSee('class="js-delete-form"', false);
 
         $this->actingAs($admin)
             ->patchJson("/vi/admin/contact-submissions/{$submission->id}/toggle-read")
@@ -122,5 +124,58 @@ class ContactSubmissionTest extends TestCase
             ->delete("/vi/admin/contact-submissions/{$submission->id}")
             ->assertRedirect();
         $this->assertDatabaseCount('contact_submissions', 0);
+    }
+
+    public function test_the_inbox_shows_the_whole_message_with_ways_to_reply(): void
+    {
+        $role = Role::query()->create(['name' => 'Contact reader', 'permissions' => ['contacts.view']]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+        $long = str_repeat('Cần tư vấn ống HDPE phi 90 cho công trình. ', 10).'ĐOẠN CUỐI';
+
+        ContactSubmission::query()->create([
+            'name' => 'Phạm D',
+            'phone' => '+84 901 234 567',
+            'email' => 'd@example.com',
+            'message' => $long,
+            'meta' => ['company' => 'Công ty <b>ABC</b>'],
+        ]);
+
+        $this->actingAs($admin)->get('/vi/admin/contact-submissions')->assertOk()
+            // The list shows a preview; the whole message is on the page for the reading pane.
+            ->assertSee('ĐOẠN CUỐI')
+            ->assertSee('href="tel:84901234567"', false)
+            ->assertSee('href="https://zalo.me/0901234567"', false)
+            ->assertSee('href="mailto:d@example.com?subject=', false)
+            // Extra fields are labelled values, escaped, not raw JSON.
+            ->assertSee('Company')
+            ->assertSee('Công ty &lt;b&gt;ABC&lt;/b&gt;', false)
+            // Without contacts.update / contacts.delete: no mark-read call, no buttons that would 403.
+            ->assertDontSee('data-read-url="', false)
+            ->assertDontSee('data-contact-toggle-read>', false)
+            ->assertDontSee('class="js-delete-form"', false);
+    }
+
+    public function test_several_messages_are_deleted_at_once_with_the_delete_permission_only(): void
+    {
+        $keep = ContactSubmission::query()->create(['name' => 'Giữ', 'phone' => '0900000001', 'message' => 'Giữ lại']);
+        $a = ContactSubmission::query()->create(['name' => 'Xoá A', 'phone' => '0900000002', 'message' => 'A']);
+        $b = ContactSubmission::query()->create(['name' => 'Xoá B', 'phone' => '0900000003', 'message' => 'B', 'is_spam' => true, 'spam_reason' => 'honeypot']);
+
+        $reader = User::factory()->create(['role_id' => Role::query()->create(['name' => 'R', 'permissions' => ['contacts.view', 'contacts.update']])->id]);
+        $this->actingAs($reader)->get('/vi/admin/contact-submissions')->assertOk()->assertDontSee('data-bulk-select="bulk-contacts-form"', false);
+        $this->actingAs($reader)->patch('/vi/admin/contact-submissions/bulk', ['action' => 'delete', 'ids' => [$a->id]])->assertForbidden();
+
+        $manager = User::factory()->create(['role_id' => Role::query()->create(['name' => 'M', 'permissions' => ['contacts.view', 'contacts.delete']])->id]);
+        $this->actingAs($manager)->get('/vi/admin/contact-submissions')->assertOk()
+            ->assertSee('data-bulk-select-all="bulk-contacts-form"', false)
+            ->assertSee('data-bulk-action="delete"', false)
+            ->assertDontSee('data-bulk-action="activate"', false);
+
+        // A message has no shown/hidden state: only delete applies.
+        $this->actingAs($manager)->patch('/vi/admin/contact-submissions/bulk', ['action' => 'activate', 'ids' => [$a->id]])->assertStatus(422);
+
+        $this->actingAs($manager)->patch('/vi/admin/contact-submissions/bulk', ['action' => 'delete', 'ids' => [$a->id, $b->id]])
+            ->assertRedirect()->assertSessionHas('success', 'Đã xóa 2 liên hệ.');
+        $this->assertSame([$keep->id], ContactSubmission::query()->pluck('id')->all());
     }
 }
