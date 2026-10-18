@@ -9,15 +9,21 @@
         .contact-inbox__item { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--bs-border-color); border-left: 3px solid transparent; padding: 12px 16px; color: inherit; }
         .contact-inbox__item:hover { background: var(--bs-tertiary-bg); }
         .contact-inbox__item.is-active { background: var(--bs-primary-bg-subtle); border-left-color: var(--bs-primary); }
+        .contact-inbox__name { font-weight: 500; color: #2a3547 !important; }
+        .contact-inbox__time { font-size: .8125rem; color: #5a6a85; }
         .contact-inbox__item.is-unread .contact-inbox__name { font-weight: 700; }
+        .contact-inbox__item.is-unread .contact-inbox__time { font-weight: 600; color: #2a3547; }
         .contact-inbox__item.is-unread .contact-inbox__name::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--bs-primary); vertical-align: middle; }
-        .contact-inbox__preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .8125rem; color: var(--bs-secondary-color); margin-top: 2px; }
+        .contact-inbox__preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .8125rem; color: #5a6a85; margin-top: 2px; }
+        .contact-inbox__item.is-unread .contact-inbox__preview { color: #2a3547; }
         .contact-inbox__pane { min-width: 0; }
         .contact-inbox__placeholder { height: 100%; min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--bs-secondary-color); }
         .contact-inbox__detail { padding: 24px 28px; }
         .contact-inbox__message { white-space: pre-wrap; word-break: break-word; line-height: 1.65; font-size: .9375rem; color: var(--bs-emphasis-color); background: var(--bs-tertiary-bg); border-radius: 8px; padding: 16px 18px; }
         .contact-inbox__meta { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
-        .contact-inbox__meta dt { font-weight: 500; color: var(--bs-secondary-color); }
+        .contact-inbox__meta dt { font-weight: 600; color: #5a6a85; }
+        .contact-inbox__meta dd { color: #2a3547; }
+        .contact-inbox__sub { font-size: .875rem; color: #5a6a85; }
         .contact-inbox__meta dd { margin: 0; word-break: break-word; }
         .contact-inbox__back { display: none; }
 
@@ -107,8 +113,8 @@
                                 @class(['contact-inbox__item', 'is-unread' => ! $submission->is_read])
                                 data-contact-open="{{ $submission->id }}" aria-controls="contact-detail-{{ $submission->id }}">
                                 <span class="d-flex justify-content-between align-items-baseline gap-2">
-                                    <span class="contact-inbox__name text-dark text-truncate">{{ $submission->name }}</span>
-                                    <span class="text-muted small text-nowrap">{{ $submission->created_at->isToday() ? $submission->created_at->format('H:i') : $submission->created_at->format('d/m/Y') }}</span>
+                                    <span class="contact-inbox__name text-truncate">{{ $submission->name }}</span>
+                                    <span class="contact-inbox__time text-nowrap">{{ $submission->created_at->isToday() ? $submission->created_at->format('H:i') : $submission->created_at->format('d/m/Y') }}</span>
                                 </span>
                                 <span class="contact-inbox__preview">{{ \Illuminate\Support\Str::limit($submission->message, 160) }}</span>
                                 @if($submission->is_spam)
@@ -141,11 +147,11 @@
                                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                                     <div style="min-width: 0;">
                                         <h5 class="fw-semibold text-dark mb-1">{{ $submission->name }}</h5>
-                                        <div class="text-muted small">
+                                        <div class="contact-inbox__sub">
                                             @if($submission->phone)<a href="tel:{{ $digits }}" class="text-reset">{{ $submission->phone }}</a>@endif
                                             @if($submission->email) · <a href="mailto:{{ $submission->email }}" class="text-reset">{{ $submission->email }}</a>@endif
                                         </div>
-                                        <div class="text-muted small">{{ $submission->created_at->format('d/m/Y H:i') }}</div>
+                                        <div class="contact-inbox__sub">{{ $submission->created_at->format('d/m/Y H:i') }}</div>
                                     </div>
                                     @if($submission->is_spam)
                                         <div class="text-end">
