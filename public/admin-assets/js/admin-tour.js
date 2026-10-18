@@ -6,8 +6,8 @@
  * - A step whose element is not on the page, or not visible (a button this admin cannot use,
  *   a shipping carrier that is not set up), is left out. Several views render the same
  *   element twice, for desktop and for mobile; the visible one is used.
- * - The tour starts by itself the first time an admin opens the page (per browser), and again
- *   whenever AdminTours::VERSION is bumped. The "?" button in the header replays it at any time.
+ * - The tour runs only when the admin asks for it, with the "?" button in the header: it never
+ *   opens by itself over the page.
  */
 (function () {
     'use strict';
@@ -23,24 +23,6 @@
         tour = JSON.parse(config.textContent);
     } catch (e) {
         return;
-    }
-
-    const storageKey = 'admin-tour:' + tour.user + ':' + tour.id + ':v' + tour.version;
-
-    function remember() {
-        try {
-            window.localStorage.setItem(storageKey, new Date().toISOString());
-        } catch (e) {
-            // Private window or blocked storage: the tour simply offers itself again next time.
-        }
-    }
-
-    function alreadySeen() {
-        try {
-            return window.localStorage.getItem(storageKey) !== null;
-        } catch (e) {
-            return true; // without storage it would pop up on every visit: do not auto-start
-        }
     }
 
     function visible(element) {
@@ -128,16 +110,4 @@
             start();
         }
     });
-
-    if (!alreadySeen()) {
-        // After layout settles (sidebar, charts), so the highlighted boxes are where they end up.
-        window.addEventListener('load', function () {
-            window.setTimeout(function () {
-                // Marked when shown, not when closed: driver.js 1.8 does not call onDestroyed from
-                // its Done button, and a reload halfway through should not start it over either.
-                remember();
-                start();
-            }, 500);
-        });
-    }
 })();

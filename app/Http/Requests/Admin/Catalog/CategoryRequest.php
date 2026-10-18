@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Catalog;
 
 use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use App\Models\Category;
+use App\Support\Seo\SeoBox;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -49,6 +50,7 @@ class CategoryRequest extends FormRequest
             ...$this->localizedStringRules('description'),
             ...$this->localizedStringRules('meta_title', false, 255),
             ...$this->localizedStringRules('meta_description', false, 500),
+            ...app(SeoBox::class)->rules(),
             'image_url' => ['nullable', 'string', 'max:255'],
             'image_file' => ['nullable', 'image', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0'],

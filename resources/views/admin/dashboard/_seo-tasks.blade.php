@@ -1,5 +1,19 @@
-{{-- Top of "This week's SEO work", loaded after the page so the gateway never slows the dashboard. --}}
-@if($seoTasksVisible)
+{{-- Top of "This week's SEO work", loaded after the page so the gateway never slows the dashboard.
+     Always shown; while AI is locked (App\Support\AiAccess) it says why instead of loading. --}}
+@if($seoTasksVisible && ! $seoTasksAccess['allowed'])
+    <div class="card shadow-sm mb-4" data-seo-tasks-locked="{{ $seoTasksAccess['reason'] }}">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-3 bg-warning-subtle text-warning flex-shrink-0" style="width: 40px; height: 40px;"><i class="ti ti-lock fs-5" aria-hidden="true"></i></span>
+            <div class="flex-grow-1" style="min-width: 0;">
+                <h5 class="fw-semibold text-dark mb-1">{{ __('ai.tasks.title') }}</h5>
+                <p class="small text-muted mb-0">{{ $seoTasksAccess['message'] }}</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary is-ai-locked"{!! \App\Support\AiAccess::lockAttributes($seoTasksAccess) !!}>
+                <i class="ti ti-lock me-1" aria-hidden="true"></i>{{ $seoTasksAccess['action_label'] ?? $seoTasksAccess['title'] }}
+            </button>
+        </div>
+    </div>
+@elseif($seoTasksVisible)
     @push('styles')
         <style>
             .dashboard-seo-tasks {
@@ -31,7 +45,6 @@
                 color: #713df2;
                 background: #eee8ff;
             }
-            .dashboard-seo-tasks__title { color: #2a3547; font-size: 1rem; font-weight: 800; }
             .dashboard-seo-tasks__all { font-weight: 700; white-space: nowrap; }
             .dashboard-seo-tasks__body { padding: 1.1rem 1.25rem 1.25rem; }
             .dashboard-seo-tasks__notice { display: flex; align-items: center; gap: .85rem; padding: .9rem; border: 1px solid #e5dffc; border-radius: .8rem; color: #526174; background: linear-gradient(135deg, #fbfaff, #f6f9ff); }
@@ -39,6 +52,13 @@
             .dashboard-seo-tasks__notice-copy { min-width: 0; flex: 1; }
             .dashboard-seo-tasks__notice-title { margin: 0 0 .2rem; color: #35425b; font-size: .875rem; font-weight: 800; }
             .dashboard-seo-tasks__notice-action { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
+            .dashboard-seo-tasks__pending { display: flex; align-items: center; gap: .85rem; padding: 1rem; border: 1px solid #d8e4f3; border-radius: .8rem; background: linear-gradient(135deg, #f8fbff, #f3f8ff); }
+            .dashboard-seo-tasks__pending-icon { display: inline-flex; width: 2.25rem; height: 2.25rem; flex: 0 0 2.25rem; align-items: center; justify-content: center; border-radius: .7rem; color: #365a8c; background: #eaf1ff; }
+            .dashboard-seo-tasks__pending-icon i { animation: dashboard-seo-tasks-spin 1.2s linear infinite; }
+            .dashboard-seo-tasks__pending-copy { min-width: 0; }
+            .dashboard-seo-tasks__pending-title { margin: 0 0 .15rem; color: #2a3547; font-size: .8125rem; font-weight: 800; }
+            .dashboard-seo-tasks__pending-hint { margin: 0; color: #5d6d84; font-size: .75rem; line-height: 1.45; }
+            @keyframes dashboard-seo-tasks-spin { to { transform: rotate(360deg); } }
             .dashboard-seo-tasks__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
             .dashboard-seo-tasks__stat { padding: .8rem .9rem; border: 1px solid #edf0f6; border-radius: .75rem; background: #fbfcff; }
             .dashboard-seo-tasks__label { color: #8190a8; font-size: .75rem; font-weight: 700; }
@@ -57,6 +77,10 @@
             [data-bs-theme="dark"] .dashboard-seo-tasks__title, [data-bs-theme="dark"] .dashboard-seo-tasks__notice-title { color: #edf2f8; }
             [data-bs-theme="dark"] .dashboard-seo-tasks__notice { border-color: #4b4770; color: #c4cfde; background: linear-gradient(135deg, #2c2948, #26364c); }
             [data-bs-theme="dark"] .dashboard-seo-tasks__notice-icon { color: #cbb8ff; background: #3b3260; }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__pending { border-color: #40536d; background: linear-gradient(135deg, #223248, #203046); }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__pending-icon { color: #b8d3ff; background: #2d4564; }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__pending-title { color: #edf2f8; }
+            [data-bs-theme="dark"] .dashboard-seo-tasks__pending-hint { color: #c4cfde; }
             @media (max-width: 575.98px) {
                 .dashboard-seo-tasks__header, .dashboard-seo-tasks__body { padding-right: 1rem; padding-left: 1rem; }
                 .dashboard-seo-tasks__item { align-items: flex-start; flex-wrap: wrap; }
@@ -73,7 +97,7 @@
         <div class="dashboard-seo-tasks__header">
             <div class="dashboard-seo-tasks__heading">
                 <span class="dashboard-seo-tasks__icon" aria-hidden="true"><i class="ti ti-chart-arrows-vertical fs-5"></i></span>
-                <div class="dashboard-seo-tasks__title">{{ __('ai.tasks.title') }}</div>
+                <h5 class="fw-semibold text-dark mb-1">{{ __('ai.tasks.title') }}</h5>
             </div>
             <a class="btn btn-sm btn-outline-primary dashboard-seo-tasks__all" href="{{ route('admin.ai.seo-tasks.index') }}">{{ __('ai.tasks.view_all') }}</a>
         </div>
@@ -85,7 +109,8 @@
             'clicks' => __('ai.tasks.clicks'),
             'impressions' => __('ai.tasks.impressions'),
             'vs' => __('ai.tasks.vs_previous'),
-            'pending' => __('ai.tasks.pending'),
+            'pendingTitle' => __('ai.tasks.pending_title'),
+            'pendingHint' => __('ai.tasks.pending_hint'),
             'notConnected' => __('ai.tasks.not_connected'),
             'connect' => __('ai.tasks.connect'),
             'empty' => __('ai.tasks.empty'),
@@ -129,6 +154,18 @@
                     if (action) notice.append(action);
                     body.append(notice);
                 };
+                const renderPending = () => {
+                    const pending = el('div', 'dashboard-seo-tasks__pending');
+                    const icon = el('span', 'dashboard-seo-tasks__pending-icon');
+                    icon.append(el('i', 'ti ti-loader-2'));
+                    const copy = el('div', 'dashboard-seo-tasks__pending-copy');
+                    copy.append(
+                        el('p', 'dashboard-seo-tasks__pending-title', text.pendingTitle),
+                        el('p', 'dashboard-seo-tasks__pending-hint', text.pendingHint),
+                    );
+                    pending.append(icon, copy);
+                    body.append(pending);
+                };
 
                 try {
                     const response = await fetch(card.dataset.seoTasksCard, {headers: {'Accept': 'application/json'}});
@@ -146,7 +183,7 @@
                         return;
                     }
                     if (!data.synced_through) {
-                        body.append(el('span', 'text-muted', text.pending));
+                        renderPending();
                         return;
                     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
@@ -21,12 +22,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class CustomerController extends Controller
 {
+    use HandlesPagination;
+
     private const EXPORT_CHUNK = 500;
 
     public function index(Request $request)
     {
         $customers = $this->customerQuery($request)
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         $this->markRegisteredAccounts($customers->getCollection());
@@ -107,7 +110,7 @@ class CustomerController extends Controller
             ->selectRaw('MIN(created_at) as first_order_at')
             ->selectRaw('MAX(created_at) as last_order_at')
             ->firstOrFail();
-        $orders = $ordersQuery->latest()->paginate(15)->withQueryString();
+        $orders = $ordersQuery->latest()->paginate($this->perPage(15))->withQueryString();
         $registeredCustomer = User::query()
             ->whereNull('role_id')
             ->whereRaw('LOWER(email) = ?', [$email])

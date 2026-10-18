@@ -2,6 +2,10 @@
 
 @section('title', __('admin.banners.title'))
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('admin-assets/libs/dragula/dist/dragula.min.css') }}">
+@endpush
+
 @section('content')
     <x-admin.page-header :title="__('admin.banners.title')">
         <x-slot:breadcrumbs>
@@ -58,7 +62,11 @@
             </form>
         </div>
 
-        <div class="card-body p-0">
+        {{-- Filters, pages, show/hide and delete update this part only (admin-ajax.js). --}}
+        @php
+            $canUpdateBanners = (bool) auth()->user()?->can('banners.update');
+        @endphp
+        <div class="card-body p-0" data-ajax-list="banners">
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-banners-form',
                 'bulkActionUrl' => route('admin.banners.bulk'),
@@ -68,19 +76,26 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap text-muted">
+                            <th class="ps-4" style="width: 44px;"></th>
                             <th data-tour="banners.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-banners-form" aria-label="Chọn tất cả banner"></th>
                             <th class="ps-4 fw-semibold small" style="width: 180px;">{{ __('admin.banners.fields.image') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.title') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.position') }}</th>
-                            <th class="fw-semibold small" style="width: 120px;">{{ __('admin.banners.fields.sort_order') }}</th>
                             <th class="fw-semibold small" style="width: 150px;">{{ __('admin.banners.fields.status') }}</th>
                             <th class="pe-4 text-end" style="width: 120px;"></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="banner-table-sortable" data-sortable="{{ $isFiltered ? '0' : '1' }}" data-start-order="{{ max(0, ($banners->firstItem() ?? 1) - 1) }}">
                         @forelse($banners as $banner)
-                            <tr class="text-nowrap">
-                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $banner->id }}" form="bulk-banners-form" data-bulk-select="bulk-banners-form" aria-label="Chọn {{ $banner->title ?: 'banner' }}"></td>
+                            <tr class="text-nowrap" data-banner-id="{{ $banner->id }}">
+                                <td class="ps-4">
+                                    @unless($isFiltered)
+                                        <span class="catalog-drag-handle cursor-grab" title="{{ __('catalog.actions.drag_sort') }}">
+                                            <i class="ti ti-grip-vertical fs-5"></i>
+                                        </span>
+                                    @endunless
+                                </td>
+                                <td><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $banner->id }}" form="bulk-banners-form" data-bulk-select="bulk-banners-form" aria-label="Chọn {{ $banner->title ?: 'banner' }}"></td>
                                 <td class="ps-4">
                                     <div class="rounded border p-1 bg-light d-inline-block">
                                         <img src="{{ $banner->image_url }}" 
@@ -108,18 +123,14 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="fw-bold text-dark fs-3">{{ $banner->sort_order }}</span>
-                                </td>
-                                <td>
-                                    @if($banner->is_active)
-                                        <span class="badge bg-success-subtle text-success fw-semibold fs-2">
-                                            {{ __('admin.banners.fields.active') }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-warning-subtle text-warning fw-semibold fs-2">
-                                            {{ __('admin.banners.fields.inactive') }}
-                                        </span>
-                                    @endif
+                                    @include('admin.shared.status-switch', [
+                                        'action' => route('admin.banners.bulk'),
+                                        'id' => $banner->id,
+                                        'active' => (bool) $banner->is_active,
+                                        'can' => $canUpdateBanners,
+                                        'activeLabel' => __('admin.banners.fields.active'),
+                                        'inactiveLabel' => __('admin.banners.fields.inactive'),
+                                    ])
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">
@@ -142,11 +153,74 @@
                 </table>
             </div>
 
-            @if($banners->hasPages())
+            @if($banners->total() > 0)
                 <div class="p-4 border-top">
-                    {{ $banners->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $banners])
                 </div>
             @endif
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
+    <script>
+        AdminAjax.ready(function (root) {
+            const sortable = root.querySelector('#banner-table-sortable');
+            const sortingEnabled = sortable && sortable.dataset.sortable === '1';
+            const toast = function (icon, message) {
+                if (!window.Swal) {
+                    return;
+                }
+
+                Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true
+                }).fire({ icon: icon, title: message });
+            };
+
+            if (!sortingEnabled || !window.dragula || sortable.querySelectorAll('tr[data-banner-id]').length < 2) {
+                return;
+            }
+
+            dragula([sortable], {
+                moves: function (el, container, handle) {
+                    return el.dataset.bannerId !== undefined && handle.closest('.catalog-drag-handle') !== null;
+                }
+            }).on('drop', function () {
+                const ids = Array.from(sortable.querySelectorAll('tr[data-banner-id]')).map(function (tr) {
+                    return tr.dataset.bannerId;
+                });
+
+                fetch(@json(route('admin.banners.sort')), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': @json(csrf_token())
+                    },
+                    body: JSON.stringify({
+                        ids: ids,
+                        start_order: Number(sortable.dataset.startOrder || 0)
+                    })
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Sort failed');
+                        }
+
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        toast('success', payload.message);
+                    })
+                    .catch(function () {
+                        toast('error', 'Unable to update banner order.');
+                    });
+            });
+        });
+    </script>
+@endpush

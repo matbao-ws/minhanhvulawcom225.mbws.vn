@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Exceptions\PackageLimitExceeded;
 use App\Http\Controllers\Admin\Concerns\HandlesBulkActions;
 use App\Http\Controllers\Admin\Concerns\HandlesPagination;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\ProductRequest;
 use App\Models\Brand;
@@ -17,6 +18,7 @@ use App\Services\Catalog\ProductService;
 use App\Services\CloudinaryService;
 use App\Services\Packages\PackageLimits;
 use App\Support\Csv;
+use App\Support\FeatureGate;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +26,7 @@ use RuntimeException;
 
 class ProductController extends Controller
 {
-    use HandlesBulkActions, HandlesPagination;
+    use HandlesBulkActions, HandlesPagination, OpensAiToolAfterCreate;
 
     public function __construct(
         private readonly ProductService $products,
@@ -89,7 +91,7 @@ class ProductController extends Controller
     {
         try {
             $data = $request->validated();
-            $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
+            $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) && $this->variantsAvailable() ? $data['variant_groups'] : [];
             unset($data['has_variants'], $data['variant_groups']);
             $galleryImages = array_values(array_filter($data['gallery_images'] ?? [], fn ($url) => filled($url)));
             unset($data['gallery_images']);
@@ -118,11 +120,11 @@ class ProductController extends Controller
             return back()->withInput()->with('error', $exception->getMessage());
         }
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.products.edit', $product, redirect()
             ->route('admin.products.show', $product)
             ->with('success', $variantCount > 0
                 ? __('catalog.products.created')." Đã tạo {$variantCount} SKU tổ hợp."
-                : __('catalog.products.created'));
+                : __('catalog.products.created')));
     }
 
     public function show(string $locale, Product $product)
@@ -149,7 +151,7 @@ class ProductController extends Controller
     public function update(ProductRequest $request, string $locale, Product $product)
     {
         $data = $request->validated();
-        $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) ? $data['variant_groups'] : [];
+        $variantGroups = ($data['has_variants'] ?? false) && ! empty($data['variant_groups']) && $this->variantsAvailable() ? $data['variant_groups'] : [];
         unset($data['has_variants'], $data['variant_groups']);
         $galleryImages = array_values(array_filter($data['gallery_images'] ?? [], fn ($url) => filled($url)));
         unset($data['gallery_images']);
@@ -210,6 +212,28 @@ class ProductController extends Controller
         return response()->json([
             'message' => __('catalog.products.sorted'),
         ]);
+    }
+
+    /** Price and stock from the product list (a product without variants). */
+    public function quickUpdate(Request $request, string $locale, Product $product)
+    {
+        $validated = $request->validate([
+            'price' => ['required', 'numeric', 'min:0', 'max:999999999999'],
+            'stock_quantity' => ['required', 'integer', 'min:0', 'max:1000000000'],
+        ]);
+
+        try {
+            $changes = $this->products->quickUpdate($product, $validated);
+        } catch (DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        ActivityLogger::log('updated', $product, 'Sửa nhanh giá và tồn kho sản phẩm', [
+            'price' => $changes['price'],
+            'stock_quantity' => $changes['stock_quantity'],
+        ]);
+
+        return back()->with('success', __('catalog.products.quick_updated'));
     }
 
     public function bulk(Request $request, string $locale)
@@ -504,5 +528,11 @@ class ProductController extends Controller
         // Kept as a thin alias so existing call sites stay readable; the rule itself
         // is shared with the other exports.
         return Csv::safeValue($value);
+    }
+
+    /** Variant groups count only with the product_variant feature (superadmin always). */
+    private function variantsAvailable(): bool
+    {
+        return app(FeatureGate::class)->availableTo(request()->user(), 'product_variant');
     }
 }

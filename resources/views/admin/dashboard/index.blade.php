@@ -124,8 +124,8 @@
         border-radius: 12px;
         background: #fbfcff;
     }
-    .dashboard-package-usage__meta { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #8190a8; font-size: 12px; font-weight: 600; }
-    .dashboard-package-usage__meta strong { color: #627391; font-weight: 800; white-space: nowrap; }
+    .dashboard-package-usage__meta { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #1f2937; font-size: 12px; font-weight: 600; }
+    .dashboard-package-usage__meta strong { color: #fd7e14; font-weight: 800; white-space: nowrap; }
     .dashboard-package-usage .progress { height: 5px !important; border-radius: 999px; background-color: #e8edf5; }
     .dashboard-package-usage .progress-bar { border-radius: inherit; background-color: #d11e28 !important; }
     .dashboard-ai-usage { display: flex; align-items: center; gap: 16px; padding: 13px 14px; }
@@ -267,6 +267,43 @@
         .dashboard-welcome-features-track > [data-clone="true"] {
             display: none !important;
         }
+        /* One row that slides sideways when the banner is too narrow, instead of wrapping: no
+           scrollbar; drag, wheel or swipe moves it, and a fading edge shows there is more. */
+        .dashboard-welcome-features {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
+            /* Room for the hover lift, which overflow would otherwise clip. */
+            padding: 4px 0 6px;
+            margin: -4px 0 -6px;
+        }
+        .dashboard-welcome-features::-webkit-scrollbar { display: none; }
+        .dashboard-welcome-features.is-scrollable { cursor: grab; }
+        .dashboard-welcome-features.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+        .dashboard-welcome-features.is-dragging .dashboard-welcome-feature { pointer-events: none; }
+        .dashboard-welcome-features.is-scrollable:not(.at-start):not(.at-end) {
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+        }
+        .dashboard-welcome-features.is-scrollable.at-start:not(.at-end) {
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+        }
+        .dashboard-welcome-features.is-scrollable.at-end:not(.at-start) {
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px);
+            mask-image: linear-gradient(90deg, transparent, #000 32px);
+        }
+        .dashboard-welcome-features-track {
+            flex-wrap: nowrap;
+            width: max-content;
+        }
+        .dashboard-welcome-feature {
+            flex: 0 0 auto;
+            white-space: nowrap;
+            scroll-snap-align: start;
+        }
     }
 </style>
 @endpush
@@ -280,6 +317,7 @@
             <p class="mb-4">{{ __('admin.dashboard_page.welcome_description') }}</p>
             <div class="dashboard-welcome-features" data-welcome-slider>
                 <div class="dashboard-welcome-features-track" data-welcome-track>
+                    @if($isStore ?? true)
                     <a href="#revenueChart" class="dashboard-welcome-feature">
                         <span class="dashboard-welcome-feature-icon text-danger">
                             <iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon>
@@ -304,6 +342,33 @@
                         </span>
                         <span>{{ __('admin.dashboard_page.welcome_features.growth') }}</span>
                     </a>
+                    @else
+                    @php($canOpen = fn (string $permission) => auth()->user()?->can($permission))
+                    <a href="{{ $canOpen('posts.view') ? route('admin.posts.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-primary">
+                            <iconify-icon icon="solar:document-text-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.posts') }}</span>
+                    </a>
+                    <a href="{{ $canOpen('pages.view') ? route('admin.pages.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-success">
+                            <iconify-icon icon="solar:notebook-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.pages') }}</span>
+                    </a>
+                    <a href="{{ $canOpen('contacts.view') ? route('admin.contact-submissions.index') : 'javascript:void(0)' }}" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-danger">
+                            <iconify-icon icon="solar:letter-unread-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.contacts') }}</span>
+                    </a>
+                    <a href="#revenueChart" class="dashboard-welcome-feature">
+                        <span class="dashboard-welcome-feature-icon text-warning">
+                            <iconify-icon icon="solar:chart-2-bold-duotone" class="fs-5"></iconify-icon>
+                        </span>
+                        <span>{{ __('admin.dashboard_page.welcome_features_content.traffic') }}</span>
+                    </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -331,7 +396,8 @@
             </div>
             <div class="row g-3">
                 @foreach($packageUsage['rows'] as $row)
-                    <div class="col-12 col-sm-6 col-xl-3">
+                    {{-- Equal columns that fill the row, whatever the number of limits. --}}
+                    <div class="col-12 col-md">
                         <div class="dashboard-package-usage__item">
                             <div class="dashboard-package-usage__meta">
                                 <span>{{ $row['label'] }}</span>
@@ -358,7 +424,28 @@
 
     @include('admin.dashboard._seo-tasks')
 
-    @if(!$canViewOrders)
+    @if(! ($isStore ?? true))
+        {{-- A website that sells nothing: its content, not sales figures. --}}
+        @if(! empty($contentStats))
+            <div data-tour="dashboard.stats" class="row g-3 mb-4">
+                @foreach($contentStats as $stat)
+                    <div class="col-md-4">
+                        <a href="{{ $stat['url'] }}" class="card shadow-sm h-100 mb-0 text-decoration-none">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <span class="card-icon bg-{{ $stat['tone'] }}-subtle text-{{ $stat['tone'] }} flex-shrink-0">
+                                    <iconify-icon icon="{{ $stat['icon'] }}" class="fs-6"></iconify-icon>
+                                </span>
+                                <div>
+                                    <div class="fs-6 fw-bold text-dark">{{ number_format($stat['value']) }}</div>
+                                    <div class="text-muted small">{{ __('admin.dashboard_page.content_stats.'.$stat['key']) }}</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    @elseif(!$canViewOrders)
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <div class="d-flex align-items-start gap-3">
@@ -1007,6 +1094,101 @@
     });
 </script>
 @endif
+
+<script>
+    // Welcome shortcuts above 485px: a sideways slider when they do not fit one row (the phone
+    // layout below has its own vertical slider). Drag with the mouse, wheel, or swipe; no scrollbar.
+    document.addEventListener('DOMContentLoaded', function () {
+        const strip = document.querySelector('[data-welcome-slider]');
+        if (!strip) return;
+        const phone = () => window.matchMedia('(max-width: 485px)').matches;
+
+        function update() {
+            const max = strip.scrollWidth - strip.clientWidth;
+            const scrollable = !phone() && max > 2;
+            strip.classList.toggle('is-scrollable', scrollable);
+            strip.classList.toggle('at-start', strip.scrollLeft <= 2);
+            strip.classList.toggle('at-end', strip.scrollLeft >= max - 2);
+        }
+
+        let startX = 0;
+        let startLeft = 0;
+        let pointer = null;
+        let dragged = false;
+
+        strip.addEventListener('pointerdown', function (event) {
+            // Touch scrolls natively; the mouse drags.
+            if (event.pointerType !== 'mouse' || event.button !== 0 || !strip.classList.contains('is-scrollable')) return;
+            pointer = event.pointerId;
+            startX = event.clientX;
+            startLeft = strip.scrollLeft;
+            dragged = false;
+        });
+        strip.addEventListener('pointermove', function (event) {
+            if (event.pointerId !== pointer) return;
+            const dx = event.clientX - startX;
+            if (!dragged && Math.abs(dx) > 5) {
+                dragged = true;
+                strip.classList.add('is-dragging');
+                strip.setPointerCapture(pointer);
+            }
+            if (dragged) strip.scrollLeft = startLeft - dx;
+        });
+        const release = function () {
+            pointer = null;
+            strip.classList.remove('is-dragging');
+        };
+        strip.addEventListener('pointerup', release);
+        strip.addEventListener('pointercancel', release);
+        // A drag that ends over a shortcut is not a click on it.
+        strip.addEventListener('click', function (event) {
+            if (dragged) {
+                event.preventDefault();
+                event.stopPropagation();
+                dragged = false;
+            }
+        }, true);
+
+        // A plain mouse wheel slides it while there is room; at either end the page scrolls on.
+        strip.addEventListener('wheel', function (event) {
+            if (!strip.classList.contains('is-scrollable') || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+            const max = strip.scrollWidth - strip.clientWidth;
+            if ((event.deltaY < 0 && strip.scrollLeft <= 0) || (event.deltaY > 0 && strip.scrollLeft >= max)) return;
+            event.preventDefault();
+            strip.scrollLeft += event.deltaY;
+        }, {passive: false});
+
+        // Slides on by itself, one shortcut every 2.6 s like the phone slider, back to the first
+        // after the last. Paused under the mouse, while dragging, in a hidden tab, and never for
+        // people who asked their system for less motion.
+        const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let hovered = false;
+        strip.addEventListener('mouseenter', () => { hovered = true; });
+        strip.addEventListener('mouseleave', () => { hovered = false; });
+        strip.addEventListener('focusin', () => { hovered = true; });
+        strip.addEventListener('focusout', () => { hovered = false; });
+
+        function advance() {
+            if (hovered || pointer !== null || document.hidden || still.matches || !strip.classList.contains('is-scrollable')) return;
+            const max = strip.scrollWidth - strip.clientWidth;
+            if (strip.scrollLeft >= max - 2) {
+                strip.scrollTo({left: 0, behavior: 'smooth'});
+                return;
+            }
+            // Positions measured against the strip itself (offsetLeft would count from the banner).
+            const left = strip.getBoundingClientRect().left;
+            const next = Array.from(strip.querySelectorAll('.dashboard-welcome-feature:not([data-clone])'))
+                .find((item) => item.getBoundingClientRect().left - left > 2);
+            const target = next ? strip.scrollLeft + next.getBoundingClientRect().left - left : max;
+            strip.scrollTo({left: Math.min(target, max), behavior: 'smooth'});
+        }
+        window.setInterval(advance, 2600);
+
+        strip.addEventListener('scroll', update, {passive: true});
+        window.addEventListener('resize', update);
+        update();
+    });
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

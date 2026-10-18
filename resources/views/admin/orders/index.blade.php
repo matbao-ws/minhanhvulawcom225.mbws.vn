@@ -2,6 +2,20 @@
 
 @section('title', __('admin.menu.orders'))
 
+@push('styles')
+    <style>
+        .orders-table-scroll {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        .orders-table-scroll > .table { min-width: 940px; }
+    </style>
+@endpush
+
 @section('content')
     <x-admin.page-header :title="__('admin.menu.orders')">
         <x-slot:breadcrumbs>
@@ -68,8 +82,9 @@
             </form>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div data-tour="orders.table" class="table-responsive">
+        {{-- Filters and pages update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="orders">
+            <div data-tour="orders.table" class="table-responsive orders-table-scroll">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
@@ -161,9 +176,9 @@
                 ])
             @endif
 
-            @if($orders->hasPages())
+            @if($orders->total() > 0)
                 <div class="card-footer bg-transparent border-top py-3">
-                    {{ $orders->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $orders])
                 </div>
             @endif
         </div>

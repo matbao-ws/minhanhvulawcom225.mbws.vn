@@ -117,6 +117,17 @@ class WordPressImageImportService
         return (string) preg_replace('/\s+(?:srcset|sizes)\s*=\s*(["\']).*?\1/is', '', $html);
     }
 
+    /**
+     * Images copied in this run, original URL => local URL (RedirectService keeps the old
+     * /wp-content/uploads/ addresses alive).
+     *
+     * @return array<string, string>
+     */
+    public function localizedUrls(): array
+    {
+        return array_filter($this->cache, fn (?string $local) => is_string($local) && str_starts_with($local, '/storage/'));
+    }
+
     /** @return array{downloaded: int, failed: int, errors: list<string>} */
     public function report(): array
     {

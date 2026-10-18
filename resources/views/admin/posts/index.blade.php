@@ -10,8 +10,14 @@
         </x-slot:breadcrumbs>
         <x-slot:actions>
             <x-admin.action-button data-tour="posts.import-wordpress" type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">Import WordPress XML</x-admin.action-button>
-            @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'ai_seo') && auth()->user()?->can('ai.use') && auth()->user()?->can('posts.create'))
+            @php
+                $aiDraftAccess = app(\App\Support\AiAccess::class)->check(auth()->user(), 'ai_seo', 'posts.create');
+            @endphp
+            @if($aiDraftAccess['allowed'])
                 <x-admin.action-button data-tour="posts.ai-draft" :href="route('admin.ai.post-drafts.create')" variant="info" icon="sparkles">{{ __('ai.draft.button') }}</x-admin.action-button>
+            @else
+                {{-- Always shown; locked, it says why (plan, switched off, permission) instead of opening. --}}
+                <x-admin.action-button data-tour="posts.ai-draft" variant="info" icon="lock" class="is-ai-locked" :data-ai-locked="\App\Support\AiAccess::lockPayload($aiDraftAccess)" aria-disabled="true" :title="$aiDraftAccess['message']">{{ __('ai.draft.button') }}</x-admin.action-button>
             @endif
             <x-admin.action-button data-tour="posts.create" :href="route('admin.posts.create')" icon="plus">{{ __('admin.posts.create') }}</x-admin.action-button>
         </x-slot:actions>
@@ -86,7 +92,8 @@
                 </div>
             </form>
         </div>
-        <div class="card-body p-0">
+        {{-- Filters, pages, show/hide and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="posts">
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-posts-form',
                 'bulkActionUrl' => route('admin.posts.bulk'),
@@ -105,6 +112,9 @@
                             <th></th>
                         </tr>
                     </thead>
+                    @php
+                        $canUpdatePosts = (bool) auth()->user()?->can('posts.update');
+                    @endphp
                     <tbody>
                         @forelse($posts as $post)
                             @php
@@ -149,15 +159,14 @@
                                     </span>
                                 </td>
                                 <td>
-                                    @if($post->is_active)
-                                        <span class="badge bg-success-subtle text-success fw-semibold">
-                                            {{ __('admin.posts.fields.active') }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-warning-subtle text-warning fw-semibold">
-                                            {{ __('admin.posts.fields.inactive') }}
-                                        </span>
-                                    @endif
+                                    @include('admin.shared.status-switch', [
+                                        'action' => route('admin.posts.bulk'),
+                                        'id' => $post->id,
+                                        'active' => (bool) $post->is_active,
+                                        'can' => $canUpdatePosts,
+                                        'activeLabel' => __('admin.posts.fields.active'),
+                                        'inactiveLabel' => __('admin.posts.fields.inactive'),
+                                    ])
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">
@@ -191,9 +200,9 @@
                 </table>
             </div>
 
-            @if($posts->hasPages())
+            @if($posts->total() > 0)
                 <div class="card-footer bg-transparent border-top py-3">
-                    {{ $posts->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $posts])
                 </div>
             @endif
         </div>

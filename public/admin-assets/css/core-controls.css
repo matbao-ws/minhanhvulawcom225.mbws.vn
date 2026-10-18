@@ -5,35 +5,6 @@
     --core-control-primary-rgb: 227, 35, 38;
 }
 
-.catalog-quill.quill-is-fullscreen {
-    position: fixed;
-    z-index: 1060;
-    inset: 1rem;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: var(--bs-body-bg, #fff);
-    border: 1px solid var(--bs-border-color, #dee2e6);
-    border-radius: 0.5rem;
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
-}
-
-.catalog-quill.quill-is-fullscreen .ql-container {
-    flex: 1 1 auto;
-    min-height: 0;
-}
-
-.catalog-quill.quill-is-fullscreen .ql-editor {
-    min-height: 100%;
-    font-size: 1rem;
-    padding: 1.5rem;
-}
-
-.ql-toolbar .ql-fullscreen .ti {
-    font-size: 1.1rem;
-    line-height: 1;
-}
-
 [style*="#10203C"],
 .product-show-hero {
     position: relative;
@@ -79,6 +50,24 @@
     z-index: 1;
 }
 
+/* Page-header actions below md: every action (a button, or a span/form wrapping some) shares
+   the row and wraps when the screen is too narrow, instead of running past its edge. */
+.admin-page-header-actions-mobile > * {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.admin-page-header-actions-mobile > :not(.btn) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin-page-header-actions-mobile .btn {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
 /* Page-header actions render on the page background below md; light variants
    are meant for the dark gradient card and would vanish on white. */
 .admin-page-header-actions-mobile .btn-light,
@@ -101,6 +90,30 @@
 
 .admin-responsive-filter-toggle[aria-expanded="true"] .ti-chevron-down {
     transform: rotate(180deg);
+}
+
+/* Every admin table: a rounded, bordered frame. */
+.table-responsive {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+}
+
+/* The wrapper scrolls (overflow-x: auto), so it already clips the header background and the
+   rows to its rounded corners; the last row's border would double the wrapper's. */
+.table-responsive > .table {
+    margin-bottom: 0;
+}
+
+.table-responsive > .table > :last-child > tr:last-child > * {
+    border-bottom-width: 0;
+}
+
+/* A table flush with its card's edges (card-body p-0): the card's own border and rounded
+   corners frame it, so a second frame would only double the edge. */
+.card > .card-body.p-0 > .table-responsive,
+.card > .table-responsive {
+    border: 0;
+    border-radius: 0;
 }
 
 @media (max-width: 767.98px) {
@@ -203,49 +216,28 @@ fieldset:disabled .btn-primary {
     flex: 0 0 42px;
 }
 
-.admin-form-with-sticky-actions {
-    padding-bottom: 92px;
+/* The theme's overflow-x: hidden makes .page-wrapper a scroll box of its own, while the page
+   scrolls the window: nothing inside could stick (editor toolbars, form side columns).
+   clip cuts the same overflow without making a scroll box. Unlike hidden, clip does not let the
+   flex item shrink below its content: min-width: 0 keeps it at the window's width, so a wide
+   table scrolls in its .table-responsive instead of widening the whole page. */
+@supports (overflow: clip) {
+    .page-wrapper {
+        overflow-x: clip;
+        min-width: 0;
+    }
 }
 
-.admin-sticky-actions {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1030;
-    /* border-top: 1px solid var(--bs-border-color); */
-    background: rgba(var(--bs-body-bg-rgb), 0.96);
-    /* box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08); */
-    backdrop-filter: blur(12px);
-}
-
-.admin-sticky-actions__inner {
+.admin-form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 14px 30px;
-}
-
-@media (min-width: 1300px) {
-    .admin-sticky-actions {
-        left: 240px;
-    }
-
-    body[data-sidebartype="mini-sidebar"] .admin-sticky-actions {
-        left: 80px;
-    }
-
-    html[data-layout="horizontal"] .admin-sticky-actions {
-        left: 0;
-    }
+    margin-top: 1rem;
+    padding-bottom: 1.5rem;
 }
 
 @media (max-width: 575.98px) {
-    .admin-sticky-actions__inner {
-        padding: 12px 15px;
-    }
-
-    .admin-sticky-actions__inner .btn {
+    .admin-form-actions .btn {
         flex: 1 1 0;
     }
 }
@@ -272,4 +264,140 @@ body {
 textarea::placeholder {
     color: #64748b !important;
     opacity: 1 !important;
+}
+
+/* Scrollbars of the whole admin: thin, rounded, quiet until used. Chromium and Safari take the
+   ::-webkit-scrollbar rules; Firefox takes scrollbar-width/-color (Chromium ignores the
+   ::-webkit rules once those are set, so they stay behind the @supports below). */
+:root {
+    --admin-scroll-thumb: #c9d1de;
+    --admin-scroll-thumb-hover: #9aa6b8;
+    --admin-scroll-thumb-active: #c01e25;
+}
+
+[data-bs-theme="dark"] {
+    --admin-scroll-thumb: #3e4f68;
+    --admin-scroll-thumb-hover: #5a6d8a;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-color: var(--admin-scroll-thumb);
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--admin-scroll-thumb-hover);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background-color: var(--admin-scroll-thumb-active);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--admin-scroll-thumb) transparent;
+    }
+}
+
+/* The sidebar draws its own bar (SimpleBar): same colour. */
+.simplebar-scrollbar::before {
+    background: var(--admin-scroll-thumb-hover);
+}
+
+/* Admin list pagination: separated touch targets with an unmistakable active page. */
+.pagination--admin {
+    gap: 6px;
+}
+
+.pagination--admin .page-item + .page-item .page-link {
+    margin-left: 0;
+}
+
+.pagination--admin .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #dfe5ef;
+    border-radius: 9px !important;
+    background: #fff;
+    color: #52637a;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.pagination--admin .page-item:not(.active):not(.disabled) .page-link:hover {
+    border-color: rgba(227, 35, 38, .32);
+    background: rgba(227, 35, 38, .08);
+    color: var(--core-control-primary, #e32326);
+    transform: translateY(-1px);
+}
+
+.pagination--admin .page-item.active > .page-link {
+    border-color: var(--core-control-primary, #e32326);
+    background: var(--core-control-primary, #e32326);
+    box-shadow: 0 4px 10px rgba(227, 35, 38, .22);
+    color: #fff;
+}
+
+.pagination--admin .page-item.disabled:not(.active) > .page-link {
+    border-color: #e9edf3;
+    background: #f8fafc;
+    color: #a8b2c1;
+}
+
+.pagination--admin .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(227, 35, 38, .18);
+}
+
+/* Side column of a two-column admin form (posts, products): stays in view while the main
+   column scrolls. --admin-aside-top comes from js/forms/sticky-aside.js. */
+@media (min-width: 992px) {
+    .admin-sticky-aside {
+        position: sticky;
+        top: var(--admin-aside-top, 108px);
+        align-self: flex-start;
+    }
+}
+
+/* A list being refreshed in place (admin-ajax.js): dimmed and not clickable until it is back. */
+[data-ajax-list] {
+    transition: opacity .15s ease;
+}
+
+[data-ajax-list].is-ajax-loading {
+    opacity: .55;
+    pointer-events: none;
+}
+
+/* Show/hide switch in a list row (admin.shared.status-switch). */
+.status-switch .form-check-input {
+    cursor: pointer;
+}
+
+.status-switch .form-check-label {
+    padding-left: .35rem;
+    cursor: pointer;
+    white-space: nowrap;
 }

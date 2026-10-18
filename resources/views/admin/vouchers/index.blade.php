@@ -36,7 +36,11 @@
             </form>
         </div>
         
-        <div class="card-body p-0">
+        {{-- Filters, pages, on/off and delete update this part only (admin-ajax.js). --}}
+        @php
+            $canUpdateVouchers = (bool) auth()->user()?->can('vouchers.update');
+        @endphp
+        <div class="card-body p-0" data-ajax-list="vouchers">
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-vouchers-form',
                 'bulkActionUrl' => route('admin.vouchers.bulk'),
@@ -123,8 +127,20 @@
                                     @endif
                                 </td>
                                 <td>
+                                    @if($canUpdateVouchers)
+                                        @include('admin.shared.status-switch', [
+                                            'action' => route('admin.vouchers.bulk'),
+                                            'id' => $voucher->id,
+                                            'active' => (bool) $voucher->is_active,
+                                            'can' => true,
+                                            'activeLabel' => '',
+                                            'inactiveLabel' => __('admin.vouchers.statuses.inactive'),
+                                        ])
+                                    @endif
                                     @if(!$voucher->is_active)
-                                        <span class="badge bg-danger-subtle text-danger fw-semibold fs-2">{{ __('admin.vouchers.statuses.inactive') }}</span>
+                                        @unless($canUpdateVouchers)
+                                            <span class="badge bg-danger-subtle text-danger fw-semibold fs-2">{{ __('admin.vouchers.statuses.inactive') }}</span>
+                                        @endunless
                                     @elseif($isExpired)
                                         <span class="badge bg-secondary-subtle text-secondary fw-semibold fs-2">{{ __('admin.vouchers.statuses.expired') }}</span>
                                     @elseif($isNotStarted)
@@ -163,9 +179,9 @@
                 ])
             @endif
 
-            @if($vouchers->hasPages())
+            @if($vouchers->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $vouchers->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $vouchers])
                 </div>
             @endif
         </div>

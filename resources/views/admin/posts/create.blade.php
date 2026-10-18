@@ -3,53 +3,7 @@
 @section('title', __('admin.posts.create'))
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/select2/dist/css/select2.min.css') }}">
-    <style>
-        .seo-checker-card {
-            border: 1px solid rgba(22, 163, 74, 0.15);
-            background-color: rgba(22, 163, 74, 0.02);
-            border-radius: 8px;
-        }
-        .seo-rule-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-        }
-        .seo-status-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            display: inline-block;
-            flex-shrink: 0;
-            margin-top: 3px;
-        }
-        .seo-status-red {
-            background-color: #ef4444;
-        }
-        .seo-status-orange {
-            background-color: #f97316;
-        }
-        .seo-status-green {
-            background-color: #22c55e;
-        }
-        .seo-status-red + span {
-            color: #ef4444;
-        }
-        .seo-status-orange + span {
-            color: #f97316;
-        }
-        .seo-status-green + span {
-            color: #22c55e;
-        }
-        .seo-progress-ring-circle {
-            transition: stroke-dashoffset 0.35s;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
-    </style>
 @endpush
 
 @section('content')

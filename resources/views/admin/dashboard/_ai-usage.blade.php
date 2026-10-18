@@ -1,4 +1,5 @@
-{{-- This month's AI credits (feature ai_seo + permission ai.use). $aiUsage comes from a view composer. --}}
+{{-- This month's AI credits. Always shown; locked (App\Support\AiAccess) it says why. $aiUsage and
+     $aiUsageAccess come from a view composer. --}}
 @if($aiUsageVisible)
     <div class="col-12">
         <div class="dashboard-package-usage__item dashboard-ai-usage">
@@ -7,7 +8,11 @@
                 <div class="dashboard-ai-usage__title">{{ __('ai.usage.title') }}</div>
                 <div class="dashboard-ai-usage__description">{{ __('ai.usage.credits') }}</div>
             </div>
-            @if($aiUsage)
+            @if(! $aiUsageAccess['allowed'])
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto is-ai-locked"{!! \App\Support\AiAccess::lockAttributes($aiUsageAccess) !!} title="{{ $aiUsageAccess['message'] }}" data-ai-usage-locked>
+                    <i class="ti ti-lock me-1" aria-hidden="true"></i>{{ $aiUsageAccess['title'] }}
+                </button>
+            @elseif($aiUsage)
                 @php
                     $limit = max(1, $aiUsage['credits_limit']);
                     $percent = min(100, (int) round($aiUsage['credits_used'] * 100 / $limit));

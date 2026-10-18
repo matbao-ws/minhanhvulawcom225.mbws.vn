@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\ContactSubmission;
 use Illuminate\Http\Request;
 
 class ContactSubmissionController extends Controller
 {
+    use HandlesPagination;
+
     public function index(Request $request)
     {
         // Spam stays out of the inbox; the "spam" box shows it for releasing false positives.
@@ -29,7 +32,7 @@ class ContactSubmissionController extends Controller
         }
 
         $submissions = $query->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         $spamCount = ContactSubmission::query()->where('is_spam', true)->count();

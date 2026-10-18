@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Models\User;
 use App\Services\AiGateway\GatewayUnavailable;
 use App\Services\AiGateway\MetaSuggestionService;
+use App\Support\Seo\SeoBox;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -79,16 +80,28 @@ trait HandlesAiSuggestions
             return;
         }
 
-        $record->setTranslation($definition['content'], $locale, $this->htmlSanitizer->clean($html));
+        if (! method_exists($record, 'setTranslation')) {
+            throw new \LogicException($record::class.' has no translated body.');
+        }
+        $record->setTranslation($definition['content'], $locale, $this->htmlSanitizer->cleanRichText($html));
         if ($record instanceof Post) {
             $this->refreshPostScore($record);
         }
         $record->save();
+        $this->refreshBoxScore($record);
+    }
+
+    /** Products and pages keep their SEO box score (posts: refreshPostScore) after an AI write. */
+    protected function refreshBoxScore(Model $record): void
+    {
+        if (! $record instanceof Post && isset(SeoBox::MODELS[$record::class])) {
+            app(SeoBox::class)->refreshScore($record);
+        }
     }
 
     protected function sanitizeBody(Model $record, string $html): string
     {
-        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->clean($html);
+        return $record instanceof Page ? $this->pageSanitizer->clean($html) : $this->htmlSanitizer->cleanRichText($html);
     }
 
     /** Every href/src in order: an AI edit must leave this list exactly as it was. */
@@ -109,7 +122,7 @@ trait HandlesAiSuggestions
 
     protected function body(array $definition, Model $record, string $locale): string
     {
-        return (string) $record->getTranslation($definition['content'], $locale, false);
+        return method_exists($record, 'getTranslation') ? (string) $record->getTranslation($definition['content'], $locale, false) : '';
     }
 
     /** Feedback for the gateway's metrics. Never blocks or undoes what the admin did. */

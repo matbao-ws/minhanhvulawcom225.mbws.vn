@@ -53,7 +53,8 @@
             </form>
         </div>
         
-        <div class="card-body p-0">
+        {{-- Filters, pages, edits, show/hide and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="reviews">
             <div data-tour="reviews.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
@@ -156,9 +157,9 @@
                 ])
             @endif
 
-            @if($reviews->hasPages())
+            @if($reviews->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $reviews->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $reviews])
                 </div>
             @endif
         </div>
@@ -207,8 +208,11 @@
             const modalComment = document.getElementById('modal_comment');
             const modalIsVisible = document.getElementById('modal_is_visible');
 
-            document.querySelectorAll('.js-edit-review-btn').forEach(btn => {
-                btn.addEventListener('click', function () {
+            // On the document: rows swapped in by admin-ajax.js work too.
+            document.addEventListener('click', function (event) {
+                const btn = event.target.closest('.js-edit-review-btn');
+                if (!btn) return;
+                (function () {
                     const actionUrl = this.getAttribute('data-url');
                     const comment = this.getAttribute('data-comment');
                     const isVisible = this.getAttribute('data-visible') === '1';
@@ -218,7 +222,7 @@
                     modalIsVisible.checked = isVisible;
 
                     editModal.show();
-                });
+                }).call(btn);
             });
 
             // Edit Form submit via AJAX
@@ -265,7 +269,8 @@
                                 showConfirmButton: false
                             }).then(() => {
                                 editModal.hide();
-                                window.location.reload();
+                                // The list again, in place (admin-ajax.js).
+                                window.AdminAjax ? window.AdminAjax.load(window.location.href, { push: false }) : window.location.reload();
                             });
                         } else {
                             Swal.fire({
@@ -293,8 +298,10 @@
             }
 
             // Quick Visibility Toggle via AJAX
-            document.querySelectorAll('.js-visibility-toggle').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
+            document.addEventListener('change', function (event) {
+                const checkbox = event.target.closest('.js-visibility-toggle');
+                if (!checkbox) return;
+                (function () {
                     const url = this.getAttribute('data-url');
                     const isChecked = this.checked;
 
@@ -344,7 +351,7 @@
                             text: "{{ __('admin.reviews.status_update_failed') }}"
                         });
                     });
-                });
+                }).call(checkbox);
             });
         });
     </script>

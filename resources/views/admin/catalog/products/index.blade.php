@@ -81,7 +81,11 @@
                 </div>
             </form>
         </div>
-        <div class="card-body p-0">
+        {{-- Filters, pages, show/hide and delete update these two parts only (admin-ajax.js). --}}
+        @php
+            $canUpdateProducts = (bool) auth()->user()?->can('products.update');
+        @endphp
+        <div class="card-body p-0" data-ajax-list="products">
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-products-form',
                 'bulkActionUrl' => route('admin.products.bulk'),
@@ -102,7 +106,7 @@
                             <th class="text-end pe-4">{{ __('catalog.fields.actions') }}</th>
                         </tr>
                     </thead>
-                    <tbody id="product-table-sortable" data-start-order="{{ max(0, ($products->firstItem() ?? 1) - 1) }}">
+                    <tbody id="product-table-sortable" data-sortable="{{ $isFiltered ? '0' : '1' }}" data-start-order="{{ max(0, ($products->firstItem() ?? 1) - 1) }}">
                         @forelse($products as $product)
                             <tr class="text-nowrap" data-product-id="{{ $product->id }}">
                                 <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $product->id }}" form="bulk-products-form" data-bulk-select="bulk-products-form" aria-label="Chọn {{ $product->name }}"></td>
@@ -148,12 +152,31 @@
                                         <span class="text-muted fs-2">{{ __('catalog.common.none') }}</span>
                                     @endif
                                 </td>
-                                <td>
-                                    <span class="fw-semibold text-dark fs-3">{{ number_format((float) $product->price) }} đ</span>
-                                </td>
-                                <td>
-                                    <span class="fs-3 text-dark fw-medium">{{ $product->stock_quantity }}</span>
-                                </td>
+                                @if($canUpdateProducts && $product->variants_count === 0)
+                                    {{-- Edited in place: Enter or leaving the field saves (admin-ajax.js). --}}
+                                    <td>
+                                        <form method="POST" action="{{ route('admin.products.quick-update', $product) }}" id="quick-product-{{ $product->id }}" class="product-quick-edit mb-0" data-product-quick-edit>
+                                            @csrf
+                                            @method('PATCH')
+                                            <div class="input-group input-group-sm" style="width: 150px;">
+                                                <input type="number" name="price" class="form-control" min="0" step="any" value="{{ (float) $product->price }}" required
+                                                       aria-label="{{ __('catalog.fields.price') }}" title="{{ __('catalog.products.quick_edit_hint') }}" data-quick-original="{{ (float) $product->price }}">
+                                                <span class="input-group-text">đ</span>
+                                            </div>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="stock_quantity" form="quick-product-{{ $product->id }}" class="form-control form-control-sm" style="width: 90px;" min="0" step="1" value="{{ (int) $product->stock_quantity }}" required
+                                               aria-label="{{ __('catalog.fields.stock_quantity') }}" title="{{ __('catalog.products.quick_edit_hint') }}" data-quick-original="{{ (int) $product->stock_quantity }}">
+                                    </td>
+                                @else
+                                    <td>
+                                        <span class="fw-semibold text-dark fs-3">{{ number_format((float) $product->price) }} đ</span>
+                                    </td>
+                                    <td>
+                                        <span class="fs-3 text-dark fw-medium">{{ $product->stock_quantity }}</span>
+                                    </td>
+                                @endif
                                 <td>
                                     @if($product->variants_count > 0)
                                         <span class="badge bg-info-subtle text-info fw-semibold fs-2">{{ $product->variants_count }} {{ __('catalog.fields.variants') }}</span>
@@ -162,9 +185,14 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge {{ $product->is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} fw-semibold fs-2">
-                                        {{ $product->is_active ? __('catalog.status.active') : __('catalog.status.inactive') }}
-                                    </span>
+                                    @include('admin.shared.status-switch', [
+                                        'action' => route('admin.products.bulk'),
+                                        'id' => $product->id,
+                                        'active' => (bool) $product->is_active,
+                                        'can' => $canUpdateProducts,
+                                        'activeLabel' => __('catalog.status.active'),
+                                        'inactiveLabel' => __('catalog.status.inactive'),
+                                    ])
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-flex justify-content-end gap-2">
@@ -198,7 +226,7 @@
                 ])
             @endif
         </div>
-        <div class="card-body">
+        <div class="card-body" data-ajax-list="products-pages">
             @include('admin.shared.pagination', ['paginator' => $products])
         </div>
     </div>
@@ -257,9 +285,33 @@
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const sortable = document.getElementById('product-table-sortable');
-            const sortingEnabled = @json(! $isFiltered);
+        // Price and stock in the row: saved when changed, on Enter or when leaving the field.
+        (function () {
+            const save = function (input) {
+                const form = input.form;
+                if (!form || !form.hasAttribute('data-product-quick-edit')) return;
+                const fields = Array.from(form.elements).filter(function (field) { return field.dataset.quickOriginal !== undefined; });
+                const changed = fields.some(function (field) { return Number(field.value) !== Number(field.dataset.quickOriginal); });
+                if (!changed) return;
+                if (!form.reportValidity()) return;
+                form.requestSubmit ? form.requestSubmit() : form.submit();
+            };
+            document.addEventListener('keydown', function (event) {
+                const input = event.target.closest('[data-quick-original]');
+                if (!input || event.key !== 'Enter') return;
+                event.preventDefault();
+                save(input);
+            });
+            document.addEventListener('change', function (event) {
+                const input = event.target.closest('[data-quick-original]');
+                if (input) save(input);
+            });
+        })();
+
+        // Again after each in-place list update (admin-ajax.js): the rows are new.
+        AdminAjax.ready(function (root) {
+            const sortable = root.querySelector('#product-table-sortable');
+            const sortingEnabled = sortable && sortable.dataset.sortable === '1';
             const csrfToken = @json(csrf_token());
             const sortUrl = @json(route('admin.products.sort'));
 

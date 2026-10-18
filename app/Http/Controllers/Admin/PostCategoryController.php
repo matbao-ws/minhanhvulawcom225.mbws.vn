@@ -2,22 +2,28 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
+use App\Http\Controllers\Admin\Concerns\OpensAiToolAfterCreate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PostCategoryRequest;
 use App\Models\PostCategory;
 use App\Services\LanguageRegistry;
 use App\Services\LocalizedSlugService;
 use App\Support\HtmlSanitizer;
+use App\Support\Seo\SeoBox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PostCategoryController extends Controller
 {
+    use HandlesPagination, OpensAiToolAfterCreate;
+
     public function __construct(
         private readonly LanguageRegistry $languages,
         private readonly LocalizedSlugService $localizedSlugs,
         private readonly HtmlSanitizer $htmlSanitizer,
+        private readonly SeoBox $seoBox,
     ) {}
 
     /**
@@ -36,7 +42,7 @@ class PostCategoryController extends Controller
             })
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->paginate(15)
+            ->paginate($this->perPage(15))
             ->withQueryString();
 
         // Get all categories in one query to build tree in memory
@@ -100,21 +106,26 @@ class PostCategoryController extends Controller
         $validated = $request->validated();
         $names = $this->cleanTranslations($validated['name']);
         $slugs = $this->cleanTranslations($validated['slug'] ?? []);
-        DB::transaction(function () use ($validated, $names, $slugs, $request): void {
+        $category = DB::transaction(function () use ($validated, $names, $slugs, $request): PostCategory {
             $category = PostCategory::query()->create([
                 'parent_id' => $validated['parent_id'] ?? null,
                 'name' => $names,
                 'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $names[$this->languages->defaultLocale()]),
                 'description' => $this->cleanTranslations($validated['description'] ?? [], true),
+                'meta_title' => $this->cleanTranslations($validated['meta_title'] ?? []),
+                'meta_description' => $this->cleanTranslations($validated['meta_description'] ?? []),
                 'is_active' => $request->boolean('is_active', true),
                 'sort_order' => $validated['sort_order'] ?? 0,
-            ]);
+            ] + $this->seoBox->payload($validated));
             $this->localizedSlugs->sync($category, $slugs, $names);
+            $this->seoBox->refreshScore($category);
+
+            return $category;
         });
 
-        return redirect()
+        return $this->redirectAfterCreate($request, 'admin.post-categories.edit', $category, redirect()
             ->route('admin.post-categories.index')
-            ->with('success', __('admin.blog_categories.created'));
+            ->with('success', __('admin.blog_categories.created')));
     }
 
     /**
@@ -143,10 +154,13 @@ class PostCategoryController extends Controller
                 'name' => $names,
                 'slug' => $this->uniqueLegacySlug($slugs[$this->languages->defaultLocale()] ?? $postCategory->slug, $postCategory->id),
                 'description' => $this->mergeTranslations($postCategory, 'description', $validated['description'] ?? [], true),
+                'meta_title' => $this->mergeTranslations($postCategory, 'meta_title', $validated['meta_title'] ?? []),
+                'meta_description' => $this->mergeTranslations($postCategory, 'meta_description', $validated['meta_description'] ?? []),
                 'is_active' => $request->boolean('is_active', true),
                 'sort_order' => $validated['sort_order'] ?? 0,
-            ]);
+            ] + $this->seoBox->payload($validated, $postCategory));
             $this->localizedSlugs->sync($postCategory, $slugs, $names);
+            $this->seoBox->refreshScore($postCategory);
         });
 
         return redirect()
@@ -270,7 +284,7 @@ class PostCategoryController extends Controller
     private function cleanTranslations(array $values, bool $html = false): array
     {
         return collect($values)->filter(fn ($value, $code) => $this->languages->supports((string) $code) && is_string($value) && trim($value) !== '')
-            ->map(fn (string $value) => $html ? $this->htmlSanitizer->clean(trim($value)) : trim($value))->all();
+            ->map(fn (string $value) => $html ? $this->htmlSanitizer->cleanRichText(trim($value)) : trim($value))->all();
     }
 
     private function mergeTranslations(PostCategory $category, string $field, array $values, bool $html = false): array

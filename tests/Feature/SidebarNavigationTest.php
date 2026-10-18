@@ -118,7 +118,9 @@ class SidebarNavigationTest extends TestCase
         foreach ($xpath->query('//li[@data-sidebar-seo-menu]//ul//a') as $anchor) {
             $seo[] = parse_url($anchor->getAttribute('href'), PHP_URL_PATH);
         }
-        $this->assertSame(['/vi/admin/ai/seo-tasks', '/vi/admin/ai/research', '/vi/admin/ai/bulk', '/vi/admin/ai/post-drafts/create'], $seo);
+        $this->assertSame(['/vi/admin/ai/seo-tasks', '/vi/admin/ai/research', '/vi/admin/ai/bulk', '/vi/admin/redirects'], $seo);
+        // "Viết bằng AI" starts from the post list, not from the menu.
+        $this->assertSame(0, $xpath->query('//ul[@id="sidebarnav"]//a[@href="'.route('admin.ai.post-drafts.create').'"]')->length);
         // Nowhere else in the menu: grouped, not duplicated (the dashboard links it too, outside the menu).
         $this->assertSame(1, $xpath->query('//ul[@id="sidebarnav"]//a[@href="'.route('admin.ai.seo-tasks.index').'"]')->length);
 
@@ -126,13 +128,33 @@ class SidebarNavigationTest extends TestCase
         $this->assertSame(0, $xpath->query('//ul[@id="sidebarnav"]/li[contains(@class, "nav-small-cap")]')->length);
     }
 
-    public function test_the_seo_dropdown_is_absent_when_the_admin_may_open_none_of_it(): void
+    public function test_ai_pages_stay_in_the_seo_dropdown_locked_for_an_admin_without_ai(): void
     {
         $admin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Settings only', 'permissions' => ['settings.view']])->id]);
 
-        $html = $this->actingAs($admin)->get('/vi/admin')->assertOk()->getContent();
+        $xpath = $this->xpath($this->actingAs($admin)->get('/vi/admin')->assertOk()->getContent());
 
-        $this->assertStringNotContainsString('data-sidebar-seo-menu', $html);
+        // Shown, never hidden: each AI item is locked and says why when clicked.
+        $locked = [];
+        foreach ($xpath->query('//li[@data-sidebar-seo-menu]//a[@data-sidebar-ai-locked]') as $anchor) {
+            $locked[$anchor->getAttribute('data-sidebar-ai-locked')] = json_decode($anchor->getAttribute('data-ai-locked'), true)['reason'];
+        }
+        // AI is switched off on this site, and it says so.
+        $this->assertSame(['seo_tasks' => 'off', 'seo_research' => 'off', 'seo_bulk' => 'off'], $locked);
+    }
+
+    public function test_redirects_alone_open_the_seo_dropdown_with_the_ai_pages_locked(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Redirects only', 'permissions' => ['redirects.view']])->id]);
+
+        $xpath = $this->xpath($this->actingAs($admin)->get('/vi/admin')->assertOk()->getContent());
+
+        $open = [];
+        foreach ($xpath->query('//li[@data-sidebar-seo-menu]//ul//a[not(@data-ai-locked)]') as $anchor) {
+            $open[] = parse_url($anchor->getAttribute('href'), PHP_URL_PATH);
+        }
+        $this->assertSame(['/vi/admin/redirects'], $open);
+        $this->assertSame(3, $xpath->query('//li[@data-sidebar-seo-menu]//a[@data-ai-locked]')->length);
     }
 
     private function xpath(string $html): \DOMXPath

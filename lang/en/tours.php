@@ -36,7 +36,7 @@ return [
         'intro' => ['title' => 'Product details', 'description' => 'Fill it in from top to bottom. Only the name and price are required; the rest can be added later.'],
         'languages' => ['title' => 'Content per language', 'description' => 'Each tab is one website language. The name in the default language is required; a blank slug is generated from the name.'],
         'description' => ['title' => 'Description', 'description' => 'Write the full description in the editor. The Expand button opens it full screen.'],
-        'seo' => ['title' => 'SEO', 'description' => 'The title and description shown on Google, for each language.'],
+        'seo' => ['title' => 'SEO', 'description' => 'SEO score, focus keyword and the checks to fix; Google preview, what shows when shared, canonical and whether Google may index it.'],
         'media' => ['title' => 'Image gallery', 'description' => 'Add extra images shown in the gallery of the product page.'],
         'variants' => ['title' => 'Variants and SKUs', 'description' => 'Turn on Has variants and declare groups such as Colour or Size. On save, any missing SKU combinations are created automatically.'],
         'pricing' => ['title' => 'Price', 'description' => 'Selling price, compare-at (struck-through) price and cost. The price customers pay after promotions is always computed by the system.'],
@@ -252,6 +252,15 @@ return [
         'back' => ['title' => 'Back', 'description' => 'Return to the list without saving.'],
     ],
 
+    'redirects_index' => [
+        'intro' => ['title' => 'Redirects & 404 errors', 'description' => 'Old links (for example from a previous WordPress site) redirect 301 to their new page so Google keeps their rankings. They apply only when nothing else answers the old link.'],
+        'tabs' => ['title' => 'Redirects and 404 errors', 'description' => 'The 404 tab lists links visitors or Google opened that have no page, most requested first. Click "Create redirect" to handle each one.'],
+        'add' => ['title' => 'Add a redirect', 'description' => 'Enter the old link, the new link and the type: 301 (moved for good, keeps rankings), 302/307 (temporary) or 410 (gone for good).'],
+        'import' => ['title' => 'CSV import and export', 'description' => 'Import many redirects at once from a CSV file (old link, new link, code), or download the current list.'],
+        'search' => ['title' => 'Search and filter', 'description' => 'Search by old or new link; filter by origin: made by hand, WordPress import or from a 404.'],
+        'table' => ['title' => 'The list', 'description' => 'Redirects made by the WordPress import follow the new page, even if you change its slug later. Hits show how often the old link is still requested.'],
+    ],
+
     'contact_submissions_index' => [
         'intro' => ['title' => 'Contact messages', 'description' => 'Messages sent through the website contact form, newest first.'],
         'tabs' => ['title' => 'Inbox and Spam', 'description' => 'Messages caught by the spam filter go to the Spam tab: they skip the inbox and send no email.'],
@@ -294,7 +303,7 @@ return [
         'intro' => ['title' => 'Write a post', 'description' => 'The left column holds content and SEO, the right column the image, status, category and SEO score.'],
         'general' => ['title' => 'Content per language', 'description' => 'Each tab is one language with its own title, slug and summary. The main language needs a title and content.'],
         'editor' => ['title' => 'Content editor', 'description' => 'Write with headings, bold, lists, links and images. You can paste from another website; foreign styling is removed.'],
-        'seo_meta' => ['title' => 'SEO title and description', 'description' => 'The title and description shown on Google for the language in view. Keep the title under 60 characters.'],
+        'seo_meta' => ['title' => 'Google preview', 'description' => 'How the post shows on Google. Click Edit SEO title & description to change them for the language in view; keep the title under 60 characters.'],
         'seo' => ['title' => 'SEO settings', 'description' => 'Focus keyword, canonical link, whether Google may index the post and follow its links, plus a search result preview.'],
         'thumbnail' => ['title' => 'Featured image', 'description' => 'Click the box to pick an image from the Media library or upload a new one.'],
         'status' => ['title' => 'Status', 'description' => 'Choose whether the post is shown on the website or hidden.'],
@@ -331,7 +340,7 @@ return [
         'toolbar' => ['title' => 'Shortcuts', 'description' => 'Go back to the list, view the page on the website (once published) or save right away.'],
         'languages' => ['title' => 'Languages', 'description' => 'Each tab is one language. The title in the main language is required.'],
         'content' => ['title' => 'Content', 'description' => 'Write the page content. If you do not touch this box, the saved content is kept as is when you save the title or SEO.'],
-        'seo' => ['title' => 'SEO', 'description' => 'The title and description shown on Google for the language in view.'],
+        'seo' => ['title' => 'SEO', 'description' => 'SEO score, focus keyword and the checks to fix; Google preview, what shows when shared, canonical and whether Google may index it.'],
         'status' => ['title' => 'Status', 'description' => 'A draft is not on the website yet; choose Publish to make it visible.'],
         'save' => ['title' => 'Save the page', 'description' => 'Click to save all changes. Nothing is stored until you click save.'],
         'revisions' => ['title' => 'Recent versions', 'description' => 'Earlier saved versions of the page, up to the latest 20. Click Restore to bring the page back to that version.'],

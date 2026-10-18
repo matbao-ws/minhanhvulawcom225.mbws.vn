@@ -134,6 +134,41 @@ class MultilingualTest extends TestCase
         $this->assertArrayNotHasKey('fields', $audit->getAttributes());
     }
 
+    public function test_a_policy_page_body_is_translated_through_the_page_sanitizer(): void
+    {
+        $this->app->instance(TranslationProvider::class, new class implements TranslationProvider
+        {
+            public string $format = '';
+
+            public function translate(array $texts, string $sourceLocale, string $targetLocale, string $format = 'text'): array
+            {
+                $this->format = $format;
+
+                return array_map(fn () => '<section class="policy-block"><h2>Returns</h2></section><script>bad()</script>', $texts);
+            }
+
+            public function configured(): bool
+            {
+                return true;
+            }
+
+            public function name(): string
+            {
+                return 'fake';
+            }
+        });
+        $role = Role::query()->create(['name' => 'Translator', 'permissions' => ['translations.use']]);
+        $user = User::factory()->create(['role_id' => $role->id]);
+
+        // Rich-text cleaning would drop the section and its class; the page keeps its own markup.
+        $this->actingAs($user)->postJson('/vi/admin/translations/preview', [
+            'source_locale' => 'vi', 'target_locale' => 'en',
+            'fields' => ['published_html' => '<section class="policy-block"><h2>Đổi trả</h2></section>'],
+            'formats' => ['published_html' => 'page_html'],
+        ])->assertOk()->assertJsonPath('data.fields.published_html', '<section class="policy-block"><h2>Returns</h2></section>');
+        $this->assertSame('html', app(TranslationProvider::class)->format);
+    }
+
     public function test_active_language_registry_controls_admin_locale_routes(): void
     {
         $this->get('/ko/admin/login')->assertNotFound();

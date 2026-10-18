@@ -38,7 +38,7 @@ class EditorScriptSyntaxTest extends TestCase
         $role = Role::query()->create(['name' => 'Editor', 'permissions' => ['pages.update', 'media.view']]);
         $this->actingAs(User::factory()->create(['role_id' => $role->id]));
 
-        $html = $this->get('/vi/chinh-sach/gioi-thieu')->assertOk()->getContent();
+        $html = $this->get('/chinh-sach/gioi-thieu')->assertOk()->getContent();
         preg_match_all('#<script(?![^>]*\bsrc=)(?![^>]*type="application/(?:ld\+)?json")[^>]*>(.*?)</script>#s', $html, $matches);
         $this->assertNotEmpty($matches[1], 'the editing page carries inline scripts');
 

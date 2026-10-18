@@ -69,6 +69,21 @@ class GhnShipmentFlowTest extends TestCase
             && $r['weight'] === 700 && $r['length'] === 30 && $r['client_order_code'] === $order->order_number);
     }
 
+    public function test_no_automatic_shipment_while_the_shipping_feature_is_off(): void
+    {
+        $this->ghn(autoPush: true);
+        $this->fakeGhn();
+        FeatureSetting::query()->where('feature_code', 'shipping')->update(['is_enabled' => false]);
+        $order = $this->order(['ghn' => ['district_id' => 1442, 'ward_code' => '20109']]);
+
+        $this->actingAs($this->admin())
+            ->patch('/vi/admin/orders/'.$order->id.'/status', ['status' => 'processing', 'payment_status' => 'pending'])
+            ->assertSessionHas('success');
+
+        $this->assertNull($order->refresh()->tracking_number);
+        Http::assertNotSent(fn ($r) => str_ends_with($r->url(), '/create'));
+    }
+
     public function test_nothing_is_sent_when_off_or_without_codes(): void
     {
         $this->fakeGhn();

@@ -4,7 +4,6 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/dragula/dist/dragula.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
 @endpush
 
 @section('content')
@@ -29,6 +28,11 @@
                 </div>
             </form>
         </div>
+        {{-- Filters, pages, show/hide, quick edit and delete update this part only (admin-ajax.js). --}}
+        @php
+            $canUpdateCatalog = (bool) auth()->user()?->can('products.update');
+        @endphp
+        <div data-ajax-list="brands">
         @include('admin.shared.bulk-actions', [
             'bulkFormId' => 'bulk-brands-form',
             'bulkActionUrl' => route('admin.brands.bulk'),
@@ -76,9 +80,14 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge {{ $brand->is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
-                                {{ $brand->is_active ? __('catalog.status.active') : __('catalog.status.inactive') }}
-                            </span>
+                            @include('admin.shared.status-switch', [
+                                'action' => route('admin.brands.bulk'),
+                                'id' => $brand->id,
+                                'active' => (bool) $brand->is_active,
+                                'can' => $canUpdateCatalog,
+                                'activeLabel' => __('catalog.status.active'),
+                                'inactiveLabel' => __('catalog.status.inactive'),
+                            ])
                         </td>
                         <td class="text-center">
                             <p class="mb-0 fw-bold text-primary">{{ $brand->products_count }}</p>
@@ -136,12 +145,13 @@
         <div class="card-body">
             @include('admin.shared.pagination', ['paginator' => $brands])
         </div>
+        </div>
     </div>
 
     <!-- Quick Edit Modal -->
     <div class="modal fade" id="quickEditBrandModal" tabindex="-1" aria-labelledby="quickEditBrandModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <form method="POST" action="" class="modal-content" enctype="multipart/form-data" id="quickEditBrandForm">
+            <form method="POST" action="" class="modal-content" enctype="multipart/form-data" id="quickEditBrandForm" data-ajax-form>
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
@@ -168,7 +178,7 @@
                         <div class="col-12 mb-3">
                             <label class="form-label" for="quick_description">{{ __('catalog.fields.description') }}</label>
                             <textarea class="form-control d-none" id="quick_description" name="description"></textarea>
-                            <div id="quick_description_editor" class="catalog-quill" data-target="quick_description"></div>
+                            <div id="quick_description_editor" class="rich-editor" data-preset="basic" data-media-folder="brands" data-target="quick_description"></div>
                         </div>
                         <div class="col-12">
                             <input type="hidden" name="is_active" value="1">
@@ -188,12 +198,14 @@
     </div>
 @endsection
 
+@include('admin.shared.rich-editor-assets')
+
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const sortable = document.getElementById('brand-table-sortable');
+        // Again after each in-place list update (admin-ajax.js): the rows are new.
+        AdminAjax.ready(function (root) {
+            const sortable = root.querySelector('#brand-table-sortable');
             const csrfToken = @json(csrf_token());
             const sortUrl = @json(route('admin.brands.sort'));
             const quickUpdateUrlTemplate = @json(route('admin.brands.quick-update', ['brand' => '__BRAND_ID__']));
@@ -211,30 +223,6 @@
                     timerProgressBar: true
                 }).fire({ icon, title: message });
             };
-
-            // Initialize Quick Edit Quill editor
-            const quickEditorElement = document.getElementById('quick_description_editor');
-            if (quickEditorElement && window.Quill) {
-                const target = document.getElementById(quickEditorElement.dataset.target);
-                const quill = new Quill(quickEditorElement, {
-                    theme: 'snow',
-                    modules: {
-                        toolbar: [
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['link', 'clean']
-                        ]
-                    }
-                });
-                quickEditorElement.__quill = quill;
-
-                const form = quickEditorElement.closest('form');
-                if (form && target) {
-                    form.addEventListener('submit', function () {
-                        target.value = quill.root.innerHTML;
-                    });
-                }
-            }
 
             if (sortable && sortable.querySelectorAll('tr').length > 1 && window.dragula) {
                 dragula([sortable], {
@@ -273,7 +261,7 @@
                 });
             }
 
-            document.querySelectorAll('.js-brand-quick-edit').forEach(function (button) {
+            root.querySelectorAll('.js-brand-quick-edit').forEach(function (button) {
                 button.addEventListener('click', function () {
                     const form = document.getElementById('quickEditBrandForm');
                     const imageUrl = button.dataset.imageUrl || '';
@@ -286,10 +274,7 @@
                     
                     const descriptionVal = button.dataset.description || '';
                     document.getElementById('quick_description').value = descriptionVal;
-                    const quickEditor = document.getElementById('quick_description_editor');
-                    if (quickEditor && quickEditor.__quill) {
-                        quickEditor.__quill.root.innerHTML = descriptionVal;
-                    }
+                    window.AdminRichEditor?.forTarget('quick_description')?.setHTML(descriptionVal);
 
                     document.getElementById('quick_is_active').checked = button.dataset.isActive !== '1';
                     document.getElementById('quick_image_file').value = '';

@@ -35,7 +35,7 @@ class NotificationHelper
             }
 
             // 1. Zalo Personal Bot Notification (bot.zapps.me)
-            if (data_get($settings, 'zalo_personal.enabled')) {
+            if (data_get($settings, 'zalo_personal.enabled') && app(FeatureGate::class)->enabled('zalo_oa')) {
                 $botToken = data_get($settings, 'zalo_personal.bot_token');
                 $botToken = preg_replace('/^zbot:/i', '', trim($botToken));
                 $chatId = data_get($settings, 'zalo_personal.chat_id');

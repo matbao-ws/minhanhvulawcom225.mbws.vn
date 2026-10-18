@@ -199,6 +199,7 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
+                    @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'product_variant'))
                     <a data-tour="product-show.options" href="{{ route('admin.products.options.edit', $product) }}" class="btn btn-outline-primary">
                         <i class="ti ti-adjustments me-1" aria-hidden="true"></i>Thuộc tính
                     </a>
@@ -212,6 +213,7 @@
                         <a data-tour="product-show.create-variant" href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-primary">
                             <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('catalog.variants.create') }}
                         </a>
+                    @endif
                     @endif
                 </div>
             </div>

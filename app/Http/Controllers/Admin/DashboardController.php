@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
+use App\Models\ContactSubmission;
 use App\Models\FeatureSetting;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Page;
+use App\Models\Post;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\CloudinaryService;
@@ -25,11 +29,22 @@ use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
+    use HandlesPagination;
+
     public function index()
     {
-        $canViewOrders = request()->user()->can('orders.view');
+        // A website that sells nothing (catalog off: no products, no orders) gets no sales figures:
+        // its content instead.
+        $isStore = app(FeatureGate::class)->enabled('catalog');
+        $canViewOrders = $isStore && request()->user()->can('orders.view');
         if (! $canViewOrders) {
-            return view('admin.dashboard.index', ['canViewOrders' => false, 'packageUsage' => $this->packageUsage(), 'analyticsEnabled' => $this->analyticsEnabled()]);
+            return view('admin.dashboard.index', [
+                'canViewOrders' => false,
+                'isStore' => $isStore,
+                'contentStats' => $isStore ? [] : $this->contentStats(),
+                'packageUsage' => $this->packageUsage(),
+                'analyticsEnabled' => $this->analyticsEnabled(),
+            ]);
         }
 
         // 1. Key Metrics
@@ -188,6 +203,7 @@ class DashboardController extends Controller
 
         return view('admin.dashboard.index', [
             'canViewOrders' => true,
+            'isStore' => true,
             'packageUsage' => $this->packageUsage(),
             'analyticsEnabled' => $this->analyticsEnabled(),
             'enabledFeatureCount' => FeatureSetting::query()->where('is_enabled', true)->count(),
@@ -241,8 +257,10 @@ class DashboardController extends Controller
         $type = request('type');
         $user = request()->user();
 
-        // Fetch recent orders
-        if ($user->can('orders.view') && Schema::hasTable('orders') && (! $type || $type === 'orders')) {
+        $features = app(FeatureGate::class);
+
+        // Fetch recent orders (a website that sells nothing has none to report)
+        if ($features->enabled('catalog') && $user->can('orders.view') && Schema::hasTable('orders') && (! $type || $type === 'orders')) {
             $ordersQuery = Order::query()->latest();
             if (! empty($q)) {
                 $ordersQuery->where(function ($query) use ($q) {
@@ -266,7 +284,7 @@ class DashboardController extends Controller
         }
 
         // Fetch recent reviews
-        if ($user->can('reviews.view') && Schema::hasTable('reviews') && (! $type || $type === 'reviews')) {
+        if ($features->enabled('review') && $user->can('reviews.view') && Schema::hasTable('reviews') && (! $type || $type === 'reviews')) {
             $reviewsQuery = Review::query()->latest();
             if (! empty($q)) {
                 $reviewsQuery->where(function ($query) use ($q) {
@@ -318,8 +336,8 @@ class DashboardController extends Controller
         // Sort by time
         $notifications = $notifications->sortByDesc('time');
 
-        // Paginate the collection manually (15 items per page)
-        $perPage = 15;
+        // Paginate the collection manually; the page size follows the shared "per page" control.
+        $perPage = $this->perPage(15);
         $currentPage = Paginator::resolveCurrentPage() ?: 1;
         $currentPageItems = $notifications->slice(($currentPage - 1) * $perPage, $perPage)->values();
 
@@ -425,5 +443,34 @@ class DashboardController extends Controller
         return $bytes >= 1024 ** 3
             ? number_format($bytes / 1024 ** 3, 1).' GB'
             : number_format($bytes / 1024 ** 2, 0).' MB';
+    }
+
+    /**
+     * What a website that sells nothing shows instead of sales: its posts, policy pages and unread
+     * contact messages, each only to staff who may open that screen.
+     *
+     * @return list<array{key: string, icon: string, tone: string, value: int, url: string}>
+     */
+    private function contentStats(): array
+    {
+        $user = request()->user();
+        $features = app(FeatureGate::class);
+        $stats = [];
+
+        if ($features->enabled('cms_page') && $user->can('posts.view')) {
+            $stats[] = ['key' => 'posts', 'icon' => 'solar:document-text-bold-duotone', 'tone' => 'primary',
+                'value' => Post::query()->where('is_active', true)->count(), 'url' => route('admin.posts.index')];
+        }
+        if ($features->enabled('cms_page') && $user->can('pages.view')) {
+            $stats[] = ['key' => 'pages', 'icon' => 'solar:notebook-bold-duotone', 'tone' => 'success',
+                'value' => Page::query()->where('is_active', true)->count(), 'url' => route('admin.pages.index')];
+        }
+        if ($user->can('contacts.view') && Schema::hasTable('contact_submissions')) {
+            $stats[] = ['key' => 'contacts', 'icon' => 'solar:letter-unread-bold-duotone', 'tone' => 'danger',
+                'value' => ContactSubmission::query()->where('is_read', false)->where('is_spam', false)->count(),
+                'url' => route('admin.contact-submissions.index')];
+        }
+
+        return $stats;
     }
 }

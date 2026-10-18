@@ -70,19 +70,13 @@
 
                         <div class="row">
                             <!-- Position -->
-                            <div data-tour="banner-form.position" class="col-md-6 mb-3">
+                            <div data-tour="banner-form.position" class="col-12 mb-3">
                                 <label for="position" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.position') }} <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-pill" id="position" name="position" required>
                                     <option value="home_main" @selected(old('position', $banner->position) === 'home_main')>{{ __('admin.banners.positions.home_main') }}</option>
                                     <option value="home_sidebar" @selected(old('position', $banner->position) === 'home_sidebar')>{{ __('admin.banners.positions.home_sidebar') }}</option>
                                     <option value="promotional" @selected(old('position', $banner->position) === 'promotional')>{{ __('admin.banners.positions.promotional') }}</option>
                                 </select>
-                            </div>
-
-                            <!-- Sort Order -->
-                            <div data-tour="banner-form.sort-order" class="col-md-6 mb-3">
-                                <label for="sort_order" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.sort_order') }} <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control rounded-pill" id="sort_order" name="sort_order" value="{{ old('sort_order', $banner->sort_order) }}" min="0" required>
                             </div>
                         </div>
 

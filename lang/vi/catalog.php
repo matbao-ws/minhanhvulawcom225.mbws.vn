@@ -111,6 +111,9 @@ return [
         'search_placeholder' => 'Tìm theo tên, SKU hoặc đường dẫn',
         'sorted' => 'Đã cập nhật vị trí sản phẩm.',
         'sort_failed' => 'Không thể cập nhật vị trí sản phẩm.',
+        'quick_updated' => 'Đã cập nhật giá và tồn kho.',
+        'quick_edit_variants' => 'Sản phẩm có biến thể: sửa giá và tồn kho ở từng biến thể.',
+        'quick_edit_hint' => 'Sửa rồi nhấn Enter (hoặc bấm ra ngoài) để lưu',
         'actions' => [
             'add_variation_row' => 'Thêm dòng biến thể',
         ],

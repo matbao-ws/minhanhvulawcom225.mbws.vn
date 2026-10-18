@@ -1,6 +1,8 @@
 @php
-    $perPageOptions = \App\Http\Controllers\Admin\Concerns\HandlesPagination::$perPageOptions;
     $currentPerPage = $paginator->perPage();
+    // A screen whose default size is not one of the offered ones (10, 20) still shows it selected.
+    $perPageOptions = collect(\App\Http\Controllers\Admin\Concerns\HandlesPagination::$perPageOptions)
+        ->push($currentPerPage)->unique()->sort()->values()->all();
     $keptQuery = collect(request()->except(['per_page', 'page']))->filter(fn ($value) => $value !== null && $value !== '');
 @endphp
 
@@ -19,7 +21,7 @@
                     @endif
                 @endforeach
                 <label class="form-label text-muted fs-2 mb-0 text-nowrap" for="per_page">{{ __('admin.pagination.per_page') }}</label>
-                <select name="per_page" id="per_page" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <select name="per_page" id="per_page" class="form-select form-select-sm w-auto" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                     @foreach($perPageOptions as $option)
                         <option value="{{ $option }}" @selected($currentPerPage === $option)>{{ $option }}</option>
                     @endforeach
@@ -34,6 +36,7 @@
                 ]) }}
             </span>
         </div>
-        <div>{{ $paginator->onEachSide(1)->links() }}</div>
+        {{-- Always drawn, disabled while everything fits on one page. --}}
+        <div>{{ $paginator->onEachSide(1)->links('admin.shared.pagination-links') }}</div>
     </div>
 @endif

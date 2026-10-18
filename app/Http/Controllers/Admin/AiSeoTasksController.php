@@ -100,9 +100,14 @@ class AiSeoTasksController extends Controller
 
     private function message(GatewayUnavailable $e): string
     {
-        $key = 'ai.tasks.errors.'.$e->reason;
+        // This page's own wording first, then the general AI one (credits used up, AI off…).
+        foreach (['ai.tasks.errors.'.$e->reason, 'ai.errors.'.$e->reason] as $key) {
+            if (__($key) !== $key) {
+                return __($key);
+            }
+        }
 
-        return __($key) !== $key ? __($key) : __('ai.errors.default');
+        return __('ai.errors.default');
     }
 
     private function path(string $url): string

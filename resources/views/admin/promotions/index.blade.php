@@ -13,6 +13,8 @@
         <div class="card-body border-bottom">
             <form data-tour="promotions.filters" class="row g-2"><div class="col-md-6"><input name="q" class="form-control" value="{{ request('q') }}" placeholder="Tìm tên chương trình"></div><div class="col-md-4"><select name="kind" class="form-select"><option value="">Tất cả loại</option><option value="automatic" @selected(request('kind') === 'automatic')>Khuyến mãi tự động</option><option value="flash_sale" @selected(request('kind') === 'flash_sale')>Flash Sale</option></select></div><div class="col-md-2"><x-admin.action-button type="submit" icon="filter" class="w-100">Lọc</x-admin.action-button></div></form>
         </div>
+        {{-- Filters, pages and delete update this part only (admin-ajax.js). --}}
+        <div data-ajax-list="promotions">
         <div data-tour="promotions.table" class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th class="ps-4">Chương trình</th><th>Loại / mức giảm</th><th>Phạm vi</th><th>Thời gian</th><th>Lượt</th><th>Trạng thái</th><th class="text-end pe-4">Thao tác</th></tr></thead><tbody>
         @forelse($promotions as $promotion)
             @php $active = $promotion->is_active && (! $promotion->start_at || ! $promotion->start_at->isFuture()) && (! $promotion->end_at || ! $promotion->end_at->isPast()); @endphp
@@ -22,6 +24,7 @@
             'emptyMessage' => 'Chưa có chương trình khuyến mãi.',
         ])</td></tr>@endforelse
         </tbody></table></div>
-        @if($promotions->hasPages())<div class="p-3">{{ $promotions->links() }}</div>@endif
+        @if($promotions->total() > 0)<div class="p-3">@include('admin.shared.pagination', ['paginator' => $promotions])</div>@endif
+        </div>
     </div>
 @endsection

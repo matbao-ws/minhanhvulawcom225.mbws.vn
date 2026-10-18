@@ -18,56 +18,6 @@
         @endif
     </x-admin.page-header>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-5">
-            <div data-tour="features.package" class="card h-100 mb-0">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3"><i class="ti ti-package me-1" aria-hidden="true"></i>{{ __('admin.package.title') }}</h5>
-                    @if($package)
-                        <div class="fs-6 fw-semibold mb-1">{{ $package['name'] }} <span class="badge bg-primary-subtle text-primary ms-1">{{ $package['code'] }}</span></div>
-                        <div class="small text-muted mb-1">{{ __('admin.package.domain') }}: {{ $packageDomain }}</div>
-                        <div class="small text-muted">{{ __('admin.package.synced_at') }}: {{ \Illuminate\Support\Carbon::parse($package['synced_at'])->format('d/m/Y H:i') }}</div>
-                        @unless($package['plan_known'] ?? false)
-                            <div class="alert alert-warning small py-2 mt-3 mb-0">{{ __('admin.package.unknown_plan', ['code' => $package['code']]) }}</div>
-                        @endunless
-                        <form method="POST" action="{{ route('admin.features.reset-overrides') }}" class="mt-3">
-                            @csrf
-                            <x-admin.action-button type="submit" variant="outline-secondary" size="sm" icon="arrow-back-up">{{ __('admin.package.reset_all') }}</x-admin.action-button>
-                        </form>
-                    @else
-                        <p class="text-muted mb-1">{{ __('admin.package.manual') }}</p>
-                        @unless($packageConfigured)
-                            <p class="small text-muted mb-0">{{ __('admin.package.not_configured') }}</p>
-                        @endunless
-                    @endif
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-7">
-            {{-- Read-only: limits change only when sales upgrade the contract on the tool. --}}
-            <div data-tour="features.limits" class="card h-100 mb-0">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-1">{{ __('admin.package.limits_title') }}</h5>
-                    <p class="small text-muted mb-3">{{ __('admin.package.limits_help') }}</p>
-                    @foreach($limitSummary as $metric => $row)
-                        @php
-                            $percent = $row['limit'] === null ? null : (int) min(100, round($row['usage'] / max(1, $row['limit']) * 100));
-                        @endphp
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between small mb-1 gap-2">
-                                <span class="fw-semibold">{{ __('admin.package.metric.'.$metric) }}</span>
-                                <span class="text-nowrap">{{ number_format($row['usage']) }} / {{ $row['limit'] === null ? __('admin.package.unlimited') : number_format($row['limit']) }}</span>
-                            </div>
-                            <div class="progress" style="height: 6px;" role="progressbar" aria-label="{{ __('admin.package.metric.'.$metric) }}" aria-valuenow="{{ $percent ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
-                                <div class="progress-bar {{ $percent === null ? '' : ($percent >= 100 ? 'bg-danger' : ($percent >= 80 ? 'bg-warning' : 'bg-primary')) }}" style="width: {{ $percent ?? 0 }}%"></div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-
     @php
         $groupMeta = [
             'ecommerce' => [
@@ -163,6 +113,9 @@
 
 @push('styles')
 <style>
+    /* A feature whose parent is off has no effect: dimmed, still switchable. */
+    [data-feature-card].feature-blocked .feature-card { opacity: .6; }
+    .feature-requires { color: #6c7a91; }
     .feature-card {
         transition: all 0.25s ease-in-out;
     }
@@ -222,7 +175,22 @@
             statusText.className = 'fw-bold text-danger mb-0 fs-3';
         }
         badge.style.borderBottomLeftRadius = '12px';
+        refreshRequirements();
     }
+
+    // Dims each card whose required features (config features.requires) are not all on.
+    function refreshRequirements() {
+        document.querySelectorAll('[data-feature-card][data-feature-requires]').forEach(card => {
+            const codes = (card.dataset.featureRequires || '').split(',').filter(Boolean);
+            const blocked = codes.some(code => {
+                const parent = document.getElementById('switch-' + code);
+                return parent ? !parent.checked : false;
+            });
+            card.classList.toggle('feature-blocked', blocked);
+            card.querySelector('[data-requires-off]')?.classList.toggle('d-none', !blocked);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', refreshRequirements);
 
     function setFeatureSource(code, overridden) {
         const source = document.querySelector('[data-feature-source="' + code + '"]');

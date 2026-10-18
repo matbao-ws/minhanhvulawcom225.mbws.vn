@@ -28,6 +28,8 @@
             <div class="col-md-3"><x-admin.action-button type="submit" variant="outline-primary" icon="filter" class="w-100">Lọc</x-admin.action-button></div>
         </form>
 
+        {{-- Filters, pages and delete update this part only (admin-ajax.js). --}}
+        <div data-ajax-list="pages">
         <div data-tour="pages.table" class="table-responsive">
             <table class="table align-middle">
                 <thead><tr><th>Tiêu đề</th><th>Slug</th><th>Trạng thái</th><th>Cập nhật</th><th class="text-end">Thao tác</th></tr></thead>
@@ -60,7 +62,8 @@
                 </tbody>
             </table>
         </div>
-        {{ $pages->links() }}
+        @include('admin.shared.pagination', ['paginator' => $pages])
+        </div>
     </div>
 </div>
 @endsection

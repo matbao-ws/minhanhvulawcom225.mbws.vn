@@ -48,6 +48,8 @@
                 </form>
             </div>
             
+            {{-- Search and pages update this part only (admin-ajax.js). --}}
+            <div data-ajax-list="notifications">
             <div data-tour="notifications.list" class="list-group list-group-flush">
                 @forelse($notifications as $notification)
                     <a href="{{ $notification->link }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3 px-4 transition-all">
@@ -69,11 +71,12 @@
                     </div>
                 @endforelse
             </div>
-            @if($notifications->hasPages())
+            @if($notifications->total() > 0)
                 <div class="card-footer bg-transparent border-top p-4">
-                    {{ $notifications->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $notifications])
                 </div>
             @endif
+            </div>
         </div>
     </div>
 @endsection

@@ -20,6 +20,9 @@ Schedule::command('orders:expire-unpaid')->everyFiveMinutes()->withoutOverlappin
 // Also refreshed lazily from admin requests, for hosting without a cron.
 Schedule::command('package:sync')->hourly()->withoutOverlapping();
 
+// The 404 log (admin/redirects) keeps only URLs requested in the last 90 days.
+Schedule::command('redirects:prune-404')->weeklyOn(1, '03:40')->withoutOverlapping();
+
 // Before the gateway's Search Console sync (03:00) reads it.
 Schedule::command('ai:site-index')->dailyAt('02:30')->withoutOverlapping();
 

@@ -4,8 +4,8 @@ namespace App\Providers;
 
 use App\Contracts\TranslationProvider;
 use App\Mail\Transport\MatbaoGatewayTransport;
-use App\Models\Banner;
 use App\Models\Order;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
 use App\Models\Review;
@@ -20,6 +20,7 @@ use App\Services\LanguageRegistry;
 use App\Services\MailSettings;
 use App\Services\Packages\PackageLimits;
 use App\Services\Packages\PackageUsageAlerts;
+use App\Services\Seo\IndexNow;
 use App\Services\Seo\SeoMetaFactory;
 use App\Services\Seo\SiteEmbeds;
 use App\Services\SiteBranding;
@@ -29,22 +30,26 @@ use App\Services\SiteSectionService;
 use App\Services\Translation\GoogleTranslationProvider;
 use App\Services\WordPressImageImportService;
 use App\Support\AdminTours;
+use App\Support\AiAccess;
 use App\Support\ClientEditorChrome;
 use App\Support\CoreUpdate\ArtisanRunner;
 use App\Support\CoreUpdate\ReleaseVerifier;
 use App\Support\ErrorReporting\GatewayErrorReporter;
 use App\Support\FeatureGate;
+use App\Support\LocaleUrl;
 use App\Support\Seo\SeoMeta;
 use App\Support\Seo\StructuredData;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -58,6 +63,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(SiteBranding::class);
         // Holds the request's error summaries until the response is out (one flush per request).
         $this->app->scoped(GatewayErrorReporter::class);
+        // Collects the URLs a request changed and sends them to IndexNow once, at its end.
+        $this->app->scoped(IndexNow::class);
         $this->app->bind(ReleaseVerifier::class, fn () => new ReleaseVerifier(
             array_values(array_filter((array) config('core_update.public_keys'))),
         ));
@@ -91,6 +98,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Published, changed or removed posts, products and policy pages reach IndexNow (production).
+        foreach ([Post::class, Product::class, Page::class] as $model) {
+            $model::saved(fn ($record) => app(IndexNow::class)->recordChanged($record));
+            $model::deleted(fn ($record) => app(IndexNow::class)->recordChanged($record, deleted: true));
+        }
+
+        // Storefront URLs of the default language have no /{locale} prefix (App\Support\LocaleUrl):
+        // every route('client.…') — canonical, hreflang, sitemap, menus, the site index — is built
+        // from the prefixed route and loses the default language's prefix here, in one place.
+        // Attached when the URL generator is first built, not by building it here: a process that
+        // boots the kernel before any request exists (a queue worker, a test racer) cannot build it yet.
+        $stripDefaultLocale = function (UrlGenerator $url): void {
+            $url->formatPathUsing(function (string $path, $route = null): string {
+                return $route instanceof \Illuminate\Routing\Route && str_starts_with((string) $route->getName(), 'client.')
+                    ? LocaleUrl::stripDefault($path)
+                    : $path;
+            });
+        };
+        $this->app->resolved('url') ? $stripDefaultLocale($this->app->make('url')) : $this->app->afterResolving('url', $stripDefaultLocale);
+
         // Resolve the effective SMTP configuration the first time anything asks for
         // the mailer, so the admin screen outranks .env for every mail in the system
         // — customer order updates, contact form, password reset, invoices, not just
@@ -132,10 +159,13 @@ class AppServiceProvider extends ServiceProvider
             'errors::*',
         ], function ($view) {
             // An error page is rendered outside the locale middleware: read the language from
-            // the URL here, against the site's own languages (a /ja page errs in Japanese).
+            // the URL here, against the site's own languages (a /ja page errs in Japanese, a page
+            // without a prefix in the default language).
             $segment = (string) request()->segment(1);
             if ($segment !== '' && app(LanguageRegistry::class)->supports($segment)) {
                 app()->setLocale($segment);
+            } elseif ($segment !== 'admin') {
+                app()->setLocale(LocaleUrl::split(request()->path())[0]);
             }
             $currentLocale = app()->getLocale();
             $isAdminContext = request()->is('*/admin*') || request()->is('admin*') || (request()->is('error-preview*') && request()->query('context') !== 'client');
@@ -144,7 +174,7 @@ class AppServiceProvider extends ServiceProvider
             // URL cannot be built and the error page itself throws (a blank 500 for a 404).
             $clientHomeUrl = Route::has('client.home')
                 ? route('client.home', ['locale' => $currentLocale])
-                : (is_file(base_path('routes/theme.php')) ? url('/'.$currentLocale) : null);
+                : (is_file(base_path('routes/theme.php')) ? LocaleUrl::home($currentLocale) : null);
 
             $view->with([
                 'isAdminContext' => $isAdminContext,
@@ -153,18 +183,25 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        // Shown to staff who can use AI; the gateway is asked at most every five minutes.
+        // Always shown; locked (and saying why) when AI is not available. The gateway is asked at
+        // most every five minutes, and never for a locked card.
         view()->composer('admin.dashboard._ai-usage', function ($view) {
             $user = auth()->user();
-            $visible = $user && $user->can('ai.use') && app(FeatureGate::class)->availableTo($user, 'ai_seo');
-            $view->with(['aiUsageVisible' => $visible, 'aiUsage' => $visible ? app(AiUsage::class)->current() : null]);
+            $access = app(AiAccess::class)->check($user, 'ai_seo');
+            $view->with([
+                'aiUsageVisible' => $user !== null,
+                'aiUsageAccess' => $access,
+                'aiUsage' => $user && $access['allowed'] ? app(AiUsage::class)->current() : null,
+            ]);
         });
 
         // The card loads its list after the page (admin.ai.seo-tasks.summary): no gateway call here.
         view()->composer('admin.dashboard._seo-tasks', function ($view) {
             $user = auth()->user();
             $view->with([
-                'seoTasksVisible' => $user && $user->can('ai.use') && app(FeatureGate::class)->availableTo($user, 'ai_seo'),
+                // Always shown; locked, it says why instead of loading the list.
+                'seoTasksVisible' => $user !== null,
+                'seoTasksAccess' => app(AiAccess::class)->check($user, 'ai_seo'),
                 // A connection changes shared settings, so only expose this shortcut
                 // to staff who can both open and save that screen.
                 'seoTasksSettingsUrl' => $user && $user->can('settings.view') && $user->can('settings.update')
@@ -231,7 +268,7 @@ class AppServiceProvider extends ServiceProvider
         view()->composer('admin.layouts.app', function ($view) {
             $view->with('packageLimitAlerts', app(PackageUsageAlerts::class)->forAdmin());
             // The guided tour of this page, if it has one; the header's "?" button and driver.js depend on it.
-            $view->with('adminTour', AdminTours::forRoute(request()->route()?->getName(), auth()->id()));
+            $view->with('adminTour', AdminTours::forRoute(request()->route()?->getName()));
         });
 
         RateLimiter::for('public-auth', fn (Request $request) => [
@@ -342,7 +379,7 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
 
             // Fetch recent orders
-            if ($user?->can('orders.view') && Schema::hasTable('orders')) {
+            if ($user?->can('orders.view') && Schema::hasTable('orders') && app(FeatureGate::class)->enabled('catalog')) {
                 $orders = Order::query()->latest()->limit(5)->get();
                 foreach ($orders as $order) {
                     $notifications->push([
@@ -358,7 +395,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Fetch recent reviews
-            if ($user?->can('reviews.view') && Schema::hasTable('reviews')) {
+            if ($user?->can('reviews.view') && Schema::hasTable('reviews') && app(FeatureGate::class)->enabled('review')) {
                 $reviews = Review::query()->latest()->limit(5)->get();
                 foreach ($reviews as $review) {
                     $prodName = 'Sản phẩm';
@@ -431,7 +468,6 @@ class AppServiceProvider extends ServiceProvider
 
         Product::creating(fn () => $limits()->ensureCanCreate(PackageLimits::DATA_UNIT));
         Post::creating(fn () => $limits()->ensureCanCreate(PackageLimits::DATA_UNIT));
-        Banner::creating(fn () => $limits()->ensureCanCreate(PackageLimits::BANNER));
 
         // The monthly mail quota is enforced by the MatBao relay on the gateway,
         // where this website's code cannot reach it; PackageLimits only reads it.

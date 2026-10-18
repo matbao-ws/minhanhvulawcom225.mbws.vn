@@ -4,7 +4,6 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/dragula/dist/dragula.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin-assets/libs/quill/dist/quill.snow.css') }}">
     <style>
         /* Dynamic table borders for drag-and-drop */
         #category-table-sortable tbody.category-group-sortable tr td {
@@ -81,6 +80,11 @@
                 </div>
             @endif
         </div>
+        {{-- Filters, pages, show/hide, quick edit and delete update this part only (admin-ajax.js). --}}
+        @php
+            $canUpdateCatalog = (bool) auth()->user()?->can('products.update');
+        @endphp
+        <div data-ajax-list="categories">
         @include('admin.shared.bulk-actions', [
             'bulkFormId' => 'bulk-categories-form',
             'bulkActionUrl' => route('admin.categories.bulk'),
@@ -158,9 +162,14 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge {{ $category->is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
-                                {{ $category->is_active ? __('catalog.status.active') : __('catalog.status.inactive') }}
-                            </span>
+                            @include('admin.shared.status-switch', [
+                                'action' => route('admin.categories.bulk'),
+                                'id' => $category->id,
+                                'active' => (bool) $category->is_active,
+                                'can' => $canUpdateCatalog,
+                                'activeLabel' => __('catalog.status.active'),
+                                'inactiveLabel' => __('catalog.status.inactive'),
+                            ])
                             @if($category->is_draft)
                                 <span class="badge bg-warning-subtle text-warning">{{ __('catalog.status.draft') }}</span>
                             @endif
@@ -225,11 +234,12 @@
         <div class="card-body">
             @include('admin.shared.pagination', ['paginator' => $categories])
         </div>
+        </div>
     </div>
 
     <div class="modal fade" id="quickEditCategoryModal" tabindex="-1" aria-labelledby="quickEditCategoryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <form method="POST" action="" class="modal-content" enctype="multipart/form-data" id="quickEditCategoryForm">
+            <form method="POST" action="" class="modal-content" enctype="multipart/form-data" id="quickEditCategoryForm" data-ajax-form>
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
@@ -267,7 +277,7 @@
                         <div class="col-12 mb-3">
                             <label class="form-label" for="quick_description">{{ __('catalog.fields.description') }}</label>
                             <textarea class="form-control d-none" id="quick_description" name="description"></textarea>
-                            <div id="quick_description_editor" class="catalog-quill" data-target="quick_description"></div>
+                            <div id="quick_description_editor" class="rich-editor" data-preset="basic" data-media-folder="categories" data-target="quick_description"></div>
                         </div>
                         <div class="col-md-6">
                             <input type="hidden" name="is_active" value="0">
@@ -294,12 +304,14 @@
     </div>
 @endsection
 
+@include('admin.shared.rich-editor-assets')
+
 @push('scripts')
     <script src="{{ asset('admin-assets/libs/dragula/dist/dragula.min.js') }}"></script>
-    <script src="{{ asset('admin-assets/libs/quill/dist/quill.min.js') }}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const sortable = document.getElementById('category-table-sortable');
+        // Again after each in-place list update (admin-ajax.js): the rows are new.
+        AdminAjax.ready(function (root) {
+            const sortable = root.querySelector('#category-table-sortable');
             const csrfToken = @json(csrf_token());
             const sortUrl = @json(route('admin.categories.sort'));
             const quickUpdateUrlTemplate = @json(route('admin.categories.quick-update', ['category' => '__CATEGORY_ID__']));
@@ -317,30 +329,6 @@
                     timerProgressBar: true
                 }).fire({ icon, title: message });
             };
-
-            // Initialize Quick Edit Quill editor
-            const quickEditorElement = document.getElementById('quick_description_editor');
-            if (quickEditorElement && window.Quill) {
-                const target = document.getElementById(quickEditorElement.dataset.target);
-                const quill = new Quill(quickEditorElement, {
-                    theme: 'snow',
-                    modules: {
-                        toolbar: [
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['link', 'clean']
-                        ]
-                    }
-                });
-                quickEditorElement.__quill = quill;
-
-                const form = quickEditorElement.closest('form');
-                if (form && target) {
-                    form.addEventListener('submit', function () {
-                        target.value = quill.root.innerHTML;
-                    });
-                }
-            }
 
             const sortingEnabled = @json(! $isFiltered);
 
@@ -435,7 +423,7 @@
                 }
             }
 
-            document.querySelectorAll('.js-category-quick-edit').forEach(function (button) {
+            root.querySelectorAll('.js-category-quick-edit').forEach(function (button) {
                 button.addEventListener('click', function () {
                     const form = document.getElementById('quickEditCategoryForm');
                     const parentSelect = document.getElementById('quick_parent_id');
@@ -449,10 +437,7 @@
                     
                     const descriptionVal = button.dataset.description || '';
                     document.getElementById('quick_description').value = descriptionVal;
-                    const quickEditor = document.getElementById('quick_description_editor');
-                    if (quickEditor && quickEditor.__quill) {
-                        quickEditor.__quill.root.innerHTML = descriptionVal;
-                    }
+                    window.AdminRichEditor?.forTarget('quick_description')?.setHTML(descriptionVal);
 
                     document.getElementById('quick_is_active').checked = button.dataset.isActive === '1';
                     document.getElementById('quick_is_draft').checked = button.dataset.isDraft === '1';

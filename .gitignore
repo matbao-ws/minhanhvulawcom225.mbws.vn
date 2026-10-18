@@ -28,3 +28,6 @@ Homestead.yaml
 Thumbs.db
 /storage/framework/lsp-*.php
 .deploy-sites/
+
+# Python test helpers
+__pycache__/

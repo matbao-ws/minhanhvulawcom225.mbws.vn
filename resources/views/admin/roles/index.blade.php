@@ -22,7 +22,8 @@
     @endif
 
     <div class="card">
-        <div class="card-body p-0">
+        {{-- Filters, pages and delete update this part only (admin-ajax.js). --}}
+        <div class="card-body p-0" data-ajax-list="roles">
             <div data-tour="roles.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
@@ -104,9 +105,9 @@
                 </table>
             </div>
 
-            @if($roles->hasPages())
+            @if($roles->total() > 0)
                 <div class="px-4 py-3 border-top">
-                    {{ $roles->links() }}
+                    @include('admin.shared.pagination', ['paginator' => $roles])
                 </div>
             @endif
         </div>

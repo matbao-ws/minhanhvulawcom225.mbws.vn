@@ -86,7 +86,9 @@
         </div>
     @endif
 
-    <!-- Update Status Card (hidden when printing) -->
+    <!-- Update Status Card (hidden when printing). Saving the status, a refund or a shipment updates
+         this card and the order below in place, without reloading the page (admin-ajax.js). -->
+    <div data-ajax-list="order-status">
     <div data-tour="order.status" class="card mb-4 status-card border border-opacity-10 border-primary shadow-none">
         <div class="card-body p-4">
             <h5 class="fw-semibold mb-3 text-primary d-flex align-items-center gap-2">
@@ -126,7 +128,9 @@
             </form>
         </div>
     </div>
+    </div>
 
+    <div data-ajax-list="order-detail">
     <div class="row g-4 mb-4 status-card">
         <div data-tour="order.refunds" class="col-lg-7">
             <div class="card h-100"><div class="card-body">
@@ -264,7 +268,7 @@
             </div>
 
             <!-- Items Table -->
-            <div data-tour="order.items" class="table-responsive mb-5 border rounded">
+            <div data-tour="order.items" class="table-responsive mb-5">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr class="text-nowrap">
@@ -367,6 +371,8 @@
                 </div>
             </div>
         </div>
+    </div>
+
     </div>
 
     @if(($isGhtkEnabled || $isGhnEnabled) && !$order->tracking_number)
@@ -548,7 +554,9 @@
                                 timer: 2000,
                                 showConfirmButton: false
                             }).then(() => {
-                                window.location.reload();
+                                bootstrap.Modal.getInstance(document.getElementById('pushShippingModal'))?.hide();
+                                // The order again, in place (admin-ajax.js).
+                                window.AdminAjax ? window.AdminAjax.load(window.location.href, { push: false }) : window.location.reload();
                             });
                         } else {
                             Swal.fire({
@@ -575,8 +583,12 @@
                 });
             }
 
-            const refundType = document.getElementById('refund-type');
-            const refundItems = document.getElementById('refund-items');
+        });
+
+        // Again after each in-place update (admin-ajax.js): the refund form is new.
+        AdminAjax.ready(function (root) {
+            const refundType = root.querySelector('#refund-type');
+            const refundItems = root.querySelector('#refund-items');
             const syncRefundInputs = () => {
                 const isPartial = refundType && refundType.value === 'partial';
                 if (refundItems) {

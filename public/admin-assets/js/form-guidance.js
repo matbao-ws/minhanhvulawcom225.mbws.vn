@@ -98,15 +98,13 @@
         editor.dataset.placeholder = placeholderFor(target || editor, label);
     }
 
-    function syncQuillPlaceholder(quillRoot) {
-        const editor = quillRoot.closest('.catalog-quill');
-        if (!editor) return;
-
-        addEditorPlaceholder(editor);
-        if (!quillRoot.dataset.placeholder) quillRoot.dataset.placeholder = editor.dataset.placeholder;
+    // The rich text editor (Jodit) draws its own toolbar, popups and dialogs; leave them alone.
+    function insideEditorUi(element) {
+        return !!(element.closest && element.closest('.jodit'));
     }
 
     function enhance(root) {
+        if (root && insideEditorUi(root)) return;
         const scope = root && root.querySelectorAll ? root : document;
 
         if (root && root.matches && root.matches(editableSelector)) {
@@ -116,19 +114,20 @@
         }
 
         scope.querySelectorAll(editableSelector).forEach(function (control) {
+            if (insideEditorUi(control)) return;
             addPlaceholder(control);
             markRequired(control);
             addSlugNote(control);
         });
 
         if (root && root.matches && root.matches('[required]')) markRequired(root);
-        scope.querySelectorAll('[required]').forEach(markRequired);
+        scope.querySelectorAll('[required]').forEach(function (control) {
+            if (!insideEditorUi(control)) markRequired(control);
+        });
 
-        if (root && root.matches && root.matches('.catalog-quill')) addEditorPlaceholder(root);
-        scope.querySelectorAll('.catalog-quill').forEach(addEditorPlaceholder);
-
-        if (root && root.matches && root.matches('.ql-editor')) syncQuillPlaceholder(root);
-        scope.querySelectorAll('.ql-editor').forEach(syncQuillPlaceholder);
+        // Read by the rich text editor (rich-editor.js) when it mounts.
+        if (root && root.matches && root.matches('.rich-editor')) addEditorPlaceholder(root);
+        scope.querySelectorAll('.rich-editor').forEach(addEditorPlaceholder);
     }
 
     enhance(document);

@@ -14,13 +14,29 @@ return [
         'banner',
         'menu',
         'multi_admin',
-        'inventory_log',
         'product_variant',
         'payment_vnpay',
         'multilingual',
         'analytics',
         'ai_seo',
         'ai_research',
+    ],
+
+    /*
+    | A feature that only works while another is on (checkout needs the catalogue, VNPAY needs
+    | online payment…). The features page says so on the card and dims it while a parent is off.
+    | Informational: FeatureGate still reads each switch on its own.
+    */
+    'requires' => [
+        'cart' => ['catalog'],
+        'cod_order' => ['cart'],
+        'online_payment' => ['cart'],
+        'payment_vnpay' => ['online_payment'],
+        'voucher' => ['catalog'],
+        'review' => ['catalog'],
+        'product_variant' => ['catalog'],
+        'shipping' => ['catalog'],
+        'ai_research' => ['ai_seo'],
     ],
 
     'groups' => [
@@ -32,7 +48,6 @@ return [
             'voucher',
             'review',
             'shipping',
-            'inventory_log',
             'product_variant',
             'payment_vnpay',
         ],

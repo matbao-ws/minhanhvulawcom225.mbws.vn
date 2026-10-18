@@ -82,42 +82,41 @@ class PackageLimitsTest extends TestCase
         $this->assertDatabaseCount('products', 2);
     }
 
-    public function test_banner_limit_blocks_the_admin_form_with_a_message(): void
+    public function test_banners_are_never_limited_by_the_package(): void
     {
+        // numberBanner in the tool is the banner design service, not a cap: even a stored
+        // snapshot that still carries it limits nothing.
         $this->package(['banner' => 1]);
         FeatureSetting::query()->updateOrCreate(['feature_code' => 'banner'], ['is_enabled' => true]);
         Storage::fake('public');
         Banner::query()->create(['title' => 'Có sẵn', 'image_path' => 'banners/a.jpg', 'position' => 'home_main', 'is_active' => true]);
         $admin = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Admin', 'permissions' => ['*']])->id]);
 
-        $response = $this->actingAs($admin)->from('/vi/admin/banners/create')->post('/vi/admin/banners', [
+        $this->actingAs($admin)->get('/vi/admin/banners/create')->assertOk();
+        $this->actingAs($admin)->post('/vi/admin/banners', [
             'title' => 'Mới',
             'image_file' => UploadedFile::fake()->image('b.jpg'),
             'position' => 'home_main',
             'sort_order' => 1,
             'is_active' => 1,
-        ]);
+        ])->assertSessionMissing(PackageLimitExceeded::FLASH_KEY);
 
-        // Blocked by the route middleware before the controller even runs.
-        $response->assertRedirect('/vi/admin/banners/create');
-        $response->assertSessionHas(PackageLimitExceeded::FLASH_KEY, __('admin.package.limit_exceeded.banner', ['limit' => 1]));
-        $this->assertDatabaseCount('banners', 1);
+        $this->assertDatabaseCount('banners', 2);
+        $this->assertNotContains('banner', PackageLimits::METRICS);
     }
 
     public function test_create_screens_are_blocked_with_a_dialog_once_the_limit_is_used_up(): void
     {
-        $this->package(['data_unit' => 1, 'banner' => 1]);
-        foreach (['catalog', 'cms_page', 'banner'] as $code) {
+        $this->package(['data_unit' => 1]);
+        foreach (['catalog', 'cms_page'] as $code) {
             FeatureSetting::query()->updateOrCreate(['feature_code' => $code], ['is_enabled' => true]);
         }
         $this->createProduct(1);
-        Banner::query()->create(['title' => 'Có sẵn', 'image_path' => 'banners/a.jpg', 'position' => 'home_main', 'is_active' => true]);
         $admin = $this->admin();
 
         foreach ([
             ['/vi/admin/products', '/vi/admin/products/create', 'data_unit'],
             ['/vi/admin/posts', '/vi/admin/posts/create', 'data_unit'],
-            ['/vi/admin/banners', '/vi/admin/banners/create', 'banner'],
         ] as [$list, $create, $metric]) {
             $message = __('admin.package.limit_exceeded.'.$metric, ['limit' => 1]);
 
@@ -220,7 +219,7 @@ class PackageLimitsTest extends TestCase
 
     public function test_dashboard_shows_package_usage(): void
     {
-        $this->package(['data_unit' => 10, 'banner' => null, 'email_monthly' => null]);
+        $this->package(['data_unit' => 10, 'email_monthly' => null]);
         $this->createProduct(1);
         $role = Role::query()->create(['name' => 'Admin', 'permissions' => ['*']]);
 
@@ -273,20 +272,21 @@ class PackageLimitsTest extends TestCase
 
     public function test_package_usage_alerts_report_near_and_exhausted_limits(): void
     {
-        $this->package(['data_unit' => 5, 'banner' => 1]);
+        $this->package(['data_unit' => 5]);
         $this->createProduct(1);
         $this->createProduct(2);
         $this->createProduct(3);
         $this->createProduct(4);
-        Banner::query()->create(['title' => 'At limit', 'image_path' => 'banners/a.jpg', 'position' => 'home_main', 'is_active' => true]);
 
         $alerts = app(PackageUsageAlerts::class)->forAdmin();
-
-        $this->assertCount(2, $alerts);
+        $this->assertCount(1, $alerts);
         $this->assertSame('warning', $alerts[0]['level']);
         $this->assertStringContainsString('4/5', $alerts[0]['message']);
-        $this->assertSame('danger', $alerts[1]['level']);
-        $this->assertStringContainsString('1/1', $alerts[1]['message']);
+
+        $this->createProduct(5);
+        $alerts = app(PackageUsageAlerts::class)->forAdmin();
+        $this->assertSame('danger', $alerts[0]['level']);
+        $this->assertStringContainsString('5/5', $alerts[0]['message']);
     }
 
     public function test_dashboard_shows_usage_and_storage_without_a_package(): void
@@ -315,7 +315,7 @@ class PackageLimitsTest extends TestCase
             ['setting_value' => [
                 'code' => 'TEST',
                 'name' => 'Gói test',
-                'limits' => array_merge(['data_unit' => null, 'banner' => null, 'email_monthly' => null], $limits),
+                'limits' => array_merge(['data_unit' => null, 'email_monthly' => null], $limits),
                 'details' => [],
                 'plan_known' => true,
                 'synced_at' => now()->toIso8601String(),

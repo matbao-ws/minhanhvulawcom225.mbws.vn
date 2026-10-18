@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Promotion;
 use App\Models\PromotionTarget;
+use App\Support\FeatureGate;
 use DomainException;
 
 class PromotionService
@@ -16,6 +17,11 @@ class PromotionService
      */
     public function quote(Product $product, ?ProductVariant $variant, float $originalPrice, int $quantity): array
     {
+        // Promotions are part of the voucher feature ("Khuyến mãi & mã giảm giá"): off, nothing applies.
+        if (! app(FeatureGate::class)->enabled('voucher')) {
+            return ['promotion' => null, 'target' => null, 'original_unit_price' => $originalPrice, 'unit_price' => $originalPrice, 'discount' => 0.0];
+        }
+
         $candidates = Promotion::query()
             ->activeNow()
             ->with(['targets' => fn ($query) => $query->where('product_id', $product->id)

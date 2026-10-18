@@ -40,7 +40,7 @@ class StorefrontSeoTest extends TestCase
         ]);
         $url = route('client.pages.show', ['locale' => 'vi', 'slug' => $page->canonicalSlug('vi')]);
 
-        $this->get('/vi/chinh-sach/'.$page->canonicalSlug('vi'))
+        $this->get('/chinh-sach/'.$page->canonicalSlug('vi'))
             ->assertOk()
             ->assertSee('<title>Chính sách đổi trả | Shop</title>', false)
             // Plain text, whitespace collapsed, entities decoded once and re-escaped once.
@@ -54,13 +54,14 @@ class StorefrontSeoTest extends TestCase
     public function test_only_production_asks_to_be_indexed(): void
     {
         $page = $this->page();
-        $path = '/vi/chinh-sach/'.$page->canonicalSlug('vi');
+        $path = '/chinh-sach/'.$page->canonicalSlug('vi');
 
         // Tests run as "testing": like staging, a copy of the shop must stay out of search.
         $this->get($path)->assertSee('<meta name="robots" content="noindex, follow">', false);
 
         $this->app['env'] = 'production';
-        $this->get($path)->assertSee('<meta name="robots" content="index, follow">', false);
+        // Indexable pages also allow a long snippet and a large image preview (Search, Discover).
+        $this->get($path)->assertSee('<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">', false);
     }
 
     public function test_every_active_language_is_declared_as_an_alternate(): void
@@ -69,7 +70,7 @@ class StorefrontSeoTest extends TestCase
         $this->assertGreaterThan(1, count($codes), 'precondition: the test install has more than one language');
 
         $page = $this->page();
-        $response = $this->get('/vi/chinh-sach/'.$page->canonicalSlug('vi'))->assertOk();
+        $response = $this->get('/chinh-sach/'.$page->canonicalSlug('vi'))->assertOk();
 
         foreach ($codes as $code) {
             $response->assertSee('<link rel="alternate" hreflang="'.$code.'" href="'.route('client.pages.show', ['locale' => $code, 'slug' => $page->canonicalSlug($code)]).'">', false);
@@ -84,7 +85,7 @@ class StorefrontSeoTest extends TestCase
         $this->category('ao-thun');
         $url = route('client.categories.show', ['locale' => 'vi', 'slug' => 'ao-thun']);
 
-        $this->get('/vi/danh-muc/ao-thun?page=2&sort=price')
+        $this->get('/danh-muc/ao-thun?page=2&sort=price')
             ->assertOk()
             ->assertSee('<link rel="canonical" href="'.$url.'?page=2">', false);
     }
@@ -94,7 +95,7 @@ class StorefrontSeoTest extends TestCase
         $parent = $this->category('thoi-trang', ['name' => ['vi' => 'Thời trang']]);
         $this->category('ao-thun', ['name' => ['vi' => 'Áo thun'], 'parent_id' => $parent->id]);
 
-        $html = $this->get('/vi/danh-muc/ao-thun')->assertOk()->getContent();
+        $html = $this->get('/danh-muc/ao-thun')->assertOk()->getContent();
 
         $this->assertStringContainsString('"@type":"BreadcrumbList"', $html);
         $this->assertStringContainsString('"position":1,"name":"Thời trang","item":"'.route('client.categories.show', ['locale' => 'vi', 'slug' => 'thoi-trang']).'"', $html);
@@ -102,7 +103,7 @@ class StorefrontSeoTest extends TestCase
 
         // A parent the visitor cannot open is not linked.
         $parent->update(['is_draft' => true]);
-        $this->assertStringNotContainsString('BreadcrumbList', $this->get('/vi/danh-muc/ao-thun')->getContent());
+        $this->assertStringNotContainsString('BreadcrumbList', $this->get('/danh-muc/ao-thun')->getContent());
     }
 
     public function test_structured_data_cannot_be_broken_out_of_by_the_shop_name(): void
@@ -110,7 +111,7 @@ class StorefrontSeoTest extends TestCase
         ProjectSetting::query()->create(['setting_key' => 'shop_name', 'setting_value' => 'Shop</script><script>alert(1)</script>']);
         $page = $this->page();
 
-        $html = $this->get('/vi/chinh-sach/'.$page->canonicalSlug('vi'))->assertOk()->getContent();
+        $html = $this->get('/chinh-sach/'.$page->canonicalSlug('vi'))->assertOk()->getContent();
 
         $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
         // "<" and ">" leave as < / > inside the JSON-LD.
@@ -123,7 +124,7 @@ class StorefrontSeoTest extends TestCase
         ProjectSetting::query()->create(['setting_key' => 'embed_footer', 'setting_value' => '<script>window.chatWidget = true;</script>']);
         $page = $this->page();
 
-        $html = $this->get('/vi/chinh-sach/'.$page->canonicalSlug('vi'))->assertOk()->getContent();
+        $html = $this->get('/chinh-sach/'.$page->canonicalSlug('vi'))->assertOk()->getContent();
 
         $head = substr($html, 0, strpos($html, '</head>'));
         $this->assertStringContainsString('<meta name="google-site-verification" content="abc123">', $head);
@@ -306,6 +307,41 @@ class StorefrontSeoTest extends TestCase
 
         $this->assertSame('Máy bơm', $node['name']);
         $this->assertArrayNotHasKey('offers', $node);
+    }
+
+    public function test_a_post_shares_its_own_title_and_image_and_publishes_its_type_and_faq(): void
+    {
+        $this->themeRoute('bai-viet', 'client.posts.show');
+        $post = Post::query()->create([
+            'title' => ['vi' => 'Cách chọn ống nước'], 'slug' => 'cach-chon-ong', 'is_active' => true,
+            'content' => ['vi' => '<p>Nội dung.</p><h2>Câu hỏi thường gặp</h2><h3>Ống nào bền nhất?</h3><p>Ống uPVC.</p><h3>Bao lâu thay?</h3><p>Mười năm.</p><h2>Kết luận</h2><h3>Không phải câu hỏi</h3><p>x</p>'],
+            'seo_title' => ['vi' => 'Chọn ống nước đúng cách'], 'seo_description' => ['vi' => 'Mô tả cho Google.'],
+            'og_title' => ['vi' => 'Đừng mua ống nước trước khi đọc bài này'], 'og_description' => ['vi' => 'Mô tả khi chia sẻ.'],
+            'og_image' => '/storage/posts/share.jpg', 'image_url' => '/storage/posts/cover.jpg',
+            'schema_type' => 'BlogPosting',
+        ]);
+
+        app()->setLocale('vi');
+        $seo = app(SeoMetaFactory::class)->forPost($post);
+
+        // Google keeps the SEO title; Facebook, Zalo and X get the post's own.
+        $this->assertSame('Chọn ống nước đúng cách', $seo->title);
+        $this->assertSame('Đừng mua ống nước trước khi đọc bài này', $seo->ogTitle());
+        $this->assertSame('Mô tả khi chia sẻ.', $seo->ogDescription());
+        $this->assertStringEndsWith('/storage/posts/share.jpg', (string) $seo->image);
+        $this->assertSame('summary_large_image', $seo->twitterCard());
+
+        $this->assertNotNull(collect($seo->structuredData)->firstWhere('@type', 'BlogPosting'));
+        $faq = collect($seo->structuredData)->firstWhere('@type', 'FAQPage');
+        $this->assertSame(['Ống nào bền nhất?', 'Bao lâu thay?'], array_column($faq['mainEntity'], 'name'));
+        $this->assertSame('Ống uPVC.', $faq['mainEntity'][0]['acceptedAnswer']['text']);
+
+        // Switched off, and without its own share fields, it falls back to the SEO ones.
+        $post->update(['schema_faq' => false, 'og_title' => [], 'og_description' => [], 'og_image' => null]);
+        $seo = app(SeoMetaFactory::class)->forPost($post->fresh());
+        $this->assertNull(collect($seo->structuredData)->firstWhere('@type', 'FAQPage'));
+        $this->assertSame('Chọn ống nước đúng cách', $seo->ogTitle());
+        $this->assertStringEndsWith('/storage/posts/cover.jpg', (string) $seo->image);
     }
 
     public function test_a_theme_post_page_follows_the_posts_own_seo_settings(): void

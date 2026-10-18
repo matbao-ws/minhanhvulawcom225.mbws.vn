@@ -144,8 +144,13 @@ class AiPostDraftTest extends TestCase
         $noAi = User::factory()->create(['role_id' => Role::query()->create(['name' => 'Blogger', 'permissions' => ['posts.view', 'posts.create']])->id]);
 
         $this->actingAs($editorOnly)->post('/vi/admin/ai/post-drafts', $this->brief())->assertForbidden();
-        $this->actingAs($noAi)->post('/vi/admin/ai/post-drafts', $this->brief())->assertForbidden();
-        $this->actingAs($noAi)->get('/vi/admin/posts')->assertOk()->assertDontSee(route('admin.ai.post-drafts.create'), false);
+        // Without ai.use the lock answers first: back, with the reason.
+        $this->actingAs($noAi)->from('/vi/admin/posts')->post('/vi/admin/ai/post-drafts', $this->brief())
+            ->assertRedirect('/vi/admin/posts')->assertSessionHas('error', __('ai.locked.permission', ['feature' => __('ai.locked.features.ai_seo')]));
+        // Always shown; without ai.use the button on the post list is locked and says why.
+        $this->actingAs($noAi)->get('/vi/admin/posts')->assertOk()
+            ->assertDontSee(route('admin.ai.post-drafts.create'), false)
+            ->assertSee(e(__('ai.locked.permission', ['feature' => __('ai.locked.features.ai_seo')])), false);
         $this->actingAs($this->writer)->get('/vi/admin/posts')->assertOk()->assertSee(route('admin.ai.post-drafts.create'), false);
 
         $this->assertSame(0, Post::query()->count());

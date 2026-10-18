@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PostCategoryController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\RedirectController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SearchController;
@@ -95,9 +96,10 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         ->middleware(['feature:multilingual', 'can:translations.use', 'throttle:admin-translation'])
         ->name('translations.preview');
 
-    // AI SEO Copilot. ai.use asks for suggestions; ai.apply writes them, and applying also checks
-    // the record's own update permission (MetaSuggestionService).
-    Route::middleware(['feature:ai_seo', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
+    // AI SEO Copilot. ai.access: the plan has it, it is on, the role has ai.use (App\Support\AiAccess;
+    // the buttons are always shown, a locked one is stopped here with the reason). ai.apply writes
+    // suggestions, and applying also checks the record's own update permission.
+    Route::middleware(['ai.access', 'can:ai.use'])->prefix('ai')->name('ai.')->group(function () {
         Route::post('meta-suggestions', [AiMetaController::class, 'suggest'])
             ->middleware('throttle:admin-ai')->name('meta.suggest');
         Route::post('meta-suggestions/{suggestion}/apply', [AiMetaController::class, 'apply'])
@@ -122,6 +124,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             Route::post('seo-fixes/{suggestion}/apply', 'seoApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('seo.apply');
             Route::post('product-descriptions', 'productSuggest')->middleware('throttle:admin-ai')->name('product.suggest');
             Route::post('product-descriptions/{suggestion}/apply', 'productApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('product.apply');
+            Route::post('collection-intros', 'collectionSuggest')->middleware('throttle:admin-ai')->name('collection.suggest');
+            Route::post('collection-intros/{suggestion}/apply', 'collectionApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('collection.apply');
             Route::post('internal-links', 'linksSuggest')->middleware('throttle:admin-ai')->name('links.suggest');
             Route::post('internal-links/{suggestion}/apply', 'linksApply')->whereNumber('suggestion')->middleware('can:ai.apply')->name('links.apply');
             Route::post('suggestions/{suggestion}/reject', 'reject')->whereNumber('suggestion')->name('reject');
@@ -134,8 +138,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('bulk/{job}', [AiBulkController::class, 'show'])->whereNumber('job')->middleware('throttle:admin-gateway-read')->name('bulk.show');
         Route::post('bulk/{job}/apply', [AiBulkController::class, 'apply'])->whereNumber('job')->middleware('can:ai.apply')->name('bulk.apply');
 
-        // Keywords & competitors (Hero 4+). Data from a paid provider, limited on the gateway.
-        Route::middleware('feature:ai_research')->prefix('research')->name('research.')
+        // Keywords & competitors (Hero 5+). Data from a paid provider, limited on the gateway.
+        Route::middleware('ai.access:ai_research')->prefix('research')->name('research.')
             ->controller(AiResearchController::class)->group(function () {
                 Route::get('/', 'index')->middleware('throttle:admin-gateway-read')->name('index');
                 Route::get('status', 'status')->middleware('throttle:admin-gateway-read')->name('status');
@@ -299,7 +303,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::resource('vouchers', VoucherController::class)->only(['destroy'])->middleware('can:vouchers.delete');
     });
 
-    Route::middleware('feature:catalog')->group(function () {
+    // Promotions / flash sales belong to the voucher feature ("Khuyến mãi & mã giảm giá", Hero 2+)
+    // and discount products, so the catalogue must be on too.
+    Route::middleware(['feature:catalog', 'feature:voucher'])->group(function () {
         Route::resource('promotions', PromotionController::class)->only(['create', 'store'])->middleware('can:promotions.create');
         Route::resource('promotions', PromotionController::class)->only(['index'])->middleware('can:promotions.view');
         Route::resource('promotions', PromotionController::class)->only(['edit', 'update'])->middleware('can:promotions.update');
@@ -312,6 +318,17 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::patch('reviews/{review}/toggle-visibility', [ReviewController::class, 'toggleVisibility'])->middleware('can:reviews.update')->name('reviews.toggle-visibility');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->middleware('can:reviews.delete')->name('reviews.destroy');
     });
+
+    // Old URLs and where they now go; the storefront URLs that answered 404 (RedirectService).
+    Route::get('redirects', [RedirectController::class, 'index'])->middleware('can:redirects.view')->name('redirects.index');
+    Route::get('redirects/export', [RedirectController::class, 'export'])->middleware('can:redirects.view')->name('redirects.export');
+    Route::post('redirects', [RedirectController::class, 'store'])->middleware('can:redirects.create')->name('redirects.store');
+    Route::post('redirects/import', [RedirectController::class, 'import'])->middleware('can:redirects.create')->name('redirects.import');
+    Route::patch('redirects/bulk', [RedirectController::class, 'bulk'])->middleware('can:redirects.update')->name('redirects.bulk');
+    Route::put('redirects/{redirect}', [RedirectController::class, 'update'])->whereNumber('redirect')->middleware('can:redirects.update')->name('redirects.update');
+    Route::delete('redirects/{redirect}', [RedirectController::class, 'destroy'])->whereNumber('redirect')->middleware('can:redirects.delete')->name('redirects.destroy');
+    Route::delete('redirects/not-found', [RedirectController::class, 'clearNotFound'])->middleware('can:redirects.delete')->name('redirects.not-found.clear');
+    Route::delete('redirects/not-found/{notFoundLog}', [RedirectController::class, 'destroyNotFound'])->whereNumber('notFoundLog')->middleware('can:redirects.delete')->name('redirects.not-found.destroy');
 
     Route::get('contact-submissions', [ContactSubmissionController::class, 'index'])->middleware('can:contacts.view')->name('contact-submissions.index');
     Route::patch('contact-submissions/{contactSubmission}/toggle-read', [ContactSubmissionController::class, 'toggleRead'])->middleware('can:contacts.update')->name('contact-submissions.toggle-read');
@@ -372,7 +389,8 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
     Route::middleware('feature:banner')->group(function () {
         Route::patch('banners/bulk', [BannerController::class, 'bulk'])->middleware('can:banners.update')->name('banners.bulk');
-        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware(['can:banners.create', 'package.limit:banner']);
+        Route::post('banners/sort', [BannerController::class, 'sort'])->middleware('can:banners.update')->name('banners.sort');
+        Route::resource('banners', BannerController::class)->only(['create', 'store'])->middleware(['can:banners.create']);
         Route::resource('banners', BannerController::class)->only(['index'])->middleware('can:banners.view');
         Route::resource('banners', BannerController::class)->only(['edit', 'update'])->middleware('can:banners.update');
         Route::resource('banners', BannerController::class)->only(['destroy'])->middleware('can:banners.delete');
@@ -423,6 +441,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
         Route::patch('products/bulk', [ProductController::class, 'bulk'])->middleware('can:products.update')->name('products.bulk');
         Route::post('products/sort', [ProductController::class, 'sort'])->middleware('can:products.update')->name('products.sort');
+        Route::patch('products/{product}/quick-update', [ProductController::class, 'quickUpdate'])->middleware('can:products.update')->name('products.quick-update');
         Route::get('products/export', [ProductController::class, 'export'])->middleware('can:products.view')->name('products.export');
         Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
         Route::post('products/import', [ProductController::class, 'import'])->middleware(['can:products.create', 'throttle:admin-heavy'])->name('products.import');

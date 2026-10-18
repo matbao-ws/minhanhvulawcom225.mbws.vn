@@ -111,6 +111,38 @@
             object-fit: cover;
             display: block;
         }
+        .media-pdf-preview {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            overflow: hidden;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .media-pdf-preview canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto !important;
+            height: auto !important;
+        }
+        .media-pdf-preview.is-unavailable::after {
+            content: 'Không thể xem trước PDF';
+            color: #64748b;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+        .media-file-name-link {
+            color: inherit;
+            text-decoration: none;
+        }
+        .media-file-name-link:hover,
+        .media-file-name-link:focus-visible {
+            color: #d11e28;
+            text-decoration: underline;
+        }
         .media-preview-doc {
             display: flex;
             flex-direction: column;
@@ -518,6 +550,7 @@
                                 @php
                                     $isImage = in_array(strtolower($resource['format']), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp']);
                                     $isVideo = ($resource['resource_type'] ?? 'image') === 'video';
+                                    $isPdf = strtolower($resource['format']) === 'pdf';
                                     $displayName = basename($resource['public_id']);
                                     $resourceSource = $resource['source'] ?? ($isConfigured ? 'cloudinary' : 'local');
                                 @endphp
@@ -536,13 +569,23 @@
                                                  <video class="position-absolute w-100 h-100 start-0 top-0" controls preload="metadata" style="object-fit: contain;"><source src="{{ $resource['secure_url'] }}" type="video/mp4"></video>
                                              @elseif ($isImage)
                                                  <img src="{{ $resource['secure_url'] }}" alt="{{ $resource['public_id'] }}" class="img-fluid position-absolute w-100 h-100 start-0 top-0" style="object-fit: contain;">
+                                             @elseif ($isPdf)
+                                                 <div class="media-pdf-preview position-absolute w-100 h-100 start-0 top-0" data-pdf-preview data-pdf-url="{{ $resource['secure_url'] }}" aria-label="{{ $displayName }}">
+                                                     <canvas aria-hidden="true"></canvas>
+                                                 </div>
                                              @else
                                                  <div class="d-flex flex-column align-items-center justify-content-center"><i class="ti ti-file-text fs-8 text-primary mb-2"></i><span class="badge bg-primary text-uppercase">{{ $resource['format'] }}</span></div>
                                              @endif
                                          </div>
                                          <div class="card-body p-2 p-sm-3">
                                              <div>
-                                                 <h6 class="card-subtitle text-dark fw-semibold text-truncate mb-1" title="{{ $displayName }}">{{ $displayName }}</h6>
+                                                 <h6 class="card-subtitle text-dark fw-semibold text-truncate mb-1" title="{{ $displayName }}">
+                                                     @if ($isPdf)
+                                                         <a class="media-file-name-link" href="{{ $resource['secure_url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $displayName }}">{{ $displayName }} <i class="ti ti-external-link" aria-hidden="true"></i></a>
+                                                     @else
+                                                         {{ $displayName }}
+                                                     @endif
+                                                 </h6>
                                                  <div class="d-flex justify-content-between align-items-center text-muted fs-2 mb-2 mb-sm-3"><span>{{ number_format($resource['bytes'] / 1024, 1) }} KB</span><span>{{ date('d-m-Y', strtotime($resource['created_at'])) }}</span></div>
                                              </div>
                                              <div class="d-flex gap-1 gap-sm-2">
@@ -563,7 +606,7 @@
                          </div>
                     @endif
 
-                    @if ($resources->hasPages())<div class="pt-3 mt-3 border-top">@include('admin.shared.pagination', ['paginator' => $resources])</div>@endif
+                    @if($resources->total() > 0)<div class="pt-3 mt-3 border-top">@include('admin.shared.pagination', ['paginator' => $resources])</div>@endif
                 </section>
             </main>
         </div>
@@ -733,6 +776,41 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const renderPdfPreviews = async function () {
+                const previews = Array.from(document.querySelectorAll('[data-pdf-preview]'));
+                if (! previews.length) return;
+
+                try {
+                    const pdfjs = await import(@json(asset('admin-assets/vendor/pdfjs/pdf.min.mjs')));
+                    pdfjs.GlobalWorkerOptions.workerSrc = @json(asset('admin-assets/vendor/pdfjs/pdf.worker.min.mjs'));
+
+                    await Promise.all(previews.map(async function (preview) {
+                        try {
+                            const document = await pdfjs.getDocument(preview.dataset.pdfUrl).promise;
+                            const page = await document.getPage(1);
+                            const initialViewport = page.getViewport({ scale: 1 });
+                            const scale = Math.min(
+                                preview.clientWidth / initialViewport.width,
+                                preview.clientHeight / initialViewport.height,
+                            );
+                            const viewport = page.getViewport({ scale: scale * window.devicePixelRatio });
+                            const canvas = preview.querySelector('canvas');
+                            canvas.width = Math.ceil(viewport.width);
+                            canvas.height = Math.ceil(viewport.height);
+                            canvas.style.width = Math.ceil(viewport.width / window.devicePixelRatio) + 'px';
+                            canvas.style.height = Math.ceil(viewport.height / window.devicePixelRatio) + 'px';
+                            await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                        } catch (_) {
+                            preview.classList.add('is-unavailable');
+                        }
+                    }));
+                } catch (_) {
+                    previews.forEach(function (preview) { preview.classList.add('is-unavailable'); });
+                }
+            };
+
+            renderPdfPreviews();
+
             @can('settings.update')
                 @if ($errors->cloudinary->any())
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('cloudinaryConnectionModal')).show();

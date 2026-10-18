@@ -14,6 +14,11 @@ return [
     'admin_locales' => ['vi', 'en'],
     'admin_fallback_locale' => env('ADMIN_FALLBACK_LOCALE', 'en'),
 
+    // Storefront URLs of the default language have no prefix (/chinh-sach/x; /en/chinh-sach/x for
+    // the others), and /vi/... redirects there for good. false: every storefront URL keeps its
+    // /{locale} prefix, as before. The admin always keeps it. App\Support\LocaleUrl.
+    'hide_default_locale' => (bool) env('MULTILINGUAL_HIDE_DEFAULT_LOCALE', true),
+
     // A region edited inline in one language only: do the other languages show that edit (true,
     // for themes written in one language) or their own template text (false, for themes whose
     // Blade is already translated — a /ja visitor must not read the Vietnamese edit)?

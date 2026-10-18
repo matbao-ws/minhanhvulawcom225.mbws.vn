@@ -108,7 +108,7 @@ final class StructuredData
     /**
      * A blog post. The shop is the author: the core keeps no per-post author.
      *
-     * @param  array{headline: string, url: string, description?: ?string, image?: ?string, published?: ?string, modified?: ?string}  $post
+     * @param  array{type?: string, headline: string, url: string, description?: ?string, image?: ?string, published?: ?string, modified?: ?string}  $post
      * @param  array{name?: string, logo_url?: string}  $branding
      */
     public static function article(array $post, array $branding): array
@@ -121,7 +121,7 @@ final class StructuredData
 
         return array_filter([
             '@context' => 'https://schema.org',
-            '@type' => 'Article',
+            '@type' => in_array($post['type'] ?? null, ['Article', 'BlogPosting', 'NewsArticle'], true) ? $post['type'] : 'Article',
             'headline' => mb_substr($post['headline'], 0, 110),
             'description' => $post['description'] ?? null,
             'image' => filled($post['image'] ?? null) ? [$post['image']] : null,
@@ -131,6 +131,29 @@ final class StructuredData
             'author' => $publisher,
             'publisher' => $publisher,
         ], fn ($value) => $value !== null && $value !== '' && $value !== []);
+    }
+
+    /**
+     * FAQPage from the question/answer pairs a page shows (App\Support\Seo\FaqSchema): only
+     * text that is on the page, never questions written for search engines alone.
+     *
+     * @param  list<array{question: string, answer: string}>  $items
+     */
+    public static function faq(array $items): ?array
+    {
+        if ($items === []) {
+            return null;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'FAQPage',
+            'mainEntity' => array_map(fn (array $item) => [
+                '@type' => 'Question',
+                'name' => $item['question'],
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $item['answer']],
+            ], $items),
+        ];
     }
 
     /** Whole đồng as a string: schema.org wants a plain number, never "1.250.000 ₫". */

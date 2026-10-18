@@ -154,7 +154,7 @@ Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc
   rồi ghi `feature_settings.package_enabled` (và `is_enabled` cho row chưa bị ghi đè). Superadmin ghi đè
   được từng tính năng (`is_overridden`), lần sync sau giữ nguyên. Tool lỗi/không tìm thấy domain không
   bao giờ tắt tính năng; snapshot gần nhất nằm ở `project_settings.package_info`.
-- Hạn mức gói (`App\Services\Packages\PackageLimits`): `data_unit` = sản phẩm + bài viết, `banner`,
+- Hạn mức gói (`App\Services\Packages\PackageLimits`): `data_unit` = sản phẩm + bài viết,
   `email_monthly` (chỉ đếm khi gửi qua SMTP dùng chung). Chặn ở model event `creating` nên form admin,
   import CSV và import WordPress đều bị áp; áp cả cho superadmin. Hạn mức **chỉ** lấy từ tool nội bộ, core không
   có chỗ sửa: nâng hạn mức = Sales nâng gói/ký lại hợp đồng → cập nhật tool → `package:sync`.
@@ -225,6 +225,20 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Đa ngôn ngữ
 
 - Admin route luôn có `{locale}`.
+- **URL storefront của ngôn ngữ mặc định không có tiền tố** (`/chinh-sach/x`); ngôn ngữ khác giữ tiền tố
+  (`/en/chinh-sach/x`); `/vi/...` cũ chuyển 301 sang URL không tiền tố (giữ query). Lý do: SEO — mỗi
+  ngôn ngữ vẫn có URL riêng cho hreflang, còn ngôn ngữ chính có URL gọn. Cơ chế (`App\Support\LocaleUrl`):
+  - Sinh URL: luôn dùng `route('client.…', ['locale' => …])`. Bộ định dạng đường dẫn đăng ký trong
+    `AppServiceProvider` (`URL::formatPathUsing`) cắt tiền tố của ngôn ngữ mặc định cho route tên `client.*`,
+    nên canonical, hreflang, sitemap, menu, site index tự đúng. **Không** tự ghép `url('/'.$locale…)`;
+    nơi buộc phải ghép tay dùng `LocaleUrl::home()` / `LocaleUrl::switchTo()`.
+  - Nhận URL: `bootstrap/app.php` nạp `routes/client.php` và `routes/theme.php` hai lần — dưới `{locale}`
+    (tên `client.*`, middleware `defaultLocale.redirect`) và không tiền tố (tên `root.client.*`, middleware
+    `useDefaultLocale` chèn `locale` mặc định vào **đầu** tham số route, nên controller vẫn là
+    `show(string $locale, …)`). Theme khai route một lần trong `routes/theme.php`.
+  - `/` đăng ký sau nhóm không tiền tố: theme có trang chủ `/` thì thắng, không thì vẫn chuyển sang `/admin`.
+  - Tắt bằng `MULTILINGUAL_HIDE_DEFAULT_LOCALE=false`: mọi URL storefront quay về có tiền tố như cũ.
+  - Đổi ngôn ngữ mặc định trong admin làm URL hai ngôn ngữ đổi chỗ cho nhau; chỉ nên đổi lúc site còn mới.
 - Hai danh sách locale trong `LanguageRegistry`: `routable()` là mọi ngôn ngữ active (URL `/{locale}/…`,
   tab nội dung), `admin()` chỉ gồm ngôn ngữ có trong `config('multilingual.admin_locales')` (mặc định
   `vi`, `en` — những locale có file `lang/`). Mở trang admin bằng ngôn ngữ chỉ dành cho storefront
@@ -401,6 +415,27 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Không thêm dependency nếu framework/core hiện có giải quyết được.
 - Không đổi kiến trúc hoặc public contract ngoài phạm vi mà không báo rõ.
 
+### Danh sách admin cập nhật tại chỗ (`admin-ajax.js`)
+
+`public/admin-assets/js/admin-ajax.js` (JS thuần, nạp ở layout admin) cho danh sách đổi dữ liệu mà
+không tải lại trang. Nó **không** quyết định gì: server trả lời y như submit thường (cùng route,
+`can:`, validation, `back()->with(...)`), script chỉ thay phần danh sách từ trang trả về.
+
+- View đánh dấu phần thay đổi bằng `data-ajax-list="<tên>"` (bảng, thanh thao tác hàng loạt, phân
+  trang). Form GET trỏ về chính trang đó và link trong phần đó cùng trang (phân trang, sắp xếp) chỉ
+  thay phần này, URL vẫn theo bộ lọc (F5, gửi link, nút Back đúng).
+- Form ghi (xoá, công tắc hiện/ẩn, thao tác hàng loạt) nằm **trong** phần đó, hoặc có
+  `data-ajax-form` (modal sửa nhanh), được gửi bằng `fetch`. Flash hiện thành toast nhờ
+  `<script data-admin-flash>` trong `admin.layouts.toast`. `data-no-ajax` để giữ submit thường (vd.
+  đăng nhập nhanh).
+- Script của trang gắn vào dòng phải đăng ký qua `AdminAjax.ready(fn)` (chạy lại cho phần mới thay)
+  hoặc lắng nghe ở `document`. Script tự xác nhận rồi gửi form thì gọi `AdminAjax.submit(form)`.
+- Đọc `action`/`target` của form bằng `getAttribute`: input tên `action` (form bulk) che thuộc tính
+  cùng tên.
+- Công tắc hiện/ẩn một dòng là `admin.shared.status-switch`, đi qua endpoint `bulk` sẵn có của module
+  với một id. Sửa nhanh giá/tồn kho ở danh sách sản phẩm qua `ProductService::quickUpdate()` (khoá
+  dòng, chỉ sản phẩm không có biến thể).
+
 ### Hướng dẫn sử dụng từng trang admin (driver.js)
 
 Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) được phép cho riêng tính năng này:
@@ -413,9 +448,8 @@ Người dùng đã yêu cầu rõ, nên **driver.js** (MIT, bản 1.8.0) đư�
   sửa bước tương ứng: `AdminToursTest` render từng trang và fail khi thiếu target bắt buộc. Phần tử
   chỉ có với một số quyền, tính năng hoặc trạng thái thì đánh dấu bước là optional; trình duyệt tự
   bỏ qua bước không tìm thấy phần tử.
-- Chỉ trang có hướng dẫn mới nạp driver.js. Hướng dẫn tự bật một lần cho mỗi trang trên mỗi trình
-  duyệt (localStorage), rồi chỉ chạy khi bấm nút "?" trên header. Tăng `AdminTours::VERSION` khi
-  muốn mọi admin xem lại.
+- Chỉ trang có hướng dẫn mới nạp driver.js. Hướng dẫn **không bao giờ tự bật**: chỉ chạy khi admin
+  bấm nút "?" trên header.
 - **Mọi trang trong sidebar phải có hướng dẫn** (`AdminToursTest` fail nếu thiếu). Thêm trang mới:
   thêm route và các bước vào `AdminTours/tours.php`, thêm text cho cả hai ngôn ngữ, gắn `data-tour`
   vào view. Không viết hướng dẫn bằng JS riêng trong từng view.
@@ -485,7 +519,7 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   `CoreUpdater::check()` chặn bản core không thoả `requires_core` của extension đang bật. Bỏ thư mục
   `extensions/` thì hệ thống chạy y như không có extension layer.
 - **Không sửa file core trên từng website.** Thay đổi riêng của khách đi vào theme; route riêng của theme
-  vào `routes/theme.php` (nạp dưới `{locale}`, tên `client.`); component Blade riêng vào
+  vào `routes/theme.php` (core nạp cả dưới `{locale}` lẫn không tiền tố cho ngôn ngữ mặc định, tên `client.`); component Blade riêng vào
   `resources/views/client/components` (cùng namespace `x-client::`, ghi đè được). Cần đổi hành vi core
   thì sửa core ở repo này để mọi website cùng nhận. Layout theme chỉ include `core.head` và
   `core.editor`, không chép partial của core.
@@ -622,7 +656,11 @@ Kiểm kê toàn bộ theme/
     thể đang bán, còn hàng theo đúng luật tồn kho của checkout, `AggregateRating` chỉ từ review đang
     hiện) và breadcrumb qua danh mục;
   - **trang bài viết của theme**: `SeoMetaFactory::forPost($post)` — tôn trọng `seo_title`,
-    `seo_description`, `robots_index`/`robots_follow`, `canonical_url` của bài, JSON-LD `Article`.
+    `seo_description`, `robots_index`/`robots_follow`, `canonical_url` của bài; thẻ chia sẻ dùng
+    `og_title`/`og_description`/`og_image` riêng của bài nếu có (rỗng thì theo tiêu đề/mô tả SEO và ảnh
+    đại diện); JSON-LD theo `schema_type` (`Post::SCHEMA_TYPES`: Article, BlogPosting, NewsArticle) và
+    `FAQPage` dựng từ mục "Câu hỏi thường gặp" có thật trong bài (`App\Support\Seo\FaqSchema`, tắt bằng
+    `schema_faq`). Không bịa câu hỏi chỉ để có schema.
   Trang không truyền `$seo` vẫn có thẻ, dựng từ hai section trên. Không tự viết canonical, hreflang
   hay `robots` trong page Blade.
 - Route chi tiết của theme đặt tên `client.products.show` / `client.posts.show` với tham số `{slug}`:
@@ -636,7 +674,24 @@ Kiểm kê toàn bộ theme/
   hreflang và sitemap bỏ ngôn ngữ chưa dịch; mở bản ghi ở ngôn ngữ chưa dịch thì canonical trỏ về ngôn
   ngữ fallback đang hiển thị.
 - Chỉ **production** được index (`SeoMetaFactory::indexable()`): staging/local trả `noindex` trong
-  meta và `Disallow: /` trong `robots.txt`.
+  meta và `Disallow: /` trong `robots.txt`. Trang được index còn kèm `max-snippet:-1,
+  max-image-preview:large, max-video-preview:-1` (`SeoMeta::robots()`), để Google hiện ảnh lớn ở Search và
+  Discover; thẻ X là `summary_large_image` khi trang có ảnh.
+- **Khung SEO admin dùng chung** cho bài viết, sản phẩm và trang chính sách: partial
+  `admin.shared.seo-box` (+ `admin-assets/js/forms/seo-box.js`, `admin-assets/css/seo-box.css`), cấu hình
+  bằng tham số (trường tiêu đề/mô tả SEO, selector tiêu đề/slug/thân bài/ảnh, tab ngôn ngữ). Phía server:
+  `App\Support\Seo\SeoBox` (luật validate, chỉ lưu trường form có gửi để import/API không xoá mất,
+  tính `seo_score`). Loại record mới muốn có khung thì thêm vào `SeoBox::MODELS` và dùng lại partial,
+  không chép khung thứ hai. `SeoMetaFactory::forProduct()`/`forPage()` đọc robots, canonical, trường
+  chia sẻ và FAQ của record giống `forPost()`.
+- **IndexNow** (`App\Services\Seo\IndexNow`, `config/seo.php`, `SEO_INDEXNOW`): bài viết/sản phẩm/trang
+  công khai và cho index khi được tạo, sửa, ẩn hoặc xoá thì URL được gom và gửi **một lần mỗi request**
+  (job `SubmitIndexNow`), chỉ ở production. Khoá suy ra từ `APP_KEY`, file `/{khoá}.txt` do
+  `SeoFileController::indexNowKey` trả. Google không dùng IndexNow (Bing, Yandex, Naver… có).
+- Điểm SEO bài viết tính ở **hai nơi phải khớp nhau**: `App\Services\PostSeoAnalyzer` (server, lưu
+  `seo_score`) và `analyzeSEO` trong `admin/posts/_form-assets.blade.php` (trình duyệt). Trọng số chỉ khai
+  báo ở `PostSeoAnalyzer::WEIGHTS` (cộng đủ 100) và được đưa vào JS bằng `@json`. Thêm/sửa tiêu chí thì sửa
+  cả hai bên và nhóm hiển thị (`$seoGroups` trong `admin/posts/_form.blade.php`).
 - JSON-LD chỉ dựng từ dữ liệu có thật qua `App\Support\Seo\StructuredData`, in bằng
   `StructuredData::script()` (escape `<`/`>` để tên shop không đóng được thẻ `<script>`). Không bịa
   rating, giá hay tồn kho cho schema; sản phẩm giá 0 ("liên hệ") không có `offers`.
@@ -644,6 +699,55 @@ Kiểm kê toàn bộ theme/
   `core.seo.sitemap`). **Không đặt file cùng tên trong `public/`** — web server trả file tĩnh trước
   khi tới Laravel. `public/robots.txt` thuộc website nên cập nhật core không xoá nó: site cài trước
   bản này phải xoá tay một lần. Sitemap cache 1 giờ (`SitemapService::flush()`).
+
+### Chuyển hướng 301 và chuyển site từ WordPress
+
+Mục tiêu: site khách chuyển từ WordPress sang không mất thứ hạng. Mỗi link cũ phải dẫn tới đúng
+trang mới bằng 301, và tiêu đề/mô tả Google đang hiển thị phải được giữ nguyên.
+
+- `App\Services\Seo\RedirectService` chỉ được gọi từ handler `NotFoundHttpException` trong
+  `bootstrap/app.php`: redirect **chỉ áp dụng khi không route/record nào trả lời URL**. Trang đang tồn
+  tại không bao giờ bị chuyển hướng, và request bình thường không tốn query nào. Không chuyển nó thành
+  middleware chạy mọi request.
+- Bảng `redirects`: `source_path` lưu dạng chuẩn hoá (`RedirectService::normalize`: decode, chữ thường,
+  `/` đầu, bỏ `/` cuối, query sắp xếp). `redirectable_*` trỏ tới record đích, nên đích **đi theo slug
+  hiện tại** (`urlFor()` theo route theme `client.posts.show`, `client.products.show`, `client.pages.show`,
+  `client.categories.show`, `client.post-categories.show`). `target_url` là đích dự phòng hoặc đích tự
+  nhập. URL nội bộ lưu dạng **tương đối**, để dữ liệu dời được từ staging sang domain thật. Mã 301, 302,
+  307, 410; tự trỏ về chính nó thì bỏ qua (chống lặp); query của khách (utm…) đi kèm theo.
+- URL vẫn trả 404 được ghi vào `not_found_logs` (tối đa `NOT_FOUND_LOG_LIMIT` dòng; `redirects:prune-404`
+  chạy hằng tuần, giữ 90 ngày). Không ghi admin, `/api`, asset, và các đường dò lỗ hổng (`wp-login.php`,
+  `.env`, `*.php`…).
+- Admin `admin/redirects` (quyền `redirects.*`): danh sách, tab Lỗi 404 (bấm "Tạo chuyển hướng"), nhập/xuất
+  CSV `source,target,status`. Chuyển hướng admin tạo tay (`origin = manual`) **không bao giờ** bị import
+  ghi đè.
+- Import WordPress (WXR ở admin bài viết và `wp:import` qua REST) bắt buộc:
+  - đọc SEO qua `App\Services\WordPressSeoMeta`. Rank Math (`rank_math_*`) ưu tiên trước Yoast
+    (`_yoast_wpseo_*`). Biến mẫu `%title%`/`%%sitename%%`… được thay bằng chữ thật, biến không biết thì
+    bỏ. `rank_math_robots` đọc bằng so chuỗi, **không `unserialize()`** dữ liệu export. Canonical trỏ
+    về chính bài thì bỏ. REST lấy `yoast_head_json`, hoặc `/rankmath/v1/getHead` khi site bật Headless
+    của Rank Math;
+  - gọi `RedirectService::remember()` cho mọi bài, trang, sản phẩm, danh mục (kể cả bản bị bỏ qua vì
+    trùng) và ảnh `/wp-content/uploads/...` đã tải về;
+  - sau khi import hết, sửa link nội bộ trong nội dung đã import sang URL mới (`rewriteLinks()`), để
+    không tốn một bước chuyển hướng mỗi lần click.
+
+### Trình soạn thảo trong admin
+
+Mọi ô nội dung HTML trong admin (bài viết, sản phẩm, trang chính sách, mô tả danh mục/thương hiệu/
+chuyên mục, kể cả modal sửa nhanh) dùng **một** trình soạn thảo: Jodit (MIT, vendor tĩnh trong
+`public/admin-assets/libs/jodit/`, bản dịch tiếng Việt nằm trong `admin-assets/js/forms/rich-editor.js`).
+
+- Form chỉ khai báo: một field ẩn được submit và `<div class="rich-editor" data-target="{id field}"
+  data-preset="full|page|basic">` chứa HTML đã lọc, rồi `@include('admin.shared.rich-editor-assets')`.
+  Không tự gọi `Jodit.make`, không nạp thư viện editor khác.
+- Script khác chạm vào editor qua `AdminRichEditor.forTarget(id)` (`getHTML`/`setHTML`/`getText`) và
+  sự kiện `rich-editor:change`; không đọc DOM bên trong Jodit.
+- Ảnh chèn từ thư viện Media (nút ảnh mở `media-picker`), không upload hay base64 trong editor.
+- HTML từ editor lưu qua `HtmlSanitizer::cleanRichText()`: chỉ giữ CSS inline trong `RICH_TEXT_CSS`,
+  iframe chỉ YouTube/Vimeo, `<figure>/<figcaption>` cho chú thích ảnh. `clean()` (không style inline)
+  vẫn dành cho site block storefront và import — không chuyển chúng sang `cleanRichText()`. Thêm định
+  dạng mới thì mở rộng sanitizer kèm test, không nới bằng cách tắt lọc.
 
 ### Sửa trực tiếp trên storefront
 
@@ -676,13 +780,15 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,
   `$metaTitle`, `$metaDescription` và vùng nội dung `client-page-{id}`; không hard-code lại nội dung
   Page vào Blade. Page chỉ lưu HTML (`published_html`); không có CSS riêng theo trang.
-- URL storefront của Page là `/{locale}/chinh-sach/{slug}` (route `client.pages.show`), dùng chung
-  một view `client.pages.show`; `/{locale}/pages/{slug}` chỉ còn là redirect 301. Không đưa slug Page
-  ra gốc `/{locale}/{slug}` — route bắt mọi slug sẽ nuốt `/{locale}/admin`.
-- Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng Quill (đã có
-  sẵn trong admin). Ô nội dung của mỗi locale chỉ được submit khi editor của locale đó thực sự bị sửa;
-  `PageContentService` merge các locale gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm
-  editor không bao giờ đẩy HTML đã lưu qua Quill — Quill làm phẳng markup do inline editor lưu.
+- URL storefront của Page là `/chinh-sach/{slug}` cho ngôn ngữ mặc định, `/{locale}/chinh-sach/{slug}`
+  cho ngôn ngữ khác (route `client.pages.show`), dùng chung một view `client.pages.show`; `/pages/{slug}`
+  chỉ còn là redirect 301 thẳng tới URL đó. Không đưa slug Page ra gốc (`/{slug}` hay `/{locale}/{slug}`)
+  — route bắt mọi slug sẽ nuốt `/admin`, `/api` và `/{locale}/admin`.
+- Trong admin, Page hiển thị là **"Trang chính sách"** và form soạn được nội dung bằng trình soạn thảo
+  chung của admin (Jodit, xem mục trình soạn thảo admin). Ô nội dung của mỗi locale chỉ được submit
+  khi editor của locale đó thực sự bị sửa (`data-sync="edited"`); `PageContentService` merge các locale
+  gửi lên vào bản đang lưu. Lưu tiêu đề/SEO mà không chạm editor không bao giờ đẩy HTML đã lưu qua
+  editor admin — editor chuẩn hoá lại markup do inline editor lưu.
 - Vùng sửa được tìm bằng id `client-page-{id}`, dự phòng bằng thuộc tính
   `data-client-editable-root` để layout theme tự đánh dấu wrapper của mình. Không tìm thấy vùng nào
   thì editor thoát im lặng và nút **Sửa trực tiếp** không hiện — không được để script ném lỗi vì sẽ

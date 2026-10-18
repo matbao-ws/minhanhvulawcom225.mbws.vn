@@ -22,7 +22,7 @@ class PromotionTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['catalog', 'cart', 'cod_order'] as $featureCode) {
+        foreach (['catalog', 'cart', 'cod_order', 'voucher'] as $featureCode) {
             FeatureSetting::query()->updateOrCreate(
                 ['feature_code' => $featureCode],
                 ['is_enabled' => true],
@@ -143,7 +143,25 @@ class PromotionTest extends TestCase
         $this->assertDatabaseHas('promotion_targets', ['promotion_id' => $promotion->id, 'product_id' => $product->id]);
     }
 
-    public function test_admin_can_open_promotions_when_vouchers_are_disabled(): void
+    public function test_no_promotion_price_applies_while_the_voucher_feature_is_off(): void
+    {
+        $product = Product::query()->create(['name' => ['vi' => 'Ống'], 'slug' => 'ong-km', 'price' => 100000, 'is_active' => true]);
+        Promotion::query()->create([
+            'name' => ['vi' => 'Giảm 20%'], 'kind' => 'flash_sale', 'applies_to' => 'all_products',
+            'discount_type' => 'percentage', 'value' => 20, 'is_active' => true,
+        ]);
+        $promotions = app(PromotionService::class);
+
+        FeatureSetting::query()->updateOrCreate(['feature_code' => 'voucher'], ['is_enabled' => true]);
+        $this->assertEqualsWithDelta(80000, $promotions->quote($product, null, 100000, 1)['unit_price'], 0.01);
+
+        FeatureSetting::query()->where('feature_code', 'voucher')->update(['is_enabled' => false]);
+        $quote = $promotions->quote($product, null, 100000, 1);
+        $this->assertNull($quote['promotion']);
+        $this->assertEqualsWithDelta(100000, $quote['unit_price'], 0.01);
+    }
+
+    public function test_promotions_belong_to_the_voucher_feature(): void
     {
         FeatureSetting::query()->updateOrCreate(
             ['feature_code' => 'voucher'],
@@ -155,10 +173,11 @@ class PromotionTest extends TestCase
         ]);
         $admin = User::factory()->create(['role_id' => $role->id]);
 
-        $response = $this->actingAs($admin)->get('/vi/admin/promotions/');
+        // "Khuyến mãi & mã giảm giá" off: no promotion screen, and no promotion prices at checkout.
+        $this->actingAs($admin)->get('/vi/admin/promotions/')->assertRedirect();
 
-        $response->assertOk();
-        $response->assertViewIs('admin.promotions.index');
+        FeatureSetting::query()->where('feature_code', 'voucher')->update(['is_enabled' => true]);
+        $this->actingAs($admin)->get('/vi/admin/promotions/')->assertOk()->assertViewIs('admin.promotions.index');
     }
 
     private function product(array $overrides = []): Product
