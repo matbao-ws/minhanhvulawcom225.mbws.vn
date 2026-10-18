@@ -322,6 +322,7 @@ return [
             ['contact_submissions_index.search', 'contacts.search', 'bottom', false],
             ['contact_submissions_index.read_filter', 'contacts.read-filter', 'bottom', false],
             ['contact_submissions_index.table', 'contacts.table', 'top', false],
+            ['contact_submissions_index.select_all', 'contacts.select-all', 'bottom', true],
             ['contact_submissions_index.read', 'contacts.read', 'top', true],
             ['contact_submissions_index.actions', 'contacts.actions', 'top', true],
             ['layout.help', 'layout.help', 'bottom', false],

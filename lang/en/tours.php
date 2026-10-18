@@ -267,6 +267,7 @@ return [
         'search' => ['title' => 'Find a message', 'description' => 'Search by name, phone, email or message text.'],
         'read_filter' => ['title' => 'Read filter', 'description' => 'Show only unread or read messages.'],
         'table' => ['title' => 'Message list', 'description' => 'Unread messages are in bold with a blue dot. Click one to read the whole message, the phone, email and extra details.'],
+        'select_all' => ['title' => 'Select several to delete', 'description' => 'Tick the box on each message, or "Chọn tất cả" (select all) for the whole page, then click "Xóa đã chọn" (delete selected) on the bar that appears.'],
         'read' => ['title' => 'Read / unread', 'description' => 'Opening a message marks it read. Use this button to mark it unread again.'],
         'actions' => ['title' => 'Delete and release', 'description' => 'Delete a message. In the Spam tab, click "Không phải spam" (not spam) to move a real customer\'s message back to the inbox. The Call, Zalo and Email buttons above reach the customer right away.'],
     ],

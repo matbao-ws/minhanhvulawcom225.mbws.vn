@@ -6,16 +6,20 @@
     <style>
         .contact-inbox { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); min-height: 520px; }
         .contact-inbox__list { border-right: 1px solid var(--bs-border-color); max-height: 70vh; overflow-y: auto; }
-        .contact-inbox__item { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--bs-border-color); border-left: 3px solid transparent; padding: 12px 16px; color: inherit; }
-        .contact-inbox__item:hover { background: var(--bs-tertiary-bg); }
-        .contact-inbox__item.is-active { background: var(--bs-primary-bg-subtle); border-left-color: var(--bs-primary); }
+        .contact-inbox__head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--bs-border-color); font-size: .8125rem; color: #5a6a85; }
+        .contact-inbox__row { display: flex; align-items: flex-start; border-bottom: 1px solid var(--bs-border-color); border-left: 3px solid transparent; }
+        .contact-inbox__row:hover { background: var(--bs-tertiary-bg); }
+        .contact-inbox__row.is-active { background: var(--bs-primary-bg-subtle); border-left-color: var(--bs-primary); }
+        .contact-inbox__check { padding: 14px 0 0 13px; }
+        .contact-inbox__item { display: block; flex: 1 1 auto; min-width: 0; text-align: left; background: none; border: 0; padding: 12px 16px; color: inherit; }
+        .contact-inbox__check + .contact-inbox__item { padding-left: 10px; }
         .contact-inbox__name { font-weight: 500; color: #2a3547 !important; }
         .contact-inbox__time { font-size: .8125rem; color: #5a6a85; }
-        .contact-inbox__item.is-unread .contact-inbox__name { font-weight: 700; }
-        .contact-inbox__item.is-unread .contact-inbox__time { font-weight: 600; color: #2a3547; }
-        .contact-inbox__item.is-unread .contact-inbox__name::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--bs-primary); vertical-align: middle; }
+        .contact-inbox__row.is-unread .contact-inbox__name { font-weight: 700; }
+        .contact-inbox__row.is-unread .contact-inbox__time { font-weight: 600; color: #2a3547; }
+        .contact-inbox__row.is-unread .contact-inbox__name::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--bs-primary); vertical-align: middle; }
         .contact-inbox__preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .8125rem; color: #5a6a85; margin-top: 2px; }
-        .contact-inbox__item.is-unread .contact-inbox__preview { color: #2a3547; }
+        .contact-inbox__row.is-unread .contact-inbox__preview { color: #2a3547; }
         .contact-inbox__pane { min-width: 0; }
         .contact-inbox__placeholder { height: 100%; min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--bs-secondary-color); }
         .contact-inbox__detail { padding: 24px 28px; }
@@ -106,11 +110,30 @@
                     'emptyMessage' => 'Hiện tại chưa có liên hệ nào',
                 ])
             @else
+                @if($canDelete)
+                    @include('admin.shared.bulk-actions', [
+                        'bulkFormId' => 'bulk-contacts-form',
+                        'bulkActionUrl' => route('admin.contact-submissions.bulk'),
+                        'bulkItemLabel' => 'liên hệ',
+                        'bulkActions' => ['delete'],
+                    ])
+                @endif
                 <div class="contact-inbox" data-contact-inbox>
                     <div class="contact-inbox__list">
+                        @if($canDelete)
+                            <label data-tour="contacts.select-all" class="contact-inbox__head mb-0">
+                                <input type="checkbox" class="form-check-input mt-0" data-bulk-select-all="bulk-contacts-form" aria-label="Chọn tất cả liên hệ">
+                                Chọn tất cả
+                            </label>
+                        @endif
                         @foreach($submissions as $submission)
-                            <button type="button" id="contact-item-{{ $submission->id }}"
-                                @class(['contact-inbox__item', 'is-unread' => ! $submission->is_read])
+                            <div @class(['contact-inbox__row', 'is-unread' => ! $submission->is_read]) data-contact-row="{{ $submission->id }}">
+                            @if($canDelete)
+                                <span class="contact-inbox__check">
+                                    <input type="checkbox" class="form-check-input mt-0" name="ids[]" value="{{ $submission->id }}" form="bulk-contacts-form" data-bulk-select="bulk-contacts-form" aria-label="Chọn liên hệ của {{ $submission->name }}">
+                                </span>
+                            @endif
+                            <button type="button" id="contact-item-{{ $submission->id }}" class="contact-inbox__item"
                                 data-contact-open="{{ $submission->id }}" aria-controls="contact-detail-{{ $submission->id }}">
                                 <span class="d-flex justify-content-between align-items-baseline gap-2">
                                     <span class="contact-inbox__name text-truncate">{{ $submission->name }}</span>
@@ -121,6 +144,7 @@
                                     <span class="badge bg-warning-subtle text-warning mt-1">{{ $spamReasons[$submission->spam_reason] ?? $submission->spam_reason }}</span>
                                 @endif
                             </button>
+                            </div>
                         @endforeach
                     </div>
 
@@ -230,8 +254,8 @@
 
             function setRead(detail, isRead) {
                 detail.setAttribute('data-read', isRead ? '1' : '0');
-                const item = inbox.querySelector('[data-contact-open="' + detail.getAttribute('data-contact-detail') + '"]');
-                if (item) item.classList.toggle('is-unread', !isRead);
+                const row = inbox.querySelector('[data-contact-row="' + detail.getAttribute('data-contact-detail') + '"]');
+                if (row) row.classList.toggle('is-unread', !isRead);
                 const button = detail.querySelector('[data-contact-toggle-read]');
                 if (button) button.textContent = isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc';
             }
@@ -253,8 +277,8 @@
                 const detail = inbox.querySelector('[data-contact-detail="' + id + '"]');
                 if (!detail) return;
                 inbox.querySelectorAll('[data-contact-detail]').forEach(function (other) { other.hidden = other !== detail; });
-                inbox.querySelectorAll('[data-contact-open]').forEach(function (item) {
-                    item.classList.toggle('is-active', item.getAttribute('data-contact-open') === String(id));
+                inbox.querySelectorAll('[data-contact-row]').forEach(function (row) {
+                    row.classList.toggle('is-active', row.getAttribute('data-contact-row') === String(id));
                 });
                 if (placeholder) placeholder.hidden = true;
                 inbox.classList.add('is-open');
