@@ -60,7 +60,7 @@ class ContactSpamTest extends TestCase
 
         $this->send($fields)->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Yêu cầu báo giá của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!');
+            ->assertJsonPath('message', 'Yêu cầu của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất!');
 
         $submission = ContactSubmission::query()->sole();
         $this->assertTrue($submission->is_spam);

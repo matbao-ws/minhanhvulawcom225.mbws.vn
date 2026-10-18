@@ -1,7 +1,7 @@
 @extends('emails.layout')
 
-@section('title', 'Yêu cầu báo giá mới')
-@section('header-subtitle', 'Thông báo yêu cầu báo giá mới')
+@section('title', 'Thông báo liên hệ mới')
+@section('header-subtitle', 'Thông báo liên hệ mới')
 
 @section('content')
     <div class="section-title">Thông tin khách hàng liên hệ</div>

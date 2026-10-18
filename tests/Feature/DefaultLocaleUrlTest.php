@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\FeatureSetting;
 use App\Models\Page;
 use App\Services\LanguageRegistry;
+use App\Services\LocalizedSlugService;
 use App\Services\Seo\SitemapService;
 use App\Support\LocaleUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -121,5 +122,21 @@ class DefaultLocaleUrlTest extends TestCase
         // Admin pages always carry the prefix.
         $this->assertSame(url('/en/admin/orders'), LocaleUrl::switchTo('en', 'vi/admin/orders'));
         $this->assertSame(url('/vi/admin/orders'), LocaleUrl::switchTo('vi', 'en/admin/orders'));
+    }
+
+    public function test_a_slug_of_another_language_moves_to_this_languages_slug(): void
+    {
+        app(LocalizedSlugService::class)->sync($this->page, ['vi' => 'doi-tra', 'en' => 'returns']);
+        [$vi, $en] = ['doi-tra', 'returns'];
+
+        // The language switcher keeps the slug of the page it was on.
+        $this->get(LocaleUrl::switchTo('vi', 'en/chinh-sach/'.$en).'?utm_source=zalo')
+            ->assertStatus(301)->assertRedirect(url('/chinh-sach/'.$vi.'?utm_source=zalo'));
+        $this->get(LocaleUrl::switchTo('en', 'chinh-sach/'.$vi))
+            ->assertStatus(301)->assertRedirect(url('/en/chinh-sach/'.$en));
+
+        // The API answers with the record, it does not redirect.
+        $this->getJson('/api/public/pages/'.$en)->assertOk()->assertJsonPath('data.id', $this->page->id);
+        $this->get('/chinh-sach/khong-co-trang-nay')->assertNotFound();
     }
 }
