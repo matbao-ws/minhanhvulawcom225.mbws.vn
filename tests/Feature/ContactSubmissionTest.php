@@ -110,7 +110,9 @@ class ContactSubmissionTest extends TestCase
         $this->actingAs($admin)
             ->get('/vi/admin/contact-submissions')
             ->assertOk()
-            ->assertSee('Lê Văn C');
+            ->assertSee('Lê Văn C')
+            ->assertSee('data-read-url="', false)
+            ->assertSee('class="js-delete-form"', false);
 
         $this->actingAs($admin)
             ->patchJson("/vi/admin/contact-submissions/{$submission->id}/toggle-read")
@@ -122,5 +124,34 @@ class ContactSubmissionTest extends TestCase
             ->delete("/vi/admin/contact-submissions/{$submission->id}")
             ->assertRedirect();
         $this->assertDatabaseCount('contact_submissions', 0);
+    }
+
+    public function test_the_inbox_shows_the_whole_message_with_ways_to_reply(): void
+    {
+        $role = Role::query()->create(['name' => 'Contact reader', 'permissions' => ['contacts.view']]);
+        $admin = User::factory()->create(['role_id' => $role->id]);
+        $long = str_repeat('Cần tư vấn ống HDPE phi 90 cho công trình. ', 10).'ĐOẠN CUỐI';
+
+        ContactSubmission::query()->create([
+            'name' => 'Phạm D',
+            'phone' => '+84 901 234 567',
+            'email' => 'd@example.com',
+            'message' => $long,
+            'meta' => ['company' => 'Công ty <b>ABC</b>'],
+        ]);
+
+        $this->actingAs($admin)->get('/vi/admin/contact-submissions')->assertOk()
+            // The list shows a preview; the whole message is on the page for the reading pane.
+            ->assertSee('ĐOẠN CUỐI')
+            ->assertSee('href="tel:84901234567"', false)
+            ->assertSee('href="https://zalo.me/0901234567"', false)
+            ->assertSee('href="mailto:d@example.com?subject=', false)
+            // Extra fields are labelled values, escaped, not raw JSON.
+            ->assertSee('Company')
+            ->assertSee('Công ty &lt;b&gt;ABC&lt;/b&gt;', false)
+            // Without contacts.update / contacts.delete: no mark-read call, no buttons that would 403.
+            ->assertDontSee('data-read-url="', false)
+            ->assertDontSee('data-contact-toggle-read>', false)
+            ->assertDontSee('class="js-delete-form"', false);
     }
 }
