@@ -118,7 +118,9 @@ class SidebarNavigationTest extends TestCase
         foreach ($xpath->query('//li[@data-sidebar-seo-menu]//ul//a') as $anchor) {
             $seo[] = parse_url($anchor->getAttribute('href'), PHP_URL_PATH);
         }
-        $this->assertSame(['/vi/admin/ai/seo-tasks', '/vi/admin/ai/research', '/vi/admin/ai/bulk', '/vi/admin/ai/post-drafts/create', '/vi/admin/redirects'], $seo);
+        $this->assertSame(['/vi/admin/ai/seo-tasks', '/vi/admin/ai/research', '/vi/admin/ai/bulk', '/vi/admin/redirects'], $seo);
+        // "Viết bằng AI" starts from the post list, not from the menu.
+        $this->assertSame(0, $xpath->query('//ul[@id="sidebarnav"]//a[@href="'.route('admin.ai.post-drafts.create').'"]')->length);
         // Nowhere else in the menu: grouped, not duplicated (the dashboard links it too, outside the menu).
         $this->assertSame(1, $xpath->query('//ul[@id="sidebarnav"]//a[@href="'.route('admin.ai.seo-tasks.index').'"]')->length);
 
@@ -137,8 +139,7 @@ class SidebarNavigationTest extends TestCase
         foreach ($xpath->query('//li[@data-sidebar-seo-menu]//a[@data-sidebar-ai-locked]') as $anchor) {
             $locked[$anchor->getAttribute('data-sidebar-ai-locked')] = json_decode($anchor->getAttribute('data-ai-locked'), true)['reason'];
         }
-        // AI is switched off on this site, and it says so. "Viết bằng AI" comes with the CMS, which
-        // this role cannot open.
+        // AI is switched off on this site, and it says so.
         $this->assertSame(['seo_tasks' => 'off', 'seo_research' => 'off', 'seo_bulk' => 'off'], $locked);
     }
 

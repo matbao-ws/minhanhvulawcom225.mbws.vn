@@ -1,16 +1,15 @@
 /*
  * Where the side column of a two-column admin form (.admin-sticky-aside) sticks.
  * Short enough for the window: just under the fixed header. Taller: it scrolls with the
- * page until its end is in view above the Save bar, then stays (a negative sticky top).
+ * page until its end is in view, then stays (a negative sticky top).
  */
 (function () {
     'use strict';
 
     function place() {
         const header = document.querySelector('.topbar, .app-header');
-        const actions = document.querySelector('.admin-sticky-actions');
         const top = (header ? header.offsetHeight : 0) + 16;
-        const bottom = (actions ? actions.offsetHeight : 0) + 16;
+        const bottom = 16;
 
         document.querySelectorAll('.admin-sticky-aside').forEach(function (aside) {
             const fits = aside.offsetHeight <= window.innerHeight - top - bottom;

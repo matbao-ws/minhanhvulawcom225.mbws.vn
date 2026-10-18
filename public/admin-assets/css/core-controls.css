@@ -50,6 +50,24 @@
     z-index: 1;
 }
 
+/* Page-header actions below md: every action (a button, or a span/form wrapping some) shares
+   the row and wraps when the screen is too narrow, instead of running past its edge. */
+.admin-page-header-actions-mobile > * {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.admin-page-header-actions-mobile > :not(.btn) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin-page-header-actions-mobile .btn {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
 /* Page-header actions render on the page background below md; light variants
    are meant for the dark gradient card and would vanish on white. */
 .admin-page-header-actions-mobile .btn-light,
@@ -198,10 +216,6 @@ fieldset:disabled .btn-primary {
     flex: 0 0 42px;
 }
 
-.admin-form-with-sticky-actions {
-    padding-bottom: 92px;
-}
-
 /* The theme's overflow-x: hidden makes .page-wrapper a scroll box of its own, while the page
    scrolls the window: nothing inside could stick (editor toolbars, form side columns).
    clip cuts the same overflow without making a scroll box. Unlike hidden, clip does not let the
@@ -214,45 +228,16 @@ fieldset:disabled .btn-primary {
     }
 }
 
-.admin-sticky-actions {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1030;
-    /* border-top: 1px solid var(--bs-border-color); */
-    background: rgba(var(--bs-body-bg-rgb), 0.96);
-    /* box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08); */
-    backdrop-filter: blur(12px);
-}
-
-.admin-sticky-actions__inner {
+.admin-form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 14px 30px;
-}
-
-@media (min-width: 1300px) {
-    .admin-sticky-actions {
-        left: 240px;
-    }
-
-    body[data-sidebartype="mini-sidebar"] .admin-sticky-actions {
-        left: 80px;
-    }
-
-    html[data-layout="horizontal"] .admin-sticky-actions {
-        left: 0;
-    }
+    margin-top: 1rem;
+    padding-bottom: 1.5rem;
 }
 
 @media (max-width: 575.98px) {
-    .admin-sticky-actions__inner {
-        padding: 12px 15px;
-    }
-
-    .admin-sticky-actions__inner .btn {
+    .admin-form-actions .btn {
         flex: 1 1 0;
     }
 }

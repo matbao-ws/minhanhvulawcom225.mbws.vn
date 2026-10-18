@@ -1001,6 +1001,8 @@ return [
         'media_library' => 'Thư viện Media',
         'collapse' => 'Thu nhỏ sidebar',
         'expand' => 'Mở rộng sidebar',
+        'dark_on' => 'Bật sidebar tối',
+        'dark_off' => 'Tắt sidebar tối',
     ],
     'shipping_partners' => [
         'created' => 'Đã thêm đối tác vận chuyển tự định nghĩa mới thành công.',

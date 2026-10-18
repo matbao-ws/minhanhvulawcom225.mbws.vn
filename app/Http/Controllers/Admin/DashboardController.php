@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesPagination;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Models\ContactSubmission;
@@ -28,6 +29,8 @@ use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
+    use HandlesPagination;
+
     public function index()
     {
         // A website that sells nothing (catalog off: no products, no orders) gets no sales figures:
@@ -333,8 +336,8 @@ class DashboardController extends Controller
         // Sort by time
         $notifications = $notifications->sortByDesc('time');
 
-        // Paginate the collection manually (15 items per page)
-        $perPage = 15;
+        // Paginate the collection manually; the page size follows the shared "per page" control.
+        $perPage = $this->perPage(15);
         $currentPage = Paginator::resolveCurrentPage() ?: 1;
         $currentPageItems = $notifications->slice(($currentPage - 1) * $perPage, $perPage)->values();
 

@@ -73,6 +73,52 @@ class BannerTest extends TestCase
         $response->assertSee(__('admin.banners.create'));
     }
 
+    public function test_admin_can_drag_sort_unfiltered_banners(): void
+    {
+        $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
+        $first = Banner::query()->create([
+            'title' => 'First banner',
+            'image_path' => 'banners/first.jpg',
+            'position' => 'home_main',
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+        $second = Banner::query()->create([
+            'title' => 'Second banner',
+            'image_path' => 'banners/second.jpg',
+            'position' => 'promotional',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->get('/vi/admin/banners')
+            ->assertOk()
+            ->assertSee('banner-table-sortable', false)
+            ->assertSee('ti ti-grip-vertical', false)
+            ->assertDontSee(__('admin.banners.fields.sort_order'));
+        $this->get('/vi/admin/banners?position=home_main')
+            ->assertOk()
+            ->assertDontSee('ti ti-grip-vertical', false);
+
+        $this->postJson('/vi/admin/banners/sort', [
+            'ids' => [$second->id, $first->id],
+            'start_order' => 0,
+        ])->assertOk();
+
+        $this->assertSame(0, $second->fresh()->sort_order);
+        $this->assertSame(1, $first->fresh()->sort_order);
+        $this->assertSame(
+            [$second->id, $first->id],
+            $this->get('/vi/admin/banners')->assertOk()->viewData('banners')->pluck('id')->all()
+        );
+
+        $this->get('/vi/admin/banners/create')
+            ->assertOk()
+            ->assertDontSee('name="sort_order"', false);
+    }
+
     public function test_admin_can_create_banner(): void
     {
         $admin = User::factory()->create(['role_id' => $this->adminRole->id]);
@@ -85,7 +131,6 @@ class BannerTest extends TestCase
             'image_file' => $file,
             'link_url' => 'https://example.com/summer-sale',
             'position' => 'home_main',
-            'sort_order' => 2,
             'is_active' => 1,
         ]);
 
@@ -95,7 +140,7 @@ class BannerTest extends TestCase
             'title' => 'New Summer Sale',
             'link_url' => 'https://example.com/summer-sale',
             'position' => 'home_main',
-            'sort_order' => 2,
+            'sort_order' => 0,
             'is_active' => 1,
         ]);
 
@@ -116,7 +161,6 @@ class BannerTest extends TestCase
             'title' => 'Library Banner',
             'image_url' => 'https://cdn.example.test/banners/library.jpg',
             'position' => 'home_main',
-            'sort_order' => 0,
             'is_active' => 1,
         ])->assertRedirect('/vi/admin/banners');
 
@@ -156,7 +200,6 @@ class BannerTest extends TestCase
             'image_file' => $newFile,
             'link_url' => 'https://example.com/new',
             'position' => 'promotional',
-            'sort_order' => 10,
             'is_active' => 1,
         ]);
 
@@ -166,7 +209,7 @@ class BannerTest extends TestCase
         $this->assertEquals('Updated Title', $banner->title);
         $this->assertEquals('https://example.com/new', $banner->link_url);
         $this->assertEquals('promotional', $banner->position);
-        $this->assertEquals(10, $banner->sort_order);
+        $this->assertEquals(5, $banner->sort_order);
 
         // Assert new image is saved, old is deleted
         $newPath = MediaUrl::publicDiskPath($banner->image_path);

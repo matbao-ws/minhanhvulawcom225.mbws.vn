@@ -4,6 +4,23 @@
     $cancelUrl = $product->exists ? route('admin.products.show', $product) : route('admin.products.index');
 @endphp
 
+@push('styles')
+    <style>
+        @media (max-width: 767.98px) {
+            #productSidePanel {
+                overflow-y: auto !important;
+                overscroll-behavior: contain;
+                padding: 0;
+            }
+
+            #productSidePanel > .card {
+                flex: 0 0 auto;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+@endpush
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card">
@@ -62,24 +79,6 @@
             // "images" column on products, which would shadow the relation and yield null.
             $galleryImages = old('gallery_images', $product->exists ? $product->images()->get()->pluck('image_url')->all() : []);
         @endphp
-        @include('admin.shared.seo-box', [
-            'record' => $product,
-            'entityType' => 'product',
-            'titleField' => 'meta_title',
-            'descriptionField' => 'meta_description',
-            'selectors' => [
-                'title' => '#name_'.$defaultContentLocale,
-                'slug' => '#slug_'.$defaultContentLocale,
-                'content' => 'description_'.$defaultContentLocale,
-                'image' => '#product_image_preview',
-                'imageInputs' => ['#product_image_file'],
-                'languageTabs' => '#product-language-',
-            ],
-            'tour' => 'product-form',
-            'mediaFolder' => 'products',
-            'placeholders' => ['title' => __('admin.posts.seo_panel.placeholder_product_title')],
-        ])
-
         <div data-tour="product-form.media" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-1">{{ __('catalog.products.sections.media') }}</h4>
@@ -185,7 +184,24 @@
             </div>
         </div>
 
-        @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
+        @include('admin.shared.seo-box', [
+            'record' => $product,
+            'entityType' => 'product',
+            'titleField' => 'meta_title',
+            'descriptionField' => 'meta_description',
+            'selectors' => [
+                'title' => '#name_'.$defaultContentLocale,
+                'slug' => '#slug_'.$defaultContentLocale,
+                'content' => 'description_'.$defaultContentLocale,
+                'image' => '#product_image_preview',
+                'imageInputs' => ['#product_image_file'],
+                'languageTabs' => '#product-language-',
+            ],
+            'tour' => 'product-form',
+            'mediaFolder' => 'products',
+            'placeholders' => ['title' => __('admin.posts.seo_panel.placeholder_product_title')],
+        ])
+
     </div>
 
     <div class="col-lg-4 admin-sticky-aside">
@@ -308,8 +324,9 @@
                 </div>
             </div>
 
-
         </div>
+
+        @include('admin.shared.form-actions', ['cancelUrl' => $cancelUrl])
     </div>
 </div>
 

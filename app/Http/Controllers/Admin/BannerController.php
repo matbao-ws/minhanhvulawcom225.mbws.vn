@@ -34,9 +34,10 @@ class BannerController extends Controller
             $query->where('is_active', $request->status === '1');
         }
 
+        $isFiltered = $request->filled('position') || $request->filled('status');
         $banners = $query->orderBy('sort_order', 'asc')->paginate($this->perPage(10))->withQueryString();
 
-        return view('admin.banners.index', compact('banners'));
+        return view('admin.banners.index', compact('banners', 'isFiltered'));
     }
 
     /**
@@ -58,7 +59,6 @@ class BannerController extends Controller
             'image_url' => 'required_without:image_file|string|max:255',
             'link_url' => 'nullable|string|max:255',
             'position' => 'required|string|max:255',
-            'sort_order' => 'required|integer|min:0',
         ]);
 
         $imagePath = $request->hasFile('image_file')
@@ -70,7 +70,7 @@ class BannerController extends Controller
             'image_path' => $imagePath,
             'link_url' => $validated['link_url'] ?? null,
             'position' => $validated['position'],
-            'sort_order' => $validated['sort_order'],
+            'sort_order' => (Banner::query()->max('sort_order') ?? -1) + 1,
             'is_active' => $request->has('is_active'),
         ]);
 
@@ -98,7 +98,6 @@ class BannerController extends Controller
             'image_url' => 'nullable|string|max:255',
             'link_url' => 'nullable|string|max:255',
             'position' => 'required|string|max:255',
-            'sort_order' => 'required|integer|min:0',
         ]);
 
         $imagePath = $banner->image_path;
@@ -126,7 +125,6 @@ class BannerController extends Controller
             'image_path' => $imagePath,
             'link_url' => $validated['link_url'] ?? null,
             'position' => $validated['position'],
-            'sort_order' => $validated['sort_order'],
             'is_active' => $request->has('is_active'),
         ]);
 
@@ -145,6 +143,26 @@ class BannerController extends Controller
         return redirect()
             ->route('admin.banners.index')
             ->with('success', __('admin.banners.messages.delete_success'));
+    }
+
+    /** Persist the manual order from the unfiltered banner listing. */
+    public function sort(Request $request, string $locale)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:banners,id'],
+            'start_order' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        foreach (array_values($validated['ids']) as $index => $id) {
+            Banner::query()->whereKey($id)->update([
+                'sort_order' => (int) ($validated['start_order'] ?? 0) + $index,
+            ]);
+        }
+
+        return response()->json([
+            'message' => __('admin.banners.messages.update_success'),
+        ]);
     }
 
     public function bulk(Request $request, string $locale)
