@@ -90,6 +90,16 @@ class SiteContentService
     }
 
     /**
+     * The text alignment an editor chose, or null to keep the theme's.
+     */
+    public function align(string $key): ?string
+    {
+        $align = $this->all()[$key]->align ?? null;
+
+        return in_array($align, SiteBlock::ALIGNS, true) ? $align : null;
+    }
+
+    /**
      * The semantic wrapper an editor chose, or null to keep the Blade tag.
      */
     public function format(string $key): ?string
@@ -107,8 +117,16 @@ class SiteContentService
      *
      * @throws ValidationException
      */
-    public function updateLocale(string $key, string $type, string $locale, string $value, ?int $userId, ?string $format = null): SiteBlock
+    public function updateLocale(string $key, string $type, string $locale, string $value, ?int $userId, ?string $format = null, string|false|null $align = false): SiteBlock
     {
+        // false: the caller did not touch the alignment (the admin block screens); null: back to the theme's.
+        if ($align !== false && $align !== null && ! in_array($align, SiteBlock::ALIGNS, true)) {
+            throw ValidationException::withMessages(['align' => 'Căn lề không hợp lệ.']);
+        }
+        if (in_array($type, SiteBlock::PICTURE_TYPES, true)) {
+            $align = false;
+        }
+
         $this->assertSupported($type, $locale);
 
         if ($format !== null && ! in_array($format, SiteBlock::FORMATS, true)) {
@@ -124,7 +142,7 @@ class SiteContentService
         $format = $type === SiteBlock::TYPE_HTML ? $format : null;
         $clean = $this->clean($type, $value, $format);
 
-        return DB::transaction(function () use ($key, $type, $locale, $clean, $userId, $format): SiteBlock {
+        return DB::transaction(function () use ($key, $type, $locale, $clean, $userId, $format, $align): SiteBlock {
             $block = SiteBlock::query()->lockForUpdate()->firstOrNew(['key' => $key]);
             $translations = $block->exists ? $block->rawTranslations() : [];
 
@@ -135,6 +153,7 @@ class SiteContentService
                 && array_key_exists($locale, $translations)
                 && $translations[$locale] === $clean
                 && $block->format === $format
+                && ($align === false || $block->align === $align)
             ) {
                 return $block;
             }
@@ -145,6 +164,9 @@ class SiteContentService
             $block->key = $key;
             $block->type = $type;
             $block->format = $format;
+            if ($align !== false) {
+                $block->align = $align;
+            }
             $block->setRawAttributes(array_merge($block->getAttributes(), [
                 'content' => json_encode($translations, JSON_UNESCAPED_UNICODE),
             ]));
@@ -300,7 +322,7 @@ class SiteContentService
             // A list region stores the wrapper as `format` and only its inner HTML
             // as content. Purifying bare <li> nodes drops them because they have no
             // list parent, so sanitize in the same semantic context used to render.
-            $wrapped = $this->htmlSanitizer->clean('<'.$format.'>'.trim($value).'</'.$format.'>');
+            $wrapped = $this->htmlSanitizer->cleanSiteBlock('<'.$format.'>'.trim($value).'</'.$format.'>');
             if (preg_match('~<'.$format.'(?:\s[^>]*)?>(.*)</'.$format.'>~is', $wrapped, $matches) === 1) {
                 return trim($matches[1]);
             }
@@ -311,7 +333,7 @@ class SiteContentService
         return match ($type) {
             // A single-line label has no business holding markup.
             SiteBlock::TYPE_TEXT => trim(strip_tags($value)),
-            SiteBlock::TYPE_HTML => $this->htmlSanitizer->clean(trim($value)),
+            SiteBlock::TYPE_HTML => $this->htmlSanitizer->cleanSiteBlock(trim($value)),
             // Stored relative so the reference survives an APP_URL change.
             SiteBlock::TYPE_IMAGE, SiteBlock::TYPE_BACKGROUND => (string) MediaUrl::toStorable(trim($value)),
             default => trim($value),

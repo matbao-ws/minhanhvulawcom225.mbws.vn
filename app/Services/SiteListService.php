@@ -76,6 +76,37 @@ class SiteListService
     }
 
     /**
+     * A new item right after `$sourceId`, for a copy of that box. Its content is written by the caller
+     * (the regions of the box, through the usual region save). Without a source the copy goes first:
+     * it copies the authored region the list follows.
+     *
+     * @param  array<int, string>  $defaults
+     */
+    public function duplicate(string $key, ?string $sourceId, array $defaults = []): string
+    {
+        $items = $this->items($key, $defaults);
+        $position = $sourceId === null ? -1 : array_search($sourceId, $items, true);
+
+        if ($position === false) {
+            throw ValidationException::withMessages(['item' => 'Mục không tồn tại trong danh sách.']);
+        }
+        if (count($items) >= self::MAX_ITEMS) {
+            throw ValidationException::withMessages([
+                'key' => 'Danh sách đã đạt giới hạn '.self::MAX_ITEMS.' mục.',
+            ]);
+        }
+
+        do {
+            $id = Str::lower(Str::random(8));
+        } while (in_array($id, $items, true));
+
+        array_splice($items, $position + 1, 0, [$id]);
+        $this->store($key, $items);
+
+        return $id;
+    }
+
+    /**
      * Drop one item and the content it owned.
      *
      * @param  array<int, string>  $defaults
