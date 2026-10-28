@@ -27,6 +27,7 @@
 #   JOBS=4                   websites run in parallel
 #   LOAD_MAX=                skip the minute above this 1-minute load average; empty = CPU count x 2
 #   LOG=/var/log/matbaows-cron.log   failures and skipped minutes only
+#   MAX_DEPTH=6              how deep under VHOSTS to look for artisan
 set -u
 
 [ -r /etc/matbaows-cron.conf ] && . /etc/matbaows-cron.conf
@@ -52,11 +53,15 @@ pick_php() {
 }
 
 # Directories holding artisan and the core manifest. Plesk keeps a domain in <vhost>/httpdocs and
-# subdomains or extra sites in other folders of the same <vhost>.
+# subdomains or extra sites in other folders of the same <vhost>; our sites also sit deeper, e.g.
+# <vhost>/httpdocs/backend/public/artisan (depth 5). MAX_DEPTH 6 leaves one level to spare.
+# Heavy or foreign trees are pruned, not filtered: a filter still walks every vendor/ folder.
+MAX_DEPTH="${MAX_DEPTH:-6}"
 find_core_roots() {
-    find "$VHOSTS" -mindepth 2 -maxdepth 4 -name artisan -type f \
-        -not -path "$VHOSTS/system/*" -not -path "$VHOSTS/chroot/*" -not -path '*/.skel/*' \
-        -not -path '*/vendor/*' -not -path '*/node_modules/*' 2>/dev/null |
+    find "$VHOSTS" -maxdepth "$MAX_DEPTH" \
+        \( -path "$VHOSTS/system" -o -path "$VHOSTS/chroot" -o -name .skel -o -name vendor \
+           -o -name node_modules -o -name storage -o -name .git \) -prune \
+        -o -name artisan -type f -print 2>/dev/null |
     while read -r artisan; do
         root="${artisan%/artisan}"
         [ -f "$root/app/Support/CoreManifest.php" ] && echo "$root"
@@ -186,4 +191,5 @@ main() {
     included_sites | xargs -r -P "$JOBS" -I{} bash -c 'run_site "$1" "$2"' _ {} "$php"
 }
 
-main "$@"
+# Sourced (tests/python/test_plesk_cron.py): define the functions, run nothing.
+[ "${BASH_SOURCE[0]}" = "$0" ] && main "$@"
