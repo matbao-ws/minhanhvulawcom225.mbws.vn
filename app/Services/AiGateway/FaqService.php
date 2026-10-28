@@ -39,11 +39,12 @@ class FaqService
     ) {}
 
     /**
+     * @param  list<string>  $questions  real searches phrased as questions, answered first when the content supports it
      * @return array{0: AiSuggestion, 1: array<string, int>}
      *
      * @throws GatewayUnavailable
      */
-    public function suggest(string $type, int $id, string $locale, User $user): array
+    public function suggest(string $type, int $id, string $locale, User $user, array $questions = []): array
     {
         abort_unless(in_array($type, self::ENTITY_TYPES, true), 404, __('ai.errors.not_found'));
         [$definition, $record] = $this->resolve($type, $id, $user);
@@ -58,7 +59,8 @@ class FaqService
             'entity_id' => $record->getKey(),
             'title' => Str::limit((string) $record->getTranslation($definition['title'], $locale, false), 290, ''),
             'html' => $html,
-        ], (string) Str::uuid());
+        ] + ($questions !== [] ? ['questions' => array_slice(array_map(
+            fn ($question) => Str::limit((string) $question, 290, ''), $questions), 0, 10)] : []), (string) Str::uuid());
 
         $suggestion = AiSuggestion::query()->create([
             'gateway_suggestion_id' => (int) $response['suggestion_id'],

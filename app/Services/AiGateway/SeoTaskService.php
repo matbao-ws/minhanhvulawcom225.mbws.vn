@@ -25,6 +25,8 @@ class SeoTaskService
 
     private const CACHE_KEY = 'ai_gateway.seo_tasks';
 
+    private const OUTCOMES_CACHE_KEY = 'ai_gateway.seo_task_outcomes';
+
     /** entity type => model, feature, permission to edit, editor route. */
     private const EDITORS = [
         'post' => [Post::class, 'cms_page', 'posts.update', 'admin.posts.edit', 'post'],
@@ -67,18 +69,64 @@ class SeoTaskService
 
     /**
      * Mark a task done or dismissed (or bring it back with 'open'); the gateway keeps it hidden for a while.
+     * Done also starts the before/after measurement: who fixed it (the AI tools or the owner) is recorded.
+     *
+     * @param  list<string>  $tools  AI task codes that made the change, e.g. meta.suggest
      *
      * @throws GatewayUnavailable
      */
-    public function mark(string $taskId, string $status): void
+    public function mark(string $taskId, string $status, string $appliedBy = 'owner', array $tools = []): void
     {
-        $this->gateway->post('v1/seo-tasks/'.$taskId.'/status', [], ['status' => $status]);
+        $this->gateway->post('v1/seo-tasks/'.$taskId.'/status', [], array_filter([
+            'status' => $status,
+            'applied_by' => $status === 'done' ? $appliedBy : null,
+            'tools' => $status === 'done' && $tools !== [] ? $tools : null,
+        ], fn ($value) => $value !== null));
         self::forget();
+    }
+
+    /**
+     * Fixed tasks and how their pages did in the 28 days after, against the rest of the website.
+     *
+     * @return array{synced_through: string|null, summary: array<string, int>, outcomes: list<array<string, mixed>>}
+     *
+     * @throws GatewayUnavailable
+     */
+    public function outcomes(): array
+    {
+        $cached = Cache::get(self::OUTCOMES_CACHE_KEY);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $response = $this->gateway->get('v1/seo-tasks/outcomes');
+        $result = [
+            'synced_through' => $response['synced_through'] ?? null,
+            'summary' => array_map('intval', (array) ($response['summary'] ?? [])),
+            'outcomes' => array_values(array_filter((array) ($response['outcomes'] ?? []), 'is_array')),
+        ];
+        Cache::put(self::OUTCOMES_CACHE_KEY, $result, 900);
+
+        return $result;
+    }
+
+    /**
+     * One task of the current list, as forUser() shows it to this admin.
+     *
+     * @throws GatewayUnavailable
+     */
+    public function find(string $taskId, User $user): array
+    {
+        $task = collect($this->forUser($user)['tasks'])->firstWhere('id', $taskId);
+        abort_unless(is_array($task), 404, __('ai.tasks.gone'));
+
+        return $task;
     }
 
     public static function forget(): void
     {
         Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::OUTCOMES_CACHE_KEY);
     }
 
     /**
@@ -94,10 +142,13 @@ class SeoTaskService
         $weekly['tasks'] = array_map(function (array $task) use ($user, $existing) {
             $entity = $task['entity'] ?? null;
             $task['edit_url'] = null;
+            // Why there is no editor link: the record was deleted here, or this admin may not edit it.
+            $task['record_gone'] = false;
 
             if (is_array($entity) && isset(self::EDITORS[$entity['type'] ?? ''])) {
                 [, $feature, $permission, $route, $parameter] = self::EDITORS[$entity['type']];
-                if (isset($existing[$entity['type']][(int) $entity['id']])
+                $task['record_gone'] = ! isset($existing[$entity['type']][(int) $entity['id']]);
+                if (! $task['record_gone']
                     && $user->can($permission)
                     && $this->features->availableTo($user, $feature)) {
                     $task['edit_url'] = route($route, [$parameter => (int) $entity['id']]);
