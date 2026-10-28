@@ -29,7 +29,7 @@ class LanguageController extends Controller
         ]);
         $registry->forget();
 
-        return back()->with('success', 'Đã thêm ngôn ngữ. Bạn có thể bắt đầu nhập nội dung cho locale mới.');
+        return back()->with('success', __('admin.languages.created'));
     }
 
     public function update(Request $request, string $locale, Language $language, LanguageRegistry $registry)
@@ -38,7 +38,7 @@ class LanguageController extends Controller
         $isActive = $request->boolean('is_active');
 
         if (($language->is_default || $language->is_content_fallback) && ! $isActive) {
-            return back()->withErrors(['is_active' => 'Ngôn ngữ mặc định hoặc fallback phải được kích hoạt.']);
+            return back()->withErrors(['is_active' => __('admin.languages.must_stay_active')]);
         }
 
         $language->update([
@@ -50,7 +50,7 @@ class LanguageController extends Controller
         $redirectLocale = $registry->adminLocale(app()->getLocale());
 
         return redirect()->route('admin.languages.index', ['locale' => $redirectLocale])
-            ->with('success', 'Đã cập nhật ngôn ngữ.');
+            ->with('success', __('admin.languages.updated'));
     }
 
     public function updatePreferences(Request $request, string $locale, LanguageRegistry $registry)
@@ -63,7 +63,7 @@ class LanguageController extends Controller
             'default_locale' => ['required', 'string', $activeLanguage],
             'fallback_locale' => ['required', 'string', 'different:default_locale', $activeLanguage],
         ], [
-            'fallback_locale.different' => 'Ngôn ngữ fallback phải khác ngôn ngữ mặc định.',
+            'fallback_locale.different' => __('admin.languages.fallback_different'),
         ]);
 
         DB::transaction(function () use ($validated): void {
@@ -77,7 +77,7 @@ class LanguageController extends Controller
         });
         $registry->forget();
 
-        return back()->with('success', 'Đã cập nhật ngôn ngữ mặc định và fallback nội dung.');
+        return back()->with('success', __('admin.languages.preferences_updated'));
     }
 
     private function rules(?Language $language = null): array

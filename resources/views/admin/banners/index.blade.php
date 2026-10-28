@@ -70,14 +70,14 @@
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-banners-form',
                 'bulkActionUrl' => route('admin.banners.bulk'),
-                'bulkItemLabel' => 'banner',
+                'bulkItemLabel' => __('admin.banners.bulk_label'),
             ])
             <div data-tour="banners.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap text-muted">
                             <th class="ps-4" style="width: 44px;"></th>
-                            <th data-tour="banners.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-banners-form" aria-label="Chọn tất cả banner"></th>
+                            <th data-tour="banners.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-banners-form" aria-label="{{ __('admin.banners.select_all') }}"></th>
                             <th class="ps-4 fw-semibold small" style="width: 180px;">{{ __('admin.banners.fields.image') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.title') }}</th>
                             <th class="fw-semibold small">{{ __('admin.banners.fields.position') }}</th>
@@ -95,7 +95,7 @@
                                         </span>
                                     @endunless
                                 </td>
-                                <td><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $banner->id }}" form="bulk-banners-form" data-bulk-select="bulk-banners-form" aria-label="Chọn {{ $banner->title ?: 'banner' }}"></td>
+                                <td><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $banner->id }}" form="bulk-banners-form" data-bulk-select="bulk-banners-form" aria-label="{{ __('admin.bulk.select_item', ['name' => $banner->title ?: __('admin.banners.item_fallback')]) }}"></td>
                                 <td class="ps-4">
                                     <div class="rounded border p-1 bg-light d-inline-block">
                                         <img src="{{ $banner->image_url }}" 
@@ -146,7 +146,7 @@
                         @empty
                             <tr><td colspan="7">@include('admin.shared.empty-state', [
                                 'emptyImage' => asset('admin-assets/images/icons/emptydata.png'),
-                                'emptyMessage' => 'Không tìm thấy banner nào.',
+                                'emptyMessage' => __('admin.banners.empty'),
                             ])</td></tr>
                         @endforelse
                     </tbody>
@@ -218,7 +218,7 @@
                         toast('success', payload.message);
                     })
                     .catch(function () {
-                        toast('error', 'Unable to update banner order.');
+                        toast('error', @json(__('admin.banners.messages.sort_failed')));
                     });
             });
         });

@@ -107,4 +107,13 @@ return [
         'target_format' => 'Link mới phải bắt đầu bằng / hoặc là địa chỉ http(s):// đầy đủ.',
         'target_loop' => 'Link mới trùng link cũ: chuyển hướng sẽ lặp vô tận.',
     ],
+    'log' => [
+        'created' => 'Tạo chuyển hướng :path',
+        'updated' => 'Cập nhật chuyển hướng :path',
+        'deleted' => 'Xoá chuyển hướng :path',
+        'bulk_deleted' => 'Xoá hàng loạt chuyển hướng',
+        'bulk_status' => 'Bật/tắt hàng loạt chuyển hướng',
+        'not_found_cleared' => 'Xoá nhật ký lỗi 404',
+        'imported' => 'Nhập chuyển hướng từ CSV',
+    ],
 ];

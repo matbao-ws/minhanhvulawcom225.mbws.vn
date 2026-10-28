@@ -109,7 +109,7 @@
                             <div class="text-muted small mt-3">{{ __('catalog.fields.stock_quantity') }}</div>
                             <div class="fs-6 fw-bold text-dark">{{ number_format((int) $totalStock) }}</div>
                             <div class="small text-muted">
-                                {{ $product->usesVariantInventory() ? 'Tính theo SKU biến thể' : ($product->manage_stock ? 'Đang quản lý tồn kho' : 'Không theo dõi tồn kho') }}
+                                {{ $product->usesVariantInventory() ? __('catalog.products.stock_by_variants') : ($product->manage_stock ? __('catalog.products.stock_managed') : __('catalog.products.stock_untracked')) }}
                             </div>
                         </div>
                     </div>
@@ -122,7 +122,7 @@
                             </div>
                             <div class="text-muted small mt-3">{{ __('catalog.fields.variants') }}</div>
                             <div class="fs-6 fw-bold text-dark">{{ $product->variants->count() }}</div>
-                            <div class="small text-muted">{{ $product->optionGroups->count() }} nhóm thuộc tính</div>
+                            <div class="small text-muted">{{ __('catalog.products.option_groups_count', ['count' => $product->optionGroups->count()]) }}</div>
                         </div>
                     </div>
                 </div>
@@ -165,7 +165,7 @@
                             <div class="product-show-field">
                                 <span class="product-show-field-icon"><i class="ti ti-calendar" aria-hidden="true"></i></span>
                                 <div class="min-w-0">
-                                    <div class="text-muted small">Ngày đăng</div>
+                                    <div class="text-muted small">{{ __('catalog.products.published_at') }}</div>
                                     <div class="fw-semibold">
                                         {{ ($product->published_at ?? $product->created_at)?->format('d/m/Y H:i') ?? '-' }}
                                     </div>
@@ -195,19 +195,19 @@
                 <div>
                     <h5 class="mb-1">{{ __('catalog.variants.title') }}</h5>
                     <div class="text-muted small">
-                        {{ $product->variants->count() }} SKU · {{ $product->optionGroups->count() }} nhóm thuộc tính
+                        {{ __('catalog.products.variants_summary', ['skus' => $product->variants->count(), 'groups' => $product->optionGroups->count()]) }}
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     @if(app(\App\Support\FeatureGate::class)->availableTo(auth()->user(), 'product_variant'))
                     <a data-tour="product-show.options" href="{{ route('admin.products.options.edit', $product) }}" class="btn btn-outline-primary">
-                        <i class="ti ti-adjustments me-1" aria-hidden="true"></i>Thuộc tính
+                        <i class="ti ti-adjustments me-1" aria-hidden="true"></i>{{ __('catalog.fields.options') }}
                     </a>
                     @if($product->optionGroups->isNotEmpty())
                         <form data-tour="product-show.generate" method="POST" action="{{ route('admin.products.variants.generate', $product) }}">
                             @csrf
                             <button class="btn btn-outline-success" type="submit">
-                                <i class="ti ti-wand me-1" aria-hidden="true"></i>Tạo tổ hợp
+                                <i class="ti ti-wand me-1" aria-hidden="true"></i>{{ __('catalog.products.generate_combinations') }}
                             </button>
                         </form>
                         <a data-tour="product-show.create-variant" href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-primary">
@@ -237,7 +237,7 @@
                             <td class="ps-4">
                                 <div class="fw-semibold">{{ $variant->name ?: '-' }}</div>
                                 @if($variant->is_default)
-                                    <span class="badge bg-info-subtle text-info mt-1">Mặc định</span>
+                                    <span class="badge bg-info-subtle text-info mt-1">{{ __('catalog.variants.default_badge') }}</span>
                                 @endif
                             </td>
                             <td><span class="font-monospace">{{ $variant->sku }}</span></td>

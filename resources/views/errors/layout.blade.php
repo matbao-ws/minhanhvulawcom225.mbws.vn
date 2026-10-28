@@ -35,7 +35,9 @@
             ? route('client.home', ['locale' => $currentLocale])
             : (is_file(base_path('routes/theme.php')) ? \App\Support\LocaleUrl::home($currentLocale) : null));
 
-        $favicon = $siteBranding['favicon_url'] ?? asset('admin-assets/images/logos/favicon.png');
+        $favicon = $isAdminContext
+            ? ($siteBranding['admin_favicon_url'] ?? asset('admin-assets/images/logos/favicon.png'))
+            : ($siteBranding['favicon_url'] ?? asset('admin-assets/images/logos/favicon.png'));
         $headerLogoUrl = $isAdminContext
             ? ($siteBranding['admin_logo_url'] ?? asset('matbao-ws-logo.png'))
             : ($siteBranding['logo_url'] ?? $siteBranding['admin_logo_url'] ?? asset('matbao-ws-logo.png'));

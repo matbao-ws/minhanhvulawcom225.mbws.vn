@@ -185,7 +185,7 @@
                                 <div class="col-md-6 col-xl-4">
                                     <label class="form-label fs-2 text-muted mb-1"
                                         for="override_{{ $module }}_{{ $action }}">
-                                        {{ $definition['action_labels'][$action] ?? __('admin.roles.actions.' . $action) }} — {{ $definition['label'] }}
+                                        {{ $definition['action_labels'][$action] ?? __('admin.roles.actions.' . $action) }} — {{ Lang::has('admin.roles.modules.' . $module) ? __('admin.roles.modules.' . $module) : $definition['label'] }}
                                     </label>
                                     <select class="form-select form-select-sm"
                                         id="override_{{ $module }}_{{ $action }}"
@@ -216,7 +216,7 @@
                 <h5 class="modal-title text-warning fw-semibold" id="unsavedChangesModalLabel">
                     <i class="ti ti-alert-triangle me-1"></i>{{ __('admin.users.unsaved.title') }}
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('admin.header.close') }}"></button>
             </div>
             <div class="modal-body">
                 {{ __($canSaveDraft ? 'admin.users.unsaved.body' : 'admin.users.unsaved.body_without_draft') }}

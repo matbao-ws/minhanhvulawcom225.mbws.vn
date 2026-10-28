@@ -27,7 +27,7 @@
         <div class="col-12">
             <div class="card shadow-sm border border-light-subtle rounded-4">
                 <div class="card-header bg-transparent border-bottom py-3">
-                    <h5 class="card-title fw-bold text-dark mb-0">Thông tin Banner</h5>
+                    <h5 class="card-title fw-bold text-dark mb-0">{{ __('admin.banners.info') }}</h5>
                 </div>
                 <div class="card-body p-4">
                     <form action="{{ route('admin.banners.store') }}" method="POST" enctype="multipart/form-data">
@@ -38,8 +38,8 @@
                             <label for="image_file" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.image') }} <span class="text-danger">*</span></label>
                             <div class="p-4 border border-2 border-dashed rounded-4 text-center bg-light-subtle position-relative hover-bg-light transition-all">
                                 <i class="ti ti-photo-plus text-muted fs-9 mb-2 d-inline-block"></i>
-                                <h6 class="text-dark fw-semibold mb-1">Chọn tập tin ảnh banner</h6>
-                                <p class="text-muted small mb-3">Chấp nhận JPG, PNG, WEBP tối đa 2MB</p>
+                                <h6 class="text-dark fw-semibold mb-1">{{ __('admin.banners.choose_file') }}</h6>
+                                <p class="text-muted small mb-3">{{ __('admin.banners.file_help') }}</p>
                                 <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="banners" style="cursor: pointer;">
                                 <div id="imagePreviewContainer" class="mt-3" style="display: none;">
                                     <img id="imagePreview" src="" alt="Preview" class="rounded shadow-sm border border-2 border-primary-subtle" style="max-height: 200px; max-width: 100%; object-fit: cover;">
@@ -50,7 +50,7 @@
                         <!-- Title -->
                         <div data-tour="banner-form.title" class="mb-3">
                             <label for="title" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.title') }}</label>
-                            <input type="text" class="form-control rounded-pill" id="title" name="title" value="{{ old('title') }}" placeholder="Nhập tiêu đề hoặc mô tả ngắn">
+                            <input type="text" class="form-control rounded-pill" id="title" name="title" value="{{ old('title') }}" placeholder="{{ __('admin.banners.title_placeholder') }}">
                         </div>
 
                         <!-- Destination URL Link -->

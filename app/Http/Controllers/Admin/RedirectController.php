@@ -69,7 +69,7 @@ class RedirectController extends Controller
         }
         NotFoundLog::query()->where('path', $redirect->source_path)->delete();
 
-        ActivityLogger::log('created', $redirect, "Tạo chuyển hướng {$redirect->source_path}", ['target' => $redirect->target_url, 'status' => $redirect->status_code]);
+        ActivityLogger::log('created', $redirect, __('redirects.log.created', ['path' => $redirect->source_path]), ['target' => $redirect->target_url, 'status' => $redirect->status_code]);
 
         return redirect()->route('admin.redirects.index')->with('success', __('redirects.flash.created'));
     }
@@ -83,7 +83,7 @@ class RedirectController extends Controller
         }
         $redirect->update($data + ['origin' => Redirect::ORIGIN_MANUAL]);
 
-        ActivityLogger::log('updated', $redirect, "Cập nhật chuyển hướng {$redirect->source_path}", ['target' => $redirect->target_url, 'status' => $redirect->status_code]);
+        ActivityLogger::log('updated', $redirect, __('redirects.log.updated', ['path' => $redirect->source_path]), ['target' => $redirect->target_url, 'status' => $redirect->status_code]);
 
         return redirect()->route('admin.redirects.index')->with('success', __('redirects.flash.updated'));
     }
@@ -91,7 +91,7 @@ class RedirectController extends Controller
     public function destroy(string $locale, Redirect $redirect): RedirectResponse
     {
         $redirect->delete();
-        ActivityLogger::log('deleted', $redirect, "Xoá chuyển hướng {$redirect->source_path}");
+        ActivityLogger::log('deleted', $redirect, __('redirects.log.deleted', ['path' => $redirect->source_path]));
 
         return back()->with('success', __('redirects.flash.deleted'));
     }
@@ -103,14 +103,14 @@ class RedirectController extends Controller
 
         if ($validated['action'] === 'delete') {
             $deleted = Redirect::query()->whereKey($ids)->delete();
-            ActivityLogger::log('bulk_deleted', null, 'Xoá hàng loạt chuyển hướng', ['model' => Redirect::class, 'ids' => $ids, 'count' => $deleted]);
+            ActivityLogger::log('bulk_deleted', null, __('redirects.log.bulk_deleted'), ['model' => Redirect::class, 'ids' => $ids, 'count' => $deleted]);
 
             return back()->with('success', __('redirects.flash.bulk_deleted', ['count' => $deleted]));
         }
 
         $active = $validated['action'] === 'activate';
         $updated = Redirect::query()->whereKey($ids)->update(['is_active' => $active]);
-        ActivityLogger::log('bulk_status_changed', null, 'Bật/tắt hàng loạt chuyển hướng', ['model' => Redirect::class, 'ids' => $ids, 'count' => $updated, 'is_active' => $active]);
+        ActivityLogger::log('bulk_status_changed', null, __('redirects.log.bulk_status'), ['model' => Redirect::class, 'ids' => $ids, 'count' => $updated, 'is_active' => $active]);
 
         return back()->with('success', __($active ? 'redirects.flash.bulk_activated' : 'redirects.flash.bulk_deactivated', ['count' => $updated]));
     }
@@ -125,7 +125,7 @@ class RedirectController extends Controller
     public function clearNotFound(): RedirectResponse
     {
         $deleted = NotFoundLog::query()->delete();
-        ActivityLogger::log('bulk_deleted', null, 'Xoá nhật ký lỗi 404', ['count' => $deleted]);
+        ActivityLogger::log('bulk_deleted', null, __('redirects.log.not_found_cleared'), ['count' => $deleted]);
 
         return redirect()->route('admin.redirects.index', ['tab' => 'not-found'])->with('success', __('redirects.flash.not_found_cleared'));
     }
@@ -173,7 +173,7 @@ class RedirectController extends Controller
             fclose($handle);
         }
 
-        ActivityLogger::log('imported', null, 'Nhập chuyển hướng từ CSV', $counts);
+        ActivityLogger::log('imported', null, __('redirects.log.imported'), $counts);
 
         return redirect()->route('admin.redirects.index')->with('success', __('redirects.flash.imported', $counts));
     }

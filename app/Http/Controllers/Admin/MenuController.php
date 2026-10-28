@@ -36,7 +36,7 @@ class MenuController extends Controller
         $data['is_active'] = (bool) ($data['is_active'] ?? false);
 
         $menu = Menu::query()->create($data);
-        ActivityLogger::log('created', $menu, "Tạo menu {$menu->name}", [
+        ActivityLogger::log('created', $menu, __('admin.menus.log.created', ['name' => $menu->name]), [
             'new' => $menu->only(['key', 'name', 'is_active']),
         ]);
 
@@ -57,7 +57,7 @@ class MenuController extends Controller
 
         $old = $menu->only(['key', 'name', 'is_active']);
         $menu->update($data);
-        ActivityLogger::log('updated', $menu, "Cập nhật menu {$menu->name}", [
+        ActivityLogger::log('updated', $menu, __('admin.menus.log.updated', ['name' => $menu->name]), [
             'old' => $old,
             'new' => $menu->only(['key', 'name', 'is_active']),
         ]);
@@ -72,7 +72,7 @@ class MenuController extends Controller
         $name = $menu->name;
         // Items cascade with the menu; nothing else references them.
         $menu->delete();
-        ActivityLogger::log('deleted', $menu, "Xóa menu {$name}", ['old' => ['key' => $menu->key, 'name' => $name]]);
+        ActivityLogger::log('deleted', $menu, __('admin.menus.log.deleted', ['name' => $name]), ['old' => ['key' => $menu->key, 'name' => $name]]);
 
         return redirect()
             ->route('admin.menus.index')

@@ -22,22 +22,22 @@
                     <div data-tour="shipping-partner-form.name" class="col-md-6 mb-3">
                         <label class="form-label fw-semibold text-dark" for="name">{{ __('admin.shipping_partners.name') }} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control text-dark" id="name" name="name" 
-                            value="{{ old('name') }}" placeholder="Ví dụ: Tự giao hàng nhanh nội thành" required>
+                            value="{{ old('name') }}" placeholder="{{ __('admin.shipping_partners.name_placeholder') }}" required>
                     </div>
                     <div data-tour="shipping-partner-form.fee" class="col-md-6 mb-3">
                         <label class="form-label fw-semibold text-dark" for="fee">{{ __('admin.shipping_partners.fee') }} <span class="text-danger">*</span></label>
                         <input type="number" class="form-control text-dark" id="fee" name="fee" 
-                            value="{{ old('fee', 30000) }}" placeholder="Ví dụ: 30000" min="0" required>
+                            value="{{ old('fee', 30000) }}" placeholder="{{ __('admin.shipping_partners.fee_placeholder') }}" min="0" required>
                     </div>
                     <div data-tour="shipping-partner-form.phone" class="col-md-6 mb-3">
                         <label class="form-label fw-semibold text-dark" for="phone">{{ __('admin.shipping_partners.phone') }}</label>
                         <input type="text" class="form-control text-dark" id="phone" name="phone" 
-                            value="{{ old('phone') }}" placeholder="Số điện thoại tài xế hoặc hotline...">
+                            value="{{ old('phone') }}" placeholder="{{ __('admin.shipping_partners.phone_placeholder') }}">
                     </div>
                     <div data-tour="shipping-partner-form.note" class="col-md-6 mb-3">
                         <label class="form-label fw-semibold text-dark" for="account_name">{{ __('admin.shipping_partners.description') }}</label>
                         <input type="text" class="form-control text-dark" id="account_name" name="account_name" 
-                            value="{{ old('account_name') }}" placeholder="Ghi chú thêm thông tin tài khoản hoặc khu vực...">
+                            value="{{ old('account_name') }}" placeholder="{{ __('admin.shipping_partners.account_note_placeholder') }}">
                     </div>
                 </div>
 

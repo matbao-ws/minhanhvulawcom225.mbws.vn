@@ -11,6 +11,7 @@ use App\Services\CloudinaryCredentials;
 use App\Services\CloudinaryService;
 use App\Services\LanguageRegistry;
 use App\Services\MultilingualSettings;
+use App\Support\LocalizedSiteSettings;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -53,7 +54,18 @@ class SettingController extends Controller
             'contentLanguages' => auth()->user()?->isSuperAdmin()
                 ? Language::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
                 : collect(),
+            // Languages of the home page SEO and contact fields (LocalizedSiteSettings): one when
+            // multilingual content is off, like every other content form.
+            'siteLanguages' => $this->languages->active(),
+            'siteDefaultLocale' => $this->languages->defaultLocale(),
+            'siteOtherLanguages' => $this->languages->active()->where('code', '!=', $this->languages->defaultLocale())->values(),
         ]);
+    }
+
+    /** @return list<string> */
+    private function translatedLocales(): array
+    {
+        return array_values(array_diff($this->languages->codes(), [$this->languages->defaultLocale()]));
     }
 
     /**
@@ -62,12 +74,14 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         if ($request->has('multilingual') && ! $request->user()?->isSuperAdmin()) {
-            abort(403, 'Chỉ Superadmin được thay đổi cấu hình đa ngôn ngữ.');
+            abort(403, __('admin.settings.superadmin_multilingual_only'));
         }
 
         $rules = [
             'active_tab' => ['nullable', Rule::in(self::TABS)],
             'shop_name' => 'required|string|max:255',
+            LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS => 'nullable|array',
+            LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS.'.*' => 'nullable|string|max:255',
             'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
             'favicon' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,ico,cur|max:5120',
             'logo_url' => 'nullable|string|max:255',
@@ -82,8 +96,16 @@ class SettingController extends Controller
             'contact.branches.*.email' => 'nullable|string|max:255',
             'contact.branches.*.address' => 'nullable|string|max:500',
             'contact.branches.*.google_map_url' => 'nullable|string|max:2000',
+            'contact.translations' => 'nullable|array',
+            'contact.translations.*.address' => 'nullable|string|max:500',
+            'contact.branches.*.translations' => 'nullable|array',
+            'contact.branches.*.translations.*.name' => 'nullable|string|max:255',
+            'contact.branches.*.translations.*.address' => 'nullable|string|max:500',
             'seo.title' => 'nullable|string|max:255',
             'seo.description' => 'nullable|string|max:500',
+            'seo.translations' => 'nullable|array',
+            'seo.translations.*.title' => 'nullable|string|max:255',
+            'seo.translations.*.description' => 'nullable|string|max:500',
             'social_links.facebook' => 'nullable|url|max:255',
             'social_links.youtube' => 'nullable|url|max:255',
             'social_links.instagram' => 'nullable|url|max:255',
@@ -138,14 +160,30 @@ class SettingController extends Controller
             ['setting_value' => $validated['shop_name']]
         );
 
+        // Shop name, address, branch names and home page SEO per content language; a language the
+        // form did not show (multilingual off, language deactivated) keeps what it had.
+        $stored = ProjectSetting::query()
+            ->whereIn('setting_key', ['contact', 'seo', LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS])
+            ->pluck('setting_value', 'setting_key');
+        $locales = $this->translatedLocales();
+
+        ProjectSetting::updateOrCreate(
+            ['setting_key' => LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS],
+            ['setting_value' => LocalizedSiteSettings::storeShopName(
+                $validated[LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS] ?? [],
+                $stored->get(LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS),
+                $locales,
+            )]
+        );
+
         ProjectSetting::updateOrCreate(
             ['setting_key' => 'contact'],
-            ['setting_value' => $validated['contact'] ?? []]
+            ['setting_value' => LocalizedSiteSettings::storeContact($validated['contact'] ?? [], $stored->get('contact'), $locales)]
         );
 
         ProjectSetting::updateOrCreate(
             ['setting_key' => 'seo'],
-            ['setting_value' => $validated['seo'] ?? []]
+            ['setting_value' => LocalizedSiteSettings::storeSeo($validated['seo'] ?? [], $stored->get('seo'), $locales)]
         );
 
         ProjectSetting::updateOrCreate(
@@ -200,9 +238,10 @@ class SettingController extends Controller
             $this->languages->forget();
         }
 
-        ActivityLogger::log('updated', null, 'Cập nhật cấu hình website', [
+        ActivityLogger::log('updated', null, __('admin.settings.activity_updated'), [
             'updated_keys' => array_values(array_filter([
                 'shop_name',
+                LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS,
                 'contact',
                 'seo',
                 'social_links',
@@ -229,12 +268,12 @@ class SettingController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Đã cập nhật cấu hình website thành công.',
+                'message' => __('admin.settings.update_success'),
                 'redirect_url' => $redirectUrl,
             ]);
         }
 
         return redirect($redirectUrl)
-            ->with('success', 'Đã cập nhật cấu hình website thành công.');
+            ->with('success', __('admin.settings.update_success'));
     }
 }

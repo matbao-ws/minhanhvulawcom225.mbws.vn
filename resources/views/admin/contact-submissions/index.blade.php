@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Liên hệ')
+@section('title', __('admin.contacts.title'))
 
 @push('styles')
     <style>
@@ -46,21 +46,21 @@
 @endpush
 
 @section('content')
-    <x-admin.page-header title="Liên hệ">
+    <x-admin.page-header :title="__('admin.contacts.title')">
         <x-slot:breadcrumbs>
             <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Liên hệ</li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.contacts.title') }}</li>
         </x-slot:breadcrumbs>
     </x-admin.page-header>
 
     @php
         $spamReasons = [
-            'honeypot' => 'Bot điền ô ẩn',
-            'too_fast' => 'Gửi quá nhanh',
-            'link_in_name' => 'Có link trong tên',
-            'html_link' => 'Có thẻ link',
-            'too_many_links' => 'Quá nhiều link',
-            'blocked_word' => 'Từ khoá spam',
+            'honeypot' => __('admin.contacts.spam_reasons.honeypot'),
+            'too_fast' => __('admin.contacts.spam_reasons.too_fast'),
+            'link_in_name' => __('admin.contacts.spam_reasons.link_in_name'),
+            'html_link' => __('admin.contacts.spam_reasons.html_link'),
+            'too_many_links' => __('admin.contacts.spam_reasons.too_many_links'),
+            'blocked_word' => __('admin.contacts.spam_reasons.blocked_word'),
         ];
         $canUpdate = auth()->user()->can('contacts.update');
         $canDelete = auth()->user()->can('contacts.delete');
@@ -68,7 +68,7 @@
 
     <ul data-tour="contacts.tabs" class="nav nav-tabs mb-3">
         <li class="nav-item">
-            <a @class(['nav-link', 'active' => ! $spamBox]) href="{{ route('admin.contact-submissions.index') }}">Hộp thư</a>
+            <a @class(['nav-link', 'active' => ! $spamBox]) href="{{ route('admin.contact-submissions.index') }}">{{ __('admin.contacts.inbox') }}</a>
         </li>
         <li class="nav-item">
             <a @class(['nav-link', 'active' => $spamBox]) href="{{ route('admin.contact-submissions.index', ['box' => 'spam']) }}">
@@ -80,20 +80,20 @@
     <div class="card">
         <div class="card-body border-bottom">
             @if($spamBox)
-                <p class="small text-muted mb-3">Liên hệ bị bộ lọc giữ lại: không gửi email, không vào hộp thư. Nếu là khách thật, bấm "Không phải spam".</p>
+                <p class="small text-muted mb-3">{{ __('admin.contacts.spam_hint') }}</p>
             @endif
             <form method="GET" data-responsive-filters class="row g-2 align-items-end">
                 @if($spamBox)<input type="hidden" name="box" value="spam">@endif
                 <div data-tour="contacts.search" class="col-md-6 col-lg-4">
-                    <label class="form-label small fw-bold text-dark mb-1">Tìm kiếm</label>
-                    <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="Tên, SĐT, email, nội dung...">
+                    <label class="form-label small fw-bold text-dark mb-1">{{ __('catalog.actions.search') }}</label>
+                    <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="{{ __('admin.contacts.search_placeholder') }}">
                 </div>
                 <div data-tour="contacts.read-filter" class="col-md-3 col-lg-2">
-                    <label class="form-label small fw-bold text-dark mb-1">Trạng thái</label>
+                    <label class="form-label small fw-bold text-dark mb-1">{{ __('admin.contacts.status') }}</label>
                     <select name="is_read" class="form-select">
-                        <option value="">Tất cả</option>
-                        <option value="0" @selected(request('is_read') === '0')>Chưa đọc</option>
-                        <option value="1" @selected(request('is_read') === '1')>Đã đọc</option>
+                        <option value="">{{ __('admin.all') }}</option>
+                        <option value="0" @selected(request('is_read') === '0')>{{ __('admin.contacts.unread') }}</option>
+                        <option value="1" @selected(request('is_read') === '1')>{{ __('admin.contacts.read') }}</option>
                     </select>
                 </div>
                 <div class="col-md-1">
@@ -107,14 +107,14 @@
             @if($submissions->isEmpty())
                 @include('admin.shared.empty-state', [
                     'emptyImage' => asset('admin-assets/images/icons/empty-lienhe.png'),
-                    'emptyMessage' => 'Hiện tại chưa có liên hệ nào',
+                    'emptyMessage' => __('admin.contacts.empty'),
                 ])
             @else
                 @if($canDelete)
                     @include('admin.shared.bulk-actions', [
                         'bulkFormId' => 'bulk-contacts-form',
                         'bulkActionUrl' => route('admin.contact-submissions.bulk'),
-                        'bulkItemLabel' => 'liên hệ',
+                        'bulkItemLabel' => __('admin.contacts.bulk_item_label'),
                         'bulkActions' => ['delete'],
                     ])
                 @endif
@@ -122,15 +122,15 @@
                     <div class="contact-inbox__list">
                         @if($canDelete)
                             <label data-tour="contacts.select-all" class="contact-inbox__head mb-0">
-                                <input type="checkbox" class="form-check-input mt-0" data-bulk-select-all="bulk-contacts-form" aria-label="Chọn tất cả liên hệ">
-                                Chọn tất cả
+                                <input type="checkbox" class="form-check-input mt-0" data-bulk-select-all="bulk-contacts-form" aria-label="{{ __('admin.contacts.select_all_label') }}">
+                                {{ __('admin.contacts.select_all') }}
                             </label>
                         @endif
                         @foreach($submissions as $submission)
                             <div @class(['contact-inbox__row', 'is-unread' => ! $submission->is_read]) data-contact-row="{{ $submission->id }}">
                             @if($canDelete)
                                 <span class="contact-inbox__check">
-                                    <input type="checkbox" class="form-check-input mt-0" name="ids[]" value="{{ $submission->id }}" form="bulk-contacts-form" data-bulk-select="bulk-contacts-form" aria-label="Chọn liên hệ của {{ $submission->name }}">
+                                    <input type="checkbox" class="form-check-input mt-0" name="ids[]" value="{{ $submission->id }}" form="bulk-contacts-form" data-bulk-select="bulk-contacts-form" aria-label="{{ __('admin.contacts.select_one', ['name' => $submission->name]) }}">
                                 </span>
                             @endif
                             <button type="button" id="contact-item-{{ $submission->id }}" class="contact-inbox__item"
@@ -151,7 +151,7 @@
                     <div class="contact-inbox__pane">
                         <div class="contact-inbox__placeholder" data-contact-placeholder>
                             <i class="ti ti-mail-opened fs-10"></i>
-                            <span>Chọn một liên hệ để đọc</span>
+                            <span>{{ __('admin.contacts.pick_one') }}</span>
                         </div>
 
                         @foreach($submissions as $submission)
@@ -165,7 +165,7 @@
                                 data-read="{{ $submission->is_read ? 1 : 0 }}"
                                 @if($canUpdate) data-read-url="{{ route('admin.contact-submissions.toggle-read', $submission) }}" @endif>
                                 <button type="button" class="btn btn-sm btn-link px-0 mb-2 contact-inbox__back align-items-center gap-1" data-contact-close>
-                                    <i class="ti ti-arrow-left"></i> Danh sách
+                                    <i class="ti ti-arrow-left"></i> {{ __('admin.contacts.back_to_list') }}
                                 </button>
 
                                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -187,18 +187,18 @@
 
                                 <div class="contact-inbox__actions d-flex flex-wrap gap-2 mb-3">
                                     @if($digits !== '')
-                                        <a href="tel:{{ $digits }}" class="btn btn-sm btn-primary"><i class="ti ti-phone me-1"></i>Gọi</a>
+                                        <a href="tel:{{ $digits }}" class="btn btn-sm btn-primary"><i class="ti ti-phone me-1"></i>{{ __('admin.contacts.call') }}</a>
                                         <a href="https://zalo.me/{{ $zalo }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="ti ti-message-circle me-1"></i>Zalo</a>
                                     @endif
                                     @if($submission->email)
-                                        <a href="mailto:{{ $submission->email }}?subject={{ rawurlencode('Phản hồi yêu cầu liên hệ') }}" class="btn btn-sm btn-outline-primary"><i class="ti ti-mail me-1"></i>Email</a>
+                                        <a href="mailto:{{ $submission->email }}?subject={{ rawurlencode(__('admin.contacts.reply_subject')) }}" class="btn btn-sm btn-outline-primary"><i class="ti ti-mail me-1"></i>Email</a>
                                     @endif
                                 </div>
 
                                 <div class="contact-inbox__message mb-3">{{ $submission->message }}</div>
 
                                 @if(!empty($submission->meta))
-                                    <h6 class="fw-semibold text-dark mb-2">Thông tin thêm</h6>
+                                    <h6 class="fw-semibold text-dark mb-2">{{ __('admin.contacts.extra_info') }}</h6>
                                     <dl class="contact-inbox__meta small mb-3">
                                         @foreach($submission->meta as $key => $value)
                                             <dt>{{ ucfirst(str_replace('_', ' ', (string) $key)) }}</dt>
@@ -210,7 +210,7 @@
                                 <div class="d-flex flex-wrap justify-content-end gap-2 border-top pt-3">
                                     @if($canUpdate)
                                         <button type="button" data-tour="contacts.read" class="btn btn-sm bg-secondary-subtle text-secondary" data-contact-toggle-read>
-                                            {{ $submission->is_read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc' }}
+                                            {{ $submission->is_read ? __('admin.contacts.mark_unread') : __('admin.contacts.mark_read') }}
                                         </button>
                                     @endif
                                     <span data-tour="contacts.actions" class="d-inline-flex flex-wrap gap-2">
@@ -218,14 +218,14 @@
                                             <form action="{{ route('admin.contact-submissions.not-spam', $submission) }}" method="POST">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="btn btn-sm btn-outline-success"><i class="ti ti-mail-forward me-1"></i>Không phải spam</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-success"><i class="ti ti-mail-forward me-1"></i>{{ __('admin.contacts.not_spam') }}</button>
                                             </form>
                                         @endif
                                         @if($canDelete)
                                             <form action="{{ route('admin.contact-submissions.destroy', $submission) }}" method="POST" class="js-delete-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="ti ti-trash me-1"></i>Xóa</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="ti ti-trash me-1"></i>{{ __('catalog.actions.delete') }}</button>
                                             </form>
                                         @endif
                                     </span>
@@ -257,7 +257,7 @@
                 const row = inbox.querySelector('[data-contact-row="' + detail.getAttribute('data-contact-detail') + '"]');
                 if (row) row.classList.toggle('is-unread', !isRead);
                 const button = detail.querySelector('[data-contact-toggle-read]');
-                if (button) button.textContent = isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc';
+                if (button) button.textContent = isRead ? @json(__('admin.contacts.mark_unread')) : @json(__('admin.contacts.mark_read'));
             }
 
             // The endpoint flips the flag; the answer says where it ended up.

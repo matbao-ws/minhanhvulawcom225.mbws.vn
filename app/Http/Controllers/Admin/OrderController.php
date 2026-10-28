@@ -124,7 +124,7 @@ class OrderController extends Controller
                 }
 
                 if ($paymentChanged && in_array($validated['payment_status'], ['refunded', 'partially_refunded'], true)) {
-                    throw new \DomainException('Hoàn tiền phải được thực hiện qua chức năng hoàn tiền để đối soát số tiền và tồn kho.');
+                    throw new \DomainException(__('admin.orders.refund_use_refund_action'));
                 }
 
                 $this->orderStateTransitionService->assertCanTransition(
@@ -154,7 +154,7 @@ class OrderController extends Controller
                     'created_at' => now(),
                 ]);
 
-                ActivityLogger::log('status_changed', $lockedOrder, "Cập nhật trạng thái đơn hàng {$lockedOrder->order_number}", [
+                ActivityLogger::log('status_changed', $lockedOrder, __('admin.orders.log_status_changed', ['number' => $lockedOrder->order_number]), [
                     'old' => ['status' => $oldStatus, 'payment_status' => $oldPaymentStatus],
                     'new' => ['status' => $lockedOrder->status, 'payment_status' => $lockedOrder->payment_status],
                 ]);
@@ -176,11 +176,12 @@ class OrderController extends Controller
         $redirect = redirect()->route('admin.orders.show', $order);
 
         if ($shipment !== null && ! $shipment['success']) {
-            return $redirect->with('warning', __('admin.orders.updated_status_success').' Chưa tạo được vận đơn GHN: '.$shipment['message']);
+            return $redirect->with('warning', __('admin.orders.updated_status_ghn_failed', ['message' => $shipment['message']]));
         }
 
-        return $redirect->with('success', __('admin.orders.updated_status_success')
-            .($shipment !== null ? ' Đã tạo vận đơn GHN '.$shipment['tracking_number'].'.' : ''));
+        return $redirect->with('success', $shipment !== null
+            ? __('admin.orders.updated_status_ghn_created', ['tracking' => $shipment['tracking_number']])
+            : __('admin.orders.updated_status_success'));
     }
 
     public function create()
@@ -278,7 +279,7 @@ class OrderController extends Controller
         ]);
 
         if (! PaymentMethod::query()->where('method_code', $validated['payment_method'])->where('status', 'active')->exists()) {
-            return back()->withInput()->withErrors(['payment_method' => 'Phương thức thanh toán chưa được kích hoạt.']);
+            return back()->withInput()->withErrors(['payment_method' => __('admin.orders.payment_method_inactive')]);
         }
 
         try {
@@ -288,24 +289,24 @@ class OrderController extends Controller
                 foreach ($validated['items'] as $input) {
                     $product = Product::query()->lockForUpdate()->find($input['product_id']);
                     if (! $product || ! $product->is_active) {
-                        throw new \DomainException('Sản phẩm không còn kinh doanh.');
+                        throw new \DomainException(__('admin.orders.product_unavailable'));
                     }
 
                     $variant = null;
                     if (! empty($input['variant_id'])) {
                         $variant = ProductVariant::query()->whereKey($input['variant_id'])->where('product_id', $product->id)->where('is_active', true)->lockForUpdate()->first();
                         if (! $variant) {
-                            throw new \DomainException("Biến thể của {$product->name} không hợp lệ.");
+                            throw new \DomainException(__('admin.orders.variant_invalid', ['product' => $product->name]));
                         }
                     }
 
                     if ($product->usesVariantInventory() && ! $variant) {
-                        throw new \DomainException("Vui lòng chọn SKU biến thể cho {$product->name}.");
+                        throw new \DomainException(__('admin.orders.variant_required', ['product' => $product->name]));
                     }
 
                     $quantity = (int) $input['quantity'];
                     if ($product->manage_stock && (! $variant || ! $product->usesVariantInventory()) && $product->stock_quantity < $quantity) {
-                        throw new \DomainException("{$product->name} không đủ tồn kho.");
+                        throw new \DomainException(__('admin.orders.insufficient_stock', ['product' => $product->name]));
                     }
 
                     $items[] = $this->orderCreation->priceLine($product, $variant, $quantity);
@@ -313,7 +314,7 @@ class OrderController extends Controller
 
                 $manualDiscount = (float) ($validated['discount'] ?? 0);
                 if ($manualDiscount > $this->orderCreation->discountableSubtotal($items)) {
-                    throw new \DomainException('Giảm giá thủ công không thể lớn hơn tiền hàng sau khuyến mãi.');
+                    throw new \DomainException(__('admin.orders.manual_discount_too_large'));
                 }
 
                 $order = $this->orderCreation->create(new OrderDraft(
@@ -327,11 +328,11 @@ class OrderController extends Controller
                     shippingFee: (float) ($validated['shipping_fee'] ?? 0),
                     notes: $validated['notes'] ?? null,
                     paymentSource: 'manual_order',
-                    historyNote: 'Tạo đơn thủ công',
-                    stockNote: 'Xuất kho cho đơn tạo thủ công',
+                    historyNote: __('admin.orders.manual_history_note'),
+                    stockNote: __('admin.orders.manual_stock_note'),
                     changedBy: auth()->id(),
                 ));
-                ActivityLogger::log('created', $order, "Tạo đơn hàng thủ công {$order->order_number}");
+                ActivityLogger::log('created', $order, __('admin.orders.log_manual_created', ['number' => $order->order_number]));
 
                 return $order;
             }, 3);
@@ -339,7 +340,7 @@ class OrderController extends Controller
             return back()->withInput()->withErrors(['items' => $exception->getMessage()]);
         }
 
-        return redirect()->route('admin.orders.show', $order)->with('success', 'Đã tạo đơn hàng thành công.');
+        return redirect()->route('admin.orders.show', $order)->with('success', __('admin.orders.created'));
     }
 
     public function refund(Request $request, string $locale, Order $order)
@@ -362,11 +363,11 @@ class OrderController extends Controller
                     return false;
                 }
                 if (! in_array($lockedOrder->payment_status, ['paid', 'partially_refunded'], true)) {
-                    throw new \DomainException('Chỉ đơn đã thanh toán mới có thể hoàn tiền.');
+                    throw new \DomainException(__('admin.orders.refund_requires_paid'));
                 }
                 $alreadyRefunded = (float) $lockedOrder->refunds()->sum('amount');
                 if ($alreadyRefunded >= (float) $lockedOrder->grand_total) {
-                    throw new \DomainException('Đơn hàng đã được hoàn tiền toàn bộ.');
+                    throw new \DomainException(__('admin.orders.refund_already_full'));
                 }
 
                 $itemsById = $lockedOrder->items->keyBy('id');
@@ -378,7 +379,7 @@ class OrderController extends Controller
 
                 if ($validated['type'] === 'full') {
                     if ($alreadyRefunded > 0) {
-                        throw new \DomainException('Chỉ có thể hoàn toàn phần khi đơn chưa có khoản hoàn tiền trước đó.');
+                        throw new \DomainException(__('admin.orders.refund_full_after_partial'));
                     }
                     $refundItems = $lockedOrder->items->map(fn ($item) => [
                         'order_item_id' => $item->id,
@@ -393,14 +394,14 @@ class OrderController extends Controller
                     foreach ($validated['items'] as $input) {
                         $item = $itemsById->get($input['order_item_id']);
                         if (! $item) {
-                            throw new \DomainException('Sản phẩm hoàn tiền không thuộc đơn hàng này.');
+                            throw new \DomainException(__('admin.orders.refund_item_not_in_order'));
                         }
                         $quantity = (int) $input['quantity'];
                         $remainingQuantity = $item->quantity
                             - (int) ($quantitiesRefunded[$item->id] ?? 0)
                             - (int) ($requestedQuantities[$item->id] ?? 0);
                         if ($quantity > $remainingQuantity) {
-                            throw new \DomainException("Số lượng hoàn của {$item->product_name} vượt quá số lượng có thể hoàn.");
+                            throw new \DomainException(__('admin.orders.refund_quantity_exceeded', ['product' => $item->product_name]));
                         }
                         $lineAmount = (float) $item->price * $quantity;
                         $refundItems[] = ['order_item_id' => $item->id, 'quantity' => $quantity, 'amount' => $lineAmount];
@@ -408,7 +409,7 @@ class OrderController extends Controller
                         $amount += $lineAmount;
                     }
                     if (! $refundItems || $amount <= 0 || $alreadyRefunded + $amount > (float) $lockedOrder->grand_total) {
-                        throw new \DomainException('Số tiền hoàn không hợp lệ.');
+                        throw new \DomainException(__('admin.orders.refund_amount_invalid'));
                     }
                 }
 
@@ -431,7 +432,7 @@ class OrderController extends Controller
                         $lockedOrder,
                         $refundItems,
                         $refund->id,
-                        'Hoàn kho theo hoàn tiền đơn hàng',
+                        __('admin.orders.refund_stock_note'),
                     );
                 }
                 OrderStatusHistory::query()->create([
@@ -440,11 +441,11 @@ class OrderController extends Controller
                     'to_status' => $lockedOrder->status,
                     'from_payment_status' => $oldPaymentStatus,
                     'to_payment_status' => $newPaymentStatus,
-                    'note' => $validated['reason'] ?? 'Hoàn tiền',
+                    'note' => $validated['reason'] ?? __('admin.orders.refund_history_note'),
                     'changed_by' => auth()->id(),
                     'created_at' => now(),
                 ]);
-                ActivityLogger::log('refunded', $lockedOrder, "Ghi nhận hoàn tiền đơn hàng {$lockedOrder->order_number}", [
+                ActivityLogger::log('refunded', $lockedOrder, __('admin.orders.log_refunded', ['number' => $lockedOrder->order_number]), [
                     'amount' => $amount,
                     'type' => $validated['type'],
                 ]);
@@ -456,7 +457,7 @@ class OrderController extends Controller
         }
 
         return redirect()->route('admin.orders.show', $order)
-            ->with('success', $recorded ? 'Đã ghi nhận hoàn tiền.' : 'Yêu cầu hoàn tiền này đã được ghi nhận trước đó.');
+            ->with('success', $recorded ? __('admin.orders.refund_recorded') : __('admin.orders.refund_duplicate'));
     }
 
     /**
@@ -478,10 +479,10 @@ class OrderController extends Controller
             'height' => 'nullable|integer|min:1|max:200',
         ]);
         if ($validated['carrier'] === 'ghtk' && (! filled($validated['province'] ?? null) || ! filled($validated['district'] ?? null) || ! filled($validated['ward'] ?? null))) {
-            return response()->json(['success' => false, 'message' => 'GHTK yêu cầu tỉnh, quận/huyện và phường/xã.'], 422);
+            return response()->json(['success' => false, 'message' => __('admin.orders.ghtk_address_required')], 422);
         }
         if ($validated['carrier'] === 'ghn' && (! filled($validated['to_district_id'] ?? null) || ! filled($validated['to_ward_code'] ?? null))) {
-            return response()->json(['success' => false, 'message' => 'GHN yêu cầu mã quận/huyện và mã phường/xã theo dữ liệu GHN.'], 422);
+            return response()->json(['success' => false, 'message' => __('admin.orders.ghn_address_required')], 422);
         }
 
         $result = app(ShipmentDispatcher::class)->push($order, $validated['carrier'], $validated, auth()->id());

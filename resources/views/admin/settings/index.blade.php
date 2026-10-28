@@ -285,13 +285,24 @@
             <div data-tour="settings.general" class="tab-pane fade {{ $activeTab === 'general' ? 'show active' : '' }}" id="general-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
+                        <div data-site-locale-scope data-i18n-scope>
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.general.title') }}</h5>
+                        @include('admin.settings._locale-switch')
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-12 mb-3" data-site-locale="{{ $siteDefaultLocale }}">
                                 <label class="form-label fw-semibold text-dark" for="shop_name">{{ __('admin.settings.general.shop_name') }} <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control text-dark" id="shop_name" name="shop_name" 
+                                <input type="text" class="form-control text-dark" id="shop_name" name="shop_name"
                                     value="{{ old('shop_name', $settings->get('shop_name')) }}" required>
                             </div>
+                            {{-- A brand name: typed by hand, never sent through the translate button. --}}
+                            @foreach($siteOtherLanguages->keyBy('code') as $code => $language)
+                                <div class="col-md-12 mb-3 d-none" data-site-locale="{{ $code }}">
+                                    <label class="form-label fw-semibold text-dark" for="shop_name_{{ $code }}">{{ __('admin.settings.general.shop_name') }} ({{ $language->native_name }})</label>
+                                    <input type="text" class="form-control text-dark" id="shop_name_{{ $code }}" name="shop_name_translations[{{ $code }}]"
+                                        value="{{ old("shop_name_translations.$code", data_get($settings->get('shop_name_translations'), $code)) }}" placeholder="{{ $settings->get('shop_name') }}">
+                                    <div class="form-text">{{ __('admin.settings.localized.shop_name_help') }}</div>
+                                </div>
+                            @endforeach
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="logo">{{ __('admin.settings.general.logo') }}</label>
                                 <input type="file" class="form-control" id="logo" name="logo" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/x-icon" data-media-folder="settings" data-media-selected-field="logo_url">
@@ -312,11 +323,11 @@
                                 @endphp
                                 <div id="site-icon-preview" class="site-icon-preview settings has-site-icon" style="--site-icon-url: url('{{ $faviconUrl }}');">
                                     <div class="direction-wrap">
-                                        <img id="app-icon-preview" src="{{ $faviconUrl }}" class="app-icon-preview" alt="Xem trước biểu tượng ứng dụng">
+                                        <img id="app-icon-preview" src="{{ $faviconUrl }}" class="app-icon-preview" alt="{{ __('admin.settings.general.app_icon_preview') }}">
                                         <div class="site-icon-preview-browser">
                                             <svg role="img" aria-hidden="true" viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="browser-buttons"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 20a6 6 0 1 1 12 0 6 6 0 0 1-12 0Zm18 0a6 6 0 1 1 12 0 6 6 0 0 1-12 0Zm24-6a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"></path></svg>
                                             <div class="site-icon-preview-tab">
-                                                <img id="browser-icon-preview" src="{{ $faviconUrl }}" class="browser-icon-preview" alt="Xem trước biểu tượng trình duyệt">
+                                                <img id="browser-icon-preview" src="{{ $faviconUrl }}" class="browser-icon-preview" alt="{{ __('admin.settings.general.browser_icon_preview') }}">
                                                 <div class="site-icon-preview-site-title" id="site-icon-preview-site-title" aria-hidden="true">{{ $siteTitle }}</div>
                                                 <svg role="img" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg" class="close-button">
                                                     <path d="M12 13.0607L15.7123 16.773L16.773 15.7123L13.0607 12L16.773 8.28772L15.7123 7.22706L12 10.9394L8.28771 7.22705L7.22705 8.28771L10.9394 12L7.22706 15.7123L8.28772 16.773L12 13.0607Z"></path>
@@ -332,16 +343,29 @@
 
                         <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.seo.title') }}</h5>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-12 mb-3" data-site-locale="{{ $siteDefaultLocale }}">
                                 <label class="form-label fw-semibold text-dark" for="seo_title">{{ __('admin.settings.seo.meta_title') }}</label>
-                                <input type="text" class="form-control text-dark" id="seo_title" name="seo[title]" 
+                                <input type="text" class="form-control text-dark" id="seo_title" name="seo[title]" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="seo_title"
                                     value="{{ old('seo.title', data_get($settings->get('seo'), 'title')) }}" placeholder="{{ __('admin.settings.seo.meta_title_placeholder') }}">
                             </div>
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-12 mb-3" data-site-locale="{{ $siteDefaultLocale }}">
                                 <label class="form-label fw-semibold text-dark" for="seo_description">{{ __('admin.settings.seo.meta_desc') }}</label>
-                                <textarea class="form-control text-dark" id="seo_description" name="seo[description]" rows="4" 
+                                <textarea class="form-control text-dark" id="seo_description" name="seo[description]" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="seo_description" rows="4"
                                     placeholder="{{ __('admin.settings.seo.meta_desc_placeholder') }}">{{ old('seo.description', data_get($settings->get('seo'), 'description')) }}</textarea>
                             </div>
+                            @foreach($siteOtherLanguages->keyBy('code') as $code => $language)
+                                <div class="col-md-12 mb-3 d-none" data-site-locale="{{ $code }}">
+                                    <label class="form-label fw-semibold text-dark" for="seo_title_{{ $code }}">{{ __('admin.settings.seo.meta_title') }} ({{ $language->native_name }})</label>
+                                    <input type="text" class="form-control text-dark" id="seo_title_{{ $code }}" name="seo[translations][{{ $code }}][title]" data-i18n-locale="{{ $code }}" data-i18n-field="seo_title"
+                                        value="{{ old("seo.translations.$code.title", data_get($settings->get('seo'), "translations.$code.title")) }}" placeholder="{{ data_get($settings->get('seo'), 'title') ?: __('admin.settings.seo.meta_title_placeholder') }}">
+                                </div>
+                                <div class="col-md-12 mb-3 d-none" data-site-locale="{{ $code }}">
+                                    <label class="form-label fw-semibold text-dark" for="seo_description_{{ $code }}">{{ __('admin.settings.seo.meta_desc') }} ({{ $language->native_name }})</label>
+                                    <textarea class="form-control text-dark" id="seo_description_{{ $code }}" name="seo[translations][{{ $code }}][description]" data-i18n-locale="{{ $code }}" data-i18n-field="seo_description" rows="4"
+                                        placeholder="{{ data_get($settings->get('seo'), 'description') ?: __('admin.settings.seo.meta_desc_placeholder') }}">{{ old("seo.translations.$code.description", data_get($settings->get('seo'), "translations.$code.description")) }}</textarea>
+                                </div>
+                            @endforeach
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -354,7 +378,10 @@
                     $multilingualMode = data_get($multilingual, 'mode', 'manual');
                     $gtranslateTargets = collect(data_get($multilingual, 'gtranslate.target_locales', []));
                     $sourceLanguage = $contentLanguages->firstWhere('is_default', true) ?? $contentLanguages->first();
-                    $allGTranslateLanguages = \App\Services\MultilingualSettings::allGTranslateLanguages();
+                    $gtranslateNames = (array) __('admin.settings.multilingual.language_names');
+                    $allGTranslateLanguages = collect(\App\Services\MultilingualSettings::allGTranslateLanguages())
+                        ->map(fn (string $name, string $code) => $gtranslateNames[$code] ?? $name)
+                        ->all();
                 @endphp
                 <div class="tab-pane fade {{ $activeTab === 'multilingual' ? 'show active' : '' }}" id="multilingual-pane" role="tabpanel">
                     <div class="card">
@@ -545,10 +572,12 @@
             <div class="tab-pane fade {{ $activeTab === 'contact' ? 'show active' : '' }}" id="contact-pane" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.contact.title') }}</h5>
                         @php
                             $contact = $settings->get('contact') ?? [];
                         @endphp
+                        <div data-site-locale-scope data-i18n-scope>
+                        <h5 class="card-title fw-semibold mb-4 text-dark">{{ __('admin.settings.contact.title') }}</h5>
+                        @include('admin.settings._locale-switch')
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="contact_phone">{{ __('admin.settings.contact.phone') }}</label>
@@ -560,18 +589,24 @@
                                 <input type="email" class="form-control text-dark" id="contact_email" name="contact[email]" 
                                     value="{{ old('contact.email', $contact['email'] ?? '') }}">
                             </div>
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label fw-semibold text-dark" for="contact_address">Trụ sở / Văn phòng chính - Địa chỉ</label>
-                                <textarea class="form-control text-dark" id="contact_address" name="contact[address]" rows="2" placeholder="Địa chỉ trụ sở chính / showroom chính">{{ old('contact.address', $contact['address'] ?? '') }}</textarea>
+                            <div class="col-md-12 mb-3" data-site-locale="{{ $siteDefaultLocale }}">
+                                <label class="form-label fw-semibold text-dark" for="contact_address">{{ __('admin.settings.contact.head_office_address') }}</label>
+                                <textarea class="form-control text-dark" id="contact_address" name="contact[address]" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="address" rows="2" placeholder="{{ __('admin.settings.contact.head_office_address_placeholder') }}">{{ old('contact.address', $contact['address'] ?? '') }}</textarea>
                             </div>
+                            @foreach($siteOtherLanguages->keyBy('code') as $code => $language)
+                                <div class="col-md-12 mb-3 d-none" data-site-locale="{{ $code }}">
+                                    <label class="form-label fw-semibold text-dark" for="contact_address_{{ $code }}">{{ __('admin.settings.contact.head_office_address') }} ({{ $language->native_name }})</label>
+                                    <textarea class="form-control text-dark" id="contact_address_{{ $code }}" name="contact[translations][{{ $code }}][address]" data-i18n-locale="{{ $code }}" data-i18n-field="address" rows="2" placeholder="{{ ($contact['address'] ?? '') ?: __('admin.settings.contact.head_office_address_placeholder') }}">{{ old("contact.translations.$code.address", data_get($contact, "translations.$code.address")) }}</textarea>
+                                </div>
+                            @endforeach
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-semibold text-dark" for="contact_google_map_url">Trụ sở chính - Google Maps Link / Mã nhúng vị trí bản đồ</label>
+                                <label class="form-label fw-semibold text-dark" for="contact_google_map_url">{{ __('admin.settings.contact.head_office_map') }}</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="ti ti-map-pin fs-5 text-danger"></i></span>
                                     <input type="text" class="form-control text-dark" id="contact_google_map_url" name="contact[google_map_url]" 
-                                        placeholder="https://maps.google.com/?q=... hoặc <iframe src=...>" value="{{ old('contact.google_map_url', $contact['google_map_url'] ?? '') }}">
+                                        placeholder="{{ __('admin.settings.contact.map_placeholder') }}" value="{{ old('contact.google_map_url', $contact['google_map_url'] ?? '') }}">
                                 </div>
-                                <div class="form-text text-muted">Nhập đường dẫn Google Maps (Share link) hoặc mã nhúng iFrame để hiển thị bản đồ trụ sở chính.</div>
+                                <div class="form-text text-muted">{{ __('admin.settings.contact.head_office_map_help') }}</div>
                             </div>
                         </div>
 
@@ -579,11 +614,11 @@
                         <div class="mt-4 pt-3 border-top">
                             <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
                                 <div>
-                                    <h6 class="fw-semibold text-dark mb-1">Văn phòng / Chi nhánh / Cửa hàng khác</h6>
-                                    <p class="small text-muted mb-0">Thêm không giới hạn các văn phòng, cửa hàng, showroom khác kèm link Google Maps / Mã nhúng bản đồ riêng biệt.</p>
+                                    <h6 class="fw-semibold text-dark mb-1">{{ __('admin.settings.contact.branches_title') }}</h6>
+                                    <p class="small text-muted mb-0">{{ __('admin.settings.contact.branches_help') }}</p>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary" id="add-branch-btn">
-                                    <i class="ti ti-plus me-1"></i> Thêm văn phòng / cửa hàng
+                                    <i class="ti ti-plus me-1"></i> {{ __('admin.settings.contact.add_branch') }}
                                 </button>
                             </div>
 
@@ -595,39 +630,47 @@
                                 @forelse($branches as $bIndex => $branch)
                                     <div class="card border mb-2 branch-row" data-index="{{ $bIndex }}">
                                         <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
-                                            <span class="fw-semibold text-dark small"><i class="ti ti-building-store me-1 text-primary"></i> Chi nhánh / Văn phòng #{{ $loop->iteration }}</span>
-                                            <button type="button" class="btn btn-outline-danger btn-xs remove-branch-btn py-0 px-2" title="Xóa chi nhánh này">
-                                                <i class="ti ti-trash me-1"></i> Xóa
+                                            <span class="fw-semibold text-dark small"><i class="ti ti-building-store me-1 text-primary"></i> {{ __('admin.settings.contact.branch_number', ['number' => $loop->iteration]) }}</span>
+                                            <button type="button" class="btn btn-outline-danger btn-xs remove-branch-btn py-0 px-2" title="{{ __('admin.settings.contact.remove_branch') }}">
+                                                <i class="ti ti-trash me-1"></i> {{ __('admin.settings.delete') }}
                                             </button>
                                         </div>
                                         <div class="card-body p-3">
                                             <div class="row g-2">
                                                 <div class="col-md-4 mb-2">
-                                                    <label class="form-label small fw-semibold text-dark">Tên chi nhánh / Văn phòng</label>
-                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][name]" 
-                                                        placeholder="VD: Chi nhánh Hà Nội, Showroom Q.1..." value="{{ old("contact.branches.$bIndex.name", $branch['name'] ?? '') }}">
+                                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_name') }}</label>
+                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][name]" data-site-locale="{{ $siteDefaultLocale }}" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="branch_{{ $bIndex }}_name"
+                                                        placeholder="{{ __('admin.settings.contact.branch_name_placeholder') }}" value="{{ old("contact.branches.$bIndex.name", $branch['name'] ?? '') }}">
+                                                    @foreach($siteOtherLanguages as $language)
+                                                        <input type="text" class="form-control form-control-sm text-dark d-none" name="contact[branches][{{ $bIndex }}][translations][{{ $language->code }}][name]" data-site-locale="{{ $language->code }}" data-i18n-locale="{{ $language->code }}" data-i18n-field="branch_{{ $bIndex }}_name" aria-label="{{ __('admin.settings.contact.branch_name') }} ({{ $language->native_name }})"
+                                                            placeholder="{{ ($branch['name'] ?? '') ?: __('admin.settings.contact.branch_name_placeholder') }}" value="{{ old("contact.branches.$bIndex.translations.{$language->code}.name", data_get($branch, "translations.{$language->code}.name")) }}">
+                                                    @endforeach
                                                 </div>
                                                 <div class="col-md-4 mb-2">
-                                                    <label class="form-label small fw-semibold text-dark">Số điện thoại / Hotline</label>
-                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][phone]" 
+                                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_phone') }}</label>
+                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][phone]"
                                                         placeholder="0901 234 567" value="{{ old("contact.branches.$bIndex.phone", $branch['phone'] ?? '') }}">
                                                 </div>
                                                 <div class="col-md-4 mb-2">
-                                                    <label class="form-label small fw-semibold text-dark">Email liên hệ</label>
-                                                    <input type="email" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][email]" 
+                                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_email') }}</label>
+                                                    <input type="email" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][email]"
                                                         placeholder="hanoi@domain.com" value="{{ old("contact.branches.$bIndex.email", $branch['email'] ?? '') }}">
                                                 </div>
                                                 <div class="col-md-12 mb-2">
-                                                    <label class="form-label small fw-semibold text-dark">Địa chỉ chi nhánh / Văn phòng</label>
-                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][address]" 
-                                                        placeholder="Số đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố..." value="{{ old("contact.branches.$bIndex.address", $branch['address'] ?? '') }}">
+                                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_address') }}</label>
+                                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][{{ $bIndex }}][address]" data-site-locale="{{ $siteDefaultLocale }}" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="branch_{{ $bIndex }}_address"
+                                                        placeholder="{{ __('admin.settings.contact.branch_address_placeholder') }}" value="{{ old("contact.branches.$bIndex.address", $branch['address'] ?? '') }}">
+                                                    @foreach($siteOtherLanguages as $language)
+                                                        <input type="text" class="form-control form-control-sm text-dark d-none" name="contact[branches][{{ $bIndex }}][translations][{{ $language->code }}][address]" data-site-locale="{{ $language->code }}" data-i18n-locale="{{ $language->code }}" data-i18n-field="branch_{{ $bIndex }}_address" aria-label="{{ __('admin.settings.contact.branch_address') }} ({{ $language->native_name }})"
+                                                            placeholder="{{ ($branch['address'] ?? '') ?: __('admin.settings.contact.branch_address_placeholder') }}" value="{{ old("contact.branches.$bIndex.translations.{$language->code}.address", data_get($branch, "translations.{$language->code}.address")) }}">
+                                                    @endforeach
                                                 </div>
                                                 <div class="col-md-12">
-                                                    <label class="form-label small fw-semibold text-dark">Google Maps Link / Mã nhúng vị trí bản đồ</label>
+                                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_map') }}</label>
                                                     <div class="input-group input-group-sm">
                                                         <span class="input-group-text"><i class="ti ti-map-pin text-danger"></i></span>
-                                                        <input type="text" class="form-control text-dark" name="contact[branches][{{ $bIndex }}][google_map_url]" 
-                                                            placeholder="https://maps.google.com/?q=... hoặc <iframe src=...>" value="{{ old("contact.branches.$bIndex.google_map_url", $branch['google_map_url'] ?? '') }}">
+                                                        <input type="text" class="form-control text-dark" name="contact[branches][{{ $bIndex }}][google_map_url]"
+                                                            placeholder="{{ __('admin.settings.contact.map_placeholder') }}" value="{{ old("contact.branches.$bIndex.google_map_url", $branch['google_map_url'] ?? '') }}">
                                                     </div>
                                                 </div>
                                             </div>
@@ -636,11 +679,12 @@
                                 @empty
                                     <div class="empty-branches-msg text-center text-muted p-4 rounded-3 border-dashed bg-light-subtle">
                                         <i class="ti ti-map-pins fs-7 d-block mb-1 text-primary"></i>
-                                        <span class="small fw-semibold">Chưa có văn phòng / chi nhánh phụ nào.</span>
-                                        <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm văn phòng / cửa hàng"</strong> ở trên để tạo thêm vị trí bản đồ mới.</div>
+                                        <span class="small fw-semibold">{{ __('admin.settings.contact.no_branches') }}</span>
+                                        <div class="small text-muted mt-1">{!! __('admin.settings.contact.no_branches_hint', ['button' => '<strong>"'.e(__('admin.settings.contact.add_branch')).'"</strong>']) !!}</div>
                                     </div>
                                 @endforelse
                             </div>
+                        </div>
                         </div>
 
                         <hr class="my-4">
@@ -688,11 +732,11 @@
                         <div class="mt-4 pt-2 border-top">
                             <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
                                 <div>
-                                    <h6 class="fw-semibold text-dark mb-1">Đường dẫn mạng xã hội / Website khác</h6>
-                                    <p class="small text-muted mb-0 mt-2">Thêm không giới hạn các liên kết tùy chỉnh với icon tự chọn (Zalo, Shopee, Lazada, Telegram, WhatsApp, Website...)</p>
+                                    <h6 class="fw-semibold text-dark mb-1">{{ __('admin.settings.social.custom_title') }}</h6>
+                                    <p class="small text-muted mb-0 mt-2">{{ __('admin.settings.social.custom_help') }}</p>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary" id="add-custom-social-btn">
-                                    <i class="ti ti-plus me-1"></i> Thêm đường dẫn mới
+                                    <i class="ti ti-plus me-1"></i> {{ __('admin.settings.social.add_link') }}
                                 </button>
                             </div>
                             <div id="custom-social-links-container" class="d-flex flex-column gap-3 mt-2">
@@ -711,7 +755,7 @@
                                                 <option value="ti ti-world" data-icon="ti ti-world" @selected($selectedIcon === 'ti ti-world')>Website (WWW)</option>
                                                 <option value="ti ti-message-dots" data-icon="ti ti-message-dots" @selected($selectedIcon === 'ti ti-message-dots' || $selectedIcon === 'simple-icons:zalo')>Zalo / Chat</option>
                                                 <option value="ti ti-brand-shopee" data-icon="ti ti-brand-shopee" @selected($selectedIcon === 'ti ti-brand-shopee' || $selectedIcon === 'simple-icons:shopee')>Shopee</option>
-                                                <option value="ti ti-shopping-cart" data-icon="ti ti-shopping-cart" @selected($selectedIcon === 'ti ti-shopping-cart' || $selectedIcon === 'simple-icons:lazada')>Lazada / TMĐT</option>
+                                                <option value="ti ti-shopping-cart" data-icon="ti ti-shopping-cart" @selected($selectedIcon === 'ti ti-shopping-cart' || $selectedIcon === 'simple-icons:lazada')>{{ __('admin.settings.social.icon_lazada') }}</option>
                                                 <option value="ti ti-brand-facebook" data-icon="ti ti-brand-facebook" @selected($selectedIcon === 'ti ti-brand-facebook')>Facebook</option>
                                                 <option value="ti ti-brand-youtube" data-icon="ti ti-brand-youtube" @selected($selectedIcon === 'ti ti-brand-youtube')>YouTube</option>
                                                 <option value="ti ti-brand-instagram" data-icon="ti ti-brand-instagram" @selected($selectedIcon === 'ti ti-brand-instagram')>Instagram</option>
@@ -723,16 +767,16 @@
                                                 <option value="ti ti-brand-linkedin" data-icon="ti ti-brand-linkedin" @selected($selectedIcon === 'ti ti-brand-linkedin')>LinkedIn</option>
                                                 <option value="ti ti-brand-pinterest" data-icon="ti ti-brand-pinterest" @selected($selectedIcon === 'ti ti-brand-pinterest')>Pinterest</option>
                                                 <option value="ti ti-brand-discord" data-icon="ti ti-brand-discord" @selected($selectedIcon === 'ti ti-brand-discord')>Discord</option>
-                                                <option value="ti ti-phone" data-icon="ti ti-phone" @selected($selectedIcon === 'ti ti-phone')>Hotline / SĐT</option>
+                                                <option value="ti ti-phone" data-icon="ti ti-phone" @selected($selectedIcon === 'ti ti-phone')>{{ __('admin.settings.social.icon_phone') }}</option>
                                                 <option value="ti ti-mail" data-icon="ti ti-mail" @selected($selectedIcon === 'ti ti-mail')>Email</option>
-                                                <option value="ti ti-map-pin" data-icon="ti ti-map-pin" @selected($selectedIcon === 'ti ti-map-pin')>Địa chỉ / Bản đồ</option>
-                                                <option value="ti ti-link" data-icon="ti ti-link" @selected($selectedIcon === 'ti ti-link')>Liên kết khác</option>
+                                                <option value="ti ti-map-pin" data-icon="ti ti-map-pin" @selected($selectedIcon === 'ti ti-map-pin')>{{ __('admin.settings.social.icon_map') }}</option>
+                                                <option value="ti ti-link" data-icon="ti ti-link" @selected($selectedIcon === 'ti ti-link')>{{ __('admin.settings.social.icon_other') }}</option>
                                             </select>
                                         </div>
                                         <!-- Title -->
                                         <div class="col-md-3 mb-2 mb-md-0">
                                             <input type="text" class="form-control text-dark" name="social_links[custom][{{ $index }}][title]" 
-                                                placeholder="Tên hiển thị (Zalo, Shopee...)" value="{{ old("social_links.custom.$index.title", $customLink['title'] ?? '') }}">
+                                                placeholder="{{ __('admin.settings.social.title_placeholder') }}" value="{{ old("social_links.custom.$index.title", $customLink['title'] ?? '') }}">
                                         </div>
                                         <!-- URL -->
                                         <div class="col-md-5 mb-2 mb-md-0">
@@ -741,7 +785,7 @@
                                         </div>
                                         <!-- Remove Button -->
                                         <div class="col-md-1 text-end">
-                                            <button type="button" class="btn btn-outline-danger btn-sm remove-custom-social-btn" title="Xóa">
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-custom-social-btn" title="{{ __('admin.settings.delete') }}">
                                                 <i class="ti ti-trash fs-5"></i>
                                             </button>
                                         </div>
@@ -749,8 +793,8 @@
                                 @empty
                                     <div class="empty-custom-links-msg text-center text-muted p-4 rounded-3 border-dashed bg-light-subtle">
                                         <i class="ti ti-link-plus fs-7 d-block mb-1 text-primary"></i>
-                                        <span class="small fw-semibold">Chưa có đường dẫn tùy chỉnh nào.</span>
-                                        <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm đường dẫn mới"</strong> ở trên để tạo thêm.</div>
+                                        <span class="small fw-semibold">{{ __('admin.settings.social.no_links') }}</span>
+                                        <div class="small text-muted mt-1">{!! __('admin.settings.social.no_links_hint', ['button' => '<strong>"'.e(__('admin.settings.social.add_link')).'"</strong>']) !!}</div>
                                     </div>
                                 @endforelse
                             </div>
@@ -1156,26 +1200,26 @@
     </div>
 
     <div class="store-hero">
-        <h6 class="fw-bold mb-1">Chào mừng đến với Cửa hàng!</h6>
-        <p class="mb-0 small opacity-90">Nơi mua sắm các sản phẩm công nghệ cao cấp với hỗ trợ dịch đa ngôn ngữ trực tiếp.</p>
+        <h6 class="fw-bold mb-1">{{ __('admin.settings.multilingual.preview_welcome') }}</h6>
+        <p class="mb-0 small opacity-90">{{ __('admin.settings.multilingual.preview_intro') }}</p>
     </div>
 
     <div class="store-card flex-grow-1">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-semibold">Sản phẩm nổi bật</span>
-            <span class="badge bg-primary-subtle text-primary">Giảm 20%</span>
+            <span class="fw-semibold">{{ __('admin.settings.multilingual.preview_featured') }}</span>
+            <span class="badge bg-primary-subtle text-primary">{{ __('admin.settings.multilingual.preview_discount') }}</span>
         </div>
-        <p class="text-muted small mb-2">Chọn ngôn ngữ để thử nghiệm tính năng tự động dịch toàn bộ nội dung trang này.</p>
+        <p class="text-muted small mb-2">{{ __('admin.settings.multilingual.preview_try') }}</p>
         <div class="row g-2">
             <div class="col-6">
                 <div class="p-2 border rounded bg-light text-center">
-                    <div class="fw-bold">Điện thoại Smart</div>
+                    <div class="fw-bold">{{ __('admin.settings.multilingual.preview_product_phone') }}</div>
                     <div class="text-success small fw-semibold">12.500.000 đ</div>
                 </div>
             </div>
             <div class="col-6">
                 <div class="p-2 border rounded bg-light text-center">
-                    <div class="fw-bold">Tai nghe bluetooth</div>
+                    <div class="fw-bold">{{ __('admin.settings.multilingual.preview_product_headphones') }}</div>
                     <div class="text-success small fw-semibold">2.100.000 đ</div>
                 </div>
             </div>
@@ -1380,8 +1424,8 @@
                 'ti ti-brand-discord': 'Discord',
                 'ti ti-phone': 'Hotline',
                 'ti ti-mail': 'Email',
-                'ti ti-map-pin': 'Địa chỉ',
-                'ti ti-link': 'Liên kết'
+                'ti ti-map-pin': @json(__('admin.settings.social.default_title_address')),
+                'ti ti-link': @json(__('admin.settings.social.default_title_link'))
             };
 
             function autoFillRowTitle(row, iconValue) {
@@ -1423,7 +1467,7 @@
                                 <option value="ti ti-world" data-icon="ti ti-world" selected>Website (WWW)</option>
                                 <option value="ti ti-message-dots" data-icon="ti ti-message-dots">Zalo / Chat</option>
                                 <option value="ti ti-brand-shopee" data-icon="ti ti-brand-shopee">Shopee</option>
-                                <option value="ti ti-shopping-cart" data-icon="ti ti-shopping-cart">Lazada / TMĐT</option>
+                                <option value="ti ti-shopping-cart" data-icon="ti ti-shopping-cart">{{ __('admin.settings.social.icon_lazada') }}</option>
                                 <option value="ti ti-brand-facebook" data-icon="ti ti-brand-facebook">Facebook</option>
                                 <option value="ti ti-brand-youtube" data-icon="ti ti-brand-youtube">YouTube</option>
                                 <option value="ti ti-brand-instagram" data-icon="ti ti-brand-instagram">Instagram</option>
@@ -1435,22 +1479,22 @@
                                 <option value="ti ti-brand-linkedin" data-icon="ti ti-brand-linkedin">LinkedIn</option>
                                 <option value="ti ti-brand-pinterest" data-icon="ti ti-brand-pinterest">Pinterest</option>
                                 <option value="ti ti-brand-discord" data-icon="ti ti-brand-discord">Discord</option>
-                                <option value="ti ti-phone" data-icon="ti ti-phone">Hotline / SĐT</option>
+                                <option value="ti ti-phone" data-icon="ti ti-phone">{{ __('admin.settings.social.icon_phone') }}</option>
                                 <option value="ti ti-mail" data-icon="ti ti-mail">Email</option>
-                                <option value="ti ti-map-pin" data-icon="ti ti-map-pin">Địa chỉ / Bản đồ</option>
-                                <option value="ti ti-link" data-icon="ti ti-link">Liên kết khác</option>
+                                <option value="ti ti-map-pin" data-icon="ti ti-map-pin">{{ __('admin.settings.social.icon_map') }}</option>
+                                <option value="ti ti-link" data-icon="ti ti-link">{{ __('admin.settings.social.icon_other') }}</option>
                             </select>
                         </div>
                         <div class="col-md-3 mb-2 mb-md-0">
-                            <input type="text" class="form-control text-dark" name="social_links[custom][${index}][title]" 
-                                placeholder="Tên hiển thị (Zalo, Shopee...)" value="Website">
+                            <input type="text" class="form-control text-dark" name="social_links[custom][${index}][title]"
+                                placeholder="{{ __('admin.settings.social.title_placeholder') }}" value="Website">
                         </div>
                         <div class="col-md-5 mb-2 mb-md-0">
                             <input type="url" class="form-control text-dark" name="social_links[custom][${index}][url]" 
                                 placeholder="https://...">
                         </div>
                         <div class="col-md-1 text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-custom-social-btn" title="Xóa">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-custom-social-btn" title="{{ __('admin.settings.delete') }}">
                                 <i class="ti ti-trash fs-5"></i>
                             </button>
                         </div>
@@ -1479,8 +1523,8 @@
                             customSocialContainer.innerHTML = `
                                 <div class="empty-custom-links-msg text-center text-muted p-4 rounded-3 border-dashed bg-light-subtle">
                                     <i class="ti ti-link-plus fs-7 d-block mb-1 text-primary"></i>
-                                    <span class="small fw-semibold">Chưa có đường dẫn tùy chỉnh nào.</span>
-                                    <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm đường dẫn mới"</strong> ở trên để tạo thêm.</div>
+                                    <span class="small fw-semibold">{{ __('admin.settings.social.no_links') }}</span>
+                                    <div class="small text-muted mt-1">{!! __('admin.settings.social.no_links_hint', ['button' => '<strong>"'.e(__('admin.settings.social.add_link')).'"</strong>']) !!}</div>
                                 </div>
                             `;
                         }
@@ -1506,34 +1550,40 @@
                     branchCard.dataset.index = index;
                     branchCard.innerHTML = `
                         <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
-                            <span class="fw-semibold text-dark small"><i class="ti ti-building-store me-1 text-primary"></i> Chi nhánh / Văn phòng #${count}</span>
-                            <button type="button" class="btn btn-outline-danger btn-xs remove-branch-btn py-0 px-2" title="Xóa chi nhánh này">
-                                <i class="ti ti-trash me-1"></i> Xóa
+                            <span class="fw-semibold text-dark small"><i class="ti ti-building-store me-1 text-primary"></i> {{ __('admin.settings.contact.branch_number', ['number' => '${count}']) }}</span>
+                            <button type="button" class="btn btn-outline-danger btn-xs remove-branch-btn py-0 px-2" title="{{ __('admin.settings.contact.remove_branch') }}">
+                                <i class="ti ti-trash me-1"></i> {{ __('admin.settings.delete') }}
                             </button>
                         </div>
                         <div class="card-body p-3">
                             <div class="row g-2">
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label small fw-semibold text-dark">Tên chi nhánh / Văn phòng</label>
-                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][name]" placeholder="VD: Chi nhánh Hà Nội, Showroom Q.1...">
+                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_name') }}</label>
+                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][name]" data-site-locale="{{ $siteDefaultLocale }}" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="branch_${index}_name" placeholder="{{ __('admin.settings.contact.branch_name_placeholder') }}">
+                                    @foreach($siteOtherLanguages as $language)
+                                    <input type="text" class="form-control form-control-sm text-dark d-none" name="contact[branches][${index}][translations][{{ $language->code }}][name]" data-site-locale="{{ $language->code }}" data-i18n-locale="{{ $language->code }}" data-i18n-field="branch_${index}_name" aria-label="{{ __('admin.settings.contact.branch_name') }} ({{ $language->native_name }})" placeholder="{{ __('admin.settings.contact.branch_name_placeholder') }}">
+                                    @endforeach
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label small fw-semibold text-dark">Số điện thoại / Hotline</label>
+                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_phone') }}</label>
                                     <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][phone]" placeholder="0901 234 567">
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label small fw-semibold text-dark">Email liên hệ</label>
+                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_email') }}</label>
                                     <input type="email" class="form-control form-control-sm text-dark" name="contact[branches][${index}][email]" placeholder="hanoi@domain.com">
                                 </div>
                                 <div class="col-md-12 mb-2">
-                                    <label class="form-label small fw-semibold text-dark">Địa chỉ chi nhánh / Văn phòng</label>
-                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][address]" placeholder="Số đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố...">
+                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_address') }}</label>
+                                    <input type="text" class="form-control form-control-sm text-dark" name="contact[branches][${index}][address]" data-site-locale="{{ $siteDefaultLocale }}" data-i18n-locale="{{ $siteDefaultLocale }}" data-i18n-field="branch_${index}_address" placeholder="{{ __('admin.settings.contact.branch_address_placeholder') }}">
+                                    @foreach($siteOtherLanguages as $language)
+                                    <input type="text" class="form-control form-control-sm text-dark d-none" name="contact[branches][${index}][translations][{{ $language->code }}][address]" data-site-locale="{{ $language->code }}" data-i18n-locale="{{ $language->code }}" data-i18n-field="branch_${index}_address" aria-label="{{ __('admin.settings.contact.branch_address') }} ({{ $language->native_name }})" placeholder="{{ __('admin.settings.contact.branch_address_placeholder') }}">
+                                    @endforeach
                                 </div>
                                 <div class="col-md-12">
-                                    <label class="form-label small fw-semibold text-dark">Google Maps Link / Mã nhúng vị trí bản đồ</label>
+                                    <label class="form-label small fw-semibold text-dark">{{ __('admin.settings.contact.branch_map') }}</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text"><i class="ti ti-map-pin text-danger"></i></span>
-                                        <input type="text" class="form-control text-dark" name="contact[branches][${index}][google_map_url]" placeholder="https://maps.google.com/?q=... hoặc <iframe src=...>">
+                                        <input type="text" class="form-control text-dark" name="contact[branches][${index}][google_map_url]" placeholder="{{ __('admin.settings.contact.map_placeholder') }}">
                                     </div>
                                 </div>
                             </div>
@@ -1541,6 +1591,7 @@
                     `;
 
                     branchesContainer.appendChild(branchCard);
+                    window.AdminSiteLocale?.apply(branchCard.closest('[data-site-locale-scope]'));
                 });
 
                 branchesContainer.addEventListener('click', function (e) {
@@ -1553,8 +1604,8 @@
                                 branchesContainer.innerHTML = `
                                     <div class="empty-branches-msg text-center text-muted p-4 rounded-3 border-dashed bg-light-subtle">
                                         <i class="ti ti-map-pins fs-7 d-block mb-1 text-primary"></i>
-                                        <span class="small fw-semibold">Chưa có văn phòng / chi nhánh phụ nào.</span>
-                                        <div class="small text-muted mt-1">Nhấn nút <strong>"Thêm văn phòng / cửa hàng"</strong> ở trên để tạo thêm vị trí bản đồ mới.</div>
+                                        <span class="small fw-semibold">{{ __('admin.settings.contact.no_branches') }}</span>
+                                        <div class="small text-muted mt-1">{!! __('admin.settings.contact.no_branches_hint', ['button' => '<strong>"'.e(__('admin.settings.contact.add_branch')).'"</strong>']) !!}</div>
                                     </div>
                                 `;
                             }

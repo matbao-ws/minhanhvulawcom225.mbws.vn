@@ -36,7 +36,7 @@ class MenuItemController extends Controller
     public function store(MenuItemRequest $request, string $locale, Menu $menu)
     {
         $item = $menu->items()->create($this->payload($request, $menu));
-        ActivityLogger::log('created', $item, "Thêm mục menu vào {$menu->name}", [
+        ActivityLogger::log('created', $item, __('admin.menus.log.item_created', ['name' => $menu->name]), [
             'new' => $item->only(['label', 'type', 'is_active']),
         ]);
 
@@ -61,7 +61,7 @@ class MenuItemController extends Controller
 
         $old = $item->only(['label', 'type', 'is_active']);
         $item->update($this->payload($request, $menu, $item));
-        ActivityLogger::log('updated', $item, "Cập nhật mục menu trong {$menu->name}", [
+        ActivityLogger::log('updated', $item, __('admin.menus.log.item_updated', ['name' => $menu->name]), [
             'old' => $old,
             'new' => $item->only(['label', 'type', 'is_active']),
         ]);
@@ -77,7 +77,7 @@ class MenuItemController extends Controller
 
         // Children cascade in the database; deleting a branch is deliberate.
         $item->delete();
-        ActivityLogger::log('deleted', $item, "Xóa mục menu khỏi {$menu->name}", [
+        ActivityLogger::log('deleted', $item, __('admin.menus.log.item_deleted', ['name' => $menu->name]), [
             'old' => $item->only(['label', 'type']),
         ]);
 

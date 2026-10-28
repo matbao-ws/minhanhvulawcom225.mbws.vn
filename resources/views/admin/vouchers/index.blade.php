@@ -44,13 +44,13 @@
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-vouchers-form',
                 'bulkActionUrl' => route('admin.vouchers.bulk'),
-                'bulkItemLabel' => 'mã giảm giá',
+                'bulkItemLabel' => __('admin.vouchers.bulk_item_label'),
             ])
             <div data-tour="vouchers.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
-                            <th data-tour="vouchers.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-vouchers-form" aria-label="Chọn tất cả mã giảm giá"></th>
+                            <th data-tour="vouchers.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-vouchers-form" aria-label="{{ __('admin.vouchers.select_all') }}"></th>
                             <th class="ps-4">{{ __('admin.vouchers.fields.code') }}</th>
                             <th>{{ __('admin.vouchers.fields.name') }}</th>
                             <th>{{ __('admin.vouchers.fields.type') }}</th>
@@ -74,7 +74,7 @@
                                 $isLimitReached = $voucher->quantity !== null && $voucher->used_count >= $voucher->quantity;
                             @endphp
                             <tr class="text-nowrap">
-                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $voucher->id }}" form="bulk-vouchers-form" data-bulk-select="bulk-vouchers-form" aria-label="Chọn {{ $voucher->code }}"></td>
+                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $voucher->id }}" form="bulk-vouchers-form" data-bulk-select="bulk-vouchers-form" aria-label="{{ __('catalog.actions.select_item', ['name' => $voucher->code]) }}"></td>
                                 <td class="ps-4">
                                     <span class="badge bg-primary text-white fw-bold font-monospace fs-3 px-3 py-2">{{ $voucher->code }}</span>
                                 </td>

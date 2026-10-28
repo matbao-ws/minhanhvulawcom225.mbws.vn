@@ -75,7 +75,7 @@ class FeatureController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'Feature setting not found.',
+            'message' => __('admin.features.not_found'),
         ], 404);
     }
 

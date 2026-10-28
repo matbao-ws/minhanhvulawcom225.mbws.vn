@@ -191,6 +191,10 @@ class ContentTransfer
      */
     private function assertWithinPackage(array $tables): void
     {
+        if ($this->limits->packageMissing() && (count($tables['products'] ?? []) + count($tables['posts'] ?? [])) > 0) {
+            throw new ContentTransferRefused('package_missing: no package read from the tool (check PACKAGE_INFO_DOMAIN), products and posts are blocked');
+        }
+
         $wanted = [
             PackageLimits::DATA_UNIT => count($tables['products'] ?? []) + count($tables['posts'] ?? []),
         ];

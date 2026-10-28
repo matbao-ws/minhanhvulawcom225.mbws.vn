@@ -94,7 +94,7 @@ class SettingControllerTest extends TestCase
             ->assertRedirect('/vi/admin/settings?tab=analytics');
     }
 
-    public function test_admin_layout_uses_the_configured_favicon(): void
+    public function test_admin_layout_uses_its_own_favicon(): void
     {
         ProjectSetting::query()->create([
             'setting_key' => 'favicon_url',
@@ -106,7 +106,9 @@ class SettingControllerTest extends TestCase
         $this->actingAs($admin)
             ->get('/vi/admin/settings')
             ->assertOk()
-            ->assertSee('https://cdn.example.test/settings/site-icon.ico');
+            ->assertSee('<link rel="icon" href="'.asset('admin-assets/images/logos/favicon.png').'">', false)
+            ->assertSee('<img src="'.asset('admin-assets/images/logos/favicon.png').'" alt="" class="sidebar-mini-logo">', false)
+            ->assertSee('<img src="'.asset('admin-assets/images/logos/favicon.png').'" alt="" class="lds-ripple', false);
     }
 
     public function test_updating_website_settings_does_not_modify_notification_smtp_settings(): void

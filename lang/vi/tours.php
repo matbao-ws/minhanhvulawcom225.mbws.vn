@@ -347,6 +347,37 @@ return [
         'revisions' => ['title' => 'Phiên bản gần đây', 'description' => 'Các bản đã lưu trước đây của trang, tối đa 20 bản gần nhất. Bấm Khôi phục để đưa trang về bản đó.'],
     ],
 
+    'partners_index' => [
+        'intro' => ['title' => 'Đối tác', 'description' => 'Logo khách hàng và đối tác hiện ở các dải logo trên website. Đây là nơi duy nhất sửa các logo này.'],
+        'create' => ['title' => 'Thêm đối tác', 'description' => 'Chọn logo, nhập tên và chọn nhóm để đưa một logo mới lên website.'],
+        'groups' => ['title' => 'Nhóm đối tác', 'description' => 'Mỗi nhóm là một dải logo trên website. Tạo, đổi tên hoặc xoá nhóm ở đây.'],
+        'tabs' => ['title' => 'Xem theo nhóm', 'description' => 'Bấm vào một nhóm để chỉ xem logo của nhóm đó. Trong một nhóm, kéo biểu tượng ở đầu dòng để đổi thứ tự hiển thị.'],
+        'filters' => ['title' => 'Tìm và lọc', 'description' => 'Tìm theo tên đối tác, lọc logo đang hiện hoặc đang ẩn.'],
+        'select_all' => ['title' => 'Thao tác hàng loạt', 'description' => 'Tick chọn nhiều đối tác để hiện, ẩn hoặc xoá cùng lúc.'],
+        'table' => ['title' => 'Danh sách đối tác', 'description' => 'Logo, tên, nhóm và trạng thái của từng đối tác. Công tắc ở cột trạng thái ẩn hoặc hiện logo ngay.'],
+    ],
+
+    'partners_form' => [
+        'intro' => ['title' => 'Thông tin đối tác', 'description' => 'Một đối tác là một logo trong dải logo của website.'],
+        'logo' => ['title' => 'Logo', 'description' => 'Bấm để chọn ảnh từ Thư viện tệp hoặc tải ảnh mới. Ảnh PNG nền trong suốt hiển thị đẹp nhất.'],
+        'name' => ['title' => 'Tên đối tác', 'description' => 'Tên hiện khi ảnh không tải được và giúp Google hiểu ảnh.'],
+        'group' => ['title' => 'Nhóm', 'description' => 'Chọn dải logo mà đối tác này thuộc về.'],
+        'url' => ['title' => 'Đường liên kết', 'description' => 'Không bắt buộc. Có địa chỉ thì khách bấm vào logo sẽ mở trang của đối tác.'],
+        'status' => ['title' => 'Hiện trên website', 'description' => 'Tắt để tạm ẩn logo mà không phải xoá.'],
+    ],
+
+    'partner_groups_index' => [
+        'intro' => ['title' => 'Nhóm đối tác', 'description' => 'Mỗi nhóm là một dải logo trên website, ví dụ Khách hàng tiêu biểu hay Đối tác chiến lược.'],
+        'create' => ['title' => 'Thêm nhóm', 'description' => 'Tạo một nhóm mới. Giao diện website cần biết mã nhóm để hiện dải logo đó.'],
+        'table' => ['title' => 'Danh sách nhóm', 'description' => 'Tên, mã và số đối tác của từng nhóm. Nhóm còn đối tác thì không xoá được.'],
+    ],
+
+    'partner_groups_form' => [
+        'intro' => ['title' => 'Thông tin nhóm', 'description' => 'Đặt tên để bạn dễ nhận ra nhóm trong trang quản trị.'],
+        'name' => ['title' => 'Tên nhóm', 'description' => 'Chỉ hiện trong trang quản trị.'],
+        'key' => ['title' => 'Mã nhóm', 'description' => 'Giao diện website dùng mã này để lấy logo. Để trống thì tạo tự động từ tên. Sau khi lưu không đổi được.'],
+    ],
+
     'banners_index' => [
         'intro' => ['title' => 'Banner', 'description' => 'Ảnh quảng cáo hiển thị ở các vị trí trên website, như slider trang chủ.'],
         'create' => ['title' => 'Thêm banner', 'description' => 'Tải ảnh banner lên và chọn vị trí hiển thị.'],

@@ -3,7 +3,7 @@
 @section('title', __('admin.vouchers.edit'))
 
 @section('content')
-        <x-admin.page-header :title="__('admin.vouchers.edit') . ': ' . $voucher->code" />
+        <x-admin.page-header :title="__('admin.vouchers.edit_for', ['code' => $voucher->code])" />
 
     <form method="POST" action="{{ route('admin.vouchers.update', $voucher) }}" class="admin-form-with-sticky-actions">
         @csrf

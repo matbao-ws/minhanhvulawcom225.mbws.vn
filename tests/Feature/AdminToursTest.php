@@ -11,6 +11,8 @@ use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Page;
+use App\Models\Partner;
+use App\Models\PartnerGroup;
 use App\Models\PaymentMethod;
 use App\Models\Post;
 use App\Models\PostCategory;
@@ -188,6 +190,8 @@ class AdminToursTest extends TestCase
         ]);
         $menu = Menu::query()->create(['key' => 'tour', 'name' => 'Menu thử', 'is_active' => true]);
         $item = MenuItem::query()->create(['menu_id' => $menu->id, 'label' => ['vi' => 'Giới thiệu'], 'type' => MenuItem::TYPE_URL, 'url' => '/vi/lien-he', 'is_active' => true, 'sort_order' => 1]);
+        $partnerGroup = PartnerGroup::query()->create(['key' => 'customers', 'name' => 'Khách hàng tiêu biểu']);
+        $partner = Partner::query()->create(['partner_group_id' => $partnerGroup->id, 'name' => 'Panasonic', 'logo_path' => '/storage/brands/panasonic.png', 'is_active' => true]);
         $staffRole = Role::query()->create(['name' => 'Tour staff', 'is_system' => false, 'is_superadmin' => false, 'permissions' => ['products.view']]);
         $staff = User::factory()->create(['role_id' => $staffRole->id, 'email' => 'tour-staff@example.com']);
 
@@ -209,6 +213,8 @@ class AdminToursTest extends TestCase
             'admin.post-categories.edit' => ['post_category' => PostCategory::query()->create(['name' => ['vi' => 'Tin tức'], 'slug' => 'tin-tuc', 'is_active' => true, 'sort_order' => 1])],
             'admin.pages.edit' => ['page' => Page::query()->create(['title' => ['vi' => 'Bảo hành'], 'slug' => 'bao-hanh', 'published_html' => ['vi' => '<p>x</p>'], 'is_active' => true, 'published_at' => now()])],
             'admin.banners.edit' => ['banner' => Banner::query()->create(['title' => 'Sale', 'image_path' => 'banners/sale.jpg', 'position' => 'home_main', 'sort_order' => 1, 'is_active' => true])],
+            'admin.partners.edit' => ['partner' => $partner],
+            'admin.partner-groups.edit' => ['partner_group' => $partnerGroup],
             'admin.menus.edit' => ['menu' => $menu],
             'admin.menus.items.index' => ['menu' => $menu],
             'admin.menus.items.create' => ['menu' => $menu],

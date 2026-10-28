@@ -127,7 +127,7 @@ class VoucherController extends Controller
     public function destroy(string $locale, Voucher $voucher)
     {
         if ($voucher->used_count > 0) {
-            return back()->with('error', 'Không thể xóa mã giảm giá đã được sử dụng. Hãy tạm ẩn mã thay vì xóa.');
+            return back()->with('error', __('admin.vouchers.delete_used'));
         }
 
         $voucher->delete();
@@ -145,29 +145,29 @@ class VoucherController extends Controller
         if ($validated['action'] === 'delete') {
             $usedCount = Voucher::query()->whereIn('id', $ids)->where('used_count', '>', 0)->count();
             if ($usedCount > 0) {
-                return back()->with('error', "Không thể xóa {$usedCount} mã giảm giá đã được sử dụng. Hãy tạm ẩn các mã này.");
+                return back()->with('error', __('admin.vouchers.bulk_delete_used', ['count' => $usedCount]));
             }
 
             $deleted = Voucher::query()->whereIn('id', $ids)->delete();
-            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt mã giảm giá', [
+            ActivityLogger::log('bulk_deleted', null, __('admin.vouchers.log_bulk_deleted'), [
                 'model' => Voucher::class,
                 'ids' => $ids,
                 'count' => $deleted,
             ]);
 
-            return back()->with('success', 'Đã xóa '.$deleted.' mã giảm giá.');
+            return back()->with('success', __('admin.vouchers.bulk_deleted', ['count' => $deleted]));
         }
 
         $isActive = $validated['action'] === 'activate';
         $updated = Voucher::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
-        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt mã giảm giá', [
+        ActivityLogger::log('bulk_status_changed', null, __('admin.vouchers.log_bulk_status'), [
             'model' => Voucher::class,
             'ids' => $ids,
             'count' => $updated,
             'is_active' => $isActive,
         ]);
 
-        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' mã giảm giá.');
+        return back()->with('success', __($isActive ? 'admin.vouchers.bulk_activated' : 'admin.vouchers.bulk_deactivated', ['count' => $updated]));
     }
 
     private function translations(array $values): array

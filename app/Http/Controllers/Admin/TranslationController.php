@@ -22,7 +22,7 @@ class TranslationController extends Controller
     ): JsonResponse {
         if (! $multilingual->usesManualContent()) {
             return response()->json([
-                'message' => 'Dịch nội dung thủ công không hoạt động trong chế độ đa ngôn ngữ hiện tại.',
+                'message' => __('admin.translation.manual_disabled'),
             ], 409);
         }
 
@@ -37,7 +37,7 @@ class TranslationController extends Controller
 
         if (! $translations->configured()) {
             return response()->json([
-                'message' => 'Dịch tự động hiện chưa được cấu hình trên máy chủ.',
+                'message' => __('admin.translation.not_configured'),
             ], 503);
         }
 
@@ -53,7 +53,7 @@ class TranslationController extends Controller
 
         if ($characterCount > 100000 || $usedToday + $characterCount > $dailyLimit) {
             return response()->json([
-                'message' => 'Đã vượt giới hạn ký tự dịch tự động. Vui lòng thử lại sau hoặc dịch thủ công.',
+                'message' => __('admin.translation.limit_exceeded'),
             ], 429);
         }
 
@@ -84,7 +84,7 @@ class TranslationController extends Controller
             report($exception);
 
             return response()->json([
-                'message' => 'Google Translate chưa thể xử lý yêu cầu. Vui lòng thử lại sau.',
+                'message' => __('admin.translation.provider_failed'),
             ], 502);
         }
     }

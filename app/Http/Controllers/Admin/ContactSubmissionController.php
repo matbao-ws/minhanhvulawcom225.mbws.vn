@@ -64,7 +64,7 @@ class ContactSubmissionController extends Controller
 
         return redirect()
             ->route('admin.contact-submissions.index', ['box' => 'spam'])
-            ->with('success', 'Đã chuyển liên hệ về hộp thư.');
+            ->with('success', __('admin.contacts.moved_to_inbox'));
     }
 
     public function destroy(Request $request, string $locale, ContactSubmission $contactSubmission)
@@ -87,12 +87,12 @@ class ContactSubmissionController extends Controller
         abort_unless($validated['action'] === 'delete', 422);
 
         $deleted = ContactSubmission::query()->whereIn('id', $validated['ids'])->delete();
-        ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt liên hệ', [
+        ActivityLogger::log('bulk_deleted', null, __('admin.contacts.activity_bulk_deleted'), [
             'model' => ContactSubmission::class,
             'ids' => $validated['ids'],
             'count' => $deleted,
         ]);
 
-        return back()->with('success', 'Đã xóa '.$deleted.' liên hệ.');
+        return back()->with('success', __('admin.contacts.bulk_deleted', ['count' => $deleted]));
     }
 }

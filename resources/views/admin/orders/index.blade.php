@@ -23,7 +23,7 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.menu.orders') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button data-tour="orders.create" :href="route('admin.orders.create')" icon="plus">Tạo đơn hàng</x-admin.action-button>
+            <x-admin.action-button data-tour="orders.create" :href="route('admin.orders.create')" icon="plus">{{ __('admin.orders.create_order') }}</x-admin.action-button>
         </x-slot:actions>
     </x-admin.page-header>
 
@@ -37,7 +37,7 @@
                     data-bs-target="#order-filters"
                     aria-expanded="{{ request()->hasAny(['q', 'status', 'payment_status', 'shipping_status']) ? 'true' : 'false' }}"
                     aria-controls="order-filters">
-                <span><i class="ti ti-adjustments-horizontal me-2"></i>Bộ lọc đơn hàng</span>
+                <span><i class="ti ti-adjustments-horizontal me-2"></i>{{ __('admin.orders.filters') }}</span>
                 <i class="ti ti-chevron-down"></i>
             </button>
 

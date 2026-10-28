@@ -55,24 +55,24 @@ class SiteSectionUpdateRequest extends FormRequest
             $section = (string) $this->input('section');
 
             if (! $registry->has($section)) {
-                $validator->errors()->add('section', 'Section này không có tuỳ chọn hiển thị nào.');
+                $validator->errors()->add('section', __('admin.site_editor.validation.section_no_options'));
 
                 return;
             }
 
             if (! $registry->allowsVariant($section, $this->input('variant'))) {
-                $validator->errors()->add('variant', 'Biến thể không hợp lệ cho section này.');
+                $validator->errors()->add('variant', __('admin.site_editor.validation.invalid_variant'));
             }
 
             foreach ((array) $this->input('settings', []) as $name => $value) {
                 if (! is_string($name) || ! $registry->allowsSetting($section, $name)) {
-                    $validator->errors()->add('settings', 'Section này không có tuỳ chọn "'.$name.'".');
+                    $validator->errors()->add('settings', __('admin.site_editor.validation.unknown_setting', ['name' => (string) $name]));
 
                     continue;
                 }
 
                 if (! $registry->allowsValue($section, $name, $value)) {
-                    $validator->errors()->add('settings.'.$name, 'Giá trị không hợp lệ cho tuỳ chọn "'.$name.'".');
+                    $validator->errors()->add('settings.'.$name, __('admin.site_editor.validation.invalid_value', ['name' => $name]));
                 }
             }
         });
@@ -81,8 +81,8 @@ class SiteSectionUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'list_key.regex' => 'Mã vùng nội dung không hợp lệ.',
-            'section.regex' => 'Tên section không hợp lệ.',
+            'list_key.regex' => __('admin.site_editor.validation.invalid_key'),
+            'section.regex' => __('admin.site_editor.validation.invalid_section'),
         ];
     }
 }

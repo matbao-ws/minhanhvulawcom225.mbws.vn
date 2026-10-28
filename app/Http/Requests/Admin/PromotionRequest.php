@@ -26,7 +26,7 @@ class PromotionRequest extends FormRequest
                 'required', 'numeric', 'min:0',
                 function ($attribute, $value, $fail) {
                     if ($this->input('discount_type') === 'percentage' && $value > 100) {
-                        $fail('Giảm theo phần trăm không được lớn hơn 100%.');
+                        $fail(__('catalog.promotions.percentage_max'));
                     }
                 },
             ],
@@ -56,7 +56,7 @@ class PromotionRequest extends FormRequest
             if ($this->input('applies_to') === 'selected'
                 && empty($this->input('target_product_ids'))
                 && empty($this->input('target_variant_ids'))) {
-                $validator->errors()->add('target_product_ids', 'Hãy chọn ít nhất một sản phẩm hoặc SKU áp dụng.');
+                $validator->errors()->add('target_product_ids', __('catalog.promotions.targets_required'));
             }
         }];
     }

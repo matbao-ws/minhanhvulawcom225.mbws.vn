@@ -78,7 +78,7 @@ class UserController extends Controller
         }
 
         abort_if($role->is_system || $role->is_superadmin, 403, 'Unauthorized.');
-        abort_unless($this->withinReach($role->permissions), 403, 'Không thể cấp quyền vượt quá quyền của chính bạn.');
+        abort_unless($this->withinReach($role->permissions), 403, __('admin.roles.beyond_own_permissions'));
     }
 
     /**
@@ -105,7 +105,7 @@ class UserController extends Controller
     private function syncPermissionOverrides(User $user, array $submitted): bool
     {
         if ($user->is(auth()->user())) {
-            abort_if($submitted !== [], 403, 'Không thể tự sửa quyền riêng của chính mình.');
+            abort_if($submitted !== [], 403, __('admin.users.cannot_edit_own_overrides'));
 
             return false;
         }
@@ -220,7 +220,7 @@ class UserController extends Controller
 
         $user = User::query()->create($data);
         $this->syncPermissionOverrides($user, (array) $request->input('permission_overrides', []));
-        ActivityLogger::log('created', $user, "Tạo tài khoản {$user->email}", ['new' => $user->only(['name', 'email', 'role_id', 'is_active'])]);
+        ActivityLogger::log('created', $user, __('admin.users.activity_created', ['email' => $user->email]), ['new' => $user->only(['name', 'email', 'role_id', 'is_active'])]);
 
         return redirect()
             ->route('admin.users.index')
@@ -247,7 +247,7 @@ class UserController extends Controller
         $this->assertCanAssignRole(Role::find($request->input('role_id')), $user);
 
         if ($user->is(auth()->user()) && ((int) $request->input('role_id') !== (int) $user->role_id || (bool) $request->input('is_active', false) !== $user->is_active)) {
-            abort(403, 'You cannot change your own role or account status.');
+            abort(403, __('admin.users.cannot_change_own_role_status'));
         }
 
         $data = $request->validated();
@@ -283,7 +283,7 @@ class UserController extends Controller
         if ($accessChanged) {
             $this->userAccessService->revoke($user, $user->is(auth()->user()) ? $request->session()->getId() : null);
         }
-        ActivityLogger::log('updated', $user, "Cập nhật tài khoản {$user->email}", [
+        ActivityLogger::log('updated', $user, __('admin.users.activity_updated', ['email' => $user->email]), [
             'old' => $oldValues,
             'new' => $user->only(['name', 'email', 'role_id', 'is_active']),
         ]);
@@ -314,7 +314,7 @@ class UserController extends Controller
         $oldValues = $user->only(['name', 'email', 'role_id', 'is_active']);
         $this->userAccessService->revoke($user);
         $user->delete();
-        ActivityLogger::log('deleted', $user, "Xóa tài khoản {$oldValues['email']}", ['old' => $oldValues]);
+        ActivityLogger::log('deleted', $user, __('admin.users.activity_deleted', ['email' => $oldValues['email']]), ['old' => $oldValues]);
 
         return redirect()
             ->route('admin.users.index')
@@ -341,7 +341,7 @@ class UserController extends Controller
         $user->is_active = ! $user->is_active;
         $user->save();
         $this->userAccessService->revoke($user);
-        ActivityLogger::log('status_changed', $user, "Thay đổi trạng thái tài khoản {$user->email}", [
+        ActivityLogger::log('status_changed', $user, __('admin.users.activity_status_changed', ['email' => $user->email]), [
             'new' => ['is_active' => $user->is_active],
         ]);
 
@@ -361,22 +361,22 @@ class UserController extends Controller
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('admin.users.index')
-                ->with('error', 'Bạn không thể đăng nhập nhanh vào tài khoản của chính mình.');
+                ->with('error', __('admin.users.impersonate_self_error'));
         }
 
         if (! $user->is_active || $user->hasPrivilegedRole()) {
-            abort(403, 'Only active non-privileged accounts can be impersonated.');
+            abort(403, __('admin.users.impersonate_not_allowed'));
         }
 
         $originalAdminId = auth()->id();
         auth()->login($user);
         $request->session()->regenerate();
         $request->session()->put('impersonated_by', $originalAdminId);
-        ActivityLogger::log('impersonated', $user, "Đăng nhập nhanh vào tài khoản {$user->email}");
+        ActivityLogger::log('impersonated', $user, __('admin.users.activity_impersonated', ['email' => $user->email]));
 
         return redirect()
             ->route('admin.dashboard')
-            ->with('success', 'Bạn đã đăng nhập nhanh thành công dưới vai trò '.$user->name);
+            ->with('success', __('admin.users.impersonated', ['name' => $user->name]));
     }
 
     public function leaveImpersonate(Request $request)
@@ -395,6 +395,6 @@ class UserController extends Controller
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'Đã quay lại tài khoản quản trị viên thành công.');
+            ->with('success', __('admin.users.impersonation_left'));
     }
 }

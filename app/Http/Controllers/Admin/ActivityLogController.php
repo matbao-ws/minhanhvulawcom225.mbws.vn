@@ -87,6 +87,8 @@ class ActivityLogController extends Controller
     {
         return redirect()
             ->route('admin.activity-logs.index', request()->only(['user_id', 'action', 'subject_type', 'from', 'to']))
-            ->with('success', $deleted > 0 ? 'Đã xóa '.$deleted.' bản ghi nhật ký.' : 'Không có bản ghi nào được xóa.');
+            ->with('success', $deleted > 0
+                ? __('admin.activity_logs.deleted', ['count' => $deleted])
+                : __('admin.activity_logs.deleted_none'));
     }
 }

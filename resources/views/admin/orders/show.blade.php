@@ -112,12 +112,12 @@
                         <option value="pending" @selected($order->payment_status === 'pending')>{{ __('admin.orders.payment_statuses.pending') }}</option>
                         <option value="paid" @selected($order->payment_status === 'paid')>{{ __('admin.orders.payment_statuses.paid') }}</option>
                         <option value="failed" @selected($order->payment_status === 'failed')>{{ __('admin.orders.payment_statuses.failed') }}</option>
-                        <option value="partially_refunded" @selected($order->payment_status === 'partially_refunded')>Hoàn tiền một phần</option>
-                        <option value="refunded" @selected($order->payment_status === 'refunded')>Đã hoàn tiền</option>
+                        <option value="partially_refunded" @selected($order->payment_status === 'partially_refunded')>{{ __('admin.orders.payment_statuses.partially_refunded') }}</option>
+                        <option value="refunded" @selected($order->payment_status === 'refunded')>{{ __('admin.orders.payment_statuses.refunded') }}</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted mb-1">Ghi chú nội bộ</label>
+                    <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.orders.internal_note') }}</label>
                     <input data-tour="order.note" name="note" class="form-control" maxlength="1000">
                 </div>
                 <div class="col-md-2">
@@ -134,10 +134,10 @@
     <div class="row g-4 mb-4 status-card">
         <div data-tour="order.refunds" class="col-lg-7">
             <div class="card h-100"><div class="card-body">
-                <h5 class="fw-bold mb-3">Hoàn tiền</h5>
+                <h5 class="fw-bold mb-3">{{ __('admin.orders.refunds') }}</h5>
                 @forelse($order->refunds as $refund)
-                    <div class="border-bottom pb-2 mb-2 small fw-semibold"><strong>{{ number_format($refund->amount, 0, ',', '.') }} ₫</strong> — {{ $refund->type === 'full' ? 'Toàn phần' : 'Một phần' }} — {{ $refund->created_at?->format('d/m/Y H:i') }}<br><span class="text-muted fw-normal">{{ $refund->reason }}</span></div>
-                @empty <p class="text-muted small fw-semibold">Chưa có khoản hoàn tiền.</p>@endforelse
+                    <div class="border-bottom pb-2 mb-2 small fw-semibold"><strong>{{ number_format($refund->amount, 0, ',', '.') }} ₫</strong> — {{ $refund->type === 'full' ? __('admin.orders.refund_type_full') : __('admin.orders.refund_type_partial') }} — {{ $refund->created_at?->format('d/m/Y H:i') }}<br><span class="text-muted fw-normal">{{ $refund->reason }}</span></div>
+                @empty <p class="text-muted small fw-semibold">{{ __('admin.orders.no_refunds') }}</p>@endforelse
                 @if($order->payment_status !== 'refunded')
                 <form action="{{ route('admin.orders.refund', $order) }}" method="POST" id="refund-form">
                     @csrf
@@ -146,12 +146,12 @@
                     <div class="row g-2 mb-2">
                         <div class="col-md-4">
                             <select class="form-select fw-semibold" name="type" id="refund-type">
-                                <option value="partial">Hoàn một phần</option>
-                                <option value="full">Hoàn toàn phần</option>
+                                <option value="partial">{{ __('admin.orders.refund_partial') }}</option>
+                                <option value="full">{{ __('admin.orders.refund_full') }}</option>
                             </select>
                         </div>
                         <div class="col-md-8">
-                            <input class="form-control fw-semibold" name="reason" maxlength="1000" placeholder="Lý do hoàn tiền">
+                            <input class="form-control fw-semibold" name="reason" maxlength="1000" placeholder="{{ __('admin.orders.refund_reason_placeholder') }}">
                         </div>
                     </div>
                     <div id="refund-items">
@@ -168,19 +168,19 @@
                                 <input type="number" disabled class="form-control form-control-sm refund-qty fw-bold" min="1" max="{{ $item->quantity }}" name="items[{{ $item->id }}][quantity]" value="1">
                             </div>
                             <div class="col-2 text-end small fw-bold text-dark">
-                                {{ $item->quantity }} cái
+                                {{ __('admin.orders.item_units', ['count' => $item->quantity]) }}
                             </div>
                         </div>
                         @endforeach
                     </div>
-                    <button class="btn btn-outline-danger btn-sm fw-bold mt-2">Ghi nhận hoàn tiền</button>
+                    <button class="btn btn-outline-danger btn-sm fw-bold mt-2">{{ __('admin.orders.record_refund') }}</button>
                 </form>
                 @endif
             </div></div>
         </div>
         <div data-tour="order.history" class="col-lg-5">
-            <div class="card h-100"><div class="card-body"><h5 class="fw-bold mb-3">Lịch sử đơn hàng</h5>
-                @forelse($order->historyEntries as $entry)<div class="border-start border-primary ps-3 pb-3 mb-2"><div class="small fw-bold text-dark">{{ $entry->to_status }} / {{ $entry->to_payment_status }}</div><div class="small text-muted fw-semibold">{{ $entry->created_at?->format('d/m/Y H:i') }} · {{ $entry->changedBy?->name ?? 'Hệ thống' }}</div>@if($entry->note)<div class="small fw-semibold">{{ $entry->note }}</div>@endif</div>@empty<p class="text-muted small fw-semibold">Chưa có lịch sử thay đổi.</p>@endforelse
+            <div class="card h-100"><div class="card-body"><h5 class="fw-bold mb-3">{{ __('admin.orders.history') }}</h5>
+                @forelse($order->historyEntries as $entry)<div class="border-start border-primary ps-3 pb-3 mb-2"><div class="small fw-bold text-dark">{{ $entry->to_status }} / {{ $entry->to_payment_status }}</div><div class="small text-muted fw-semibold">{{ $entry->created_at?->format('d/m/Y H:i') }} · {{ $entry->changedBy?->name ?? __('admin.orders.history_system') }}</div>@if($entry->note)<div class="small fw-semibold">{{ $entry->note }}</div>@endif</div>@empty<p class="text-muted small fw-semibold">{{ __('admin.orders.no_history') }}</p>@endforelse
             </div></div>
         </div>
     </div>
@@ -195,10 +195,10 @@
                         <img src="{{ $siteBranding['admin_logo_url'] }}" alt="MatBaoWS" style="width: auto; height: 35px; max-width: 160px; object-fit: contain;">
                     </div>
                     @if(filled(data_get($siteBranding, 'contact.address')))
-                        <p class="text-muted mb-0 fs-3">Địa chỉ: {{ data_get($siteBranding, 'contact.address') }}</p>
+                        <p class="text-muted mb-0 fs-3">{{ __('admin.orders.shop_address', ['address' => data_get($siteBranding, 'contact.address')]) }}</p>
                     @endif
                     @if(filled(data_get($siteBranding, 'contact.email')))
-                        <p class="text-muted mb-0 fs-3">Email liên hệ: {{ data_get($siteBranding, 'contact.email') }}</p>
+                        <p class="text-muted mb-0 fs-3">{{ __('admin.orders.shop_email', ['email' => data_get($siteBranding, 'contact.email')]) }}</p>
                     @endif
                 </div>
                 <div class="col-md-5 text-md-end">
@@ -246,7 +246,7 @@
                         <p class="text-muted mb-2 fs-3">{{ __('admin.orders.not_shipped') }}</p>
                         @if($order->status !== 'cancelled' && ($isGhtkEnabled || $isGhnEnabled))
                             <button data-tour="order.ship" type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 mt-1 fw-semibold py-2 px-3" data-bs-toggle="modal" data-bs-target="#pushShippingModal">
-                                <i class="ti ti-truck fs-4"></i> Tạo vận đơn
+                                <i class="ti ti-truck fs-4"></i> {{ __('admin.orders.create_shipment') }}
                             </button>
                         @endif
                     @endif
@@ -317,18 +317,18 @@
                     </div>
                     @if((float) $order->promotion_discount > 0)
                         <div class="d-flex justify-content-between py-2 border-bottom">
-                            <span class="text-muted fs-3">Khuyến mãi / Flash Sale:</span>
+                            <span class="text-muted fs-3">{{ __('admin.orders.promotion_discount') }}:</span>
                             <span class="fw-semibold text-danger fs-3">-{{ number_format($order->promotion_discount, 0, ',', '.') }} ₫</span>
                         </div>
                     @endif
                     @if((float) $order->discount - (float) $order->promotion_discount > 0)
                         <div class="d-flex justify-content-between py-2 border-bottom">
-                            <span class="text-muted fs-3">Mã giảm giá / giảm thêm:</span>
+                            <span class="text-muted fs-3">{{ __('admin.orders.extra_discount') }}:</span>
                             <span class="fw-semibold text-danger fs-3">-{{ number_format((float) $order->discount - (float) $order->promotion_discount, 0, ',', '.') }} ₫</span>
                         </div>
                     @endif
                     <div class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted fs-3">Phí giao hàng:</span>
+                        <span class="text-muted fs-3">{{ __('admin.orders.shipping_fee') }}:</span>
                         <span class="fw-semibold fs-3">{{ number_format($order->shipping_fee, 0, ',', '.') }} ₫</span>
                     </div>
                     <div class="d-flex justify-content-between py-3">
@@ -357,9 +357,9 @@
                             @elseif($order->payment_status === 'pending')
                                 {{ __('admin.orders.payment_statuses.pending') }}
                             @elseif($order->payment_status === 'partially_refunded')
-                                Hoàn tiền một phần
+                                {{ __('admin.orders.payment_statuses.partially_refunded') }}
                             @elseif($order->payment_status === 'refunded')
-                                Đã hoàn tiền
+                                {{ __('admin.orders.payment_statuses.refunded') }}
                             @else
                                 {{ __('admin.orders.payment_statuses.failed') }}
                             @endif
@@ -381,13 +381,13 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-semibold text-dark" id="pushShippingModalLabel">Tạo vận đơn</h5>
+                    <h5 class="modal-title fw-semibold text-dark" id="pushShippingModalLabel">{{ __('admin.orders.create_shipment') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="pushShippingForm" action="{{ route('admin.orders.push-shipping', $order) }}" method="POST">
                     @csrf
                     <div class="modal-body text-start">
-                        <div class="mb-3"><label class="form-label fw-semibold text-dark" for="shipping_carrier">Đơn vị vận chuyển</label><select class="form-select" id="shipping_carrier" name="carrier" required>@if($isGhtkEnabled)<option value="ghtk">Giao Hàng Tiết Kiệm (GHTK)</option>@endif @if($isGhnEnabled)<option value="ghn">Giao Hàng Nhanh (GHN)</option>@endif</select></div>
+                        <div class="mb-3"><label class="form-label fw-semibold text-dark" for="shipping_carrier">{{ __('admin.orders.carrier') }}</label><select class="form-select" id="shipping_carrier" name="carrier" required>@if($isGhtkEnabled)<option value="ghtk">{{ __('admin.orders.carrier_ghtk') }}</option>@endif @if($isGhnEnabled)<option value="ghn">{{ __('admin.orders.carrier_ghn') }}</option>@endif</select></div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-dark">{{ __('admin.orders.fields.shipping_address') }}</label>
                             <input type="text" class="form-control bg-light text-dark" value="{{ $order->shipping_address }}" readonly>
@@ -397,15 +397,15 @@
                         <div class="row" id="ghtk-address-fields">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="shipping_province">{{ __('admin.orders.fields.province') }} <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control text-dark" id="shipping_province" name="province" value="Hồ Chí Minh" required>
+                                <input type="text" class="form-control text-dark" id="shipping_province" name="province" value="{{ __('admin.orders.ghtk_default_province') }}" required>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="shipping_district">{{ __('admin.orders.fields.district') }} <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control text-dark" id="shipping_district" name="district" value="Quận 1" required>
+                                <input type="text" class="form-control text-dark" id="shipping_district" name="district" value="{{ __('admin.orders.ghtk_default_district') }}" required>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="shipping_ward">{{ __('admin.orders.fields.ward') }} <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control text-dark" id="shipping_ward" name="ward" value="Phường Bến Nghé" required>
+                                <input type="text" class="form-control text-dark" id="shipping_ward" name="ward" value="{{ __('admin.orders.ghtk_default_ward') }}" required>
                             </div>
                         </div>
                         <div class="d-none" id="ghn-address-fields"
@@ -416,15 +416,14 @@
                             <input type="hidden" id="ghn_ward_code" name="to_ward_code" value="{{ $ghnLocation['ward_code'] ?? '' }}">
                             @if($ghnLocation)
                                 <div class="alert alert-success small py-2 mb-3" id="ghn-saved-location">
-                                    <i class="ti ti-map-pin-check me-1" aria-hidden="true"></i>Dùng địa chỉ GHN khách chọn lúc đặt hàng
-                                    (quận/huyện <strong>{{ $ghnLocation['district_id'] }}</strong>, phường/xã <strong>{{ $ghnLocation['ward_code'] }}</strong>).
-                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="ghn-pick-again">Chọn lại</button>
+                                    <i class="ti ti-map-pin-check me-1" aria-hidden="true"></i>{!! __('admin.orders.ghn_saved_location', ['district' => e($ghnLocation['district_id']), 'ward' => e($ghnLocation['ward_code'])]) !!}
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="ghn-pick-again">{{ __('admin.orders.pick_again') }}</button>
                                 </div>
                             @endif
                             <div class="row" id="ghn-pickers" @if($ghnLocation) hidden @endif>
-                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_province">Tỉnh/Thành <span class="text-danger">*</span></label><select class="form-select" id="ghn_province" disabled><option value="">Đang tải…</option></select></div>
-                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_district">Quận/Huyện <span class="text-danger">*</span></label><select class="form-select" id="ghn_district" disabled><option value="">Chọn tỉnh trước</option></select></div>
-                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_ward">Phường/Xã <span class="text-danger">*</span></label><select class="form-select" id="ghn_ward" disabled><option value="">Chọn quận/huyện trước</option></select></div>
+                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_province">{{ __('admin.orders.ghn_province') }} <span class="text-danger">*</span></label><select class="form-select" id="ghn_province" disabled><option value="">{{ __('admin.orders.show_js.loading') }}</option></select></div>
+                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_district">{{ __('admin.orders.ghn_district') }} <span class="text-danger">*</span></label><select class="form-select" id="ghn_district" disabled><option value="">{{ __('admin.orders.show_js.choose_province_first') }}</option></select></div>
+                                <div class="col-md-4 mb-3"><label class="form-label fw-semibold text-dark" for="ghn_ward">{{ __('admin.orders.ghn_ward') }} <span class="text-danger">*</span></label><select class="form-select" id="ghn_ward" disabled><option value="">{{ __('admin.orders.show_js.choose_district_first') }}</option></select></div>
                                 <div class="col-12"><div class="form-text mt-n2 mb-3" id="ghn-lookup-error"></div></div>
                             </div>
                         </div>
@@ -434,7 +433,7 @@
                             <input type="number" class="form-control text-dark" id="shipping_weight" name="weight" value="{{ $ghnParcel['weight'] }}" min="1" required>
                             <div class="form-text">{{ __('admin.orders.weight_help') }}</div>
                         </div>
-                        <div class="row mt-1 d-none" id="ghn-dimension-fields"><div class="col-4"><label class="form-label small">Dài (cm)</label><input class="form-control" type="number" min="1" max="200" name="length" value="{{ $ghnParcel['length'] }}"></div><div class="col-4"><label class="form-label small">Rộng (cm)</label><input class="form-control" type="number" min="1" max="200" name="width" value="{{ $ghnParcel['width'] }}"></div><div class="col-4"><label class="form-label small">Cao (cm)</label><input class="form-control" type="number" min="1" max="200" name="height" value="{{ $ghnParcel['height'] }}"></div></div>
+                        <div class="row mt-1 d-none" id="ghn-dimension-fields"><div class="col-4"><label class="form-label small">{{ __('admin.orders.length_cm') }}</label><input class="form-control" type="number" min="1" max="200" name="length" value="{{ $ghnParcel['length'] }}"></div><div class="col-4"><label class="form-label small">{{ __('admin.orders.width_cm') }}</label><input class="form-control" type="number" min="1" max="200" name="width" value="{{ $ghnParcel['width'] }}"></div><div class="col-4"><label class="form-label small">{{ __('admin.orders.height_cm') }}</label><input class="form-control" type="number" min="1" max="200" name="height" value="{{ $ghnParcel['height'] }}"></div></div>
                     </div>
                     <div class="modal-footer border-top">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('catalog.actions.cancel') }}</button>
@@ -449,6 +448,7 @@
 
 @push('scripts')
     <script>
+        const OrderShowText = @json(__('admin.orders.show_js'));
         document.addEventListener('DOMContentLoaded', function () {
             // Push Shipping Form AJAX handling
             const pushShippingForm = document.getElementById('pushShippingForm');
@@ -476,7 +476,7 @@
                 const ghnGet = async (url) => {
                     const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
                     const body = await response.json().catch(() => ({}));
-                    if (!response.ok) throw new Error(body.message || 'Không lấy được dữ liệu GHN.');
+                    if (!response.ok) throw new Error(body.message || OrderShowText.ghn_lookup_failed);
                     return body.data;
                 };
                 const ghnFill = (select, rows, placeholder, label, value) => {
@@ -489,7 +489,7 @@
                 function loadGhnProvinces() {
                     if (ghnLoaded || ghnPickers.hidden) return;
                     ghnLoaded = true;
-                    ghnGet(ghnBox.dataset.provincesUrl).then(rows => ghnFill(ghnProvince, rows, 'Chọn tỉnh/thành', 'ProvinceName', 'ProvinceID')).catch(ghnFail);
+                    ghnGet(ghnBox.dataset.provincesUrl).then(rows => ghnFill(ghnProvince, rows, OrderShowText.choose_province, 'ProvinceName', 'ProvinceID')).catch(ghnFail);
                 }
                 document.getElementById('ghn-pick-again')?.addEventListener('click', () => {
                     document.getElementById('ghn-saved-location').hidden = true;
@@ -500,16 +500,16 @@
                 });
                 ghnProvince.addEventListener('change', () => {
                     districtInput.value = ''; wardInput.value = '';
-                    ghnReset(ghnWard, 'Chọn quận/huyện trước');
-                    if (!ghnProvince.value) return ghnReset(ghnDistrict, 'Chọn tỉnh trước');
-                    ghnReset(ghnDistrict, 'Đang tải…');
-                    ghnGet(ghnBox.dataset.districtsUrl.replace('__ID__', ghnProvince.value)).then(rows => ghnFill(ghnDistrict, rows, 'Chọn quận/huyện', 'DistrictName', 'DistrictID')).catch(ghnFail);
+                    ghnReset(ghnWard, OrderShowText.choose_district_first);
+                    if (!ghnProvince.value) return ghnReset(ghnDistrict, OrderShowText.choose_province_first);
+                    ghnReset(ghnDistrict, OrderShowText.loading);
+                    ghnGet(ghnBox.dataset.districtsUrl.replace('__ID__', ghnProvince.value)).then(rows => ghnFill(ghnDistrict, rows, OrderShowText.choose_district, 'DistrictName', 'DistrictID')).catch(ghnFail);
                 });
                 ghnDistrict.addEventListener('change', () => {
                     districtInput.value = ''; wardInput.value = '';
-                    if (!ghnDistrict.value) return ghnReset(ghnWard, 'Chọn quận/huyện trước');
-                    ghnReset(ghnWard, 'Đang tải…');
-                    ghnGet(ghnBox.dataset.wardsUrl.replace('__ID__', ghnDistrict.value)).then(rows => ghnFill(ghnWard, rows, 'Chọn phường/xã', 'WardName', 'WardCode')).catch(ghnFail);
+                    if (!ghnDistrict.value) return ghnReset(ghnWard, OrderShowText.choose_district_first);
+                    ghnReset(ghnWard, OrderShowText.loading);
+                    ghnGet(ghnBox.dataset.wardsUrl.replace('__ID__', ghnDistrict.value)).then(rows => ghnFill(ghnWard, rows, OrderShowText.choose_ward, 'WardName', 'WardCode')).catch(ghnFail);
                 });
                 ghnWard.addEventListener('change', () => {
                     districtInput.value = ghnWard.value ? ghnDistrict.value : '';
@@ -550,7 +550,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: "{{ __('admin.orders.ghtk_success') }}",
-                                text: data.message || 'Đơn hàng đã được đẩy sang GHTK.',
+                                text: data.message || OrderShowText.ghtk_pushed,
                                 timer: 2000,
                                 showConfirmButton: false
                             }).then(() => {
@@ -562,13 +562,13 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: "{{ __('admin.orders.ghtk_failed') }}",
-                                text: data.message || 'Có lỗi xảy ra.'
+                                text: data.message || OrderShowText.error_occurred
                             });
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        let errMsg = 'Không thể kết nối đến máy chủ.';
+                        let errMsg = @json(__('admin.failed_to_connect'));
                         if (error.errors) {
                             errMsg = Object.values(error.errors).flat().join('\n');
                         } else if (error.message) {

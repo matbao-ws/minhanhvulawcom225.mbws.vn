@@ -70,10 +70,9 @@
                                                   <div>
                                                       <h6 class="mb-1 text-dark fw-bold"
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
-                                                          Hướng dẫn sử dụng</h6>
+                                                          {{ __('admin.header.user_guide') }}</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Tài
-                                                          liệu hướng dẫn sử dụng</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.user_guide_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -92,8 +91,7 @@
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
                                                           support@matbao.ws</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Email
-                                                          hỗ trợ kỹ thuật</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.support_email_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -112,8 +110,7 @@
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
                                                           (028) 7777 7999</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Hotline
-                                                          hỗ trợ 24/7/365</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.hotline_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -130,10 +127,9 @@
                                                   <div>
                                                       <h6 class="mb-1 text-dark fw-bold"
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
-                                                          Tải xuống UltraViewer</h6>
+                                                          {{ __('admin.header.ultraviewer_download') }}</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Phần
-                                                          mềm hỗ trợ từ xa</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.ultraviewer_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -142,12 +138,11 @@
                                       <!-- Footer Row -->
                                       <div class="pt-3 border-top d-flex align-items-center justify-content-between">
                                           <span class="text-dark fw-bold fs-3"
-                                              style="font-family: 'Quicksand', sans-serif !important;">Cần gặp nhân
-                                              viên hỗ trợ kỹ thuật?</span>
+                                              style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.need_support_staff') }}</span>
                                           <a href="https://support.matbao.ws/submitticket.php" target="_blank"
                                               class="btn btn-teal text-white fw-bold px-4 py-2"
                                               style="font-family: 'Quicksand', sans-serif !important; background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
-                                              GỬI YÊU CẦU NGAY
+                                              {{ __('admin.header.submit_request_now') }}
                                           </a>
                                       </div>
                                   </div>
@@ -161,7 +156,7 @@
                   </div>
                   <a class="navbar-toggler p-0 border-0 nav-icon-hover-bg rounded-circle" href="javascript:void(0)"
                       data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav"
-                      aria-expanded="false" aria-label="Toggle navigation">
+                      aria-expanded="false" aria-label="{{ __('admin.header.toggle_navigation') }}">
                       <iconify-icon icon="solar:menu-dots-bold-duotone" class="fs-6"></iconify-icon>
                   </a>
                   <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
@@ -212,8 +207,7 @@
                                       <div class="d-flex align-items-center justify-content-between py-3 px-7">
                                           <h5 class="mb-0 fs-5 fw-semibold">{{ __('admin.notifications') }}</h5>
                                           <span
-                                              class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ $headerNotifications->count() }}
-                                              mới</span>
+                                              class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ __('admin.header.new_count', ['count' => $headerNotifications->count()]) }}</span>
                                       </div>
                                       <div class="message-body" data-simplebar="">
                                           @forelse($headerNotifications as $notification)
@@ -239,7 +233,7 @@
                                               <div class="py-5 text-center text-muted">
                                                   <iconify-icon icon="solar:bell-bing-line-duotone"
                                                       class="fs-7 mb-2 d-inline-block"></iconify-icon>
-                                                  <p class="mb-0 fs-3">Không có thông báo mới</p>
+                                                  <p class="mb-0 fs-3">{{ __('admin.header.no_notifications') }}</p>
                                               </div>
                                           @endforelse
                                       </div>
@@ -332,11 +326,11 @@
                   <nav class="sidebar-nav scroll-sidebar">
                       <div class="offcanvas-header justify-content-between">
                           <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
-                              <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}"
+                              <img src="{{ $siteBranding['admin_favicon_url'] }}" alt="MatBaoWS"
                                   width="35" height="35">
                           </a>
                           <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
-                              aria-label="Close"></button>
+                              aria-label="{{ __('admin.header.close') }}"></button>
                       </div>
                       <div class="offcanvas-body pt-0" data-simplebar="" style="height: calc(100vh - 80px)">
                           <ul id="sidebarnav">
@@ -347,7 +341,7 @@
                                           <iconify-icon icon="solar:widget-3-line-duotone"
                                               class="fs-7"></iconify-icon>
                                       </span>
-                                      <span class="hide-menu">Hỗ trợ kỹ thuật</span>
+                                      <span class="hide-menu">{{ __('admin.header.support') }}</span>
                                   </a>
                                   <ul aria-expanded="false" class="collapse first-level my-3 ps-3">
                                       <li class="sidebar-item py-2">
@@ -361,10 +355,9 @@
                                               <div>
                                                   <h6 class="mb-0 text-dark fw-bold"
                                                       style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
-                                                      Hướng dẫn sử dụng</h6>
+                                                      {{ __('admin.header.user_guide') }}</h6>
                                                   <span class="fs-11 d-block text-muted fw-semibold"
-                                                      style="font-family: 'Quicksand', sans-serif !important;">Tài liệu
-                                                      hướng dẫn sử dụng</span>
+                                                      style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.user_guide_hint') }}</span>
                                               </div>
                                           </a>
                                       </li>
@@ -381,8 +374,7 @@
                                                       style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
                                                       support@matbao.ws</h6>
                                                   <span class="fs-11 d-block text-muted fw-semibold"
-                                                      style="font-family: 'Quicksand', sans-serif !important;">Email hỗ
-                                                      trợ kỹ thuật</span>
+                                                      style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.support_email_hint') }}</span>
                                               </div>
                                           </a>
                                       </li>
@@ -399,8 +391,7 @@
                                                       style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
                                                       (028) 7777 7999</h6>
                                                   <span class="fs-11 d-block text-muted fw-semibold"
-                                                      style="font-family: 'Quicksand', sans-serif !important;">Hotline
-                                                      hỗ trợ 24/7/365</span>
+                                                      style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.hotline_hint') }}</span>
                                               </div>
                                           </a>
                                       </li>
@@ -415,10 +406,9 @@
                                               <div>
                                                   <h6 class="mb-0 text-dark fw-bold"
                                                       style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
-                                                      Tải xuống UltraViewer</h6>
+                                                      {{ __('admin.header.ultraviewer_download') }}</h6>
                                                   <span class="fs-11 d-block text-muted fw-semibold"
-                                                      style="font-family: 'Quicksand', sans-serif !important;">Phần mềm
-                                                      hỗ trợ từ xa</span>
+                                                      style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.ultraviewer_hint') }}</span>
                                               </div>
                                           </a>
                                       </li>
@@ -433,10 +423,9 @@
                                               <div>
                                                   <h6 class="mb-0 text-dark fw-bold"
                                                       style="font-family: 'Quicksand', sans-serif !important; font-size: 15px; font-weight: 700 !important;">
-                                                      Gửi yêu cầu hỗ trợ</h6>
+                                                      {{ __('admin.header.submit_request') }}</h6>
                                                   <span class="fs-11 d-block text-muted fw-semibold"
-                                                      style="font-family: 'Quicksand', sans-serif !important;">Cần gặp
-                                                      nhân viên hỗ trợ ngay</span>
+                                                      style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.submit_request_hint') }}</span>
                                               </div>
                                           </a>
                                       </li>
@@ -513,10 +502,9 @@
                                                   <div>
                                                       <h6 class="mb-1 text-dark fw-bold"
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
-                                                          Hướng dẫn sử dụng</h6>
+                                                          {{ __('admin.header.user_guide') }}</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Tài
-                                                          liệu hướng dẫn sử dụng</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.user_guide_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -535,8 +523,7 @@
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
                                                           support@matbao.ws</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Email
-                                                          hỗ trợ kỹ thuật</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.support_email_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -555,8 +542,7 @@
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
                                                           (028) 7777 7999</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Hotline
-                                                          hỗ trợ 24/7/365</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.hotline_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -573,10 +559,9 @@
                                                   <div>
                                                       <h6 class="mb-1 text-dark fw-bold"
                                                           style="font-family: 'Quicksand', sans-serif !important; font-size: 16px; font-weight: 700 !important;">
-                                                          Tải xuống UltraViewer</h6>
+                                                          {{ __('admin.header.ultraviewer_download') }}</h6>
                                                       <span class="fs-2 text-muted fw-semibold"
-                                                          style="font-family: 'Quicksand', sans-serif !important;">Phần
-                                                          mềm hỗ trợ từ xa</span>
+                                                          style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.ultraviewer_hint') }}</span>
                                                   </div>
                                               </a>
                                           </div>
@@ -585,12 +570,11 @@
                                       <!-- Footer Row -->
                                       <div class="pt-3 border-top d-flex align-items-center justify-content-between">
                                           <span class="text-dark fw-bold fs-3"
-                                              style="font-family: 'Quicksand', sans-serif !important;">Cần gặp nhân
-                                              viên hỗ trợ kỹ thuật?</span>
+                                              style="font-family: 'Quicksand', sans-serif !important;">{{ __('admin.header.need_support_staff') }}</span>
                                           <a href="https://support.matbao.ws/submitticket.php" target="_blank"
                                               class="btn btn-teal text-white fw-bold px-4 py-2"
                                               style="font-family: 'Quicksand', sans-serif !important; background-color: #00b493 !important; border-color: #00b493 !important; border-radius: 6px; font-size: 13.5px;">
-                                              GỬI YÊU CẦU NGAY
+                                              {{ __('admin.header.submit_request_now') }}
                                           </a>
                                       </div>
                                   </div>
@@ -605,7 +589,7 @@
                   </div>
                   <a class="navbar-toggler nav-icon-hover p-0 border-0 nav-icon-hover-bg rounded-circle"
                       href="javascript:void(0)" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                      aria-controls="navbarNav" aria-expanded="false" aria-label="{{ __('admin.header.toggle_navigation') }}">
                       <span class="p-2">
                           <i class="ti ti-dots fs-7"></i>
                       </span>
@@ -658,8 +642,7 @@
                                       <div class="d-flex align-items-center justify-content-between py-3 px-7">
                                           <h5 class="mb-0 fs-5 fw-semibold">{{ __('admin.notifications') }}</h5>
                                           <span
-                                              class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ $headerNotifications->count() }}
-                                              mới</span>
+                                              class="badge text-bg-primary rounded-4 px-3 py-1 lh-sm">{{ __('admin.header.new_count', ['count' => $headerNotifications->count()]) }}</span>
                                       </div>
                                       <div class="message-body" data-simplebar="">
                                           @forelse($headerNotifications as $notification)
@@ -685,7 +668,7 @@
                                               <div class="py-5 text-center text-muted">
                                                   <iconify-icon icon="solar:bell-bing-line-duotone"
                                                       class="fs-7 mb-2 d-inline-block"></iconify-icon>
-                                                  <p class="mb-0 fs-3">Không có thông báo mới</p>
+                                                  <p class="mb-0 fs-3">{{ __('admin.header.no_notifications') }}</p>
                                               </div>
                                           @endforelse
                                       </div>

@@ -34,7 +34,7 @@ trait AuthorizesPermissionGrants
     {
         $beyondReach = array_diff($codes, $this->grantableCodes());
 
-        abort_unless($beyondReach === [], 403, 'Không thể cấp quyền vượt quá quyền của chính bạn.');
+        abort_unless($beyondReach === [], 403, __('admin.roles.beyond_own_permissions'));
     }
 
     /**

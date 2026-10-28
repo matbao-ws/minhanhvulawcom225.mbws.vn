@@ -23,11 +23,11 @@ class WordPressPostImportRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'import_file.required' => 'Vui lòng chọn file XML xuất từ WordPress.',
-            'import_file.extensions' => 'File import phải có định dạng XML.',
-            'import_file.max' => 'File XML không được lớn hơn 20MB.',
-            'duplicate_action.required' => 'Vui lòng chọn cách xử lý bài viết trùng Slug.',
-            'duplicate_action.in' => 'Cần quyền sửa bài viết để ghi đè bài viết trùng Slug.',
+            'import_file.required' => __('admin.posts.wordpress.validation.file_required'),
+            'import_file.extensions' => __('admin.posts.wordpress.validation.file_extensions'),
+            'import_file.max' => __('admin.posts.wordpress.validation.file_max'),
+            'duplicate_action.required' => __('admin.posts.wordpress.validation.duplicate_required'),
+            'duplicate_action.in' => __('admin.posts.wordpress.validation.duplicate_update_forbidden'),
         ];
     }
 }

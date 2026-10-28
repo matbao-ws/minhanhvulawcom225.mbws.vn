@@ -49,19 +49,19 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold text-dark d-block">Cập nhật trạng thái realtime</label>
+                            <label class="form-label fw-semibold text-dark d-block">{{ __('admin.shipping_partners.realtime_status') }}</label>
                             <input type="hidden" name="realtime_tracking_enabled" value="0">
                             <div class="form-check form-switch pt-1">
                                 <input class="form-check-input" type="checkbox" role="switch" id="ghtk_realtime_tracking" name="realtime_tracking_enabled" value="1" @checked($realtimeTrackingEnabled)>
-                                <label class="form-check-label" for="ghtk_realtime_tracking">Nhận webhook trạng thái đơn từ GHTK</label>
+                                <label class="form-check-label" for="ghtk_realtime_tracking">{{ __('admin.shipping_partners.ghtk_realtime_webhook') }}</label>
                             </div>
-                            <div class="form-text">Không cần bật để kết nối tài khoản và đẩy đơn sang GHTK.</div>
+                            <div class="form-text">{{ __('admin.shipping_partners.ghtk_realtime_hint') }}</div>
                         </div>
                         <div class="col-md-6 mb-3" id="ghtk-webhook-settings" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
                             <label class="form-label fw-semibold text-dark" for="ghtk_webhook_token">{{ __('admin.shipping_partners.webhook_token_label') }}</label>
                             <div class="input-group">
                                 <input type="text" class="form-control text-dark" id="ghtk_webhook_token" name="webhook_token" 
-                                    value="{{ old('webhook_token', $webhookToken) }}" placeholder="Nhập token tự định nghĩa...">
+                                    value="{{ old('webhook_token', $webhookToken) }}" placeholder="{{ __('admin.shipping_partners.webhook_token_placeholder') }}">
                                 <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" onclick="generateWebhookToken()">
                                     <i class="ti ti-refresh fs-4"></i> {{ __('admin.shipping_partners.generate_random') }}
                                 </button>
@@ -70,13 +70,13 @@
                         @php
                             $pickup = data_get($partner->settings, 'pickup', []);
                         @endphp
-                        <div class="col-12"><hr><h6 class="fw-semibold">Thông tin lấy hàng</h6></div>
-                        <div class="col-md-6 mb-3"><label class="form-label" for="pickup_name">Tên người gửi <span class="text-danger">*</span></label><input class="form-control" id="pickup_name" name="pickup_name" value="{{ old('pickup_name', data_get($pickup, 'name')) }}" required></div>
-                        <div class="col-md-6 mb-3"><label class="form-label" for="pickup_tel">Số điện thoại lấy hàng <span class="text-danger">*</span></label><input class="form-control" id="pickup_tel" name="pickup_tel" value="{{ old('pickup_tel', data_get($pickup, 'tel')) }}" required></div>
-                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_province">Tỉnh/Thành <span class="text-danger">*</span></label><input class="form-control" id="pickup_province" name="pickup_province" value="{{ old('pickup_province', data_get($pickup, 'province')) }}" required></div>
-                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_district">Quận/Huyện <span class="text-danger">*</span></label><input class="form-control" id="pickup_district" name="pickup_district" value="{{ old('pickup_district', data_get($pickup, 'district')) }}" required></div>
-                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_ward">Phường/Xã <span class="text-danger">*</span></label><input class="form-control" id="pickup_ward" name="pickup_ward" value="{{ old('pickup_ward', data_get($pickup, 'ward')) }}" required></div>
-                        <div class="col-12 mb-3"><label class="form-label" for="pickup_address">Địa chỉ lấy hàng <span class="text-danger">*</span></label><input class="form-control" id="pickup_address" name="pickup_address" value="{{ old('pickup_address', data_get($pickup, 'address')) }}" required></div>
+                        <div class="col-12"><hr><h6 class="fw-semibold">{{ __('admin.shipping_partners.pickup_info') }}</h6></div>
+                        <div class="col-md-6 mb-3"><label class="form-label" for="pickup_name">{{ __('admin.shipping_partners.pickup_name') }} <span class="text-danger">*</span></label><input class="form-control" id="pickup_name" name="pickup_name" value="{{ old('pickup_name', data_get($pickup, 'name')) }}" required></div>
+                        <div class="col-md-6 mb-3"><label class="form-label" for="pickup_tel">{{ __('admin.shipping_partners.pickup_tel') }} <span class="text-danger">*</span></label><input class="form-control" id="pickup_tel" name="pickup_tel" value="{{ old('pickup_tel', data_get($pickup, 'tel')) }}" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_province">{{ __('admin.orders.ghn_province') }} <span class="text-danger">*</span></label><input class="form-control" id="pickup_province" name="pickup_province" value="{{ old('pickup_province', data_get($pickup, 'province')) }}" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_district">{{ __('admin.orders.ghn_district') }} <span class="text-danger">*</span></label><input class="form-control" id="pickup_district" name="pickup_district" value="{{ old('pickup_district', data_get($pickup, 'district')) }}" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label" for="pickup_ward">{{ __('admin.orders.ghn_ward') }} <span class="text-danger">*</span></label><input class="form-control" id="pickup_ward" name="pickup_ward" value="{{ old('pickup_ward', data_get($pickup, 'ward')) }}" required></div>
+                        <div class="col-12 mb-3"><label class="form-label" for="pickup_address">{{ __('admin.shipping_partners.pickup_address') }} <span class="text-danger">*</span></label><input class="form-control" id="pickup_address" name="pickup_address" value="{{ old('pickup_address', data_get($pickup, 'address')) }}" required></div>
                         
                         <div class="col-md-12 mb-3" id="ghtk-webhook-url" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
                             <label class="form-label fw-semibold text-dark">{{ __('admin.shipping_partners.webhook_url_label') }}</label>
@@ -114,49 +114,49 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="shop_id">{{ __('admin.shipping_partners.shop_id_label') }} <span class="text-danger">*</span></label>
                             <input type="number" min="1" class="form-control text-dark" id="shop_id" name="shop_id"
-                                value="{{ old('shop_id', $shopId) }}" placeholder="Nhập Shop ID..." required>
+                                value="{{ old('shop_id', $shopId) }}" placeholder="{{ __('admin.shipping_partners.shop_id_placeholder') }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold text-dark d-block">Đồng bộ trạng thái GHN</label>
+                            <label class="form-label fw-semibold text-dark d-block">{{ __('admin.shipping_partners.ghn_sync') }}</label>
                             <input type="hidden" name="realtime_tracking_enabled" value="0">
                             <div class="form-check form-switch pt-1">
                                 <input class="form-check-input" type="checkbox" role="switch" id="ghn_realtime_tracking" name="realtime_tracking_enabled" value="1" @checked($realtimeTrackingEnabled)>
-                                <label class="form-check-label" for="ghn_realtime_tracking">Nhận webhook trạng thái đơn từ GHN</label>
+                                <label class="form-check-label" for="ghn_realtime_tracking">{{ __('admin.shipping_partners.ghn_realtime_webhook') }}</label>
                             </div>
                         </div>
                         <div class="col-12 mb-3" id="ghn-webhook-settings" @style(! $realtimeTrackingEnabled ? 'display: none' : '')>
                             <label class="form-label fw-semibold text-dark" for="ghn_webhook_token">Webhook token</label>
                             <input type="text" class="form-control text-dark" id="ghn_webhook_token" name="webhook_token" value="{{ old('webhook_token', $webhookToken) }}">
-                            <div class="form-text">URL trên GHN: <code>{{ url('/api/webhooks/ghn') }}?token=&lt;token&gt;</code>. Token để trống sẽ được sinh tự động.</div>
+                            <div class="form-text">{!! __('admin.shipping_partners.ghn_webhook_hint', ['url' => e(url('/api/webhooks/ghn')).'?token=&lt;token&gt;']) !!}</div>
                         </div>
 
                         <div class="col-12"><hr class="my-2"></div>
                         <div class="col-12 mb-3">
-                            <label class="form-label fw-semibold text-dark d-block">Tạo vận đơn</label>
+                            <label class="form-label fw-semibold text-dark d-block">{{ __('admin.orders.create_shipment') }}</label>
                             <input type="hidden" name="auto_push_on_confirm" value="0">
                             <div class="form-check form-switch pt-1">
                                 <input class="form-check-input" type="checkbox" role="switch" id="ghn_auto_push" name="auto_push_on_confirm" value="1" @checked(old('auto_push_on_confirm', data_get($partner->settings, 'auto_push_on_confirm', false)))>
-                                <label class="form-check-label" for="ghn_auto_push">Tự tạo vận đơn GHN khi xác nhận đơn hàng (Chờ xử lý → Đang xử lý)</label>
+                                <label class="form-check-label" for="ghn_auto_push">{{ __('admin.shipping_partners.ghn_auto_push') }}</label>
                             </div>
-                            <div class="form-text">Chỉ áp dụng cho đơn có chọn Tỉnh/Quận/Phường theo GHN lúc đặt hàng. Đơn khác vẫn tạo vận đơn bằng tay trong chi tiết đơn.</div>
+                            <div class="form-text">{{ __('admin.shipping_partners.ghn_auto_push_hint') }}</div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="ghn_default_weight">Khối lượng mặc định (gram)</label>
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_weight">{{ __('admin.shipping_partners.default_weight') }}</label>
                             <input type="number" min="1" max="50000" class="form-control text-dark" id="ghn_default_weight" name="default_weight" value="{{ old('default_weight', data_get($partner->settings, 'default_weight', 500)) }}">
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="ghn_default_length">Dài (cm)</label>
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_length">{{ __('admin.orders.length_cm') }}</label>
                             <input type="number" min="1" max="200" class="form-control text-dark" id="ghn_default_length" name="default_length" value="{{ old('default_length', data_get($partner->settings, 'default_length', 20)) }}">
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="ghn_default_width">Rộng (cm)</label>
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_width">{{ __('admin.orders.width_cm') }}</label>
                             <input type="number" min="1" max="200" class="form-control text-dark" id="ghn_default_width" name="default_width" value="{{ old('default_width', data_get($partner->settings, 'default_width', 15)) }}">
                         </div>
                         <div class="col-md-3 col-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="ghn_default_height">Cao (cm)</label>
+                            <label class="form-label fw-semibold text-dark" for="ghn_default_height">{{ __('admin.orders.height_cm') }}</label>
                             <input type="number" min="1" max="200" class="form-control text-dark" id="ghn_default_height" name="default_height" value="{{ old('default_height', data_get($partner->settings, 'default_height', 10)) }}">
                         </div>
-                        <div class="col-12"><div class="form-text mt-n2 mb-2">Khối lượng đơn = tổng khối lượng các biến thể (nếu sản phẩm có nhập), nếu không thì dùng khối lượng mặc định. Kích thước dùng cho mọi kiện.</div></div>
+                        <div class="col-12"><div class="form-text mt-n2 mb-2">{{ __('admin.shipping_partners.parcel_hint') }}</div></div>
                     </div>
                 @elseif($partner->partner_code === 'DTGH000014') {{-- J&T --}}
                     @php
@@ -196,12 +196,12 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="api_url">{{ __('admin.shipping_partners.api_url_label') }} <span class="text-danger">*</span></label>
                             <input type="url" class="form-control text-dark" id="api_url" name="api_url" 
-                                value="{{ old('api_url', $apiUrl) }}" placeholder="Nhập API URL..." required>
+                                value="{{ old('api_url', $apiUrl) }}" placeholder="{{ __('admin.shipping_partners.api_url_placeholder') }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="partner_id">{{ __('admin.shipping_partners.partner_id_label') }}</label>
                             <input type="text" class="form-control text-dark" id="partner_id" name="partner_id" 
-                                value="{{ old('partner_id', $partnerId) }}" placeholder="Nhập Partner ID...">
+                                value="{{ old('partner_id', $partnerId) }}" placeholder="{{ __('admin.shipping_partners.partner_id_placeholder') }}">
                         </div>
                     </div>
                 @elseif($partner->partner_code === 'DTGH000016') {{-- Viettel Post --}}
@@ -219,12 +219,12 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="api_url">{{ __('admin.shipping_partners.api_url_label') }} <span class="text-danger">*</span></label>
                             <input type="url" class="form-control text-dark" id="api_url" name="api_url" 
-                                value="{{ old('api_url', $apiUrl) }}" placeholder="Nhập API URL..." required>
+                                value="{{ old('api_url', $apiUrl) }}" placeholder="{{ __('admin.shipping_partners.api_url_placeholder') }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="username">{{ __('admin.shipping_partners.username_label') }}</label>
                             <input type="text" class="form-control text-dark" id="username" name="username" 
-                                value="{{ old('username', $username) }}" placeholder="Nhập số điện thoại hoặc email đăng ký...">
+                                value="{{ old('username', $username) }}" placeholder="{{ __('admin.shipping_partners.username_placeholder') }}">
                         </div>
                     </div>
                 @elseif($partner->partner_code === 'DTGHTUGIAO') {{-- Flat Rate --}}

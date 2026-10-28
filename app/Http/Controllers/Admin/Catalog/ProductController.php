@@ -123,7 +123,7 @@ class ProductController extends Controller
         return $this->redirectAfterCreate($request, 'admin.products.edit', $product, redirect()
             ->route('admin.products.show', $product)
             ->with('success', $variantCount > 0
-                ? __('catalog.products.created')." Đã tạo {$variantCount} SKU tổ hợp."
+                ? __('catalog.products.created_with_variants', ['count' => $variantCount])
                 : __('catalog.products.created')));
     }
 
@@ -186,7 +186,7 @@ class ProductController extends Controller
         return redirect()
             ->route('admin.products.show', $product)
             ->with('success', $variantCount > 0
-                ? __('catalog.products.updated')." Đã tạo {$variantCount} SKU tổ hợp mới."
+                ? __('catalog.products.updated_with_variants', ['count' => $variantCount])
                 : __('catalog.products.updated'));
     }
 
@@ -228,7 +228,7 @@ class ProductController extends Controller
             return back()->with('error', $exception->getMessage());
         }
 
-        ActivityLogger::log('updated', $product, 'Sửa nhanh giá và tồn kho sản phẩm', [
+        ActivityLogger::log('updated', $product, __('catalog.products.log_quick_updated'), [
             'price' => $changes['price'],
             'stock_quantity' => $changes['stock_quantity'],
         ]);
@@ -247,25 +247,25 @@ class ProductController extends Controller
                     ->each(fn (Product $product) => $this->products->delete($product));
             });
 
-            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt sản phẩm', [
+            ActivityLogger::log('bulk_deleted', null, __('catalog.products.log_bulk_deleted'), [
                 'model' => Product::class,
                 'ids' => $ids,
                 'count' => count($ids),
             ]);
 
-            return back()->with('success', 'Đã xóa '.count($ids).' sản phẩm.');
+            return back()->with('success', __('catalog.products.bulk_deleted', ['count' => count($ids)]));
         }
 
         $isActive = $validated['action'] === 'activate';
         $updated = Product::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
-        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt sản phẩm', [
+        ActivityLogger::log('bulk_status_changed', null, __('catalog.products.log_bulk_status'), [
             'model' => Product::class,
             'ids' => $ids,
             'count' => $updated,
             'is_active' => $isActive,
         ]);
 
-        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' sản phẩm.');
+        return back()->with('success', __($isActive ? 'catalog.products.bulk_activated' : 'catalog.products.bulk_deactivated', ['count' => $updated]));
     }
 
     private function categoryOptions()
@@ -457,8 +457,8 @@ class ProductController extends Controller
                 ]);
 
                 fputcsv($file, [
-                    'Sản phẩm mẫu',
-                    'Sample Product',
+                    __('catalog.products.import_sample.name', [], 'vi'),
+                    __('catalog.products.import_sample.name', [], 'en'),
                     'san-pham-mau',
                     'SKU-SAMPLE-1',
                     'Electronics > Laptops',
@@ -469,10 +469,10 @@ class ProductController extends Controller
                     '20',
                     '1',
                     '1',
-                    'Mô tả ngắn tiếng Việt',
-                    'English short description',
-                    '<p>Mô tả chi tiết</p>',
-                    '<p>Detailed English description</p>',
+                    __('catalog.products.import_sample.short_description', [], 'vi'),
+                    __('catalog.products.import_sample.short_description', [], 'en'),
+                    __('catalog.products.import_sample.description', [], 'vi'),
+                    __('catalog.products.import_sample.description', [], 'en'),
                     'https://images.unsplash.com/photo-1517694712202-14dd9538aa97',
                 ]);
             }

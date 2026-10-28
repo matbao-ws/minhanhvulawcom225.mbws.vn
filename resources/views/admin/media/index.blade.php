@@ -129,7 +129,7 @@
             height: auto !important;
         }
         .media-pdf-preview.is-unavailable::after {
-            content: 'Không thể xem trước PDF';
+            content: '{{ __('admin.media.pdf_preview_unavailable') }}';
             color: #64748b;
             font-size: .75rem;
             font-weight: 600;
@@ -456,7 +456,7 @@
                                     <small class="text-muted fw-semibold" id="mediaUploadSizeBadge"></small>
                                 </div>
                                 <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 fw-semibold" id="mediaClearAllBtn">
-                                    <i class="ti ti-trash me-1"></i>{{ app()->getLocale() === 'vi' ? 'Xóa tất cả' : 'Clear all' }}
+                                    <i class="ti ti-trash me-1"></i>{{ __('admin.media.clear_all') }}
                                 </button>
                             </div>
                             <div class="media-upload-previews-grid" id="mediaUploadPreviewsGrid">
@@ -469,7 +469,7 @@
                                 <i class="ti ti-upload me-1"></i>{{ __('catalog.media.upload') }} (<span id="mediaUploadSubmitCount">0</span>)
                             </button>
                             <label class="btn btn-outline-secondary btn-sm d-none mb-0" id="mediaAddMoreBtn" for="media_file_upload">
-                                <i class="ti ti-plus me-1"></i>{{ app()->getLocale() === 'vi' ? 'Chọn thêm tệp' : 'Add more files' }}
+                                <i class="ti ti-plus me-1"></i>{{ __('admin.media.add_more') }}
                             </label>
                         </div>
                         @error('file')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
@@ -492,8 +492,8 @@
                                         </select>
                                     </form>
                                     <div class="media-view-toggle" aria-label="{{ __('catalog.media.files') }}">
-                                        <button type="button" class="is-active" data-media-view="grid" aria-label="Grid view"><i class="ti ti-layout-grid"></i></button>
-                                        <button type="button" data-media-view="list" aria-label="List view"><i class="ti ti-list"></i></button>
+                                        <button type="button" class="is-active" data-media-view="grid" aria-label="{{ __('admin.media.grid_view') }}"><i class="ti ti-layout-grid"></i></button>
+                                        <button type="button" data-media-view="list" aria-label="{{ __('admin.media.list_view') }}"><i class="ti ti-list"></i></button>
                                     </div>
                                 </div>
                             @endif
@@ -523,8 +523,8 @@
                                         </select>
                                     </form>
                                     <div class="media-view-toggle" aria-label="{{ __('catalog.media.files') }}">
-                                        <button type="button" class="is-active" data-media-view="grid" aria-label="Grid view"><i class="ti ti-layout-grid"></i></button>
-                                        <button type="button" data-media-view="list" aria-label="List view"><i class="ti ti-list"></i></button>
+                                        <button type="button" class="is-active" data-media-view="grid" aria-label="{{ __('admin.media.grid_view') }}"><i class="ti ti-layout-grid"></i></button>
+                                        <button type="button" data-media-view="list" aria-label="{{ __('admin.media.list_view') }}"><i class="ti ti-list"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -636,7 +636,7 @@
                                     </div>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#cloudinaryEditCollapse" aria-expanded="{{ (session('cloudinary_action') !== 'disconnect' && $errors->cloudinary->any()) ? 'true' : 'false' }}">
-                                    <i class="ti ti-edit me-1"></i>{{ app()->getLocale() === 'vi' ? 'Sửa thông tin key' : 'Edit API Keys' }}
+                                    <i class="ti ti-edit me-1"></i>{{ __('admin.media.edit_keys') }}
                                 </button>
                             </div>
                         @endif
@@ -645,7 +645,7 @@
                             <div class="{{ $cloudinaryConnection['configured'] ? 'card card-body bg-light border p-3' : '' }}">
                                 @if ($cloudinaryConnection['configured'])
                                     <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <h6 class="fw-bold mb-0 text-dark"><i class="ti ti-key me-1 text-primary"></i>{{ app()->getLocale() === 'vi' ? 'Cập nhật khóa API Cloudinary' : 'Update Cloudinary Keys' }}</h6>
+                                        <h6 class="fw-bold mb-0 text-dark"><i class="ti ti-key me-1 text-primary"></i>{{ __('admin.media.update_keys') }}</h6>
                                         <button type="button" class="btn-close btn-sm" data-bs-toggle="collapse" data-bs-target="#cloudinaryEditCollapse" aria-label="Close"></button>
                                     </div>
                                 @endif
@@ -697,7 +697,7 @@
                                         </div>
                                         <div class="input-group">
                                             <input type="password" class="form-control @if(session('cloudinary_action') !== 'disconnect' && $errors->cloudinary->has('api_secret')) is-invalid @endif" id="cloudinary_api_secret" name="api_secret" value="{{ old('api_secret', '') }}" placeholder="{{ __('catalog.media.cloudinary_api_secret_placeholder') }}" autocomplete="new-password" required>
-                                            <button class="btn btn-outline-secondary" type="button" id="toggleApiSecretBtn" title="Hiện / Ẩn API Secret">
+                                            <button class="btn btn-outline-secondary" type="button" id="toggleApiSecretBtn" title="{{ __('admin.media.toggle_secret') }}">
                                                 <i class="ti ti-eye" id="toggleApiSecretIcon"></i>
                                             </button>
                                         </div>
@@ -911,8 +911,8 @@
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'media-preview-remove';
-                    removeBtn.title = '{{ app()->getLocale() === 'vi' ? 'Xóa tệp này' : 'Remove this file' }}';
-                    removeBtn.setAttribute('aria-label', '{{ app()->getLocale() === 'vi' ? 'Xóa tệp này' : 'Remove this file' }}');
+                    removeBtn.title = @json(__('admin.media.remove_file'));
+                    removeBtn.setAttribute('aria-label', @json(__('admin.media.remove_file')));
                     removeBtn.innerHTML = '<i class="ti ti-x"></i>';
                     removeBtn.addEventListener('click', function (e) {
                         e.preventDefault();
