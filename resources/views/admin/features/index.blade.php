@@ -98,7 +98,7 @@
                                 @include('admin.features._feature_card', ['feature' => $feature, 'groupKey' => $groupKey])
                             @empty
                                 <div class="col-12">
-                                    <div class="alert alert-light border mb-0">Chưa có tính năng trong nhóm này.</div>
+                                    <div class="alert alert-light border mb-0">{{ __('admin.features.group_empty') }}</div>
                                 </div>
                             @endforelse
                         </div>
@@ -152,6 +152,11 @@
         enableGroup: @json(__('admin.features.enable_group')),
         disableGroup: @json(__('admin.features.disable_group')),
         groupError: @json(__('admin.features.group_update_error')),
+        badgeOn: @json(__('admin.features.badge_on')),
+        badgeOff: @json(__('admin.features.badge_off')),
+        statusOn: @json(__('admin.features.status_on')),
+        statusOff: @json(__('admin.features.status_off')),
+        updateError: @json(__('admin.features.update_error')),
     };
 
     function setFeatureUi(code, checked) {
@@ -164,14 +169,14 @@
         if (checked) {
             badge.className = 'position-absolute top-0 end-0 bg-success text-white px-3 py-1 small fw-semibold d-flex align-items-center gap-1';
             badgeIcon.className = 'ti ti-circle-check';
-            badgeText.innerText = 'Đã kích hoạt';
-            statusText.innerText = 'Hoạt động';
+            badgeText.innerText = featureMessages.badgeOn;
+            statusText.innerText = featureMessages.statusOn;
             statusText.className = 'fw-bold text-success mb-0 fs-3';
         } else {
             badge.className = 'position-absolute top-0 end-0 bg-secondary-subtle text-muted px-3 py-1 small fw-semibold d-flex align-items-center gap-1';
             badgeIcon.className = 'ti ti-circle-x';
-            badgeText.innerText = 'Đang tắt';
-            statusText.innerText = 'Tạm dừng';
+            badgeText.innerText = featureMessages.badgeOff;
+            statusText.innerText = featureMessages.statusOff;
             statusText.className = 'fw-bold text-danger mb-0 fs-3';
         }
         badge.style.borderBottomLeftRadius = '12px';
@@ -232,7 +237,7 @@
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Lỗi cập nhật tính năng.');
+            throw new Error(data.message || featureMessages.updateError);
         }
         return data;
     }

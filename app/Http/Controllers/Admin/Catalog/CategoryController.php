@@ -26,12 +26,12 @@ class CategoryController extends Controller
             ['slug' => 'chua-phan-loai'],
             [
                 'name' => [
-                    'vi' => 'Chưa phân loại',
-                    'en' => 'Uncategorized',
+                    'vi' => __('catalog.categories.uncategorized_name', [], 'vi'),
+                    'en' => __('catalog.categories.uncategorized_name', [], 'en'),
                 ],
                 'description' => [
-                    'vi' => 'Danh mục mặc định cho các sản phẩm chưa được phân loại.',
-                    'en' => 'Default category for uncategorized products.',
+                    'vi' => __('catalog.categories.uncategorized_description', [], 'vi'),
+                    'en' => __('catalog.categories.uncategorized_description', [], 'en'),
                 ],
                 'is_active' => true,
                 'sort_order' => 0,
@@ -197,7 +197,7 @@ class CategoryController extends Controller
         }
 
         if ($category->products()->exists()) {
-            return back()->with('error', 'Không thể xóa danh mục đang có sản phẩm. Hãy chuyển sản phẩm sang danh mục khác trước.');
+            return back()->with('error', __('catalog.categories.delete_has_products'));
         }
 
         $this->categories->delete($category);
@@ -222,7 +222,7 @@ class CategoryController extends Controller
                 })
                 ->count();
             if ($blocked > 0) {
-                return back()->with('error', "Không thể xóa {$blocked} danh mục mặc định, có danh mục con hoặc đang có sản phẩm.");
+                return back()->with('error', __('catalog.categories.bulk_delete_blocked', ['count' => $blocked]));
             }
 
             DB::transaction(function () use ($ids): void {
@@ -230,25 +230,25 @@ class CategoryController extends Controller
                     ->each(fn (Category $category) => $this->categories->delete($category));
             });
 
-            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt danh mục', [
+            ActivityLogger::log('bulk_deleted', null, __('catalog.categories.log_bulk_deleted'), [
                 'model' => Category::class,
                 'ids' => $ids,
                 'count' => count($ids),
             ]);
 
-            return back()->with('success', 'Đã xóa '.count($ids).' danh mục.');
+            return back()->with('success', __('catalog.categories.bulk_deleted', ['count' => count($ids)]));
         }
 
         $isActive = $validated['action'] === 'activate';
         $updated = Category::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
-        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt danh mục', [
+        ActivityLogger::log('bulk_status_changed', null, __('catalog.categories.log_bulk_status'), [
             'model' => Category::class,
             'ids' => $ids,
             'count' => $updated,
             'is_active' => $isActive,
         ]);
 
-        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' danh mục.');
+        return back()->with('success', __($isActive ? 'catalog.categories.bulk_activated' : 'catalog.categories.bulk_deactivated', ['count' => $updated]));
     }
 
     public function quickUpdate(CategoryRequest $request, string $locale, Category $category)

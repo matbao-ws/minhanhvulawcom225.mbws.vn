@@ -212,7 +212,7 @@ class PostCategoryController extends Controller
         }
 
         return response()->json([
-            'message' => 'Đã thay đổi thứ tự chuyên mục thành công.',
+            'message' => __('admin.blog_categories.sorted_success'),
         ]);
     }
 
@@ -275,7 +275,7 @@ class PostCategoryController extends Controller
         $current = $parentId ? PostCategory::find($parentId) : null;
         while ($current) {
             if ($current->is($category)) {
-                abort(422, 'Chuyên mục cha không thể là chuyên mục con của chính nó.');
+                abort(422, __('admin.blog_categories.parent_cycle'));
             }
             $current = $current->parent_id ? PostCategory::find($current->parent_id) : null;
         }

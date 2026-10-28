@@ -123,7 +123,7 @@ class MediaController extends Controller
         }
 
         $setting = $this->cloudinaryCredentials->connect($credentials);
-        ActivityLogger::log('updated', $setting, 'Kết nối Cloudinary cho thư viện media', [
+        ActivityLogger::log('updated', $setting, __('admin.media.log.cloudinary_connected'), [
             'cloud_name' => $credentials['cloud_name'],
         ]);
 
@@ -147,7 +147,7 @@ class MediaController extends Controller
 
         $request->request->remove('current_password');
         $setting = $this->cloudinaryCredentials->disconnect();
-        ActivityLogger::log('updated', $setting, 'Ngắt kết nối Cloudinary của thư viện media');
+        ActivityLogger::log('updated', $setting, __('admin.media.log.cloudinary_disconnected'));
 
         return back()->with('success', __('catalog.media.cloudinary_disconnected'));
     }

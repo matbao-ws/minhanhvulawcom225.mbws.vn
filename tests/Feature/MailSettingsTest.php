@@ -121,6 +121,15 @@ class MailSettingsTest extends TestCase
         $this->assertSame('owner@shop.vn', app(MailSettings::class)->ownerEmail());
     }
 
+    public function test_several_owner_emails_are_split_and_the_first_is_the_reply_to(): void
+    {
+        $this->storeSmtp(['owner_email' => " owner@shop.vn, sales@shop.vn;\nOWNER@shop.vn "]);
+        $settings = app(MailSettings::class);
+
+        $this->assertSame(['owner@shop.vn', 'sales@shop.vn'], $settings->ownerEmails());
+        $this->assertSame('owner@shop.vn', $settings->ownerEmail());
+    }
+
     public function test_apply_survives_a_database_without_the_settings_table(): void
     {
         // A fresh install runs migrations before project_settings exists; failing to

@@ -72,13 +72,13 @@ class MetaSuggestionService
      *
      * @throws GatewayUnavailable
      */
-    public function suggest(string $type, int $id, string $locale, User $user): array
+    public function suggest(string $type, int $id, string $locale, User $user, array $searchQueries = []): array
     {
         [$definition, $record] = $this->resolve($type, $id, $user);
         abort_unless($this->languages->supports($locale), 422, __('ai.errors.locale'));
 
         $current = $this->currentValues($definition, $record, $locale);
-        $input = $this->taskInput($type, $record, $locale);
+        $input = $this->taskInput($type, $record, $locale, $searchQueries);
 
         $response = $this->gateway->task(self::TASK, $input, (string) Str::uuid());
 
@@ -153,9 +153,10 @@ class MetaSuggestionService
     /**
      * What the model sees for one record — the same for a single click and a bulk job.
      *
+     * @param  list<string>  $searchQueries  real Google searches that show the page, most seen first
      * @return array<string, mixed>
      */
-    public function taskInput(string $type, Model $record, string $locale): array
+    public function taskInput(string $type, Model $record, string $locale, array $searchQueries = []): array
     {
         $definition = self::ENTITIES[$type];
         $current = $this->currentValues($definition, $record, $locale);
@@ -175,7 +176,8 @@ class MetaSuggestionService
             'focus_keyword' => filled($record->getAttribute('seo_keys'))
                 ? Str::limit(PostSeoAnalyzer::primaryKeyword((string) $record->getAttribute('seo_keys')), 120, '')
                 : null,
-        ];
+        ] + ($searchQueries !== [] ? ['search_queries' => array_slice(array_map(
+            fn ($query) => Str::limit((string) $query, 290, ''), $searchQueries), 0, 10)] : []);
     }
 
     /** @return array{title: string, description: string} */

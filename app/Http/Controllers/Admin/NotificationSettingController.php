@@ -3,16 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\MailSettingsTestMail;
 use App\Models\FeatureSetting;
 use App\Models\ProjectSetting;
 use App\Services\MailSettings;
+use App\Services\SiteBranding;
 use App\Support\SecretMask;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class NotificationSettingController extends Controller
 {
+    /** Each address is one more mail per notification, counted on the package's monthly quota. */
+    private const MAX_OWNER_EMAILS = 5;
+
     /**
      * Display the notification settings page.
      */
@@ -108,6 +116,8 @@ class NotificationSettingController extends Controller
             }
         }
 
+        $this->normalizeOwnerEmails($request);
+
         $validated = $request->validate([
             // Zalo OA
             'zalo_oa.enabled' => 'nullable|boolean',
@@ -123,15 +133,7 @@ class NotificationSettingController extends Controller
             'zalo_personal.chat_id' => 'required_if:zalo_personal.enabled,1,true|nullable|string|max:255',
 
             // SMTP
-            'smtp.enabled' => 'nullable|boolean',
-            'smtp.host' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
-            'smtp.port' => 'required_if:smtp.enabled,1,true|nullable|integer|min:1|max:65535',
-            'smtp.encryption' => 'required_if:smtp.enabled,1,true|nullable|string|in:ssl,tls,none',
-            'smtp.username' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
-            'smtp.password' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
-            'smtp.from_email' => 'required_if:smtp.enabled,1,true|nullable|email|max:255',
-            'smtp.from_name' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
-            'smtp.owner_email' => 'required_if:smtp.enabled,1,true|nullable|email|max:255',
+            ...$this->smtpRules(),
 
             // Dashboard
             'dashboard.enabled' => 'nullable|boolean',
@@ -255,5 +257,98 @@ class NotificationSettingController extends Controller
                 'message' => __('admin.notification_settings.zalo_personal.get_chat_id_error'),
             ], 500);
         }
+    }
+
+    /**
+     * Send one test email with the settings as they are on the form, saved or not: the
+     * admin's own SMTP account when it is switched on, otherwise the mailer in use now.
+     */
+    public function sendTestEmail(Request $request): JsonResponse
+    {
+        $this->normalizeOwnerEmails($request);
+        $validated = $request->validate($this->smtpRules());
+        $smtp = (array) ($validated['smtp'] ?? []);
+
+        $recipients = MailSettings::splitEmails($smtp['owner_email'] ?? '') ?: array_filter([(string) $request->user()?->email]);
+        if (! $recipients) {
+            return response()->json(['success' => false, 'message' => __('admin.notification_settings.smtp.test_no_recipient')], 422);
+        }
+
+        $ownSmtp = filter_var($smtp['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (! $ownSmtp && in_array(config('mail.mailers.'.config('mail.default').'.transport'), ['log', 'array'], true)) {
+            return response()->json(['success' => false, 'message' => __('admin.notification_settings.smtp.test_log_only')], 422);
+        }
+
+        try {
+            $mailer = $ownSmtp
+                ? Mail::build(MailSettings::smtpMailer([
+                    'host' => $smtp['host'],
+                    'port' => (int) $smtp['port'],
+                    'encryption' => $smtp['encryption'],
+                    'username' => $smtp['username'],
+                    'password' => $smtp['password'],
+                ]) + ['timeout' => 15])
+                : Mail::mailer();
+
+            $mailer->to($recipients)->send(new MailSettingsTestMail(
+                (string) app(SiteBranding::class)->current()['name'],
+                $ownSmtp ? $smtp['from_email'] : null,
+                $ownSmtp ? $smtp['from_name'] : null,
+            ));
+        } catch (\Throwable $e) {
+            // The SMTP server's own words ("535 Authentication failed") are what the admin needs; the
+            // transport never puts the password in them.
+            Log::warning('Test email failed.', ['exception' => $e::class]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('admin.notification_settings.smtp.test_failed', ['error' => Str::limit(trim($e->getMessage()), 300)]),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => __('admin.notification_settings.smtp.test_sent', ['emails' => implode(', ', $recipients)]),
+        ]);
+    }
+
+    /**
+     * Several recipients, separated by commas (or semicolons, spaces, new lines), kept as "a@x.vn, b@y.vn".
+     */
+    private function normalizeOwnerEmails(Request $request): void
+    {
+        if ($request->has('smtp.owner_email')) {
+            $request->merge(['smtp' => array_merge((array) $request->input('smtp'), [
+                'owner_email' => implode(', ', MailSettings::splitEmails($request->input('smtp.owner_email'))),
+            ])]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function smtpRules(): array
+    {
+        return [
+            'smtp.enabled' => 'nullable|boolean',
+            'smtp.host' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
+            'smtp.port' => 'required_if:smtp.enabled,1,true|nullable|integer|min:1|max:65535',
+            'smtp.encryption' => 'required_if:smtp.enabled,1,true|nullable|string|in:ssl,tls,none',
+            'smtp.username' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
+            'smtp.password' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
+            'smtp.from_email' => 'required_if:smtp.enabled,1,true|nullable|email|max:255',
+            'smtp.from_name' => 'required_if:smtp.enabled,1,true|nullable|string|max:255',
+            'smtp.owner_email' => ['required_if:smtp.enabled,1,true', 'nullable', 'string', 'max:1000', function (string $attribute, mixed $value, \Closure $fail): void {
+                $emails = MailSettings::splitEmails($value);
+                if (count($emails) > self::MAX_OWNER_EMAILS) {
+                    $fail(__('admin.notification_settings.smtp.owner_email_too_many', ['max' => self::MAX_OWNER_EMAILS]));
+                }
+                foreach ($emails as $email) {
+                    if (validator(['email' => $email], ['email' => 'email'])->fails()) {
+                        $fail(__('admin.notification_settings.smtp.owner_email_invalid', ['email' => $email]));
+                    }
+                }
+            }],
+        ];
     }
 }

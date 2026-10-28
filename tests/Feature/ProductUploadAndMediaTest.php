@@ -113,7 +113,7 @@ class ProductUploadAndMediaTest extends TestCase
 
         $files = Storage::disk('public')->files('general');
         $this->assertCount(1, $files);
-        $this->assertStringEndsWith('.jpg', $files[0]);
+        $this->assertStringEndsWith('.webp', $files[0]);
     }
 
     public function test_admin_can_upload_multiple_media_files_in_one_request(): void
@@ -131,8 +131,8 @@ class ProductUploadAndMediaTest extends TestCase
         $files = Storage::disk('public')->files('general');
         $this->assertCount(2, $files);
         $extensions = array_map(fn (string $file): string => pathinfo($file, PATHINFO_EXTENSION), $files);
-        $this->assertContains('jpg', $extensions);
-        $this->assertContains('png', $extensions);
+        // Both photos are re-encoded to WebP on upload.
+        $this->assertSame(['webp', 'webp'], $extensions);
     }
 
     public function test_admin_can_upload_and_manage_an_mp4_video(): void
@@ -337,7 +337,7 @@ class ProductUploadAndMediaTest extends TestCase
         // Verify the file was stored on the fallback public disk
         $files = Storage::disk('public')->files('products');
         $this->assertCount(1, $files);
-        $this->assertStringEndsWith('.png', $files[0]);
+        $this->assertStringEndsWith('.webp', $files[0]);
     }
 
     public function test_can_create_product_with_an_existing_media_url(): void

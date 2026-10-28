@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {{-- Read by fetch() calls of shared admin scripts (translation preview, AI suggestions). --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" href="{{ $siteBranding['favicon_url'] }}">
+    <link rel="icon" href="{{ $siteBranding['admin_favicon_url'] }}">
     <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/styles.css') }}">
     <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/core-controls.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.css') }}">
@@ -435,19 +435,20 @@
         <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 d-flex align-items-center justify-content-between px-4" style="background-color: #fff3cd !important; border-bottom: 1px solid #ffeeba !important; position: sticky; top: 0; z-index: 99999;">
             <div class="d-flex align-items-center gap-2" style="color: #856404 !important; font-weight: 600; font-size: 14.5px;">
                 <iconify-icon icon="solar:info-circle-line-duotone" class="fs-6"></iconify-icon>
-                <span>Bạn đang đăng nhập với vai trò <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}).</span>
+                <span>{!! __('admin.header.impersonating', ['name' => '<strong>'.e(auth()->user()->name).'</strong>', 'email' => e(auth()->user()->email)]) !!}</span>
             </div>
             <form method="POST" action="{{ route('admin.users.impersonate.leave', ['locale' => app()->getLocale()]) }}">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-warning fw-bold" style="font-size: 13px; border-radius: 6px; padding: 4px 12px;">
-                    Quay lại Admin
+                    {{ __('admin.header.leave_impersonation') }}
                 </button>
             </form>
         </div>
     @endif
 
     <div class="preloader">
-        <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}" class="lds-ripple img-fluid">
+        {{-- The admin's own icon, not the site's favicon setting. --}}
+        <img src="{{ asset('admin-assets/images/logos/favicon.png') }}" alt="" class="lds-ripple img-fluid">
     </div>
 
     <div id="main-wrapper">
@@ -483,6 +484,7 @@
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
     @include('admin.layouts.toast')
     <script>window.AdminAjaxText = @json(__('admin.ajax'));</script>
+    <script>window.AdminFormGuidanceText = @json(__('admin.form_guidance'));</script>
     <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/admin-ajax.js') }}"></script>
     @include('admin.shared.ai-locked-assets')
     <script>
@@ -507,7 +509,7 @@
                 toggle.setAttribute('aria-controls', collapseId);
                 toggle.setAttribute('aria-expanded', hasActiveFilters ? 'true' : 'false');
                 toggle.innerHTML = '<span><i class="ti ti-adjustments-horizontal me-2"></i>'
-                    + @json(app()->getLocale() === 'vi' ? 'Bộ lọc' : 'Filters')
+                    + @json(__('admin.filters'))
                     + '</span><i class="ti ti-chevron-down"></i>';
 
                 form.parentNode.insertBefore(toggle, form);

@@ -12,6 +12,10 @@
   const products = JSON.parse(document.getElementById('checkout-test-products').textContent);
   const byId = Object.fromEntries(products.map((p) => [String(p.id), p]));
   const money = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
+  // Text from the view (window.CheckoutTestText, admin.checkout_test.js); English if it is missing.
+  const text = window.CheckoutTestText || {};
+  const t = (key, fallback, replace = {}) => Object.entries(replace)
+    .reduce((line, [name, value]) => line.split(`:${name}`).join(value), text[key] || fallback);
 
   const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -35,7 +39,7 @@
       select.className = 'form-select form-select-sm';
       select.name = 'option_value_id';
       select.required = true;
-      select.append(new Option(`Chọn ${group.name}`, ''));
+      select.append(new Option(t('choose_option', 'Choose :name', { name: group.name }), ''));
       group.values.forEach((value) => select.append(new Option(value.label, value.id)));
       col.append(label, select);
       target.append(col);
@@ -93,7 +97,7 @@
     const getJson = async (url) => {
       const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message || 'Không lấy được dữ liệu GHN.');
+      if (!response.ok) throw new Error(body.message || t('ghn_lookup_failed', 'Could not load GHN data.'));
       return body;
     };
 
@@ -110,41 +114,41 @@
 
     const setStatus = (ok, message) => {
       badge.className = `badge ${ok ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`;
-      badge.textContent = ok ? 'Hoạt động' : 'Lỗi';
+      badge.textContent = ok ? t('active', 'Active') : t('error', 'Error');
       statusMessage.textContent = message;
       if (settingsLink) settingsLink.hidden = ok;
     };
 
     getJson(ghn.dataset.statusUrl)
       .then((status) => {
-        setStatus(status.ok, status.ok && status.shop_name ? `${status.message} Shop: ${status.shop_name}.` : status.message);
+        setStatus(status.ok, status.ok && status.shop_name ? t('status_with_shop', ':message Shop: :shop.', { message: status.message, shop: status.shop_name }) : status.message);
         if (!status.ok) {
-          reset(province, 'GHN chưa kết nối được');
+          reset(province, t('ghn_unavailable', 'GHN is not connected'));
           return;
         }
-        return getJson(ghn.dataset.provincesUrl).then((body) => fill(province, body.data, 'Chọn tỉnh/thành', 'ProvinceName', 'ProvinceID'));
+        return getJson(ghn.dataset.provincesUrl).then((body) => fill(province, body.data, t('choose_province', 'Choose a province/city'), 'ProvinceName', 'ProvinceID'));
       })
       .catch((error) => {
         setStatus(false, error.message);
-        reset(province, 'GHN chưa kết nối được');
+        reset(province, t('ghn_unavailable', 'GHN is not connected'));
       });
 
     province.addEventListener('change', () => {
-      reset(district, 'Đang tải…');
-      reset(ward, 'Chọn quận/huyện trước');
+      reset(district, t('loading', 'Loading…'));
+      reset(ward, t('choose_district_first', 'Choose a district first'));
       codes.hidden = true;
-      if (!province.value) return reset(district, 'Chọn tỉnh trước');
+      if (!province.value) return reset(district, t('choose_province_first', 'Choose a province first'));
       getJson(ghn.dataset.districtsUrl.replace('__ID__', province.value))
-        .then((body) => fill(district, body.data, 'Chọn quận/huyện', 'DistrictName', 'DistrictID'))
+        .then((body) => fill(district, body.data, t('choose_district', 'Choose a district'), 'DistrictName', 'DistrictID'))
         .catch((error) => show('danger', escape(error.message)));
     });
 
     district.addEventListener('change', () => {
-      reset(ward, 'Đang tải…');
+      reset(ward, t('loading', 'Loading…'));
       codes.hidden = true;
-      if (!district.value) return reset(ward, 'Chọn quận/huyện trước');
+      if (!district.value) return reset(ward, t('choose_district_first', 'Choose a district first'));
       getJson(ghn.dataset.wardsUrl.replace('__ID__', district.value))
-        .then((body) => fill(ward, body.data, 'Chọn phường/xã', 'WardName', 'WardCode'))
+        .then((body) => fill(ward, body.data, t('choose_ward', 'Choose a ward'), 'WardName', 'WardCode'))
         .catch((error) => show('danger', escape(error.message)));
     });
 
@@ -195,7 +199,7 @@
 
     if (!form.checkValidity()) {
       form.classList.add('was-validated');
-      show('warning', 'Vui lòng điền đủ các trường bắt buộc.');
+      show('warning', escape(t('required_fields', 'Please fill in all required fields.')));
       return;
     }
 
@@ -232,10 +236,13 @@
 
       const number = body.data?.order?.order_number;
       const link = number ? `${form.dataset.ordersUrl}?q=${encodeURIComponent(number)}` : form.dataset.ordersUrl;
-      show('success', `Tạo đơn thành công${number ? `: <strong>${escape(number)}</strong>` : ''}. <a href="${link}">Xem trong danh sách đơn hàng →</a>`);
+      const created = number
+        ? escape(t('created_number', 'Order created: :number.')).split(':number').join(`<strong>${escape(number)}</strong>`)
+        : escape(t('created', 'Order created.'));
+      show('success', `${created} <a href="${link}">${escape(t('view_orders', 'View in the order list →'))}</a>`);
       if (body.data?.payment_url) window.location.assign(body.data.payment_url);
     } catch (error) {
-      const message = error?.errors ? Object.values(error.errors).flat().join(' ') : (error?.message || 'Không thể tạo đơn.');
+      const message = error?.errors ? Object.values(error.errors).flat().join(' ') : (error?.message || t('create_failed', 'Could not create the order.'));
       show('danger', escape(message));
     } finally {
       submit.disabled = false;

@@ -43,6 +43,8 @@ class HtmlSanitizer
 
     private ?HTMLPurifier $richTextPurifier = null;
 
+    private ?HTMLPurifier $siteBlockPurifier = null;
+
     /**
      * Markup without inline styles: storefront site blocks (whose look is design tokens and
      * classes, never style attributes), imports and AI text that is not editor content.
@@ -52,6 +54,18 @@ class HtmlSanitizer
         $this->purifier ??= new HTMLPurifier($this->config('matbao-post-table', 2));
 
         return MediaUrl::relativizeHtmlSources($this->purifier->purify((string) $html));
+    }
+
+    /**
+     * A storefront region edited in place: clean() plus one inline style, the text colour the
+     * editor's colour button sets (`<span style="color: …">`). Every other style is still dropped,
+     * so a region keeps the theme's fonts, sizes and spacing.
+     */
+    public function cleanSiteBlock(?string $html): string
+    {
+        $this->siteBlockPurifier ??= new HTMLPurifier($this->config('matbao-site-block', 1, textColour: true));
+
+        return MediaUrl::relativizeHtmlSources($this->siteBlockPurifier->purify((string) $html));
     }
 
     /**
@@ -66,7 +80,7 @@ class HtmlSanitizer
         return MediaUrl::relativizeHtmlSources($this->richTextPurifier->purify((string) $html));
     }
 
-    private function config(string $definitionId, int $revision, bool $richText = false): HTMLPurifier_Config
+    private function config(string $definitionId, int $revision, bool $richText = false, bool $textColour = false): HTMLPurifier_Config
     {
         $cachePath = storage_path('app/htmlpurifier');
         if (! is_dir($cachePath)) {
@@ -82,7 +96,10 @@ class HtmlSanitizer
 
         if (! $richText) {
             $config->set('HTML.AllowedElements', array_fill_keys(self::ELEMENTS, true));
-            $config->set('HTML.AllowedAttributes', array_fill_keys(self::ATTRIBUTES, true));
+            $config->set('HTML.AllowedAttributes', array_fill_keys([...self::ATTRIBUTES, ...($textColour ? ['span.style'] : [])], true));
+            if ($textColour) {
+                $config->set('CSS.AllowedProperties', ['color' => true]);
+            }
             if ($definition = $config->maybeGetRawHTMLDefinition()) {
                 $this->addTableAttributes($definition);
             }

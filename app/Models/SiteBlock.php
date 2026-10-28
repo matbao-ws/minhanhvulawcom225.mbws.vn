@@ -33,12 +33,16 @@ class SiteBlock extends Model
 
     public const FORMATS = [self::FORMAT_PARAGRAPH, 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol'];
 
+    /** Text alignment tokens from the inline toolbar; null keeps the theme's own. */
+    public const ALIGNS = ['left', 'center', 'right', 'justify'];
+
     public array $translatable = ['content'];
 
     protected $fillable = [
         'key',
         'type',
         'format',
+        'align',
         'content',
     ];
 

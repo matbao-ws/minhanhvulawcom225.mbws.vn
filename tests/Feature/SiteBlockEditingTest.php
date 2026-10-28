@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\SiteContentService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Tests\TestCase;
 
 /**
@@ -136,6 +137,62 @@ class SiteBlockEditingTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.value', fn (string $value) => str_contains($value, '<span class="client-weight-normal">CÔNG TY</span>')
                 && ! str_contains($value, 'style='));
+    }
+
+    public function test_a_text_colour_survives_and_no_other_style_does(): void
+    {
+        $this->actingWith(['pages.update']);
+
+        $this->patchJson('/vi/admin/site-blocks', [
+            'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_HTML, 'content_locale' => 'vi',
+            'value' => '<span style="color: rgb(220, 38, 38); font-size: 40px">đỏ</span> <span style="color:#2563eb">xanh</span> '
+                .'<b style="color:red">đậm</b> <span style="background:url(javascript:alert(1))">x</span> <span style="color: expression(alert(1))">y</span>',
+        ])->assertOk()->assertJsonPath('data.value', function (string $value) {
+            return str_contains($value, '<span style="color:rgb(220,38,38);">đỏ</span>')
+                && str_contains($value, '<span style="color:#2563eb;">xanh</span>')
+                // Only a span carries the colour; the theme's sizes and backgrounds are never stored.
+                && str_contains($value, '<b>đậm</b>')
+                && ! str_contains($value, 'font-size')
+                && ! str_contains($value, 'background')
+                && ! str_contains($value, 'javascript')
+                && ! str_contains($value, 'expression');
+        });
+
+        $this->get('/danh-muc/dien-thoai')->assertOk()->assertSee('<span style="color:#2563eb;">xanh</span>', false);
+    }
+
+    public function test_a_line_break_typed_into_a_label_is_kept(): void
+    {
+        $this->actingWith(['pages.update']);
+
+        // Shift+Enter in a plain label turns it into HTML so the break is saved.
+        $this->patchJson('/vi/admin/site-blocks', [
+            'key' => 'catalog.category.empty', 'type' => SiteBlock::TYPE_HTML, 'content_locale' => 'vi',
+            'value' => 'Dòng một<br>Dòng hai',
+        ])->assertOk()->assertJsonPath('data.value', 'Dòng một<br />Dòng hai');
+    }
+
+    public function test_the_inline_toolbar_offers_text_colour_and_adding_boxes(): void
+    {
+        $this->actingWith(['pages.update']);
+
+        $this->get('/danh-muc/dien-thoai')
+            ->assertOk()
+            ->assertSee('id="client-block-color-control"', false)
+            ->assertSee('id="client-block-color-input"', false)
+            ->assertSee('data-client-block-color="#dc2626"', false)
+            ->assertSee('Bỏ màu');
+
+        $add = Blade::render('<x-client::list-add list="about.team" :defaults="[\'a\', \'b\']" label="Thêm thành viên" />');
+        $this->assertStringContainsString('data-client-list-add', $add);
+        $this->assertStringContainsString('data-list-key="about.team"', $add);
+        $this->assertStringContainsString('data-list-defaults="[&quot;a&quot;,&quot;b&quot;]"', $add);
+        $this->assertStringContainsString('Thêm thành viên', $add);
+    }
+
+    public function test_visitors_never_get_the_add_box_control(): void
+    {
+        $this->assertSame('', trim(Blade::render('<x-client::list-add list="about.team" />')));
     }
 
     public function test_text_regions_are_stripped_of_markup(): void

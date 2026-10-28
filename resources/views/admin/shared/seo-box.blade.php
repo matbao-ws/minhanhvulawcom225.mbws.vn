@@ -164,10 +164,10 @@
                 <div class="rm-snippet__bar">
                     <span><i class="ti ti-brand-google me-1" aria-hidden="true"></i>{{ __('admin.posts.seo_panel.preview') }}</span>
                     <div class="btn-group btn-group-sm" role="group" aria-label="{{ __('admin.posts.seo_panel.preview') }}">
-                        <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop" aria-label="Desktop">
+                        <button type="button" class="btn btn-outline-secondary active" data-seo-preview-device="desktop" aria-label="{{ __('admin.posts.seo_panel.preview_desktop') }}">
                             <i class="ti ti-device-desktop" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile" aria-label="Mobile">
+                        <button type="button" class="btn btn-outline-secondary" data-seo-preview-device="mobile" aria-label="{{ __('admin.posts.seo_panel.preview_mobile') }}">
                             <i class="ti ti-device-mobile" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -353,7 +353,7 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="robots_index" name="robots_index" value="1"
                                    @checked((bool) old('robots_index', $record->exists ? ($record->robots_index ?? true) : true))>
-                            <label class="form-check-label fw-semibold" for="robots_index">Index</label>
+                            <label class="form-check-label fw-semibold" for="robots_index">{{ __('admin.posts.seo_panel.robots_index') }}</label>
                         </div>
                     </div>
                     <div class="col-sm-6">
@@ -361,7 +361,7 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="robots_follow" name="robots_follow" value="1"
                                    @checked((bool) old('robots_follow', $record->exists ? ($record->robots_follow ?? true) : true))>
-                            <label class="form-check-label fw-semibold" for="robots_follow">Follow links</label>
+                            <label class="form-check-label fw-semibold" for="robots_follow">{{ __('admin.posts.seo_panel.robots_follow') }}</label>
                         </div>
                     </div>
                 </div>

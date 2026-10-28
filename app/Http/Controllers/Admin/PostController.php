@@ -245,13 +245,13 @@ class PostController extends Controller
 
                 return $posts->count();
             });
-            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt bài viết', [
+            ActivityLogger::log('bulk_deleted', null, __('admin.posts.log.bulk_deleted'), [
                 'model' => Post::class,
                 'ids' => $ids,
                 'count' => $deleted,
             ]);
 
-            return back()->with('success', 'Đã xóa '.$deleted.' bài viết.');
+            return back()->with('success', __('admin.posts.bulk_deleted', ['count' => $deleted]));
         }
 
         $isActive = $validated['action'] === 'activate';
@@ -259,14 +259,14 @@ class PostController extends Controller
             'is_active' => $isActive,
             'published_at' => $isActive ? DB::raw('COALESCE(published_at, CURRENT_TIMESTAMP)') : null,
         ]);
-        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt bài viết', [
+        ActivityLogger::log('bulk_status_changed', null, __('admin.posts.log.bulk_status'), [
             'model' => Post::class,
             'ids' => $ids,
             'count' => $updated,
             'is_active' => $isActive,
         ]);
 
-        return back()->with('success', 'Đã '.($isActive ? 'xuất bản' : 'tạm ẩn').' '.$updated.' bài viết.');
+        return back()->with('success', __($isActive ? 'admin.posts.bulk_published' : 'admin.posts.bulk_hidden', ['count' => $updated]));
     }
 
     public function importWordPress(WordPressPostImportRequest $request, string $locale, WordPressPostImportService $importer)
@@ -282,9 +282,9 @@ class PostController extends Controller
 
             // The importer's own RuntimeExceptions explain the file; anything else (SQL, HTTP…) would
             // show schema or internal detail, so it stays in the log.
-            $reason = $exception::class === \RuntimeException::class ? $exception->getMessage() : 'Lỗi hệ thống, xem log để biết chi tiết.';
+            $reason = $exception::class === \RuntimeException::class ? $exception->getMessage() : __('admin.posts.wordpress.system_error');
 
-            return back()->with('error', 'Import WordPress thất bại: '.$reason);
+            return back()->with('error', __('admin.posts.wordpress.failed', ['reason' => $reason]));
         }
 
         if ($results['imported'] + $results['updated'] + $results['skipped'] + $results['failed'] === 0) {
@@ -292,11 +292,11 @@ class PostController extends Controller
             $found = collect($results['other_types'])->map(fn (int $count, string $type) => "$count $type")->implode(', ');
 
             return back()->with('error', $found === ''
-                ? 'File WordPress này không có bài viết nào.'
-                : "File WordPress này không có bài viết. File chứa: $found. Sản phẩm WooCommerce nhập ở Sản phẩm → Nhập (file CSV).");
+                ? __('admin.posts.wordpress.no_posts')
+                : __('admin.posts.wordpress.no_posts_found', ['found' => $found]));
         }
 
-        ActivityLogger::log('wordpress_posts_imported', null, 'Import bài viết từ WordPress XML', [
+        ActivityLogger::log('wordpress_posts_imported', null, __('admin.posts.log.wordpress_imported'), [
             'imported' => $results['imported'],
             'updated' => $results['updated'],
             'skipped' => $results['skipped'],
@@ -307,14 +307,22 @@ class PostController extends Controller
             'links_rewritten' => $results['links_rewritten'],
         ]);
 
-        $message = "Import WordPress hoàn tất: {$results['imported']} bài mới, {$results['updated']} cập nhật, {$results['skipped']} bỏ qua, {$results['failed']} lỗi; {$results['images_downloaded']} ảnh đã lưu local, {$results['images_failed']} ảnh tải lỗi."
-            // Old WordPress addresses keep their rankings (admin/redirects).
-            .' Đã tạo '.($results['redirects'] + $results['image_redirects']).' chuyển hướng 301 từ link cũ, sửa link nội bộ trong '.$results['links_rewritten'].' bài.';
+        // The redirects keep old WordPress addresses' rankings (admin/redirects).
+        $message = __('admin.posts.wordpress.done', [
+            'imported' => $results['imported'],
+            'updated' => $results['updated'],
+            'skipped' => $results['skipped'],
+            'failed' => $results['failed'],
+            'images_downloaded' => $results['images_downloaded'],
+            'images_failed' => $results['images_failed'],
+            'redirects' => $results['redirects'] + $results['image_redirects'],
+            'links' => $results['links_rewritten'],
+        ]);
 
         if ($results['failed'] > 0 || $results['images_failed'] > 0) {
             $response = back()->with('warning', $message)->with('import_errors', [
                 ...$results['errors'],
-                ...array_map(fn (string $error): string => 'Ảnh: '.$error, $results['image_errors']),
+                ...array_map(fn (string $error): string => __('admin.posts.wordpress.image_error', ['error' => $error]), $results['image_errors']),
             ]);
 
             // Posts refused by the package limit get the blocking dialog, not just a line in the error list.

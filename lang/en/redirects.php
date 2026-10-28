@@ -107,4 +107,13 @@ return [
         'target_format' => 'The new link must start with / or be a full http(s):// address.',
         'target_loop' => 'The new link is the old link: the redirect would loop forever.',
     ],
+    'log' => [
+        'created' => 'Created redirect :path',
+        'updated' => 'Updated redirect :path',
+        'deleted' => 'Deleted redirect :path',
+        'bulk_deleted' => 'Bulk deleted redirects',
+        'bulk_status' => 'Bulk turned redirects on/off',
+        'not_found_cleared' => 'Cleared the 404 log',
+        'imported' => 'Imported redirects from CSV',
+    ],
 ];

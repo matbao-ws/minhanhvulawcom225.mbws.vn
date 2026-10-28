@@ -101,7 +101,7 @@
                     style="height: 60px; max-width: 140px; object-fit: contain;">
                 <img src="{{ asset('admin-assets/images/logo-vanchuyen/J&TExpress.png') }}" alt="J&T Express"
                     style="height: 42px; max-width: 140px; object-fit: contain;">
-                <img src="{{ asset('admin-assets/images/logo-vanchuyen/logo-giao-hang-nhanh.jpg') }}" alt="Giao Hàng Nhanh"
+                <img src="{{ asset('admin-assets/images/logo-vanchuyen/logo-giao-hang-nhanh.jpg') }}" alt="{{ __('admin.shipping_partners.ghn_logo_alt') }}"
                     style="height: 42px; max-width: 160px; object-fit: contain;">
                 <img src="{{ asset('admin-assets/images/logo-vanchuyen/SPXEXPRESS.png') }}" alt="SPX Express"
                     style="height: 48px; max-width: 150px; object-fit: contain;">

@@ -23,13 +23,13 @@
 
     @if(session('import_errors'))
         <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
-            <h5 class="alert-heading fw-semibold"><i class="ti ti-alert-triangle me-1"></i>Chi tiết lỗi nhập dữ liệu:</h5>
+            <h5 class="alert-heading fw-semibold"><i class="ti ti-alert-triangle me-1"></i>{{ __('catalog.products.import_errors_title') }}</h5>
             <ul class="mb-0 ps-3 fs-3" style="max-height: 200px; overflow-y: auto;">
                 @foreach(session('import_errors') as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('catalog.actions.close') }}"></button>
         </div>
     @endif
 
@@ -44,7 +44,7 @@
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.fields.category') }}</label>
                     <select name="category_id" class="form-select">
-                        <option value="">Tất cả</option>
+                        <option value="">{{ __('admin.all') }}</option>
                         @foreach($categoryOptions as $category)
                             <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>
                                 {!! str_repeat('&nbsp;&nbsp;', $category->depth ?? 0) !!}{{ $category->depth ? '↳ ' : '' }}{{ $category->name }}
@@ -55,7 +55,7 @@
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.fields.brand') }}</label>
                     <select name="brand_id" class="form-select">
-                        <option value="">Tất cả</option>
+                        <option value="">{{ __('admin.all') }}</option>
                         @foreach($brandOptions as $brandOption)
                             @php
                                 $brandName = $brandOption->getTranslation('name', app()->getLocale(), false) ?: $brandOption->name;
@@ -69,7 +69,7 @@
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.fields.status') }}</label>
                     <select name="status" class="form-select">
-                        <option value="">Tất cả</option>
+                        <option value="">{{ __('admin.all') }}</option>
                         <option value="1" @selected((string) request('status') === '1')>{{ __('catalog.status.active') }}
                         </option>
                         <option value="0" @selected((string) request('status') === '0')>{{ __('catalog.status.inactive') }}
@@ -89,13 +89,13 @@
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-products-form',
                 'bulkActionUrl' => route('admin.products.bulk'),
-                'bulkItemLabel' => 'sản phẩm',
+                'bulkItemLabel' => __('catalog.products.bulk_item_label'),
             ])
             <div data-tour="products.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
-                            <th data-tour="products.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-products-form" aria-label="Chọn tất cả sản phẩm"></th>
+                            <th data-tour="products.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-products-form" aria-label="{{ __('catalog.products.select_all') }}"></th>
                             <th class="ps-4">{{ __('catalog.fields.name') }}</th>
                             <th>{{ __('catalog.fields.category') }}</th>
                             <th>{{ __('catalog.fields.brand') }}</th>
@@ -109,7 +109,7 @@
                     <tbody id="product-table-sortable" data-sortable="{{ $isFiltered ? '0' : '1' }}" data-start-order="{{ max(0, ($products->firstItem() ?? 1) - 1) }}">
                         @forelse($products as $product)
                             <tr class="text-nowrap" data-product-id="{{ $product->id }}">
-                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $product->id }}" form="bulk-products-form" data-bulk-select="bulk-products-form" aria-label="Chọn {{ $product->name }}"></td>
+                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $product->id }}" form="bulk-products-form" data-bulk-select="bulk-products-form" aria-label="{{ __('catalog.actions.select_item', ['name' => $product->name]) }}"></td>
                                 <td class="ps-4 text-wrap" style="min-width: 300px;">
                                     <div class="d-flex align-items-center gap-3">
                                         @unless($isFiltered)
@@ -240,7 +240,7 @@
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title" id="importProductsModalLabel">{{ __('catalog.products.import_title') }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('catalog.actions.close') }}"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -255,10 +255,10 @@
                                 class="text-danger">*</span></label>
                         <input type="file" class="form-control" name="import_file" id="import_file" accept=".csv,text/csv"
                             required>
-                        <div class="form-text mt-1">Hỗ trợ tệp CSV tối đa 5MB.</div>
+                        <div class="form-text mt-1">{{ __('catalog.products.import_file_help') }}</div>
                     </div>
                     <div class="mt-4 p-3 bg-light rounded">
-                        <h6 class="fw-semibold mb-2 fs-3"><i class="ti ti-download me-1 text-primary"></i>Tải xuống tệp mẫu:
+                        <h6 class="fw-semibold mb-2 fs-3"><i class="ti ti-download me-1 text-primary"></i>{{ __('catalog.products.download_template_heading') }}
                         </h6>
                         <div class="d-flex gap-2">
                             <a href="{{ route('admin.products.template', ['type' => 'standard']) }}"

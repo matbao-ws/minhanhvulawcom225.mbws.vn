@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AiContentController;
 use App\Http\Controllers\Admin\AiMetaController;
 use App\Http\Controllers\Admin\AiPostDraftController;
 use App\Http\Controllers\Admin\AiResearchController;
+use App\Http\Controllers\Admin\AiRewriteController;
 use App\Http\Controllers\Admin\AiSeoTasksController;
 use App\Http\Controllers\Admin\AiToolsController;
 use App\Http\Controllers\Admin\AnalyticsController;
@@ -30,6 +31,8 @@ use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\NotificationSettingController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Admin\PartnerController;
+use App\Http\Controllers\Admin\PartnerGroupController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PostCategoryController;
 use App\Http\Controllers\Admin\PostController;
@@ -152,6 +155,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
                 Route::post('topics', 'topics')->middleware('throttle:admin-ai')->name('topics');
             });
 
+        // "Sửa với AI" in the inline storefront editor: rewrite a selected piece of text.
+        Route::post('rewrite', AiRewriteController::class)->middleware('throttle:admin-ai')->name('rewrite');
+
         // This week's SEO work (Search Console + the site index, ranked by the gateway).
         Route::get('seo-tasks', [AiSeoTasksController::class, 'index'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.index');
         Route::get('seo-tasks/summary', [AiSeoTasksController::class, 'summary'])->middleware('throttle:admin-gateway-read')->name('seo-tasks.summary');
@@ -159,6 +165,10 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
             ->where('task', '[a-f0-9]{16}')->middleware('throttle:admin-ai')->name('seo-tasks.advice');
         Route::post('seo-tasks/{task}/status', [AiSeoTasksController::class, 'mark'])
             ->where('task', '[a-f0-9]{16}')->name('seo-tasks.status');
+        Route::post('seo-tasks/{task}/fix/{step}', [AiSeoTasksController::class, 'fixStep'])
+            ->where(['task' => '[a-f0-9]{16}', 'step' => '[a-z]+'])->middleware('throttle:admin-ai')->name('seo-tasks.fix.step');
+        Route::post('seo-tasks/{task}/fix', [AiSeoTasksController::class, 'fixApply'])
+            ->where('task', '[a-f0-9]{16}')->middleware('can:ai.apply')->name('seo-tasks.fix.apply');
 
         Route::middleware(['feature:cms_page', 'can:posts.create'])->group(function () {
             Route::get('post-drafts/create', [AiPostDraftController::class, 'create'])->name('post-drafts.create');
@@ -260,6 +270,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         // How many boxes a repeatable region holds. Same gate: adding a box is
         // editing the page, and the template still owns what the box looks like.
         Route::post('site-lists/items', [SiteBlockController::class, 'addListItem'])->name('site-lists.items.store');
+        Route::post('site-lists/items/duplicate', [SiteBlockController::class, 'duplicateListItem'])->name('site-lists.items.duplicate');
         Route::delete('site-lists/items', [SiteBlockController::class, 'removeListItem'])->name('site-lists.items.destroy');
         Route::patch('site-lists/items/order', [SiteBlockController::class, 'reorderListItems'])->name('site-lists.items.reorder');
         // How a section renders: which of the shapes it already knows, and whether
@@ -345,6 +356,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
 
     Route::get('notification-settings', [NotificationSettingController::class, 'index'])->middleware('can:settings.view')->name('notification-settings.index');
     Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');
+    Route::post('notification-settings/test-email', [NotificationSettingController::class, 'sendTestEmail'])->middleware(['can:settings.update', 'throttle:5,1'])->name('notification-settings.test-email');
     Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->middleware('can:settings.update')->name('notification-settings.get-chat-id');
 
     Route::middleware('feature:shipping')->group(function () {
@@ -396,6 +408,19 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::resource('banners', BannerController::class)->only(['edit', 'update'])->middleware('can:banners.update');
         Route::resource('banners', BannerController::class)->only(['destroy'])->middleware('can:banners.delete');
     });
+
+    // Partner / customer logos and their groups (Đối tác). No feature switch: like redirects, every
+    // package has it; a theme that shows no logo strip simply never asks for a group.
+    Route::patch('partners/bulk', [PartnerController::class, 'bulk'])->middleware('can:partners.update')->name('partners.bulk');
+    Route::post('partners/sort', [PartnerController::class, 'sort'])->middleware('can:partners.update')->name('partners.sort');
+    Route::resource('partners', PartnerController::class)->only(['create', 'store'])->middleware('can:partners.create');
+    Route::resource('partners', PartnerController::class)->only(['index'])->middleware('can:partners.view');
+    Route::resource('partners', PartnerController::class)->only(['edit', 'update'])->middleware('can:partners.update');
+    Route::resource('partners', PartnerController::class)->only(['destroy'])->middleware('can:partners.delete');
+    Route::resource('partner-groups', PartnerGroupController::class)->only(['create', 'store'])->middleware('can:partners.create');
+    Route::resource('partner-groups', PartnerGroupController::class)->only(['index'])->middleware('can:partners.view');
+    Route::resource('partner-groups', PartnerGroupController::class)->only(['edit', 'update'])->middleware('can:partners.update');
+    Route::resource('partner-groups', PartnerGroupController::class)->only(['destroy'])->middleware('can:partners.delete');
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:activity_logs.view')->name('activity-logs.index');
     // Wiping the audit trail is superadmin-only, like feature flags.

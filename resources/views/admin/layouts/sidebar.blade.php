@@ -336,7 +336,7 @@
                           <img src="{{ $siteBranding['admin_logo_url'] }}" width="150" alt="MatBaoWS" class="img-fluid">
                       </a>
                           <a href="{{ route('admin.dashboard') }}" class="sidebar-mini-logo" aria-label="{{ $siteBranding['name'] }}">
-                              <img src="{{ $siteBranding['favicon_url'] }}" alt="" class="sidebar-mini-logo">
+                              <img src="{{ $siteBranding['admin_favicon_url'] }}" alt="" class="sidebar-mini-logo">
                           </a>
                   </div>
 
@@ -368,6 +368,7 @@
                                   'posts' => $sidebarCms && $sidebarCan('posts.view'),
                                   'pages' => $sidebarCms && $sidebarCan('pages.view'),
                                   'banners' => $sidebarFeatures->availableTo($sidebarUser, 'banner') && $sidebarCan('banners.view'),
+                                  'partners' => $sidebarCan('partners.view'),
                                   'menus' => $sidebarFeatures->availableTo($sidebarUser, 'menu') && $sidebarCan('menus.view'),
                                   'media' => $sidebarCan('media.view'),
                                   'seo_tasks' => true,
@@ -481,6 +482,18 @@
                                   <iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon>
                                   <span class="hide-menu">{{ __('admin.sidebar.banners') }}</span>
                               </a>
+                          </li>
+                          @endif
+                          @if($sidebarShow['partners'])
+                          <li class="sidebar-item">
+                              <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                  <iconify-icon icon="solar:hand-shake-line-duotone"></iconify-icon>
+                                  <span class="hide-menu">{{ __('partners.sidebar.menu') }}</span>
+                              </a>
+                              <ul aria-expanded="false" class="collapse first-level">
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.partners.index') }}"><span class="icon-small"></span>{{ __('partners.sidebar.list') }}</a></li>
+                                  <li class="sidebar-item"><a class="sidebar-link" href="{{ route('admin.partner-groups.index') }}"><span class="icon-small"></span>{{ __('partners.sidebar.groups') }}</a></li>
+                              </ul>
                           </li>
                           @endif
                           @if($sidebarShow['menus'])

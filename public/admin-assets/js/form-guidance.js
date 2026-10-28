@@ -17,6 +17,22 @@
         'textarea'
     ].join(',');
 
+    // Text in the admin language (admin.form_guidance, set by the admin layout); Vietnamese if absent.
+    const text = Object.assign({
+        content: 'nội dung',
+        enter: 'Nhập :label...',
+        choose: 'Chọn :label...',
+        slug_example: 'Ví dụ: duong-dan-than-thien',
+        slug_note: '(bỏ trống để tự tạo)'
+    }, window.AdminFormGuidanceText || {});
+
+    // A label that already says the field fills itself, in Vietnamese or English.
+    const autoFillWords = 'bỏ trống|tự tạo|leave (?:it )?(?:empty|blank)|generate';
+
+    function withLabel(template, label) {
+        return String(template).replace(':label', function () { return label; });
+    }
+
     function fieldLabel(control) {
         if (control.labels && control.labels.length) {
             return control.labels[0];
@@ -36,7 +52,7 @@
 
         return label.textContent
             .replace(/\*/g, '')
-            .replace(/\([^)]*(?:bỏ trống|tự tạo)[^)]*\)/gi, '')
+            .replace(new RegExp('\\([^)]*(?:' + autoFillWords + ')[^)]*\\)', 'gi'), '')
             .replace(/\s+/g, ' ')
             .trim();
     }
@@ -45,16 +61,16 @@
         const fieldName = (control.getAttribute('name') || '').toLowerCase();
         const type = (control.getAttribute('type') || 'text').toLowerCase();
         const labelText = cleanLabel(label);
-        const normalizedLabel = labelText ? labelText.charAt(0).toLowerCase() + labelText.slice(1) : 'nội dung';
+        const normalizedLabel = labelText ? labelText.charAt(0).toLowerCase() + labelText.slice(1) : text.content;
 
-        if (fieldName.includes('slug')) return 'Ví dụ: duong-dan-than-thien';
+        if (fieldName.includes('slug')) return text.slug_example;
         if (type === 'date' || type === 'datetime-local' || type === 'month' || type === 'time') {
-            return `Chọn ${normalizedLabel}...`;
+            return withLabel(text.choose, normalizedLabel);
         }
-        if (type === 'url') return labelText ? `Nhập ${normalizedLabel}...` : 'https://example.com';
-        if (type === 'email') return labelText ? `Nhập ${normalizedLabel}...` : 'email@example.com';
+        if (type === 'url') return labelText ? withLabel(text.enter, normalizedLabel) : 'https://example.com';
+        if (type === 'email') return labelText ? withLabel(text.enter, normalizedLabel) : 'email@example.com';
 
-        return `Nhập ${normalizedLabel}...`;
+        return withLabel(text.enter, normalizedLabel);
     }
 
     function addPlaceholder(control) {
@@ -81,12 +97,12 @@
         if (!fieldName.includes('slug')) return;
 
         const label = fieldLabel(control);
-        if (!label || label.querySelector('.admin-slug-note') || /bỏ trống|tự tạo/i.test(label.textContent)) return;
+        if (!label || label.querySelector('.admin-slug-note') || new RegExp(autoFillWords, 'i').test(label.textContent)) return;
 
         label.append(' ');
         const note = document.createElement('span');
         note.className = 'text-muted fw-normal admin-slug-note';
-        note.textContent = '(bỏ trống để tự tạo)';
+        note.textContent = text.slug_note;
         label.appendChild(note);
     }
 

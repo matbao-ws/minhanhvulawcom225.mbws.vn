@@ -1,12 +1,12 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Thông báo hệ thống')
+@section('title', __('admin.notifications_page.title'))
 
 @section('content')
-    <x-admin.page-header title="Thông báo hệ thống">
+    <x-admin.page-header :title="__('admin.notifications_page.title')">
         <x-slot:breadcrumbs>
             <li class="breadcrumb-item"><a class="text-white-50 text-decoration-none" href="{{ route('admin.dashboard') }}">{{ __('admin.home') }}</a></li>
-            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">Thông báo</li>
+            <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.notifications') }}</li>
         </x-slot:breadcrumbs>
     </x-admin.page-header>
 
@@ -15,32 +15,32 @@
         <div class="card-body p-0">
             <div class="p-4 border-bottom">
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-                    <h5 class="fw-semibold text-dark mb-0">Tất cả thông báo</h5>
+                    <h5 class="fw-semibold text-dark mb-0">{{ __('admin.notifications_page.all') }}</h5>
                 </div>
                 <form method="GET" action="{{ route('admin.notifications.index') }}" class="row g-3 align-items-end">
                     <div data-tour="notifications.search" class="col-md-6">
-                        <label class="form-label small fw-bold text-muted mb-1">Tìm kiếm</label>
+                        <label class="form-label small fw-bold text-muted mb-1">{{ __('catalog.actions.search') }}</label>
                         <div class="input-group">
                             <span class="input-group-text bg-transparent border-end-0">
                                 <iconify-icon icon="solar:magnifer-line-duotone" class="fs-5 text-muted"></iconify-icon>
                             </span>
                             <input type="search" name="q" class="form-control border-start-0" value="{{ request('q') }}"
-                                placeholder="Tìm theo tiêu đề, nội dung, mã đơn hàng, email...">
+                                placeholder="{{ __('admin.notifications_page.search_placeholder') }}">
                         </div>
                     </div>
                     <div data-tour="notifications.type" class="col-md-3">
-                        <label class="form-label small fw-bold text-muted mb-1">Loại thông báo</label>
+                        <label class="form-label small fw-bold text-muted mb-1">{{ __('admin.notifications_page.type') }}</label>
                         <select name="type" class="form-select">
-                            <option value="">Tất cả loại</option>
-                            <option value="orders" @selected(request('type') === 'orders')>Đơn hàng mới</option>
-                            <option value="reviews" @selected(request('type') === 'reviews')>Đánh giá sản phẩm</option>
-                            <option value="users" @selected(request('type') === 'users')>Thành viên mới</option>
+                            <option value="">{{ __('admin.notifications_page.all_types') }}</option>
+                            <option value="orders" @selected(request('type') === 'orders')>{{ __('admin.notifications_page.type_orders') }}</option>
+                            <option value="reviews" @selected(request('type') === 'reviews')>{{ __('admin.notifications_page.type_reviews') }}</option>
+                            <option value="users" @selected(request('type') === 'users')>{{ __('admin.notifications_page.type_users') }}</option>
                         </select>
                     </div>
                     <div class="col-md-3 d-flex gap-2">
-                        <x-admin.action-button type="submit" icon="search" class="flex-grow-1">Tìm kiếm</x-admin.action-button>
+                        <x-admin.action-button type="submit" icon="search" class="flex-grow-1">{{ __('catalog.actions.search') }}</x-admin.action-button>
                         @if(request('q') || request('type'))
-                            <a href="{{ route('admin.notifications.index') }}" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3" title="Xóa bộ lọc">
+                            <a href="{{ route('admin.notifications.index') }}" class="btn btn-outline-danger d-flex align-items-center justify-content-center px-3" title="{{ __('catalog.actions.reset_filters') }}">
                                 <iconify-icon icon="solar:trash-bin-trash-line-duotone" class="fs-5"></iconify-icon>
                             </a>
                         @endif
@@ -67,7 +67,7 @@
                 @empty
                     <div class="text-center py-5 text-muted">
                         <iconify-icon icon="solar:bell-bing-line-duotone" class="fs-13 text-muted mb-3 d-inline-block"></iconify-icon>
-                        <p class="mb-0 fs-4 text-muted">Không có thông báo nào trong hệ thống</p>
+                        <p class="mb-0 fs-4 text-muted">{{ __('admin.notifications_page.empty') }}</p>
                     </div>
                 @endforelse
             </div>

@@ -16,6 +16,14 @@ class PackageUsageAlerts
     /** @return list<array{level: string, title: string, message: string}> */
     public function forAdmin(): array
     {
+        if ($this->limits->packageMissing()) {
+            return [[
+                'level' => 'danger',
+                'title' => __('admin.package.alert.missing_title'),
+                'message' => __('admin.package.alert.missing_message'),
+            ]];
+        }
+
         $alerts = [];
 
         foreach ($this->limits->summary() as $metric => $summary) {

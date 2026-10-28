@@ -72,20 +72,20 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'permissions' => $permissions,
         ]);
-        ActivityLogger::log('created', $role, "Tạo vai trò {$role->name}", [
+        ActivityLogger::log('created', $role, __('admin.roles.activity_created', ['name' => $role->name]), [
             'new' => ['name' => $role->name, 'permissions' => $role->permissions],
         ]);
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Đã tạo vai trò mới thành công.',
+                'message' => __('admin.roles.created_new'),
             ]);
         }
 
         return redirect()
             ->route('admin.roles.index')
-            ->with('success', 'Đã tạo vai trò mới thành công.');
+            ->with('success', __('admin.roles.created_new'));
     }
 
     public function edit(string $locale, Role $role)
@@ -93,7 +93,7 @@ class RoleController extends Controller
         if (! $this->assertManageable($role)) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể chỉnh sửa vai trò hệ thống.');
+                ->with('error', __('admin.roles.system_not_editable'));
         }
 
         return view('admin.roles.edit', [
@@ -107,7 +107,7 @@ class RoleController extends Controller
         if (! $this->assertManageable($role)) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể chỉnh sửa vai trò hệ thống.');
+                ->with('error', __('admin.roles.system_not_editable'));
         }
 
         $validated = $request->validate([
@@ -132,7 +132,7 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'permissions' => array_values(array_unique(array_merge($submitted, $retained))),
         ]);
-        ActivityLogger::log('updated', $role, "Cập nhật vai trò {$role->name}", [
+        ActivityLogger::log('updated', $role, __('admin.roles.activity_updated', ['name' => $role->name]), [
             'old' => $oldValues,
             'new' => $role->only(['name', 'permissions']),
         ]);
@@ -140,13 +140,13 @@ class RoleController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Đã cập nhật vai trò thành công.',
+                'message' => __('admin.roles.updated'),
             ]);
         }
 
         return redirect()
             ->route('admin.roles.index')
-            ->with('success', 'Đã cập nhật vai trò thành công.');
+            ->with('success', __('admin.roles.updated'));
     }
 
     public function destroy(string $locale, Role $role)
@@ -154,21 +154,21 @@ class RoleController extends Controller
         if (! $this->assertManageable($role)) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể xoá vai trò hệ thống.');
+                ->with('error', __('admin.roles.system_not_deletable'));
         }
 
         if ($role->users()->exists()) {
             return redirect()
                 ->route('admin.roles.index')
-                ->with('error', 'Không thể xoá vai trò này vì đang có tài khoản sử dụng.');
+                ->with('error', __('admin.roles.delete_in_use'));
         }
 
         $changes = $role->only(['name', 'permissions']);
         $role->delete();
-        ActivityLogger::log('deleted', $role, "Xóa vai trò {$changes['name']}", ['old' => $changes]);
+        ActivityLogger::log('deleted', $role, __('admin.roles.activity_deleted', ['name' => $changes['name']]), ['old' => $changes]);
 
         return redirect()
             ->route('admin.roles.index')
-            ->with('success', 'Đã xoá vai trò thành công.');
+            ->with('success', __('admin.roles.destroyed'));
     }
 }

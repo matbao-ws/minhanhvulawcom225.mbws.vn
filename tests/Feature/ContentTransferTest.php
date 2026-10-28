@@ -108,6 +108,18 @@ class ContentTransferTest extends TestCase
         $this->assertDatabaseCount('products', 0);
     }
 
+    public function test_an_export_is_refused_when_the_package_is_required_but_missing(): void
+    {
+        $this->fillLikeADeveloper(null);
+        $this->artisan('content:export', ['file' => $this->file])->assertSuccessful();
+        $this->becomeAFreshlySeededWebsite();
+        config(['packages.required' => true]);
+        Cache::flush();
+
+        $this->artisan('content:import', ['file' => $this->file])->expectsOutputToContain('package_missing')->assertFailed();
+        $this->assertDatabaseCount('products', 0);
+    }
+
     public function test_a_corrupt_file_is_refused(): void
     {
         file_put_contents($this->file, 'not gzip');

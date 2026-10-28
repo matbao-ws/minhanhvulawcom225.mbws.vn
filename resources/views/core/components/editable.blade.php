@@ -11,15 +11,16 @@
     $canEdit = \App\Support\ClientEditorChrome::editorActive();
 
     /**
-     * Boxes an editor appended after this one.
+     * Boxes an editor appended after this one, or copies made with "Nhân bản".
      *
      * The template owns where a region sits and what it looks like; this only
      * decides how many boxes of that same shape stand there. An added box is a
      * sibling carrying the authored tag and classes, so it cannot introduce a
-     * layout the design never had.
+     * layout the design never had. Every region may be copied; `appendable`
+     * only adds the hovering "+".
      */
-    $extraList = $appendable ? $key.'.extra' : null;
-    $extraIds = $extraList ? $lists->items($extraList) : [];
+    $extraList = $key.'.extra';
+    $extraIds = $lists->items($extraList);
 
     $describe = function (string $blockKey) use ($site, $html, $tag): array {
         $stored = $site->value($blockKey, null, (bool) config('multilingual.inline_edit_fallback', true));
@@ -34,6 +35,7 @@
         return [
             'stored' => $stored,
             'format' => $format,
+            'align' => $site->align($blockKey),
             'cleared' => $cleared,
             'rendersHtml' => $rendersHtml,
             'type' => $rendersHtml ? \App\Models\SiteBlock::TYPE_HTML : \App\Models\SiteBlock::TYPE_TEXT,
@@ -42,13 +44,17 @@
     };
 
     $editorAttributes = function (array $block, string $blockKey, ?string $listKey = null, ?string $itemId = null)
-        use ($canEdit, $attributes, $tag, $extraList) {
+        use ($canEdit, $attributes, $tag, $extraList, $appendable) {
         $bag = $attributes->class([
             // A saved heading keeps a public class so its visual hierarchy
             // survives a theme reset that flattens heading sizes.
             'client-content-heading-'.$block['format'] => in_array($block['format'], ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true),
             'client-content-format-p' => $block['format'] === \App\Models\SiteBlock::FORMAT_PARAGRAPH,
             'client-content-list-'.$block['format'] => in_array($block['format'], ['ul', 'ol'], true),
+            // The alignment token, for every visitor (core.head maps it).
+            'client-align-'.$block['align'] => $block['align'] !== null,
+            // A copy of an inline region (a span in a heading) goes on its own line.
+            'client-copy-line' => $listKey !== null && in_array($block['renderTag'], ['span', 'a', 'strong', 'b', 'em', 'i', 'small', 'label'], true),
         ]);
 
         if (! $canEdit) {
@@ -61,13 +67,17 @@
                 'data-block-key' => $blockKey,
                 'data-block-type' => $block['type'],
                 'data-block-format' => $block['format'],
+                'data-block-align' => $block['align'],
                 // The editor needs the authored Blade tag to drop a saved heading
                 // override without disturbing the theme's own styling.
                 'data-block-base-tag' => $tag,
                 'data-block-cleared' => $block['cleared'] ? 'true' : null,
                 // Where the hovering "+" appends. Absent means this region takes
                 // no extra boxes.
-                'data-append-list' => $extraList,
+                'data-append-list' => $appendable ? $extraList : null,
+                // Where "Nhân bản" puts a copy of the authored region: first
+                // after it. A copy is itself a list item and copies as one.
+                'data-copy-list' => $listKey === null ? $extraList : null,
                 // Present only on a box an editor added, which is the only kind
                 // that may be deleted outright.
                 'data-list-key' => $listKey,

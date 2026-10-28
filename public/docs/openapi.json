@@ -16,7 +16,7 @@
       "get": {
         "tags": ["Storefront Configuration"],
         "summary": "Lấy cấu hình công khai của website",
-        "description": "Frontend dùng multilingual.mode để chọn cơ chế hiển thị và data.features để ẩn module đã tắt. API của module đã tắt trả 403.",
+        "description": "Frontend dùng multilingual.mode để chọn cơ chế hiển thị và data.features để ẩn module đã tắt. API của module đã tắt trả 403. shop_name, seo.title, seo.description, contact.address và tên/địa chỉ từng chi nhánh (contact.branches) trả theo ngôn ngữ của request (meta.locale); ngôn ngữ chưa nhập thì dùng bản của ngôn ngữ mặc định.",
         "responses": {
           "200": {
             "description": "Thành công",
@@ -1067,6 +1067,109 @@
           },
           "403": { "description": "Tính năng menu đang tắt" },
           "404": { "description": "Không tìm thấy menu hoặc menu đang ẩn" }
+        }
+      }
+    },
+    "/public/partners": {
+      "get": {
+        "tags": [
+          "Partners"
+        ],
+        "summary": "Lấy logo đối tác / khách hàng của một nhóm",
+        "description": "Trả về các đối tác đang hiện của nhóm có mã `group` (admin → Đối tác), xếp theo thứ tự trong admin. Nhóm không tồn tại hoặc chưa có đối tác trả mảng rỗng. Cùng truy vấn với theme Blade (App\\Services\\Partners\\PartnerQueryService). logo_url là URL tuyệt đối theo APP_URL hiện tại.",
+        "parameters": [
+          {
+            "name": "group",
+            "in": "query",
+            "required": true,
+            "description": "Mã nhóm đối tác, ví dụ customers hoặc strategic.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "customers"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "vi"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 3
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Panasonic"
+                          },
+                          "logo_url": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "https://shop.example.com/storage/brands/panasonic.png"
+                          },
+                          "url": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "https://www.panasonic.com"
+                          },
+                          "group": {
+                            "type": "string",
+                            "example": "customers"
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "locale": {
+                          "type": "string",
+                          "example": "vi"
+                        },
+                        "group": {
+                          "type": "string",
+                          "example": "customers"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Thiếu tham số group"
+          },
+          "429": {
+            "description": "Gọi quá nhiều lần trong một phút"
+          }
         }
       }
     },

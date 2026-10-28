@@ -20,14 +20,15 @@
             const slugInput = document.getElementById('slug');
 
             function generateSlug(text) {
+                // Vietnamese letters, written as \u escapes so this admin view stays free of Vietnamese text.
                 return text.toString().toLowerCase()
-                    .replace(/á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ/g, 'a')
-                    .replace(/é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ/g, 'e')
-                    .replace(/í|ì|ỉ|ĩ|ị/g, 'i')
-                    .replace(/ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ/g, 'o')
-                    .replace(/ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự/g, 'u')
-                    .replace(/ý|ỳ|ỷ|ỹ|ỵ/g, 'y')
-                    .replace(/đ/g, 'd')
+                    .replace(/\u00e1|\u00e0|\u1ea3|\u00e3|\u1ea1|\u0103|\u1eaf|\u1eb1|\u1eb3|\u1eb5|\u1eb7|\u00e2|\u1ea5|\u1ea7|\u1ea9|\u1eab|\u1ead/g, 'a')
+                    .replace(/\u00e9|\u00e8|\u1ebb|\u1ebd|\u1eb9|\u00ea|\u1ebf|\u1ec1|\u1ec3|\u1ec5|\u1ec7/g, 'e')
+                    .replace(/\u00ed|\u00ec|\u1ec9|\u0129|\u1ecb/g, 'i')
+                    .replace(/\u00f3|\u00f2|\u1ecf|\u00f5|\u1ecd|\u00f4|\u1ed1|\u1ed3|\u1ed5|\u1ed7|\u1ed9|\u01a1|\u1edb|\u1edd|\u1edf|\u1ee1|\u1ee3/g, 'o')
+                    .replace(/\u00fa|\u00f9|\u1ee7|\u0169|\u1ee5|\u01b0|\u1ee9|\u1eeb|\u1eed|\u1eef|\u1ef1/g, 'u')
+                    .replace(/\u00fd|\u1ef3|\u1ef7|\u1ef9|\u1ef5/g, 'y')
+                    .replace(/\u0111/g, 'd')
                     .replace(/\s+/g, '-')           // Replace spaces with -
                     .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
                     .replace(/\-\-+/g, '-')         // Replace multiple - with single -

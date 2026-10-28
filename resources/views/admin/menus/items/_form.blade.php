@@ -1,6 +1,8 @@
 @php
     $languages = app(\App\Services\LanguageRegistry::class);
     $fallbackLocale = $languages->fallbackLocale();
+    $contentLanguages = $languages->active();
+    $defaultContentLocale = $languages->defaultLocale();
     $currentType = old('type', $item->type ?: \App\Models\MenuItem::TYPE_PAGE);
 @endphp
 
@@ -8,19 +10,35 @@
     <div class="card-body">
         <div class="row g-3">
             <div data-tour="menu-item-form.label" class="col-12">
-                <label class="form-label fw-semibold">{{ __('admin.menus.items.fields.label') }} <span class="text-danger">*</span></label>
-                <div class="row g-2">
-                    @foreach($languages->codes() as $code)
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <span class="input-group-text text-uppercase">{{ $code }}</span>
-                                <input type="text"
-                                       class="form-control @error('label.'.$code) is-invalid @enderror"
-                                       name="label[{{ $code }}]"
-                                       value="{{ old('label.'.$code, $item->getTranslation('label', $code, false)) }}"
-                                       @required($code === $languages->defaultLocale())>
-                                @error('label.'.$code)<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            </div>
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    @foreach($contentLanguages as $language)
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link d-flex align-items-center gap-2 @if($language->code === $defaultContentLocale) active @endif"
+                               data-bs-toggle="tab"
+                               href="#menu-item-language-{{ $language->code }}"
+                               role="tab"
+                               aria-selected="{{ $language->code === $defaultContentLocale ? 'true' : 'false' }}">
+                                <span><i class="ti ti-language fs-4"></i></span>
+                                <span>{{ $language->native_name }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="tab-content">
+                    @foreach($contentLanguages as $language)
+                        @php $code = $language->code; @endphp
+                        <div class="tab-pane fade @if($code === $defaultContentLocale) show active @endif" id="menu-item-language-{{ $code }}">
+                            @if($code !== $defaultContentLocale)<div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>{{ __('admin.translation.translate_button', ['from' => strtoupper($defaultContentLocale), 'to' => strtoupper($code)]) }}</button></div>@endif
+                            <label class="form-label fw-semibold" for="label_{{ $code }}">{{ __('admin.menus.items.fields.label') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label>
+                            <input type="text"
+                                   class="form-control @error('label.'.$code) is-invalid @enderror"
+                                   id="label_{{ $code }}"
+                                   name="label[{{ $code }}]"
+                                   value="{{ old('label.'.$code, $item->getTranslation('label', $code, false)) }}"
+                                   data-i18n-locale="{{ $code }}"
+                                   data-i18n-field="label"
+                                   @required($code === $defaultContentLocale)>
+                            @error('label.'.$code)<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     @endforeach
                 </div>
@@ -122,6 +140,8 @@
 </div>
 
 @include('admin.shared.form-actions', ['cancelUrl' => route('admin.menus.items.index', $menu)])
+
+@include('admin.shared.translation-assets')
 
 @push('scripts')
     <script>

@@ -9,7 +9,7 @@
             <li class="breadcrumb-item active" style="color: rgba(255, 255, 255, 0.9) !important;" aria-current="page">{{ __('admin.posts.title') }}</li>
         </x-slot:breadcrumbs>
         <x-slot:actions>
-            <x-admin.action-button data-tour="posts.import-wordpress" type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">Import WordPress XML</x-admin.action-button>
+            <x-admin.action-button data-tour="posts.import-wordpress" type="button" variant="info" icon="brand-wordpress" data-bs-toggle="modal" data-bs-target="#importWordPressPostsModal">{{ __('admin.posts.wordpress.button') }}</x-admin.action-button>
             @php
                 $aiDraftAccess = app(\App\Support\AiAccess::class)->check(auth()->user(), 'ai_seo', 'posts.create');
             @endphp
@@ -97,13 +97,13 @@
             @include('admin.shared.bulk-actions', [
                 'bulkFormId' => 'bulk-posts-form',
                 'bulkActionUrl' => route('admin.posts.bulk'),
-                'bulkItemLabel' => 'bài viết',
+                'bulkItemLabel' => __('admin.posts.bulk_label'),
             ])
             <div data-tour="posts.table" class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-nowrap">
-                            <th data-tour="posts.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-posts-form" aria-label="Chọn tất cả bài viết"></th>
+                            <th data-tour="posts.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-posts-form" aria-label="{{ __('admin.posts.select_all') }}"></th>
                             <th class="ps-4">{{ __('admin.posts.fields.title') }}</th>
                             <th>{{ __('admin.posts.fields.category') }}</th>
                             <th>{{ __('admin.posts.fields.published_at') }}</th>
@@ -123,7 +123,7 @@
                                 $catName = $post->category ? ($post->category->getTranslation('name', app()->getLocale(), false) ?: $post->category->getTranslation('name', $fallbackLocale, false)) : __('admin.posts.uncategorized');
                             @endphp
                             <tr class="text-nowrap">
-                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $post->id }}" form="bulk-posts-form" data-bulk-select="bulk-posts-form" aria-label="Chọn {{ $title }}"></td>
+                                <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $post->id }}" form="bulk-posts-form" data-bulk-select="bulk-posts-form" aria-label="{{ __('admin.bulk.select_item', ['name' => $title]) }}"></td>
                                 <td class="ps-4 text-wrap" style="min-width: 250px;">
                                     <div class="d-flex align-items-center gap-3">
                                         <img src="{{ $post->image_url ?: asset('admin-assets/js/icons/empty.png') }}" 
@@ -155,7 +155,7 @@
                                             : ($seoScore >= 80 ? 'bg-success-subtle text-success' : ($seoScore >= 50 ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger'));
                                     @endphp
                                     <span class="badge {{ $seoClass }} fw-semibold">
-                                        {{ $seoScore === null ? 'Chưa phân tích' : $seoScore.'/100' }}
+                                        {{ $seoScore === null ? __('admin.posts.not_analyzed') : $seoScore.'/100' }}
                                     </span>
                                 </td>
                                 <td>
@@ -214,31 +214,31 @@
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title" id="importWordPressPostsModalLabel">
-                        <i class="ti ti-brand-wordpress me-1 text-primary"></i>Import bài viết WordPress
+                        <i class="ti ti-brand-wordpress me-1 text-primary"></i>{{ __('admin.posts.wordpress.title') }}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info py-2">
-                        Chọn file <strong>WordPress eXtended RSS (WXR)</strong> được tải từ Công cụ → Xuất dữ liệu → Bài viết.
+                        {!! __('admin.posts.wordpress.intro', ['format' => '<strong>WordPress eXtended RSS (WXR)</strong>']) !!}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="wordpress_import_file">File WordPress XML <span class="text-danger">*</span></label>
+                        <label class="form-label" for="wordpress_import_file">{{ __('admin.posts.wordpress.file') }} <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="wordpress_import_file" name="import_file" accept=".xml,application/xml,text/xml" required>
-                        <div class="form-text">Dung lượng tối đa 20MB. Ảnh đại diện và ảnh trong nội dung sẽ được tải về media local.</div>
+                        <div class="form-text">{{ __('admin.posts.wordpress.file_help') }}</div>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label" for="wordpress_duplicate_action">Khi trùng Slug <span class="text-danger">*</span></label>
+                        <label class="form-label" for="wordpress_duplicate_action">{{ __('admin.posts.wordpress.duplicate') }} <span class="text-danger">*</span></label>
                         <select class="form-select" id="wordpress_duplicate_action" name="duplicate_action" required>
-                            <option value="skip" selected>Bỏ qua bài đã tồn tại (an toàn)</option>
-                            <option value="update">Cập nhật bài đang có bằng dữ liệu WordPress</option>
+                            <option value="skip" selected>{{ __('admin.posts.wordpress.duplicate_skip') }}</option>
+                            <option value="update">{{ __('admin.posts.wordpress.duplicate_update') }}</option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('catalog.actions.cancel') }}</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-upload me-1"></i>Bắt đầu import
+                        <i class="ti ti-upload me-1"></i>{{ __('admin.posts.wordpress.start') }}
                     </button>
                 </div>
             </form>

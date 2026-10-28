@@ -37,7 +37,7 @@ class CategoryRequest extends FormRequest
                         $categoryId = $this->route('category')?->id;
                         while ($parent && $categoryId) {
                             if ((int) $parent->id === (int) $categoryId) {
-                                $fail('Danh mục cha không thể là danh mục con của chính nó.');
+                                $fail(__('catalog.categories.parent_cycle'));
                                 break;
                             }
                             $parent = $parent->parent_id ? Category::find($parent->parent_id) : null;

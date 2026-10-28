@@ -33,6 +33,8 @@ class SiteBlockUpdateRequest extends FormRequest
             // The heading level chosen from the inline toolbar. Null keeps the tag
             // the Blade template authored, which is what an untouched region uses.
             'format' => ['nullable', 'string', Rule::in(SiteBlock::FORMATS)],
+            // Alignment token from the inline toolbar. Absent leaves it as it is; null returns to the theme's.
+            'align' => ['sometimes', 'nullable', 'string', Rule::in(SiteBlock::ALIGNS)],
             'content_locale' => ['required', 'string', Rule::in(app(LanguageRegistry::class)->codes())],
             // An empty string is a real value: it hides the region.
             'value' => ['present', 'string', 'max:200000'],
@@ -43,7 +45,7 @@ class SiteBlockUpdateRequest extends FormRequest
             // could close the attribute, the url() or the declaration (no javascript:, data:, quotes).
             $rules['value'] = ['present', 'string', 'max:2048', function (string $attribute, mixed $value, Closure $fail): void {
                 if ($value !== '' && ! ClientBackground::isSafeUrl((string) $value)) {
-                    $fail('Đường dẫn ảnh không hợp lệ.');
+                    $fail(__('admin.site_editor.validation.invalid_image'));
                 }
             }];
         }
@@ -54,7 +56,7 @@ class SiteBlockUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'key.regex' => 'Mã vùng nội dung không hợp lệ.',
+            'key.regex' => __('admin.site_editor.validation.invalid_key'),
         ];
     }
 }

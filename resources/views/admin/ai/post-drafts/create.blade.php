@@ -78,8 +78,8 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label" for="tone">{{ __('ai.draft.tone') }} <span class="text-danger">*</span></label>
                                 <select class="form-select" id="tone" name="tone" required>
-                                    @foreach($tones as $tone)
-                                        <option value="{{ $tone }}" @selected(old('tone', $tones[0]) === $tone)>{{ $tone }}</option>
+                                    @foreach($tones as $toneIndex => $tone)
+                                        <option value="{{ $tone }}" @selected(old('tone', $tones[0]) === $tone)>{{ __('ai.draft.tone_labels')[$toneIndex] ?? $tone }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -121,8 +121,8 @@
                                 <label class="form-label" for="notes_tone">{{ __('ai.draft.tone') }}</label>
                                 <select class="form-select" id="notes_tone" name="tone">
                                     <option value="">{{ __('ai.draft.tone_from_notes') }}</option>
-                                    @foreach($tones as $tone)
-                                        <option value="{{ $tone }}" @selected(old('tone') === $tone)>{{ $tone }}</option>
+                                    @foreach($tones as $toneIndex => $tone)
+                                        <option value="{{ $tone }}" @selected(old('tone') === $tone)>{{ __('ai.draft.tone_labels')[$toneIndex] ?? $tone }}</option>
                                     @endforeach
                                 </select>
                             </div>

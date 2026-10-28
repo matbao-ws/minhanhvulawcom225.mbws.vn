@@ -954,6 +954,24 @@ def clean_merged():
     say('[+] Đã về main mới nhất.')
 
 
+STRUCTURE_BASELINE = os.path.join('resources', 'views', 'client', '.editor-structure-baseline.json')
+
+
+def baseline_structure():
+    """A theme cut before the editor-structure rules (repeated runs as list items, no inline region
+    over database data) would fail the project's CI on the first push after this update. Record the
+    findings it has once, in the theme's own folder, so only new ones fail. A project that already
+    has the file, or has no storefront yet, is left alone."""
+    path = os.path.join(HERE, STRUCTURE_BASELINE)
+    if not os.path.isdir(os.path.dirname(path)) or os.path.exists(path):
+        return
+    run(['php', 'artisan', 'client:editable-audit', '--baseline'], check=False)
+    if os.path.exists(path):
+        git('add', '--', STRUCTURE_BASELINE)
+        git('commit', '-m', 'chore: ghi baseline cấu trúc bộ sửa của giao diện hiện có', check=False)
+        say('[+] Đã ghi baseline cấu trúc bộ sửa: lỗi cũ của giao diện không chặn CI, lỗi mới vẫn chặn.')
+
+
 def update_core(target=None):
     if dirty_files():
         raise Stop('Đang có thay đổi chưa lưu. Lưu & đẩy trước.')
@@ -991,6 +1009,7 @@ def update_core(target=None):
         run(['composer', 'install', '--no-interaction'], check=False)
     run(['php', 'artisan', 'migrate', '--force'], check=False)
     run(['php', 'artisan', 'optimize:clear'], check=False)
+    baseline_structure()
     say(f'[+] Đã lấy core {tag} trên nhánh {work}. Mở web local kiểm tra giao diện,')
     say('    rồi chọn "Lưu & đẩy" để mở PR vào main.')
 

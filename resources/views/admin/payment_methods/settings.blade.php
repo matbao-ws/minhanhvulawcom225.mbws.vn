@@ -96,7 +96,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold text-dark" for="api_key">{{ __('admin.payment_methods.sepay_api_key') }}</label>
                             <input type="password" class="form-control text-dark" id="api_key" name="api_key"
-                                value="{{ old('api_key', $apiKey) }}" placeholder="Nhập SePay API Token" autocomplete="off">
+                                value="{{ old('api_key', $apiKey) }}" placeholder="{{ __('admin.payment_methods.sepay_api_key_placeholder') }}" autocomplete="off">
                             <div class="form-text text-muted">{{ __('admin.payment_methods.sepay_api_key_hint') }}</div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -135,24 +135,24 @@
                     @endphp
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="bank_name">Tên ngân hàng <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold text-dark" for="bank_name">{{ __('admin.payment_methods.bank_name') }} <span class="text-danger">*</span></label>
                             <input type="text" class="form-control text-dark" id="bank_name" name="bank_name" 
-                                value="{{ old('bank_name', $bankName) }}" placeholder="Ví dụ: Vietcombank, MB Bank..." required>
+                                value="{{ old('bank_name', $bankName) }}" placeholder="{{ __('admin.payment_methods.bank_name_placeholder') }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="account_number">Số tài khoản <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold text-dark" for="account_number">{{ __('admin.payment_methods.account_number') }} <span class="text-danger">*</span></label>
                             <input type="text" class="form-control text-dark" id="account_number" name="account_number" 
-                                value="{{ old('account_number', $accountNumber) }}" placeholder="Nhập số tài khoản" required>
+                                value="{{ old('account_number', $accountNumber) }}" placeholder="{{ __('admin.payment_methods.account_number_placeholder') }}" required>
                         </div>
                         <div class="col-md-12 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="account_holder">Tên chủ tài khoản <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold text-dark" for="account_holder">{{ __('admin.payment_methods.account_holder') }} <span class="text-danger">*</span></label>
                             <input type="text" class="form-control text-dark" id="account_holder" name="account_holder" 
-                                value="{{ old('account_holder', $accountHolder) }}" placeholder="Ví dụ: NGUYEN VAN A" required>
+                                value="{{ old('account_holder', $accountHolder) }}" placeholder="{{ __('admin.payment_methods.account_holder_placeholder') }}" required>
                         </div>
                         <div class="col-md-12 mb-3">
-                            <label class="form-label fw-semibold text-dark" for="instructions">Hướng dẫn chuyển khoản</label>
+                            <label class="form-label fw-semibold text-dark" for="instructions">{{ __('admin.payment_methods.bank_instructions') }}</label>
                             <textarea class="form-control text-dark" id="instructions" name="instructions" rows="4" 
-                                placeholder="Ghi chú các bước chuyển khoản hoặc thông tin lưu ý cho khách hàng...">{{ old('instructions', $instructions) }}</textarea>
+                                placeholder="{{ __('admin.payment_methods.bank_instructions_placeholder') }}">{{ old('instructions', $instructions) }}</textarea>
                         </div>
                     </div>
                 @elseif($method->method_code === 'cod' || $method->type === 'custom')
@@ -163,7 +163,7 @@
                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-semibold text-dark" for="description">{{ __('admin.payment_methods.fee') }} <span class="text-danger">*</span></label>
                             <textarea class="form-control text-dark" id="description" name="description" rows="4" 
-                                placeholder="Hướng dẫn hoặc mô tả cho khách hàng..." required>{{ old('description', $description) }}</textarea>
+                                placeholder="{{ __('admin.payment_methods.description_hint_placeholder') }}" required>{{ old('description', $description) }}</textarea>
                         </div>
                     </div>
                 @endif

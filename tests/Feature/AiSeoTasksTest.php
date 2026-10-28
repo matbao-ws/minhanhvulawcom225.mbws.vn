@@ -89,7 +89,7 @@ class AiSeoTasksTest extends TestCase
             ->assertSee('cách chọn ống nhựa')
             ->assertSee(route('admin.posts.edit', ['post' => $this->post->id]), false)
             ->assertDontSee('/admin/posts/99999/edit', false)
-            ->assertSee(__('ai.tasks.no_editor'));
+            ->assertSee(__('ai.tasks.fix.not_fixable'));
 
         $this->actingAs($this->user(['ai.use']))->get('/vi/admin/ai/seo-tasks')
             ->assertOk()
@@ -140,7 +140,7 @@ class AiSeoTasksTest extends TestCase
         $user = $this->user(['ai.use']);
 
         $this->actingAs($user)->get('/vi/admin/ai/seo-tasks')->assertOk()
-            ->assertSee(__('ai.tasks.priorities.important'))
+            ->assertSee(__('ai.tasks.action.low_ctr'))
             ->assertSee(route('admin.ai.seo-tasks.status', ['task' => 'aaaaaaaaaaaaaaaa']), false);
 
         $this->actingAs($user)->postJson('/vi/admin/ai/seo-tasks/aaaaaaaaaaaaaaaa/status', ['status' => 'done'])

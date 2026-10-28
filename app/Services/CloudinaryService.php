@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Media\ImageOptimizer;
 use App\Support\MediaUrl;
 use Cloudinary\Api\Admin\AdminApi;
 use Cloudinary\Api\Upload\UploadApi;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\File\File;
 
 class CloudinaryService
 {
@@ -37,8 +39,10 @@ class CloudinaryService
      */
     private const RESOURCE_LIST_CACHE_TTL_SECONDS = 60;
 
-    public function __construct(private readonly CloudinaryCredentials $credentials)
-    {
+    public function __construct(
+        private readonly CloudinaryCredentials $credentials,
+        private readonly ImageOptimizer $imageOptimizer = new ImageOptimizer,
+    ) {
         if ($credentials = $this->credentials->current()) {
             Configuration::instance([
                 'cloud' => [
@@ -103,12 +107,26 @@ class CloudinaryService
             $slug = 'file';
         }
         $suffix = substr(md5(uniqid((string) mt_rand(), true)), 0, 6);
-        $friendlyFilename = "{$slug}-{$suffix}.{$extension}";
-        $publicId = "{$slug}-{$suffix}";
+
+        // Logos, favicons and share images keep their format: some link previews reject WebP.
+        $optimized = $this->imageOptimizer->optimize($file->getRealPath(), $extension, keepFormat: $folder === 'settings');
+
+        try {
+            return $this->store($optimized ? new File($optimized['path']) : $file, $folder, "{$slug}-{$suffix}", $optimized['extension'] ?? $extension);
+        } finally {
+            if ($optimized) {
+                @unlink($optimized['path']);
+            }
+        }
+    }
+
+    private function store(File $file, string $folder, string $publicId, string $extension): string
+    {
+        $friendlyFilename = "{$publicId}.{$extension}";
 
         if (! $this->isConfigured()) {
             Log::info('Cloudinary is not configured. Falling back to local storage.');
-            $path = $file->storeAs($folder, $friendlyFilename, 'public');
+            $path = Storage::disk('public')->putFileAs($folder, $file, $friendlyFilename);
 
             return $this->localUrl($path);
         }
@@ -129,7 +147,7 @@ class CloudinaryService
         } catch (\Throwable $e) {
             Log::error('Cloudinary upload failed.', ['exception' => $e::class]);
             // Fallback to local storage in case of API failure
-            $path = $file->storeAs($folder, $friendlyFilename, 'public');
+            $path = Storage::disk('public')->putFileAs($folder, $file, $friendlyFilename);
 
             return $this->localUrl($path);
         }

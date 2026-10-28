@@ -37,6 +37,7 @@ class PermissionRegistry
         'posts' => ['group' => 'content', 'label' => 'Bài viết và chuyên mục', 'actions' => ['view', 'create', 'update', 'delete']],
         'pages' => ['group' => 'content', 'label' => 'Trang chính sách', 'actions' => ['view', 'create', 'update', 'delete']],
         'banners' => ['group' => 'content', 'label' => 'Banner', 'actions' => ['view', 'create', 'update', 'delete']],
+        'partners' => ['group' => 'content', 'label' => 'Đối tác (logo khách hàng, đối tác)', 'actions' => ['view', 'create', 'update', 'delete']],
         'menus' => ['group' => 'content', 'label' => 'Menu điều hướng', 'actions' => ['view', 'create', 'update', 'delete']],
         'vouchers' => ['group' => 'marketing', 'label' => 'Mã giảm giá', 'actions' => ['view', 'create', 'update', 'delete']],
         'promotions' => ['group' => 'marketing', 'label' => 'Khuyến mãi', 'actions' => ['view', 'create', 'update', 'delete']],

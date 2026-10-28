@@ -45,7 +45,7 @@
                                 <tbody>
                                     @foreach($groupModules as $module => $definition)
                                         <tr>
-                                            <td class="fw-semibold text-dark">{{ $definition['label'] }}</td>
+                                            <td class="fw-semibold text-dark">{{ Lang::has('admin.roles.modules.'.$module) ? __('admin.roles.modules.'.$module) : $definition['label'] }}</td>
                                             @foreach(['view', 'create', 'update', 'delete', 'use'] as $action)
                                                 <td class="text-center">
                                                     @if(in_array($action, $definition['actions'], true))
@@ -54,7 +54,7 @@
                                                             <input class="form-check-input" type="checkbox" name="permissions[]"
                                                                    value="{{ $code }}" id="perm_{{ $module }}_{{ $action }}"
                                                                    data-permission-group-checkbox="{{ $group }}"
-                                                                   aria-label="{{ __('admin.roles.actions.'.$action) }} — {{ $definition['label'] }}"
+                                                                   aria-label="{{ __('admin.roles.actions.'.$action) }} — {{ Lang::has('admin.roles.modules.'.$module) ? __('admin.roles.modules.'.$module) : $definition['label'] }}"
                                                                    @checked($isWildcard || in_array($code, $selected, true))>
                                                         </div>
                                                     @else

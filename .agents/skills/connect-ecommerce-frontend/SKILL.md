@@ -8,6 +8,10 @@ description: Build or import a storefront HTML theme, cut a root `theme/` design
 ## Establish the contract
 
 1. Read `AI_BUILD_PROMPT.md`.
+   - **Cutting or re-cutting a theme, or changing any view under `resources/views/client`:** read
+     [theme-cut-acceptance.md](references/theme-cut-acceptance.md) first, and write its §1 inventory
+     before touching Blade. It is the order of work, the catalogue of theme patterns that break the
+     editor, the browser smoke test and the report format. Read it again before reporting.
 2. Read [static-first-workflow.md](references/static-first-workflow.md) when creating a mockup,
    cutting an approved HTML design, or deciding the current frontend stage.
 3. Read [theme-preflight.md](references/theme-preflight.md) whenever a `theme/` directory is
@@ -108,6 +112,30 @@ Extract the approved prototype into:
 - The `@include('core.head')` / `@include('core.editor')` lines and the CMS Page inline-editing contract
   (the editor is core; never copy or list its partials in the theme).
 
+Then, **in the same pass and before reporting the cut**, refactor the structure the editor's tools
+need. This is the step most often skipped, because the page looks finished without it:
+
+1. The layout loads the editor: `@include('core.head')` before `</head>`, `@include('core.editor')`
+   once, right before `</body>`.
+2. Every visible text and image is a region (`x-client::editable`, `editable-image`,
+   `@clientBackground`), dynamic, or ignored with a reason.
+3. Every run of repeated authored units (cards, steps, benefits, members, footer columns) is a
+   `@foreach` over `$lists->items(…)` whose outermost element is `<x-client::list-item>` — see
+   [editable-markup-standard.md](references/editable-markup-standard.md) §5. A fixed run on purpose
+   carries `{{-- editor:fixed-run <lý do> --}}`.
+4. Nothing from the database is an inline region: products, posts, categories, brands, partners,
+   menus, banners and the shop name/logo are plain output from their services
+   ([theme-cut-acceptance.md](references/theme-cut-acceptance.md) §1 ownership map). A managed block
+   with no module (as partner logos were before the Partners module) is reported to the user, not
+   faked with inline regions.
+5. Run `php artisan client:editable-audit` and fix until `RESULT: PASS`. Its "Editor structure"
+   block gates 1, 3 and 4; the rest gates 2.
+6. Run the browser smoke test of the editing toolkit (theme-cut-acceptance.md §5) and report every
+   step; a step not run is "chưa kiểm", never "đạt".
+7. Hand the cut to an independent, read-only reviewer with a fresh context
+   ([theme-cut-review.md](references/theme-cut-review.md); in Claude Code the `theme-cut-reviewer`
+   subagent). Fix every blocking finding and review again with a new reviewer until ĐẠT.
+
 Preserve layout, spacing, typography, responsive behavior, and interactions from the approved HTML.
 Do not mix mock fixtures with the future API client. Do not convert approved HTML markup into
 JavaScript template strings or a client-rendered application unless the user explicitly requests
@@ -174,8 +202,12 @@ php artisan client:editable-audit   # must end with RESULT: PASS
 php artisan test --compact
 ```
 
-- The audit passes only with `unknown`, `unsupported` and "`data-editable-ignore` thiếu lý do" all at 0. It scans
+- The audit passes only with `unknown`, `unsupported` and "`data-editable-ignore` thiếu lý do" all at 0,
+  and with the "Editor structure" block clean: no layout missing `core.head`/`core.editor`, no
+  repeated run that is not a list of `list-item`s, no `editor:fixed-run` without a reason. It scans
   every file under `resources/views/client/**`, partials and layouts included.
+- It reads `*.blade.php` only. Raw HTML in `theme/` is sized by the inventory in
+  [theme-cut-acceptance.md](references/theme-cut-acceptance.md) §1, written before cutting.
 - `--fix` wraps only what it can prove safe. Everything it marks `[sửa tay]` or `[chưa hỗ trợ]` is fixed
   by hand in the markup, never by changing the layout to dodge the scanner and never by adding
   `data-editable-ignore` to content a customer should be able to edit.
@@ -206,8 +238,11 @@ Check:
   parents of their real text/image children.
 - Responsive preview tests real iframe widths: Desktop fills the available canvas, fixed
   Tablet/Mobile stages are centered, and no zoom/transform fakes media-query behavior.
-- Ordinary text/image regions cannot add siblings, and the text-formatting toolbar has no
-  permanent-delete action. Treat repeatable content as a separate, explicitly approved feature.
+- The toolbar's "Nhân bản" copies the smallest unit the template already repeats: inside a
+  `<x-client::list-item>` the whole card (it lands beside the source in the theme's grid); a lone
+  text region gets a sibling copy with its own tag and classes (`{key}.extra`). No arbitrary element
+  is ever copied, so wrap every repeated card in `list-item` while cutting. An authored region is
+  hidden/restored, never permanently deleted; only cards and copies are.
 - Undo/redo covers typing, formatting and semantic `p`/`h1`-`h6` replacement; Save, Cancel and
   subsequent edits still target the current node after its wrapper is replaced.
 - Sort handles appear only for persisted lists with at least two eligible siblings. Reordering is
@@ -225,10 +260,14 @@ State the completed stage. List prototype/cut pages, reusable components, connec
 auth/token handling, mock fixtures still present, error states, tests/manual checks, and any
 backend/OpenAPI mismatch that remains.
 
-When views under `resources/views/client` changed, the report also has:
+When a theme was cut or re-cut, the report is the template in
+[theme-cut-acceptance.md](references/theme-cut-acceptance.md) §8, every row filled, including the
+verdict of the independent review (§7, [theme-cut-review.md](references/theme-cut-review.md)). When views under
+`resources/views/client` changed otherwise, the report also has:
 
 - Pages and partials converted (file list).
-- Editable coverage from the audit summary: text editable/dynamic, images editable/dynamic.
+- Editable coverage from the audit summary: text editable/dynamic, images editable/dynamic, and
+  the "Editor structure" counts (repeated runs, fixed on purpose with their reasons).
 - Every region left static on purpose, with its reason, as printed by the audit.
 - Dynamic regions deliberately left to their admin screen (menus, products, posts…).
 - The audit result line and the test result line, verbatim.

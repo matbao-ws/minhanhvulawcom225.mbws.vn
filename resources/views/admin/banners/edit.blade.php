@@ -27,7 +27,7 @@
         <div class="col-12">
             <div class="card shadow-sm border border-light-subtle rounded-4">
                 <div class="card-header bg-transparent border-bottom py-3">
-                    <h5 class="card-title fw-bold text-dark mb-0">Chỉnh sửa Banner</h5>
+                    <h5 class="card-title fw-bold text-dark mb-0">{{ __('admin.banners.edit_card') }}</h5>
                 </div>
                 <div class="card-body p-4">
                     <form action="{{ route('admin.banners.update', $banner) }}" method="POST" enctype="multipart/form-data">
@@ -40,17 +40,17 @@
                             
                             <!-- Current Image Preview -->
                             <div class="mb-3 text-center p-3 bg-light rounded-4 border">
-                                <span class="d-block small text-muted mb-2">Hình ảnh hiện tại:</span>
+                                <span class="d-block small text-muted mb-2">{{ __('admin.banners.current_image') }}</span>
                                 <img src="{{ $banner->image_url }}" alt="Current Banner" class="rounded shadow-sm border border-2 border-primary-subtle" style="max-height: 180px; max-width: 100%; object-fit: cover;">
                             </div>
 
                             <div class="p-4 border border-2 border-dashed rounded-4 text-center bg-light-subtle position-relative hover-bg-light transition-all">
                                 <i class="ti ti-photo-plus text-muted fs-9 mb-2 d-inline-block"></i>
-                                <h6 class="text-dark fw-semibold mb-1">Thay đổi tập tin ảnh banner (nếu muốn)</h6>
-                                <p class="text-muted small mb-3">Chấp nhận JPG, PNG, WEBP tối đa 2MB. Bỏ trống nếu muốn giữ ảnh cũ.</p>
+                                <h6 class="text-dark fw-semibold mb-1">{{ __('admin.banners.change_file') }}</h6>
+                                <p class="text-muted small mb-3">{{ __('admin.banners.change_file_help') }}</p>
                                 <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*" data-media-folder="banners" style="cursor: pointer;">
                                 <div id="imagePreviewContainer" class="mt-3" style="display: none;">
-                                    <span class="d-block small text-primary fw-semibold mb-2">Hình ảnh mới thay thế:</span>
+                                    <span class="d-block small text-primary fw-semibold mb-2">{{ __('admin.banners.new_image') }}</span>
                                     <img id="imagePreview" src="" alt="New Preview" class="rounded shadow-sm border border-2 border-success-subtle" style="max-height: 180px; max-width: 100%; object-fit: cover;">
                                 </div>
                             </div>
@@ -59,7 +59,7 @@
                         <!-- Title -->
                         <div data-tour="banner-form.title" class="mb-3">
                             <label for="title" class="form-label fw-bold text-dark">{{ __('admin.banners.fields.title') }}</label>
-                            <input type="text" class="form-control rounded-pill" id="title" name="title" value="{{ old('title', $banner->title) }}" placeholder="Nhập tiêu đề hoặc mô tả ngắn">
+                            <input type="text" class="form-control rounded-pill" id="title" name="title" value="{{ old('title', $banner->title) }}" placeholder="{{ __('admin.banners.title_placeholder') }}">
                         </div>
 
                         <!-- Destination URL Link -->
@@ -94,7 +94,7 @@
                         <div class="d-flex justify-content-end gap-2 mt-4">
                             <a href="{{ route('admin.banners.index') }}" class="btn btn-light rounded-pill px-4 fw-semibold">{{ __('catalog.actions.cancel') }}</a>
                             <button data-tour="banner-form.save" type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
-                                <i class="ti ti-device-floppy me-1"></i>Lưu thay đổi
+                                <i class="ti ti-device-floppy me-1"></i>{{ __('admin.banners.save_changes') }}
                             </button>
                         </div>
                     </form>

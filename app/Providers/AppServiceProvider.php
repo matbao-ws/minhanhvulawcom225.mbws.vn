@@ -34,6 +34,7 @@ use App\Support\AiAccess;
 use App\Support\ClientEditorChrome;
 use App\Support\CoreUpdate\ArtisanRunner;
 use App\Support\CoreUpdate\ReleaseVerifier;
+use App\Support\DemoTheme;
 use App\Support\ErrorReporting\GatewayErrorReporter;
 use App\Support\FeatureGate;
 use App\Support\LocaleUrl;
@@ -174,7 +175,7 @@ class AppServiceProvider extends ServiceProvider
             // URL cannot be built and the error page itself throws (a blank 500 for a 404).
             $clientHomeUrl = Route::has('client.home')
                 ? route('client.home', ['locale' => $currentLocale])
-                : (is_file(base_path('routes/theme.php')) ? LocaleUrl::home($currentLocale) : null);
+                : (DemoTheme::routes() !== null ? LocaleUrl::home($currentLocale) : null);
 
             $view->with([
                 'isAdminContext' => $isAdminContext,
@@ -326,6 +327,13 @@ class AppServiceProvider extends ServiceProvider
         // views/core/components and are updated with core. A theme may add its own
         // components in views/client/components under the same prefix.
         Blade::anonymousComponentPath(resource_path('views/core/components'), 'client');
+        // A demo theme on the core checkout is looked up first (views and <x-client::…> components).
+        if ($demoViews = DemoTheme::views()) {
+            View::prependLocation($demoViews);
+            if (is_dir($demoViews.'/client/components')) {
+                Blade::anonymousComponentPath($demoViews.'/client/components', 'client');
+            }
+        }
         if (is_dir(resource_path('views/client/components'))) {
             Blade::anonymousComponentPath(resource_path('views/client/components'), 'client');
         }
@@ -383,8 +391,11 @@ class AppServiceProvider extends ServiceProvider
                 $orders = Order::query()->latest()->limit(5)->get();
                 foreach ($orders as $order) {
                     $notifications->push([
-                        'title' => 'Đơn hàng mới #'.$order->order_number,
-                        'message' => 'Khách hàng: '.$order->customer_name.'. Tổng cộng: '.number_format($order->grand_total, 0, ',', '.').' ₫.',
+                        'title' => __('admin.header.feed.order_title', ['number' => $order->order_number]),
+                        'message' => __('admin.header.feed.order_message', [
+                            'customer' => $order->customer_name,
+                            'total' => number_format($order->grand_total, 0, ',', '.'),
+                        ]),
                         'time' => $order->created_at ? $order->created_at->diffForHumans() : '',
                         'timestamp' => $order->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:cart-3-line-duotone',
@@ -398,14 +409,14 @@ class AppServiceProvider extends ServiceProvider
             if ($user?->can('reviews.view') && Schema::hasTable('reviews') && app(FeatureGate::class)->enabled('review')) {
                 $reviews = Review::query()->latest()->limit(5)->get();
                 foreach ($reviews as $review) {
-                    $prodName = 'Sản phẩm';
+                    $prodName = __('admin.header.feed.review_product');
                     if ($review->product) {
                         $name = $review->product->name;
-                        $prodName = is_array($name) ? ($name['vi'] ?? array_values($name)[0] ?? 'Sản phẩm') : $name;
+                        $prodName = is_array($name) ? ($name['vi'] ?? array_values($name)[0] ?? $prodName) : $name;
                     }
                     $notifications->push([
-                        'title' => 'Đánh giá mới từ '.($review->customer_name ?? 'Khách hàng'),
-                        'message' => 'Đánh giá '.$review->rating.' sao cho '.$prodName,
+                        'title' => __('admin.header.feed.review_title', ['customer' => $review->customer_name ?? __('admin.header.feed.review_customer')]),
+                        'message' => __('admin.header.feed.review_message', ['rating' => $review->rating, 'product' => $prodName]),
                         'time' => $review->created_at ? $review->created_at->diffForHumans() : '',
                         'timestamp' => $review->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:chat-round-line-line-duotone',
@@ -433,8 +444,8 @@ class AppServiceProvider extends ServiceProvider
                 // would silently break the permission check of any block added after.
                 foreach ($staffAccounts as $staff) {
                     $notifications->push([
-                        'title' => 'Thành viên mới: '.$staff->name,
-                        'message' => 'Email: '.$staff->email,
+                        'title' => __('admin.header.feed.staff_title', ['name' => $staff->name]),
+                        'message' => __('admin.header.feed.staff_message', ['email' => $staff->email]),
                         'time' => $staff->created_at ? $staff->created_at->diffForHumans() : '',
                         'timestamp' => $staff->created_at?->getTimestamp() ?? 0,
                         'icon' => 'solar:shield-user-line-duotone',

@@ -129,7 +129,7 @@ class CoreUpdateController extends Controller
         $allowed = (bool) $data['admin_allowed'];
 
         $this->access->setAdminAllowed($allowed);
-        ActivityLogger::log('updated', null, $allowed ? 'Cho phép admin website cập nhật core' : 'Tắt quyền cập nhật core của admin website', [
+        ActivityLogger::log('updated', null, $allowed ? __('admin.core_update.access.activity_enabled') : __('admin.core_update.access.activity_disabled'), [
             'new' => ['admin_allowed' => $allowed],
         ]);
 

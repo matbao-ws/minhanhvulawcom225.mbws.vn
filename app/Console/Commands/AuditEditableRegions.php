@@ -6,6 +6,7 @@ use App\Models\MenuItem;
 use App\Models\Page;
 use App\Services\LocalizedSlugService;
 use App\Support\EditableRegionScanner;
+use App\Support\EditorStructureScanner;
 use App\Support\SectionRegistry;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
@@ -36,6 +37,7 @@ class AuditEditableRegions extends Command
 {
     protected $signature = 'client:editable-audit
         {--fix : Wrap what can be wrapped safely and rewrite the files}
+        {--baseline : Record the editor-structure findings present now, so only new ones fail (for a theme cut before those rules existed)}
         {--path= : Audit another folder of Blade views instead of resources/views/client (a theme benchmark); skips the section and menu wiring checks}';
 
     protected $description = 'Classify every piece of storefront content as editable, dynamic or ignored, and fail on anything left over';
@@ -58,6 +60,20 @@ class AuditEditableRegions extends Command
         'layered' => 'ảnh nền nhiều lớp: @clientBackground(\'%key%\', "<style gốc>") chỉ thay url() của ảnh, gradient giữ nguyên; nếu có nhiều ảnh, sửa tay',
         'style-block' => 'ảnh nền khai báo trong <style>: chuyển khai báo đó thành style inline trên phần tử rồi dùng @clientBackground, giữ nguyên selector/media query',
     ];
+
+    /** What each structure finding needs, by EditorStructureScanner reason. */
+    private const STRUCTURE_ADVICE = [
+        'layout-head' => 'layout thiếu @include(\'core.head\') ngay trước </head> — bộ sửa và CSS của nó không được nạp',
+        'layout-editor' => 'layout thiếu @include(\'core.editor\') ngay trước </body> — trang không có bộ sửa',
+        'unwrapped-run' => 'vòng lặp nội dung chưa bọc từng mục bằng <x-client::list-item list="…" :item="$id" class="<class của thẻ ngoài cùng>"> và chưa lấy id từ $lists->items(…) — không nhân bản/chuyển/xoá được. Cố định có chủ đích: {{-- '.EditorStructureScanner::FIXED_RUN_MARKER.' <lý do> --}} ngay trước @foreach',
+        'nested-run' => '<x-client::list-item> phải là phần tử ngoài cùng của vòng lặp (thay thẻ bọc của mục, giữ class) — bọc sâu hơn thì bản sao rơi vào trong cột thay vì nằm cạnh trong grid',
+        'database-region' => 'vùng sửa trực tiếp đang bọc dữ liệu từ database (sản phẩm, bài viết, đối tác, menu…) — bỏ x-client::editable/editable-image, in thẳng {{ $model->… }}; dữ liệu này chỉ sửa ở màn admin của nó',
+    ];
+
+    public function __construct(private readonly EditorStructureScanner $structure)
+    {
+        parent::__construct();
+    }
 
     public function handle(EditableRegionScanner $scanner, SectionRegistry $registry): int
     {
@@ -87,9 +103,90 @@ class AuditEditableRegions extends Command
             $audit = $this->auditViews($scanner, $root);
         }
 
+        if ($this->option('baseline')) {
+            $this->writeBaseline($root, $audit['structure']['findings']);
+        }
+        $audit['structure'] = $this->applyBaseline($root, $audit['structure']);
+
         $this->report($audit, $sectionErrors);
 
         return $this->passes($audit, $sectionErrors) ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Where a site keeps the editor-structure findings its theme already had.
+     *
+     * The structure rules (repeated runs as list items, no inline region over database data)
+     * arrived after many themes were cut. Failing those sites' CI the day they take the core update
+     * would block every deploy for a theme that worked yesterday, so a site records what it has
+     * once and only *new* findings fail. Inside the theme's own folder: site-owned, never written
+     * by a core update, committed with the theme. A new site has no file and is held to every rule.
+     */
+    private function baselinePath(string $root): string
+    {
+        return rtrim($root, '/\\').'/.editor-structure-baseline.json';
+    }
+
+    /** @param  array<string, list<array<string, mixed>>>  $findings */
+    private function writeBaseline(string $root, array $findings): void
+    {
+        $entries = [];
+        foreach ($findings as $relative => $list) {
+            foreach ($list as $finding) {
+                $entries[] = ['file' => $relative, 'reason' => $finding['reason'], 'preview' => $finding['preview']];
+            }
+        }
+
+        file_put_contents($this->baselinePath($root), json_encode([
+            'note' => 'client:editable-audit --baseline: cấu trúc bộ sửa đã có trước khi luật ra đời. Sửa dần rồi chạy lại --baseline để thu gọn; đừng thêm tay.',
+            'findings' => $entries,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
+
+        $this->components->info(count($entries).' lỗi cấu trúc đã ghi vào '.basename($this->baselinePath($root)).' — từ giờ chỉ lỗi mới mới chặn.');
+    }
+
+    /**
+     * Moves findings recorded in the baseline to `baselined`: listed, not gating. Matched by file,
+     * rule and the loop or tag text, not by line, so editing above a run does not revive it.
+     *
+     * @param  array<string, mixed>  $structure
+     * @return array<string, mixed>
+     */
+    private function applyBaseline(string $root, array $structure): array
+    {
+        $structure['baselined'] = [];
+        $path = $this->baselinePath($root);
+        if (! is_file($path)) {
+            return $structure;
+        }
+
+        $known = [];
+        foreach ((array) (json_decode((string) file_get_contents($path), true)['findings'] ?? []) as $entry) {
+            if (is_array($entry)) {
+                $fingerprint = ($entry['file'] ?? '').'|'.($entry['reason'] ?? '').'|'.($entry['preview'] ?? '');
+                $known[$fingerprint] = ($known[$fingerprint] ?? 0) + 1;
+            }
+        }
+
+        foreach ($structure['findings'] as $relative => $findings) {
+            $kept = [];
+            foreach ($findings as $finding) {
+                $fingerprint = $relative.'|'.$finding['reason'].'|'.$finding['preview'];
+                if (($known[$fingerprint] ?? 0) > 0) {
+                    $known[$fingerprint]--;
+                    $structure['baselined'][$relative][] = $finding;
+                } else {
+                    $kept[] = $finding;
+                }
+            }
+            if ($kept === []) {
+                unset($structure['findings'][$relative]);
+            } else {
+                $structure['findings'][$relative] = $kept;
+            }
+        }
+
+        return $structure;
     }
 
     private function absolute(string $path): string
@@ -106,16 +203,29 @@ class AuditEditableRegions extends Command
      *     ignored: array<string, array<int, array<string, mixed>>>,
      *     invalidIgnores: array<string, array<int, array<string, mixed>>>,
      *     counts: array<string, array<string, int>>,
+     *     structure: array{findings: array<string, list<array<string, mixed>>>, ignored: array<string, list<array<string, mixed>>>, invalidIgnores: array<string, list<array<string, mixed>>>, runs: int},
      * }
      */
     private function auditViews(EditableRegionScanner $scanner, string $root): array
     {
-        $result = ['files' => 0, 'findings' => [], 'ignored' => [], 'invalidIgnores' => [], 'counts' => []];
+        $result = [
+            'files' => 0, 'findings' => [], 'ignored' => [], 'invalidIgnores' => [], 'counts' => [],
+            'structure' => ['findings' => [], 'ignored' => [], 'invalidIgnores' => [], 'runs' => 0],
+        ];
 
         foreach ($this->bladeFiles($root) as $file) {
             $relative = str_replace('\\', '/', $file->getRelativePathname());
-            $audit = $scanner->audit((string) file_get_contents($file->getPathname()), $this->viewKey($relative));
+            $source = (string) file_get_contents($file->getPathname());
+            $audit = $scanner->audit($source, $this->viewKey($relative));
             $result['files']++;
+
+            $structure = $this->structure->audit($source);
+            $result['structure']['runs'] += $structure['runs'];
+            foreach (['findings', 'ignored', 'invalidIgnores'] as $bucket) {
+                if ($structure[$bucket] !== []) {
+                    $result['structure'][$bucket][$relative] = $structure[$bucket];
+                }
+            }
 
             foreach (['findings', 'ignored', 'invalidIgnores'] as $bucket) {
                 if ($audit[$bucket] !== []) {
@@ -437,7 +547,8 @@ class AuditEditableRegions extends Command
      */
     private function passes(array $audit, array $sectionErrors): bool
     {
-        return $audit['findings'] === [] && $audit['invalidIgnores'] === [] && $sectionErrors === [];
+        return $audit['findings'] === [] && $audit['invalidIgnores'] === [] && $sectionErrors === []
+            && $audit['structure']['findings'] === [] && $audit['structure']['invalidIgnores'] === [];
     }
 
     /**
@@ -456,7 +567,56 @@ class AuditEditableRegions extends Command
         $this->reportFindings($audit['findings']);
         $this->reportInvalidIgnores($audit['invalidIgnores']);
         $this->reportIgnored($audit['ignored']);
+        $this->reportStructure($audit['structure']);
         $this->reportSummary($audit, $sectionErrors);
+    }
+
+    /**
+     * Wiring the editor's tools need, apart from whether each text is editable.
+     *
+     * @param  array<string, mixed>  $structure
+     */
+    private function reportStructure(array $structure): void
+    {
+        if ($structure['findings'] !== []) {
+            $this->newLine();
+            $this->line('  <fg=yellow>Cấu trúc bộ sửa</>');
+
+            foreach ($structure['findings'] as $relative => $findings) {
+                foreach ($findings as $finding) {
+                    $this->line(sprintf('    <fg=gray>%s:%d</> <fg=red>[sửa tay]</> %s', $relative, $finding['line'], $finding['preview']));
+                    $this->line('      <fg=gray>→ '.self::STRUCTURE_ADVICE[$finding['reason']].'</>');
+                }
+            }
+        }
+
+        foreach ($structure['invalidIgnores'] as $relative => $entries) {
+            foreach ($entries as $entry) {
+                $this->line(sprintf('    <fg=gray>%s:%d</> <fg=red>%s thiếu lý do</> %s', $relative, $entry['line'], EditorStructureScanner::FIXED_RUN_MARKER, $entry['preview']));
+            }
+        }
+
+        if (($structure['baselined'] ?? []) !== []) {
+            $this->newLine();
+            $this->line('  <fg=gray>Đã có từ trước (baseline, không chặn — nên sửa dần):</>');
+
+            foreach ($structure['baselined'] as $relative => $findings) {
+                foreach ($findings as $finding) {
+                    $this->line(sprintf('    <fg=gray>%s:%d %s · %s</>', $relative, $finding['line'], $finding['reason'], $finding['preview']));
+                }
+            }
+        }
+
+        if ($structure['ignored'] !== []) {
+            $this->newLine();
+            $this->line('  Vòng lặp cố ý giữ cố định:');
+
+            foreach ($structure['ignored'] as $relative => $entries) {
+                foreach ($entries as $entry) {
+                    $this->line(sprintf('    <fg=gray>%s:%d</> <fg=cyan>"%s"</> <fg=gray>%s</>', $relative, $entry['line'], $entry['reason'], $entry['preview']));
+                }
+            }
+        }
     }
 
     /** @param  array<string, array<int, array<string, mixed>>>  $grouped */
@@ -602,6 +762,20 @@ class AuditEditableRegions extends Command
 
         $this->summaryRow('Ignored without reason', $invalid, true, 0);
         $this->summaryRow('Section/menu wiring errors', count($sectionErrors), true, 0);
+
+        $structure = $audit['structure'];
+        $structureCount = static fn (string $reason): int => count(array_filter(
+            array_merge([], ...array_values($structure['findings'])),
+            static fn (array $finding): bool => $finding['reason'] === $reason,
+        ));
+        $this->line('  Editor structure');
+        $this->summaryRow('layout wiring errors', $structureCount('layout-head') + $structureCount('layout-editor'), true);
+        $this->summaryRow('repeated runs', $structure['runs']);
+        $this->summaryRow('fixed on purpose', array_sum(array_map('count', $structure['ignored'])));
+        $this->summaryRow('not a list-item', $structureCount('unwrapped-run') + $structureCount('nested-run'), true);
+        $this->summaryRow('editable database data', $structureCount('database-region'), true);
+        $this->summaryRow('known (baseline)', array_sum(array_map('count', $structure['baselined'] ?? [])));
+        $this->summaryRow('fixed without reason', array_sum(array_map('count', $structure['invalidIgnores'])), true);
 
         $this->newLine();
         $this->line($this->passes($audit, $sectionErrors)

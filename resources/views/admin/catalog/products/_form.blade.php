@@ -57,10 +57,10 @@
                         @endphp
                         <div class="tab-pane fade @if($code === $defaultContentLocale) show active @endif" id="product-language-{{ $code }}">
                             @if($code !== $defaultContentLocale)
-                                <div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>Dịch {{ strtoupper($defaultContentLocale) }} → {{ strtoupper($code) }}</button></div>
+                                <div class="text-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary js-translate-locale" data-source-locale="{{ $defaultContentLocale }}" data-target-locale="{{ $code }}"><i class="ti ti-language me-1"></i>{{ __('admin.translation.translate_button', ['from' => strtoupper($defaultContentLocale), 'to' => strtoupper($code)]) }}</button></div>
                             @endif
                             <div class="mb-4"><label class="form-label" for="name_{{ $code }}">{{ __('catalog.fields.name') }} @if($code === $defaultContentLocale)<span class="text-danger">*</span>@endif</label><input type="text" class="form-control" id="name_{{ $code }}" name="name[{{ $code }}]" value="{{ $name }}" data-i18n-locale="{{ $code }}" data-i18n-field="name" @required($code === $defaultContentLocale)></div>
-                            <div class="mb-4"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }}</label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug"><p class="fs-2 mb-0">Để trống để tự tạo từ tên {{ strtoupper($code) }}.</p></div>
+                            <div class="mb-4"><label class="form-label" for="slug_{{ $code }}">{{ __('catalog.fields.slug') }}</label><input type="text" class="form-control" id="slug_{{ $code }}" name="slug[{{ $code }}]" value="{{ $slug }}" data-i18n-locale="{{ $code }}" data-i18n-field="slug"><p class="fs-2 mb-0">{{ __('catalog.products.slug_help', ['locale' => strtoupper($code)]) }}</p></div>
                             <div class="mb-4"><label class="form-label" for="short_description_{{ $code }}">{{ __('catalog.fields.short_description') }}</label><textarea class="form-control" id="short_description_{{ $code }}" name="short_description[{{ $code }}]" rows="3" data-i18n-locale="{{ $code }}" data-i18n-field="short_description">{{ $shortDescription }}</textarea></div>
                             <div data-tour="product-form.description" class="mb-4">
                                 <label class="form-label" for="description_{{ $code }}">{{ __('catalog.fields.description') }}</label>
@@ -82,7 +82,7 @@
         <div data-tour="product-form.media" class="card">
             <div class="card-body">
                 <h4 class="card-title mb-1">{{ __('catalog.products.sections.media') }}</h4>
-                <p class="fs-2 mb-3">Thêm nhiều ảnh phụ để hiển thị trong thư viện ảnh chi tiết sản phẩm.</p>
+                <p class="fs-2 mb-3">{{ __('catalog.products.gallery_help') }}</p>
                 <div id="product-gallery-items" class="d-flex flex-wrap gap-2 mb-2">
                     @foreach($galleryImages as $index => $url)
                         @continue(empty($url))
@@ -124,13 +124,13 @@
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                         <div>
-                            <h4 class="card-title mb-1">Biến thể & SKU</h4>
-                            <p class="fs-2 mb-0">Khai báo hoặc chỉnh sửa nhóm như Màu sắc, Kích thước. Khi lưu, core tạo ngay các tổ hợp SKU còn thiếu.</p>
+                            <h4 class="card-title mb-1">{{ __('catalog.products.variants_title') }}</h4>
+                            <p class="fs-2 mb-0">{{ __('catalog.products.variants_help') }}</p>
                         </div>
                         <div class="form-check form-switch mt-1">
                             <input type="hidden" name="has_variants" value="0">
                             <input class="form-check-input" type="checkbox" name="has_variants" value="1" id="has_variants" @checked($hasVariants)>
-                            <label class="form-check-label" for="has_variants">Có biến thể</label>
+                            <label class="form-check-label" for="has_variants">{{ __('catalog.products.has_variants') }}</label>
                         </div>
                     </div>
                     <div id="create-variant-setup" @class(['d-none' => ! $hasVariants])>
@@ -139,20 +139,20 @@
                                 <div class="border rounded p-3 create-variant-group" data-group-index="{{ $groupIndex }}">
                                     @if(data_get($group, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][id]" value="{{ data_get($group, 'id') }}">@endif
                                     <div class="row align-items-end mb-3">
-                                        <div class="col-md-6"><label class="form-label">Tên nhóm</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][name]" value="{{ data_get($group, 'name') }}" required></div>
-                                        <div class="col-md-4"><label class="form-label">Kiểu hiển thị</label><select class="form-select" name="variant_groups[{{ $groupIndex }}][display_type]"><option value="select" @selected(data_get($group, 'display_type', 'select') === 'select')>Danh sách</option><option value="color" @selected(data_get($group, 'display_type') === 'color')>Màu sắc</option><option value="image" @selected(data_get($group, 'display_type') === 'image')>Ảnh</option></select></div>
-                                        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-create-group">Xóa nhóm</button></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('catalog.variant_builder.group_name') }}</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][name]" value="{{ data_get($group, 'name') }}" required></div>
+                                        <div class="col-md-4"><label class="form-label">{{ __('catalog.variant_builder.display_type') }}</label><select class="form-select" name="variant_groups[{{ $groupIndex }}][display_type]"><option value="select" @selected(data_get($group, 'display_type', 'select') === 'select')>{{ __('catalog.variant_builder.display_select') }}</option><option value="color" @selected(data_get($group, 'display_type') === 'color')>{{ __('catalog.fields.option_color') }}</option><option value="image" @selected(data_get($group, 'display_type') === 'image')>{{ __('catalog.variant_builder.display_image') }}</option></select></div>
+                                        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-create-group">{{ __('catalog.variant_builder.remove_group') }}</button></div>
                                     </div>
                                     <div class="create-variant-values d-flex flex-column gap-2">
                                         @foreach(data_get($group, 'values', []) as $valueIndex => $value)
-                                            <div class="row g-2 create-variant-value align-items-end">@if(data_get($value, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][id]" value="{{ data_get($value, 'id') }}">@endif<div class="col-md-4"><label class="form-label">Giá trị</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][label]" value="{{ data_get($value, 'label') }}" required></div><div class="col-md-2"><label class="form-label">Mã màu</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][color_hex]" value="{{ data_get($value, 'color_hex') }}" placeholder="#FFFFFF"></div><div class="col-md-3"><label class="form-label">Ảnh</label><div class="variant-value-image-trigger form-control d-flex align-items-center gap-2" style="cursor:pointer; height:auto; min-height:calc(1.5em + 0.75rem + 2px);"><img class="variant-value-image-preview rounded {{ data_get($value, 'image_url') ? '' : 'd-none' }}" style="width:32px;height:32px;object-fit:cover;" src="{{ data_get($value, 'image_url') }}" alt=""><span class="variant-value-image-placeholder small text-muted {{ data_get($value, 'image_url') ? 'd-none' : '' }}">Chọn ảnh</span></div><input type="file" class="d-none variant-value-image-file" accept="image/*" data-media-folder="products" data-media-selected-field="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]"><input type="hidden" class="variant-value-image-url" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]" value="{{ data_get($value, 'image_url') }}"></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="1" @checked(data_get($value, 'is_active', true))><label class="form-check-label">Bật</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>
+                                            <div class="row g-2 create-variant-value align-items-end">@if(data_get($value, 'id'))<input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][id]" value="{{ data_get($value, 'id') }}">@endif<div class="col-md-4"><label class="form-label">{{ __('catalog.fields.option_value') }}</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][label]" value="{{ data_get($value, 'label') }}" required></div><div class="col-md-2"><label class="form-label">{{ __('catalog.variant_builder.color_hex') }}</label><input class="form-control" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][color_hex]" value="{{ data_get($value, 'color_hex') }}" placeholder="#FFFFFF"></div><div class="col-md-3"><label class="form-label">{{ __('catalog.variant_builder.display_image') }}</label><div class="variant-value-image-trigger form-control d-flex align-items-center gap-2" style="cursor:pointer; height:auto; min-height:calc(1.5em + 0.75rem + 2px);"><img class="variant-value-image-preview rounded {{ data_get($value, 'image_url') ? '' : 'd-none' }}" style="width:32px;height:32px;object-fit:cover;" src="{{ data_get($value, 'image_url') }}" alt=""><span class="variant-value-image-placeholder small text-muted {{ data_get($value, 'image_url') ? 'd-none' : '' }}">{{ __('catalog.variant_builder.choose_image') }}</span></div><input type="file" class="d-none variant-value-image-file" accept="image/*" data-media-folder="products" data-media-selected-field="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]"><input type="hidden" class="variant-value-image-url" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][image_url]" value="{{ data_get($value, 'image_url') }}"></div><div class="col-md-1"><div class="form-check mb-2"><input type="hidden" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="0"><input class="form-check-input" type="checkbox" name="variant_groups[{{ $groupIndex }}][values][{{ $valueIndex }}][is_active]" value="1" @checked(data_get($value, 'is_active', true))><label class="form-check-label">{{ __('catalog.variant_builder.enabled') }}</label></div></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-create-value">×</button></div></div>
                                         @endforeach
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-3 add-create-value">+ Thêm giá trị</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-3 add-create-value">{{ __('catalog.variant_builder.add_value') }}</button>
                                 </div>
                             @endforeach
                         </div>
-                        <button type="button" id="add-create-group" class="btn btn-outline-primary mt-3">+ Thêm nhóm thuộc tính</button>
+                        <button type="button" id="add-create-group" class="btn btn-outline-primary mt-3">{{ __('catalog.variant_builder.add_group') }}</button>
                     </div>
                 </div>
             </div>
@@ -224,7 +224,7 @@
                         
                         <div id="product_image_placeholder" class="text-center py-3 {{ old('image_url', $product->image_url) ? 'd-none' : '' }}">
                             <iconify-icon icon="solar:camera-add-bold-duotone" class="fs-10 text-muted mb-2"></iconify-icon>
-                            <div class="text-muted small">Kéo thả ảnh hoặc nhấp để chọn ảnh</div>
+                            <div class="text-muted small">{{ __('catalog.products.thumbnail_dropzone') }}</div>
                         </div>
                     </div>
 
@@ -340,7 +340,7 @@
                 <h5 class="modal-title text-warning fw-semibold" id="unsavedChangesModalLabel">
                     <i class="ti ti-alert-triangle me-1"></i>{{ __('catalog.unsaved.title') }}
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('catalog.actions.close') }}"></button>
             </div>
             <div class="modal-body">
                 {{ __('catalog.unsaved.body') }}

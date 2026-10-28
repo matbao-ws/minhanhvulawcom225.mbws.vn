@@ -211,6 +211,9 @@ REMOTE_OWNED_KEYS = {'CMS_SYSTEM_PASS', 'CMS_ADMIN_PASS'}
 # Deploy credentials have no business sitting inside the web directory.
 ENV_KEYS_NOT_ON_REMOTE = {'FTP_HOST', 'FTP_USER', 'FTP_PASS', 'FTP_REMOTE_DIR', 'DEPLOY_LAST_TS', 'HOST_CRON'}
 
+# Same default as config/packages.php; a site profile may set PACKAGE_INFO_URL to override it.
+PACKAGE_INFO_URL = 'https://tool.matbaows.com/server/get-package-info.php'
+
 ENV_PRODUCTION_FORCED = {
     'APP_ENV': 'production',
     'APP_DEBUG': 'false',
@@ -289,6 +292,8 @@ def parse_args(argv=None):
                    help="Dùng deploy.zip đã có sẵn trên server thay vì nén và upload lại.")
     p.add_argument('--domain', default=None,
                    help="Domain website cần deploy (bỏ qua câu hỏi chọn site).")
+    p.add_argument('--package-domain', default=None,
+                   help="Domain tool nội bộ biết dự án (thường là *.mbws.vn), ghi vào PACKAGE_INFO_DOMAIN.")
     p.add_argument('--gateway-token', action='store_true',
                    help="Lấy lại token gateway cho site này (token cũ ngừng hoạt động).")
     p.add_argument('--reconfigure', action='store_true',
@@ -640,6 +645,57 @@ def provision_gateway_token(gateway_url, domain, args):
     return {'MATBAO_AI_TOKEN': body['token'], 'MATBAO_AI_WEBHOOK_SECRET': body.get('webhook_secret', '')}
 
 
+def check_package(package_domain, info_url):
+    """
+    Ask the internal tool for the package of a domain, as App\\Services\\Packages\\PackageInfo
+    does. Returns ('ok', data), ('not_found', None) or ('unreachable', None).
+    """
+    url = info_url.rstrip('/') + '/' + urllib.parse.quote(package_domain, safe='')
+    request = urllib.request.Request(url, headers={'Accept': 'application/json'})
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = json.loads(response.read() or b'{}')
+    except (OSError, ValueError):
+        return 'unreachable', None
+    if not isinstance(body, dict):
+        return 'unreachable', None
+    if str(body.get('retCode', -1)) != '0':
+        return 'not_found', None
+    data = body.get('data')
+    if not isinstance(data, dict) or not str(data.get('code') or '').strip():
+        return 'unreachable', None
+    return 'ok', data
+
+
+def resolve_package_domain(default, info_url, args):
+    """
+    The domain the internal tool knows this project by, checked against the tool before it is
+    kept. A scripted run (--yes or --package-domain) never asks: an unknown domain stops it.
+    """
+    candidate = args.package_domain or default
+    while True:
+        if not args.yes and not args.package_domain:
+            print('[?] Gói dịch vụ: domain tool nội bộ biết dự án (thường là bản *.mbws.vn).')
+            candidate = host_of(ask('Domain gói', candidate))
+        status, data = check_package(candidate, info_url)
+        if status == 'ok':
+            limit = lambda key: data.get(key) if str(data.get(key) or '').isdigit() and int(data[key]) > 0 else 'không giới hạn'
+            print(f'[+] Gói {str(data["code"]).upper()} ({data.get("packageName") or data["code"]}): '
+                  f'{limit("dataUnit")} sản phẩm + bài viết, {limit("numberEmail")} email/tháng.')
+            return candidate
+        if status == 'not_found':
+            print(f'[-] Tool nội bộ không có dự án {candidate}. Website chưa gắn gói sẽ không thêm được sản phẩm/bài viết.')
+            if args.yes or args.package_domain:
+                print('    Truyền đúng domain bằng --package-domain.')
+                sys.exit(1)
+            continue
+        print(f'[!] Không kết nối được tool nội bộ ({info_url}) để kiểm tra {candidate}.')
+        if prompt_yes_no('Vẫn lưu domain này (website tự đồng bộ gói khi tool hoạt động lại)?', False, args):
+            return candidate
+        if args.yes or args.package_domain:
+            sys.exit(1)
+
+
 def resolve_site(args):
     """
     Which website, and everything needed to reach and configure it — asked here, once per
@@ -700,6 +756,13 @@ def resolve_site(args):
             site['MATBAO_AI_TOKEN'] = token
         else:
             site.update({k: v for k, v in provision_gateway_token(site['MATBAO_AI_URL'], domain, args).items() if v})
+
+    # A production website without its package cannot add products or posts (packages.required),
+    # so the package domain is part of every site profile.
+    if args.package_domain or args.reconfigure or not site.get('PACKAGE_INFO_DOMAIN'):
+        site['PACKAGE_INFO_DOMAIN'] = resolve_package_domain(
+            args.package_domain or site.get('PACKAGE_INFO_DOMAIN') or host_of(domain),
+            site.get('PACKAGE_INFO_URL') or PACKAGE_INFO_URL, args)
 
     # Contact form and order notifications fall back to MAIL_SELLER: the admin's address
     # rather than the template's owner@example.com.
@@ -968,6 +1031,9 @@ def should_exclude(rel_path):
     
     # Core directories to skip entirely
     skip_entirely = {'.git', '.github', '.idea', '.vscode', 'node_modules', 'tests', 'infra', BACKUP_DIR, SITES_DIR}
+    # The core checkout's local demo theme (App\Support\DemoTheme) is never a website's.
+    if path_parts[0] == 'demo-theme' or path_parts[:2] == ['public', 'demo-theme-assets']:
+        return 'entirely'
     for p in path_parts:
         if p in skip_entirely:
             return 'entirely'
