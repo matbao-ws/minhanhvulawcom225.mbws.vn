@@ -108,6 +108,12 @@ return [
 
     'locale' => env('APP_LOCALE', 'en'),
 
+    /*
+    | A theme folder plugged into the core checkout to try changes on a real storefront
+    | (App\Support\DemoTheme). Kept out of git; ignored in production.
+    */
+    'demo_theme' => env('DEMO_THEME_PATH'),
+
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
