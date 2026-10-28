@@ -155,11 +155,37 @@ class MailSettings
     }
 
     /**
-     * Recipient for store-owner notifications: the admin value, then MAIL_SELLER.
+     * Recipients for store-owner notifications: the admin value, then MAIL_SELLER.
+     * Both may list several addresses separated by commas.
+     *
+     * @return list<string>
+     */
+    public function ownerEmails(): array
+    {
+        return self::splitEmails(data_get($this->stored(), 'owner_email') ?: config('mail.seller'));
+    }
+
+    /**
+     * The first owner address: the single reply-to for mail sent through the relay.
      */
     public function ownerEmail(): ?string
     {
-        return data_get($this->stored(), 'owner_email') ?: config('mail.seller');
+        return $this->ownerEmails()[0] ?? null;
+    }
+
+    /**
+     * "a@x.vn, b@y.vn; c@z.vn" → unique, trimmed addresses (case-insensitive), in order.
+     *
+     * @return list<string>
+     */
+    public static function splitEmails(mixed $value): array
+    {
+        $emails = [];
+        foreach (preg_split('/[\s,;]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $email) {
+            $emails[strtolower($email)] ??= $email;
+        }
+
+        return array_values($emails);
     }
 
     public static function flush(): void
@@ -173,24 +199,39 @@ class MailSettings
      */
     private function smtpTransport(array $smtp): array
     {
+        $overrides = ['mail.default' => 'smtp'];
+        foreach (self::smtpMailer($smtp) as $key => $value) {
+            $overrides['mail.mailers.smtp.'.$key] = $value;
+        }
+
+        return $overrides;
+    }
+
+    /**
+     * Mailer configuration for an SMTP account, as Mail::build() takes it.
+     *
+     * @param  array{host: mixed, port: int, encryption: mixed, username: mixed, password: mixed}  $smtp
+     * @return array<string, mixed>
+     */
+    public static function smtpMailer(array $smtp): array
+    {
         return [
-            'mail.default' => 'smtp',
-            'mail.mailers.smtp.transport' => 'smtp',
-            'mail.mailers.smtp.host' => $smtp['host'],
-            'mail.mailers.smtp.port' => $smtp['port'],
+            'transport' => 'smtp',
+            'host' => $smtp['host'],
+            'port' => $smtp['port'],
             // Laravel 11+ builds the transport from `scheme`; `encryption` is dead
             // config it never reads. And MAIL_SCHEME from .env suppresses the
             // port-465 fallback in MailManager, so without this mapping an SSL
             // choice becomes a plaintext connection to an implicit-TLS port.
             // `smtp` on 587 still upgrades with STARTTLS.
-            'mail.mailers.smtp.scheme' => ($smtp['encryption'] === 'ssl' || $smtp['port'] === 465)
+            'scheme' => ($smtp['encryption'] === 'ssl' || $smtp['port'] === 465)
                 ? 'smtps'
                 : 'smtp',
-            'mail.mailers.smtp.username' => $smtp['username'],
-            'mail.mailers.smtp.password' => $smtp['password'],
+            'username' => $smtp['username'],
+            'password' => $smtp['password'],
             // A MAIL_URL left in .env outranks host/port and would send these
             // credentials to the wrong server.
-            'mail.mailers.smtp.url' => null,
+            'url' => null,
         ];
     }
 }

@@ -68,10 +68,10 @@ class NotificationHelper
             // transport switch, so turning it off silences this mail without
             // affecting how the rest of the application sends.
             if (data_get($settings, 'smtp.enabled')) {
-                $ownerEmail = app(MailSettings::class)->ownerEmail();
-                if ($ownerEmail) {
+                $ownerEmails = app(MailSettings::class)->ownerEmails();
+                if ($ownerEmails) {
                     // Send email to the owner from the queue worker.
-                    Mail::to($ownerEmail)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order));
+                    Mail::to($ownerEmails)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order));
                 }
             }
 

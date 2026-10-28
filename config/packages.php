@@ -22,6 +22,13 @@ return [
     'domain' => env('PACKAGE_INFO_DOMAIN'),
 
     /*
+    | A website without a package (domain unset, or never read successfully from
+    | the tool) cannot add products or posts. On by default in production only,
+    | so local checkouts, CI and tests keep working without the tool.
+    */
+    'required' => (bool) env('PACKAGE_REQUIRED', env('APP_ENV') === 'production'),
+
+    /*
     | Package code (as the tool returns it in `data.code`) => the feature codes
     | that package switches on. Codes missing from a list are switched off.
     | Every code must exist in config('features.codes'); a test enforces it.

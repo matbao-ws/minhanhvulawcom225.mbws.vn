@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Cache;
  *
  * The internal tool is the only source: a limit changes when sales upgrade
  * the contract and update the tool, never from inside the core. Without a
- * package snapshot nothing is limited — the behaviour every shop had before
- * packages existed.
+ * package snapshot, a production website cannot add products or posts
+ * (packages.required); elsewhere nothing is limited.
  *
  * Limits apply to superadmin too: support importing a catalogue past the
  * package is exactly what they exist to catch.
@@ -43,8 +43,21 @@ class PackageLimits
         private readonly GatewayClient $gateway,
     ) {}
 
+    /**
+     * Production website with no package read from the tool yet: products and
+     * posts are blocked (limit 0) until one is linked.
+     */
+    public function packageMissing(): bool
+    {
+        return (bool) config('packages.required') && $this->sync->snapshot() === null;
+    }
+
     public function limit(string $metric): ?int
     {
+        if ($metric === self::DATA_UNIT && $this->packageMissing()) {
+            return 0;
+        }
+
         $value = $metric === self::EMAIL_MONTHLY
             ? ($this->emailUsage()['limit'] ?? null)
             : data_get($this->sync->snapshot(), 'limits.'.$metric);

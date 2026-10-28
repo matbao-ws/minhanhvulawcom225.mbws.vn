@@ -41,6 +41,47 @@ class PackageLimitsTest extends TestCase
         $this->assertNull(app(PackageLimits::class)->limit(PackageLimits::DATA_UNIT));
     }
 
+    public function test_a_required_package_that_is_missing_blocks_products_and_posts(): void
+    {
+        config(['packages.required' => true]);
+        $limits = app(PackageLimits::class);
+
+        $this->assertTrue($limits->packageMissing());
+        $this->assertSame(0, $limits->limit(PackageLimits::DATA_UNIT));
+
+        try {
+            $this->createProduct(1);
+            $this->fail('Sản phẩm vẫn được tạo khi chưa gắn gói.');
+        } catch (PackageLimitExceeded $e) {
+            $this->assertStringContainsString('chưa được gắn gói dịch vụ', $e->getMessage());
+        }
+
+        $this->expectException(PackageLimitExceeded::class);
+        $this->createPost(1);
+    }
+
+    public function test_a_missing_package_is_shown_as_an_admin_alert(): void
+    {
+        config(['packages.required' => true]);
+
+        $alerts = app(PackageUsageAlerts::class)->forAdmin();
+
+        $this->assertCount(1, $alerts);
+        $this->assertSame('danger', $alerts[0]['level']);
+        $this->assertSame('Chưa gắn gói dịch vụ', $alerts[0]['title']);
+    }
+
+    public function test_a_required_package_once_synced_applies_its_own_limits(): void
+    {
+        config(['packages.required' => true]);
+        $this->package(['data_unit' => 2]);
+
+        $this->assertFalse(app(PackageLimits::class)->packageMissing());
+        $this->createProduct(1);
+        $this->createPost(1);
+        $this->assertDatabaseCount('products', 1);
+    }
+
     public function test_products_and_posts_share_the_data_unit_limit(): void
     {
         $this->package(['data_unit' => 2]);

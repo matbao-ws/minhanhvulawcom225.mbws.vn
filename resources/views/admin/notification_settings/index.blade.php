@@ -61,7 +61,7 @@
                             </div>
                             <div class="col-md-12 mb-3">
                                 <label class="form-label fw-semibold text-dark" for="zalo_oa_refresh_token">{{ __('admin.notification_settings.zalo_oa.refresh_token') }}</label>
-                                <textarea class="form-control text-darkThông báo qua Zalo Cá Nhân" id="zalo_oa_refresh_token" name="zalo_oa[refresh_token]" rows="2" 
+                                <textarea class="form-control text-dark" id="zalo_oa_refresh_token" name="zalo_oa[refresh_token]" rows="2" 
                                     placeholder="{{ __('admin.notification_settings.placeholder_enter', ['field' => __('admin.notification_settings.zalo_oa.refresh_token')]) }}">{{ data_get($settings, 'zalo_oa.refresh_token') }}</textarea>
                             </div>
                         </div>
@@ -157,9 +157,26 @@
                                     value="{{ data_get($settings, 'smtp.password') }}" placeholder="xxxx xxxx xxxx xxxx">
                             </div>
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-semibold text-dark" for="smtp_owner_email">{{ __('admin.notification_settings.smtp.owner_email_system') }}</label>
-                                <input type="email" class="form-control text-dark" id="smtp_owner_email" name="smtp[owner_email]" 
-                                    value="{{ data_get($settings, 'smtp.owner_email') }}" placeholder="{{ __('admin.notification_settings.smtp.owner_email_placeholder') }}">
+                                <label class="form-label fw-semibold text-dark" for="smtp_owner_email_entry">{{ __('admin.notification_settings.smtp.owner_email_system') }}</label>
+                                {{-- Typed addresses become chips; the hidden field submits them as "a@x.vn, b@y.vn". --}}
+                                <div class="form-control email-chips" id="smtp_owner_email_box" data-max="5">
+                                    <input type="text" inputmode="email" autocomplete="off" class="email-chips__entry text-dark" id="smtp_owner_email_entry"
+                                        placeholder="{{ __('admin.notification_settings.smtp.owner_email_placeholder') }}" aria-describedby="smtp_owner_email_help smtp_owner_email_error">
+                                </div>
+                                <input type="hidden" id="smtp_owner_email" name="smtp[owner_email]" data-focus="smtp_owner_email_entry"
+                                    value="{{ old('smtp.owner_email', data_get($settings, 'smtp.owner_email')) }}">
+                                <div id="smtp_owner_email_error" class="invalid-feedback d-block" aria-live="polite"></div>
+                                <div id="smtp_owner_email_help" class="form-text">{{ __('admin.notification_settings.smtp.owner_email_help') }}</div>
+                                @can('settings.update')
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" id="smtpTestButton"
+                                            data-url="{{ route('admin.notification-settings.test-email') }}">
+                                            <i class="ti ti-send" aria-hidden="true"></i>
+                                            <span>{{ __('admin.notification_settings.smtp.test_button') }}</span>
+                                        </button>
+                                        <span class="small text-muted">{{ __('admin.notification_settings.smtp.test_hint') }}</span>
+                                    </div>
+                                @endcan
                             </div>
 
                             <!-- Advanced Config Toggle -->
@@ -204,7 +221,7 @@
                                         <div class="col-md-6 mb-0">
                                             <label class="form-label fw-semibold text-dark" for="smtp_from_name">{{ __('admin.notification_settings.smtp.from_name') }}</label>
                                             <input type="text" class="form-control text-dark" id="smtp_from_name" name="smtp[from_name]" 
-                                                value="{{ data_get($settings, 'smtp.from_name', 'Cửa hàng') }}" placeholder="{{ __('admin.notification_settings.placeholder_enter', ['field' => __('admin.notification_settings.smtp.from_name')]) }}">
+                                                value="{{ data_get($settings, 'smtp.from_name', __('admin.notification_settings.smtp.default_from_name')) }}" placeholder="{{ __('admin.notification_settings.placeholder_enter', ['field' => __('admin.notification_settings.smtp.from_name')]) }}">
                                         </div>
                                     </div>
                                 </div>
@@ -268,8 +285,172 @@
     <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
 @endsection
 
+@push('styles')
+<style>
+    .email-chips { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; min-height: 42px; height: auto; cursor: text; }
+    .email-chips:focus-within { border-color: var(--bs-primary); box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .15); }
+    .email-chips.is-invalid { border-color: var(--bs-danger); }
+    .email-chips__entry { flex: 1 1 180px; min-width: 120px; border: 0; outline: 0; padding: .125rem 0; background: transparent; }
+    .email-chip { display: inline-flex; align-items: center; gap: .25rem; max-width: 100%; padding: .25rem .25rem .25rem .625rem; border-radius: 999px;
+        background: var(--bs-primary-bg-subtle); color: var(--bs-primary-text-emphasis); font-size: .8125rem; font-weight: 500; line-height: 1.2; }
+    .email-chip__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email-chip__remove { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 0;
+        border-radius: 50%; background: transparent; color: inherit; line-height: 1; }
+    .email-chip__remove:hover, .email-chip__remove:focus-visible { background: rgba(var(--bs-primary-rgb), .18); outline: 0; }
+</style>
+@endpush
+
 @push('scripts')
 <script>
+    // Notification recipients as chips: Enter, comma, semicolon, space or leaving the field turns
+    // the typed address into a chip; Backspace in the empty field removes the last one.
+    (function () {
+        const box = document.getElementById('smtp_owner_email_box');
+        const entry = document.getElementById('smtp_owner_email_entry');
+        const field = document.getElementById('smtp_owner_email');
+        const error = document.getElementById('smtp_owner_email_error');
+        if (!box || !entry || !field) return;
+
+        const max = Number(box.dataset.max) || 5;
+        const text = {
+            invalid: @json(__('admin.notification_settings.smtp.owner_email_invalid')),
+            tooMany: @json(__('admin.notification_settings.smtp.owner_email_too_many', ['max' => 5])),
+            remove: @json(__('admin.notification_settings.smtp.owner_email_remove')),
+        };
+        const pattern = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+        let emails = [];
+
+        function split(value) {
+            return String(value || '').split(/[\s,;]+/).filter(Boolean);
+        }
+
+        function showError(message) {
+            error.textContent = message || '';
+            box.classList.toggle('is-invalid', Boolean(message));
+        }
+
+        function sync() {
+            field.value = emails.join(', ');
+            box.querySelectorAll('.email-chip').forEach(chip => chip.remove());
+            emails.forEach((email, index) => {
+                const chip = document.createElement('span');
+                chip.className = 'email-chip';
+                const label = document.createElement('span');
+                label.className = 'email-chip__text';
+                label.textContent = email;
+                label.title = email;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'email-chip__remove';
+                remove.setAttribute('aria-label', text.remove.replace(':email', email));
+                remove.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+                remove.addEventListener('click', () => {
+                    emails.splice(index, 1);
+                    showError('');
+                    sync();
+                    entry.focus();
+                });
+                chip.append(label, remove);
+                box.insertBefore(chip, entry);
+            });
+            entry.placeholder = emails.length ? '' : entry.dataset.placeholder;
+        }
+
+        // Adds every address in the typed text; whatever cannot be added stays in the field.
+        function commit() {
+            const rejected = [];
+            let message = '';
+            split(entry.value).forEach(email => {
+                if (emails.some(existing => existing.toLowerCase() === email.toLowerCase())) return;
+                if (!pattern.test(email)) {
+                    rejected.push(email);
+                    message = message || text.invalid.replace(':email', email);
+                } else if (emails.length >= max) {
+                    rejected.push(email);
+                    message = message || text.tooMany;
+                } else {
+                    emails.push(email);
+                }
+            });
+            entry.value = rejected.join(', ');
+            showError(message);
+            sync();
+            return rejected.length === 0;
+        }
+
+        entry.dataset.placeholder = entry.placeholder;
+        emails = split(field.value).slice(0, max);
+        sync();
+
+        box.addEventListener('click', event => {
+            if (event.target === box) entry.focus();
+        });
+        entry.addEventListener('keydown', event => {
+            if (['Enter', ',', ';', ' '].includes(event.key)) {
+                event.preventDefault();
+                commit();
+            } else if (event.key === 'Backspace' && entry.value === '' && emails.length) {
+                emails.pop();
+                showError('');
+                sync();
+            }
+        });
+        entry.addEventListener('input', () => {
+            if (/[\s,;]/.test(entry.value)) commit();
+            else if (error.textContent) showError('');
+        });
+        entry.addEventListener('blur', commit);
+        // A typed address not yet turned into a chip still counts when the form is saved.
+        entry.form?.addEventListener('submit', event => {
+            if (!commit()) {
+                event.preventDefault();
+                entry.focus();
+            }
+        }, true);
+    })();
+
+    // Test email with the settings as they are on the form, without saving them.
+    (function () {
+        const button = document.getElementById('smtpTestButton');
+        if (!button) return;
+        const label = button.querySelector('span');
+        const idleText = label.textContent;
+
+        button.addEventListener('click', async () => {
+            // Turn an address still being typed into a chip first.
+            document.getElementById('smtp_owner_email_entry')?.dispatchEvent(new Event('blur'));
+
+            button.disabled = true;
+            label.textContent = @json(__('admin.notification_settings.smtp.test_sending'));
+            let ok = false;
+            let message = '';
+            try {
+                const response = await fetch(button.dataset.url, {
+                    method: 'POST',
+                    body: new FormData(document.getElementById('notificationSettingsForm')),
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await response.json().catch(() => ({}));
+                ok = response.ok && data.success === true;
+                // A validation failure names the first faulty field.
+                message = data.message && !data.errors ? data.message : Object.values(data.errors || {})[0]?.[0] || data.message || '';
+            } catch (error) {
+                message = '';
+            } finally {
+                button.disabled = false;
+                label.textContent = idleText;
+            }
+
+            Swal.fire({
+                icon: ok ? 'success' : 'error',
+                title: ok ? @json(__('admin.notification_settings.smtp.test_button')) : NotificationText.error_title,
+                text: message || NotificationText.error_title,
+                confirmButtonText: 'OK',
+            });
+        });
+    })();
+
+    const NotificationText = @json(__('admin.notification_settings.js'));
     // Auto-unlock audio element on first user interaction
     function unlockAudio() {
         const audio = document.getElementById('alertSound');
@@ -382,7 +563,7 @@
                     this.checked = false;
                     Swal.fire({
                         icon: 'error',
-                        title: 'Lỗi / Error',
+                        title: NotificationText.error_title,
                         text: "{{ __('admin.notification_settings.no_package') }}",
                         confirmButtonText: 'OK'
                     });
@@ -412,12 +593,15 @@
                         confirmButtonText: 'OK'
                     }).then(() => {
                         if (firstEmptyInput) {
-                            firstEmptyInput.focus();
-                            firstEmptyInput.classList.add('is-invalid');
-                            
+                            // A hidden field (the recipient chips) points at the input the user types in.
+                            const visibleInput = document.getElementById(firstEmptyInput.dataset.focus) || firstEmptyInput;
+                            const outlined = visibleInput.closest('.email-chips') || visibleInput;
+                            visibleInput.focus();
+                            outlined.classList.add('is-invalid');
+
                             // Remove red outline once user starts typing
-                            firstEmptyInput.addEventListener('input', function removeInvalid() {
-                                this.classList.remove('is-invalid');
+                            visibleInput.addEventListener('input', function removeInvalid() {
+                                outlined.classList.remove('is-invalid');
                                 this.removeEventListener('input', removeInvalid);
                             });
                         }
@@ -489,11 +673,11 @@
                     title: data.message || "{{ __('admin.notification_settings.save_success') }}"
                 });
             } else {
-                const errMsg = (data && data.message) || 'Không thể lưu cấu hình. Vui lòng thử lại.';
+                const errMsg = (data && data.message) || NotificationText.save_failed;
                 console.error('Auto-save failed:', errMsg);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Lỗi / Error',
+                    title: NotificationText.error_title,
                     text: errMsg,
                     confirmButtonText: 'OK'
                 }).then(() => {
@@ -505,8 +689,8 @@
             console.error('Auto-save connection error:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'Lỗi kết nối / Connection Error',
-                text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại.',
+                title: NotificationText.connection_error_title,
+                text: NotificationText.connection_error_text,
                 confirmButtonText: 'OK'
             });
         });
@@ -581,7 +765,7 @@
                 if (!ok || !data.success) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Lỗi / Error',
+                        title: NotificationText.error_title,
                         text: data.message || "{{ __('admin.notification_settings.zalo_personal.get_chat_id_error') }}"
                     });
                     return;
@@ -590,7 +774,7 @@
                 if (!data.chats || data.chats.length === 0) {
                     Swal.fire({
                         icon: 'info',
-                        title: 'Thông báo / Info',
+                        title: NotificationText.info_title,
                         text: data.message || "{{ __('admin.notification_settings.zalo_personal.get_chat_id_empty') }}"
                     });
                     return;
@@ -608,8 +792,8 @@
                     title: "{{ __('admin.notification_settings.zalo_personal.get_chat_id_title') }}",
                     html: selectHtml,
                     showCancelButton: true,
-                    confirmButtonText: 'Chọn / Select',
-                    cancelButtonText: 'Hủy / Cancel',
+                    confirmButtonText: NotificationText.select,
+                    cancelButtonText: NotificationText.cancel,
                     preConfirm: () => {
                         return document.getElementById('swal_chat_id_select').value;
                     }
@@ -634,8 +818,8 @@
 
                 Swal.fire({
                     icon: 'error',
-                    title: 'Lỗi kết nối / Connection Error',
-                    text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại.'
+                    title: NotificationText.connection_error_title,
+                    text: NotificationText.connection_error_text
                 });
             });
         });
@@ -685,7 +869,7 @@
                             showConfirmButton: false,
                             timer: 3500,
                             icon: 'success',
-                            title: `Tự động nhận diện Chat ID: ${data.chats[0].display_name}`
+                            title: NotificationText.chat_id_detected.replace(':name', () => data.chats[0].display_name)
                         });
 
                         autoSaveSettings();
@@ -701,8 +885,8 @@
                             title: "{{ __('admin.notification_settings.zalo_personal.get_chat_id_title') }}",
                             html: selectHtml,
                             showCancelButton: true,
-                            confirmButtonText: 'Chọn / Select',
-                            cancelButtonText: 'Hủy / Cancel',
+                            confirmButtonText: NotificationText.select,
+                            cancelButtonText: NotificationText.cancel,
                             preConfirm: () => {
                                 return document.getElementById('swal_chat_id_select').value;
                             }
