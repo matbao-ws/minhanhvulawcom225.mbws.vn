@@ -31,6 +31,12 @@ và đánh dấu vùng sửa dùng `connect-ecommerce-frontend`; không dựng h
 - SortableJS và Alpine **được phép**, chỉ cho panel của editor, vendor tĩnh trong
   `public/client-assets/vendor/`, nạp trong cổng quyền. `admin-bar` vẫn là chủ sở hữu duy nhất của
   edit mode; panel đăng ký vào luồng Lưu qua `clientBlocks.registerSaver`.
+- **Cắt theme bắt đầu bằng** `connect-ecommerce-frontend/references/theme-cut-acceptance.md`: kiểm
+  kê toàn bộ trang/section trước, refactor (không dán), smoke test bộ sửa, rồi giao cho subagent
+  `theme-cut-reviewer` (ngữ cảnh mới, chỉ đọc) review tới khi ĐẠT, báo cáo đủ mẫu.
+- **Dữ liệu từ database không bao giờ là vùng sửa trực tiếp** (sản phẩm, bài viết, danh mục, thương
+  hiệu, đối tác, menu, banner, tên/logo shop). Dãy đơn vị lặp do template viết phải là
+  `<x-client::list-item>` ngoài cùng của `@foreach`. `client:editable-audit` FAIL cả hai.
 - Hiển thị section (variant, màu nền, căn lề, spacing) lưu **token** trong `site_sections`, không bao
   giờ lưu tên class. `App\Support\SectionRegistry` là nguồn sự thật duy nhất và map token → class.
 - Media của site lưu **path tương đối** qua `App\Support\MediaUrl`; không ghi URL tuyệt đối vào DB.

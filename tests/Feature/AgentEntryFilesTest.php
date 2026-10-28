@@ -57,6 +57,46 @@ class AgentEntryFilesTest extends TestCase
         $this->assertStringContainsString('RESULT: PASS', $skill);
     }
 
+    /**
+     * The cut-acceptance gate only works if every entry an agent might start from points at it:
+     * cuts that skipped the inventory or the editor structure did so because nothing they read
+     * mentioned it.
+     */
+    public function test_every_entry_sends_a_theme_cut_through_the_acceptance_gate(): void
+    {
+        $gate = '.agents/skills/connect-ecommerce-frontend/references/theme-cut-acceptance.md';
+        $this->assertFileExists(base_path($gate));
+
+        foreach (['AI_BUILD_PROMPT.md', 'AGENTS.md', 'CLAUDE.md', '.agents/skills/connect-ecommerce-frontend/SKILL.md'] as $entry) {
+            $this->assertStringContainsString('theme-cut-acceptance.md', File::get(base_path($entry)), $entry);
+        }
+
+        $text = File::get(base_path($gate));
+        foreach (['## 1. Before cutting: the inventory', 'Ownership map', '## 4. Theme patterns that break the editor', '## 5. Browser smoke test', '## 7. Independent review', '## 8. Report', 'chưa kiểm'] as $section) {
+            $this->assertStringContainsString($section, $text);
+        }
+    }
+
+    /** A cut is graded by a reviewer that did not make it, reachable from every tool. */
+    public function test_a_theme_cut_has_an_independent_read_only_reviewer(): void
+    {
+        $brief = File::get(base_path('.agents/skills/connect-ecommerce-frontend/references/theme-cut-review.md'));
+        foreach (['**Read-only.**', 'KẾT LUẬN: ĐẠT | CHƯA ĐẠT', '**A. Pages.**', '**H. Visual.**'] as $part) {
+            $this->assertStringContainsString($part, $brief);
+        }
+
+        $agent = File::get(base_path('.claude/agents/theme-cut-reviewer.md'));
+        $this->assertMatchesRegularExpression('/^---\s*\nname: theme-cut-reviewer\n/', $agent);
+        $this->assertStringContainsString('theme-cut-review.md', $agent);
+        // Read-only: it reports, the cutter fixes.
+        preg_match('/^tools:\s*(.+)$/m', $agent, $tools);
+        $this->assertDoesNotMatchRegularExpression('/\b(Edit|Write|NotebookEdit)\b/', $tools[1] ?? '');
+
+        foreach (['AGENTS.md', 'CLAUDE.md', '.agents/skills/connect-ecommerce-frontend/SKILL.md'] as $entry) {
+            $this->assertMatchesRegularExpression('/theme-cut-review|theme-cut-reviewer/', File::get(base_path($entry)), $entry);
+        }
+    }
+
     public function test_the_internal_editor_skill_sends_theme_work_elsewhere(): void
     {
         $skill = File::get(base_path('.agents/skills/build-inline-storefront-editing/SKILL.md'));

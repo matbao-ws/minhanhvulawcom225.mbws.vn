@@ -24,10 +24,11 @@ whole block and hope.
 | Lazy `<img src="placeholder" data-src="…">` | `<x-client::editable-image … src="<real>" lazy="data-src" placeholder="<placeholder>">` | Visitors keep the theme's loader; the editor sees the real picture |
 | One content picture in an inline `style` (`background-image`, or `background` with gradient/position/size) | `@clientBackground('<key>', "<the whole original style>")` on the same element, in place of `style="…"` | Only the inside of that one `url()` is ever replaced |
 | Lazy background `data-bg="…"` | `@clientBackground('<key>', '<other style or empty>', ['lazy' => 'data-bg', 'src' => '…'])` | Visitors get `data-bg` back, so the loader runs as before |
-| A run of identical cards, members, logos, features | Keep the authored run fixed by default | Storefront text editing must not silently become content creation |
+| A run of identical authored cards, members, steps, features, footer links | `@foreach($lists->items(…))` with `<x-client::list-item>` as the outermost element (§5) | Nhân bản / move / delete need it; the audit fails an unwrapped run |
 | An ordered run of whole sections | `<x-client::section-list key="…" :sections="[…]">` | An editor may reorder them, and change how each one looks |
 | A section that should offer a variant, a background, an alignment or a spacing | declare it in `App\Support\SectionRegistry` | Semantic tokens only; the registry owns the token to class map |
-| Product name, price, post title, category name, menu label, shop name, phone | **plain Blade output** | Comes from the database and has its own admin screen |
+| Product name, price, post title, category name, brand or partner logo, menu label, banner, shop name/logo | **plain Blade output** from its service, never inside `x-client::editable`/`editable-image` | Comes from the database and has its own admin screen; an inline edit would shadow the record (audit: *editable database data*). Owner table: `theme-cut-acceptance.md` §1 |
+| Hotline, address, email, opening hours, social links | `<x-client::editable>` | Core has no setting for them: they are authored copy |
 | Anything server-rendered from a model on a CMS page | plain Blade **plus** `contenteditable="false"` on the wrapper | Keeps it out of the page's editable root |
 | Decorative markup: spacers, icons, overlays, `aria-hidden` | leave untouched | Nothing to edit |
 | Static copy or artwork that must stay static (decorative background, legal line, breadcrumb) | `data-editable-ignore="<lý do>"` on the element | The reason is mandatory; a bare marker fails the audit and hides nothing |
@@ -170,31 +171,51 @@ when cleared.
 
 ## 5. Repeated runs
 
-Keep the approved number of repeated cards, members, logos or features fixed unless the project
-explicitly requires a domain-specific repeatable-content workflow. Ordinary editable components
-must default to `appendable=false`, and the text toolbar must not create siblings.
-
-When such a workflow is explicitly approved, wrap each existing unit and keep the theme's wrapper
-classes on it:
+**Every run of repeated authored units is a list.** Cards, team members, timeline steps, benefits,
+pillars, footer link columns, FAQ rows: whatever the theme writes N times with the same markup
+becomes a `@foreach` over `$lists->items(<list key>, <default ids>)` whose outermost element is
+`<x-client::list-item>`. This is part of the cut, not a later enhancement — a run left as N copies
+(or as a `@foreach` over an inline array) has a fixed length, and the toolbar's "Nhân bản", move
+and delete simply do not exist for it. Nothing on the page shows that they are missing, which is
+why `client:editable-audit` fails the cut for it ("Editor structure → not a list-item").
 
 ```blade
-@foreach($lists->items('about.leadership.people', ['a1', 'a2', 'a3']) as $id)
-    <x-client::list-item list="about.leadership.people" :item="$id" class="team-card">
-        <x-client::editable-image :key="'about.leadership.people.item_'.$id.'.photo'" src="…" alt="" />
-        <x-client::editable :key="'about.leadership.people.item_'.$id.'.name'" tag="h3">Nguyễn Văn A</x-client::editable>
-    </x-client::list-item>
-@endforeach
-
+@php($people = [
+    'a1' => ['name' => 'Nguyễn Văn A', 'photo' => asset('client-assets/img/a1.jpg')],
+    'a2' => ['name' => 'Trần Thị B', 'photo' => asset('client-assets/img/a2.jpg')],
+])
+<div class="team-grid">
+    @foreach($lists->items('about.leadership.people', array_keys($people)) as $id)
+        {{-- A copied card has no template copy: "Nhân bản" saved its regions. --}}
+        @php($person = $people[$id] ?? ['name' => '', 'photo' => $people['a1']['photo']])
+        <x-client::list-item list="about.leadership.people" :item="$id" class="team-card">
+            <x-client::editable-image :key="'about.leadership.people.item_'.$id.'.photo'" :src="$person['photo']" alt="" />
+            <x-client::editable :key="'about.leadership.people.item_'.$id.'.name'" tag="h3">{{ $person['name'] }}</x-client::editable>
+        </x-client::list-item>
+    @endforeach
+</div>
 ```
 
 Rules:
 
+- `list-item` **replaces** the unit's own outermost element and carries its classes and attributes;
+  `tag="li"` (or `article`, `section`, `figure`) when the theme's element was not a `div`. It must
+  be the first element of the loop body. Wrapped one level deeper (inside a `.col`), a copy lands
+  in that column instead of beside it in the grid — the audit reports this as well.
+- Default ids are the template's own (`a1`, `quality`, `y2016`), matching
+  `^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$`. An id the editor created has no entry in the data array;
+  fall back to empty text and the first entry's picture or icon, as above.
 - The wrapper renders for **visitors too**. Emitting it only for an editor gives the same page a
   different DOM after login, and a flex or grid parent changes shape the moment an admin signs in.
 - Item keys are `<list>.item_<id>.<slot>`. Use the `itemKey()` helper rather than building the
   string by hand.
-- Do not reuse the generic text toolbar for creation or permanent deletion. Provide a dedicated,
-  explicitly approved list UI and validate its exact set/order server-side.
+- Outline attributes cannot sit in an `@if` inside a component tag: bind them
+  (`:data-outline-group="$outline ? 'team-'.$id : null"`).
+- A run that must stay fixed on purpose — a marquee that repeats its logos for the animation —
+  says so right before its loop: `{{-- editor:fixed-run <lý do> --}}`. The reason is required and
+  the audit lists every one; a wrong reason is a defect, exactly like `data-editable-ignore`.
+- Database rows (products, posts, menus) are not authored runs: they keep their own admin screen
+  and are never copied into `site_lists`.
 
 ## 6. Sections and nesting
 
@@ -325,9 +346,9 @@ Run through this per page after cutting, before calling the cut done.
       scrolls to its real wrapper, while structural rows have no save/history/delete controls.
 - [ ] Jumping to a child or opening its tools keeps the sidebar open until its explicit minimize or
       close button is pressed. Do not add redundant up/down arrow controls.
-- [ ] The text toolbar contains no add-content plus or permanent-delete trash control unless a
-      project explicitly approved repeatable content; ordinary editable components default to
-      non-appendable.
+- [ ] The text toolbar contains no add-content plus; ordinary editable components default to
+      non-appendable. Every repeated card is wrapped in `list-item`, so "Nhân bản" in the "…" menu
+      copies the card into the same grid parent.
 - [ ] Type text, apply formatting, and switch among `p` and `h1`–`h6`; Undo and Redo traverse each
       change, then Save/reload preserves both content and the semantic wrapper.
 - [ ] Production and theme-acceptance routes contain no editor fixture, demo-only block or

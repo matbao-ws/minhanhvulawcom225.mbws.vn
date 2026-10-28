@@ -65,6 +65,28 @@ php artisan test --compact                                     # toàn bộ test
 php -l duong/dan/file-vua-sua.php                              # kiểm tra cú pháp
 ```
 
+### Thử trên một giao diện thật (demo theme)
+
+Repo core chỉ có vài view storefront tối thiểu. Muốn thử thay đổi trên một giao diện thật, cắm giao diện
+của một dự án khách vào core **trên máy mình** (`App\Support\DemoTheme`):
+
+```bash
+# ví dụ lấy giao diện web-mti nằm cạnh repo core
+mkdir -p demo-theme/views public/demo-theme-assets
+cp -r ../web-mti/resources/views/client demo-theme/views/
+cp ../web-mti/routes/theme.php demo-theme/routes.php
+cp -r ../web-mti/public/client-assets/{css,fonts,images} public/demo-theme-assets/
+# trong bản copy, đổi đường dẫn ảnh/CSS/font sang thư mục mới
+grep -rl "client-assets/\(css\|fonts\|images\)" demo-theme/views | xargs sed -i "s#client-assets/\(css\|fonts\|images\)/#demo-theme-assets/\1/#g"
+# rồi thêm vào .env:  DEMO_THEME_PATH=demo-theme   (php artisan config:clear)
+```
+
+- `demo-theme/` và `public/demo-theme-assets/` nằm trong `.gitignore`: không bao giờ vào git, nên
+  `team.py new` (clone từ git), bản phát hành core và `deploy.py` đều không mang theo.
+- Chỉ có tác dụng khi `.env` có `DEMO_THEME_PATH`, và **không bao giờ** chạy ở production. Test luôn
+  tắt nó (`phpunit.xml`).
+- Bỏ giao diện thử: xoá dòng `DEMO_THEME_PATH` trong `.env` (hoặc xoá hai thư mục trên).
+
 Có thêm migration thì nhớ: **chỉ được thêm** (bảng mới, cột nullable hoặc có default, index). Không
 xoá hay đổi tên cột, không dùng `->change()`. Test `CoreManifestTest` sẽ chặn nếu vi phạm. Xem
 `AI_BUILD_PROMPT.md`, mục "Cập nhật phiên bản core".

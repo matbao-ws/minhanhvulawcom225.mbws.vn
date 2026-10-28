@@ -22,12 +22,12 @@ Bản 1.1.0 vừa phát hành: mở 0%
 Thử ổn → MỞ DẦN: 10% → 50% → 100% số website
 ```
 
-| Từ | Nghĩa |
-|---|---|
-| **Ghim** (`--pin`) | Chỉ định riêng một website nhận đúng một bản, bất kể bản đó đang mở bao nhiêu % |
-| **Mở dần** (`--rollout`) | Cho một tỷ lệ % website thấy bản mới. Mỗi website luôn rơi vào cùng một nhóm, nên tăng % thì nhóm cũ vẫn giữ, chỉ thêm website mới |
-| **Tạm dừng** (`--pause`) | Ngừng phát bản đó. Gateway **tự tạm dừng** khi có từ 3 website cài lỗi và chiếm ≥ 20% số website đã thử |
-| **Thu hồi** (`--withdraw`) | Bỏ hẳn bản đó, không website nào được nhận nữa |
+| Từ                                 | Nghĩa                                                                                                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ghim** (`--pin`)          | Chỉ định riêng một website nhận đúng một bản, bất kể bản đó đang mở bao nhiêu %                                                         |
+| **Mở dần** (`--rollout`)  | Cho một tỷ lệ % website thấy bản mới. Mỗi website luôn rơi vào cùng một nhóm, nên tăng % thì nhóm cũ vẫn giữ, chỉ thêm website mới |
+| **Tạm dừng** (`--pause`)  | Ngừng phát bản đó. Gateway **tự tạm dừng** khi có từ 3 website cài lỗi và chiếm ≥ 20% số website đã thử                          |
+| **Thu hồi** (`--withdraw`) | Bỏ hẳn bản đó, không website nào được nhận nữa                                                                                                |
 
 Website chỉ **thấy** bản mới; cài hay không vẫn do admin của website bấm **Cập nhật** (trừ website
 bật cập nhật tự động, mục 6). Cài lỗi thì website tự quay về bản cũ.
@@ -97,15 +97,15 @@ Sau mỗi bước, `core:fleet` cho biết bao nhiêu website đã cài (`instal
 
 ## 6. Các lệnh khác
 
-| Việc | Lệnh |
-|---|---|
-| Dừng phát ngay (có sự cố) | `core:release 1.1.0 --pause` |
-| Phát lại sau khi dừng | `core:release 1.1.0 --resume` |
-| Bỏ hẳn bản lỗi | `core:release 1.1.0 --withdraw` |
-| Không cho một website nhận bản nào nữa | `core:project <domain> --exclude` (bỏ: `--include`) |
-| Cho website tự cài bản mới, không cần bấm (trong lần kiểm tra mỗi giờ; bản major vẫn phải bấm tay) | `core:project <domain> --auto=on` (tắt: `--auto=off`) |
-| Website thử bản beta | `core:project <domain> --channel=beta` (về lại: `--channel=stable`) |
-| Xem một website đang thế nào | `core:project <domain>` (không kèm tuỳ chọn) |
+| Việc                                                                                                             | Lệnh                                                                     |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Dừng phát ngay (có sự cố)                                                                                    | `core:release 1.1.0 --pause`                                            |
+| Phát lại sau khi dừng                                                                                          | `core:release 1.1.0 --resume`                                           |
+| Bỏ hẳn bản lỗi                                                                                                | `core:release 1.1.0 --withdraw`                                         |
+| Không cho một website nhận bản nào nữa                                                                      | `core:project <domain> --exclude` (bỏ: `--include`)                  |
+| Cho website tự cài bản mới, không cần bấm (trong lần kiểm tra mỗi giờ; bản major vẫn phải bấm tay) | `core:project <domain> --auto=on` (tắt: `--auto=off`)                |
+| Website thử bản beta                                                                                            | `core:project <domain> --channel=beta` (về lại: `--channel=stable`) |
+| Xem một website đang thế nào                                                                                  | `core:project <domain>` (không kèm tuỳ chọn)                        |
 
 Mỗi lệnh đều dạng `docker compose exec gateway php artisan <lệnh>`.
 
@@ -160,14 +160,13 @@ Trang **Cập nhật phiên bản** của website hiện mục "Có gì mới tr
 Trang admin và trang lỗi **không bao giờ** hiện chi tiết kỹ thuật, chỉ một mã. Chi tiết nằm trong log
 của website (máy chủ chứa website, thư mục website):
 
-| Mã | Từ đâu | File log |
-|---|---|---|
-| `UPD-…` | Cập nhật core bị chặn hoặc lỗi (trang Cập nhật phiên bản) | `storage/logs/core-YYYY-MM-DD.log` |
+| Mã        | Từ đâu                                                               | File log                             |
+| ---------- | ----------------------------------------------------------------------- | ------------------------------------ |
+| `UPD-…` | Cập nhật core bị chặn hoặc lỗi (trang Cập nhật phiên bản)     | `storage/logs/core-YYYY-MM-DD.log` |
 | `EXT-…` | Tiện ích mở rộng lỗi khi khởi động (trang Tiện ích mở rộng) | `storage/logs/core-YYYY-MM-DD.log` |
-| `ERR-…` | Lỗi 500 (trang lỗi, khách hoặc admin gặp) | `storage/logs/laravel*.log` |
+| `ERR-…` | Lỗi 500 (trang lỗi, khách hoặc admin gặp)                          | `storage/logs/laravel*.log`        |
 
 ```bash
 cd <thư mục website>
 grep -r "UPD-20261005103012-K7QD" storage/logs/ | tail -5
 ```
-
