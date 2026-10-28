@@ -18,20 +18,22 @@
                         const targetLocale = button.dataset.targetLocale;
                         const fields = {};
                         const formats = {};
+                        // A page with several translatable blocks (Settings) limits each button to its own block.
+                        const root = button.closest('[data-i18n-scope]') || document;
 
-                        document.querySelectorAll(`[data-i18n-locale="${sourceLocale}"][data-i18n-field]`).forEach(function (element) {
+                        root.querySelectorAll(`[data-i18n-locale="${sourceLocale}"][data-i18n-field]`).forEach(function (element) {
                             const editor = window.AdminRichEditor?.forTarget(element.id);
                             if (editor) element.value = editor.getHTML();
                             fields[element.dataset.i18nField] = element.value || '';
                             formats[element.dataset.i18nField] = element.dataset.translationFormat || 'text';
                         });
 
-                        const targets = Array.from(document.querySelectorAll(`[data-i18n-locale="${targetLocale}"][data-i18n-field]`));
-                        if (targets.some((element) => (element.value || '').trim() !== '') && !window.confirm('Bản dịch đích đã có nội dung. Bạn có muốn thay bằng bản dịch xem trước mới?')) return;
+                        const targets = Array.from(root.querySelectorAll(`[data-i18n-locale="${targetLocale}"][data-i18n-field]`));
+                        if (targets.some((element) => (element.value || '').trim() !== '') && !window.confirm(@json(__('admin.translation.confirm_overwrite')))) return;
 
                         const original = button.innerHTML;
                         button.disabled = true;
-                        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang dịch';
+                        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + @json(__('admin.translation.translating'));
 
                         try {
                             const response = await fetch(@json(route('admin.translations.preview')), {
@@ -45,7 +47,7 @@
                                 body: JSON.stringify({ source_locale: sourceLocale, target_locale: targetLocale, fields, formats }),
                             });
                             const payload = await response.json();
-                            if (!response.ok) throw new Error(payload.message || 'Không thể dịch nội dung.');
+                            if (!response.ok) throw new Error(payload.message || @json(__('admin.translation.failed')));
 
                             targets.forEach(function (element) {
                                 const value = payload.data?.fields?.[element.dataset.i18nField];
@@ -57,7 +59,7 @@
                                 element.dispatchEvent(new Event('input', { bubbles: true }));
                             });
                         } catch (error) {
-                            window.alert(error.message || 'Không thể dịch nội dung.');
+                            window.alert(error.message || @json(__('admin.translation.failed')));
                         } finally {
                             button.disabled = false;
                             button.innerHTML = original;

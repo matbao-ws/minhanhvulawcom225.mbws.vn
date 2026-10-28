@@ -57,7 +57,7 @@
               id="badge-{{ $feature->feature_code }}"
               style="border-bottom-left-radius: 12px;">
             <i class="{{ $feature->is_enabled ? 'ti ti-circle-check' : 'ti ti-circle-x' }}" id="badge-icon-{{ $feature->feature_code }}"></i>
-            <span id="badge-text-{{ $feature->feature_code }}">{{ $feature->is_enabled ? 'Đã kích hoạt' : 'Đang tắt' }}</span>
+            <span id="badge-text-{{ $feature->feature_code }}">{{ $feature->is_enabled ? __('admin.features.badge_on') : __('admin.features.badge_off') }}</span>
         </span>
 
         <div class="card-body p-4 d-flex flex-column justify-content-between">
@@ -93,9 +93,9 @@
             <div>
                 <div class="d-flex align-items-center justify-content-between border-top pt-3">
                     <div>
-                        <span class="text-muted small block">Trạng thái</span>
+                        <span class="text-muted small block">{{ __('admin.features.status') }}</span>
                         <h6 class="fw-bold {{ $feature->is_enabled ? 'text-success' : 'text-danger' }} mb-0 fs-3" id="status-text-{{ $feature->feature_code }}">
-                            {{ $feature->is_enabled ? 'Hoạt động' : 'Tạm dừng' }}
+                            {{ $feature->is_enabled ? __('admin.features.status_on') : __('admin.features.status_off') }}
                         </h6>
                     </div>
                     

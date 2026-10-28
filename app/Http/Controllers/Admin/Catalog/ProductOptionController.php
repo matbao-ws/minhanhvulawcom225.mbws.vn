@@ -29,6 +29,6 @@ class ProductOptionController extends Controller
 
         return redirect()
             ->route('admin.products.show', $product)
-            ->with('success', 'Đã lưu cấu hình thuộc tính biến thể.');
+            ->with('success', __('catalog.options.saved'));
     }
 }

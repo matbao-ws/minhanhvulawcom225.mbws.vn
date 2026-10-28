@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\MailSettingsTestMail;
 use App\Models\FeatureSetting;
 use App\Models\ProjectSetting;
 use App\Models\Role;
@@ -10,6 +11,7 @@ use App\Services\MailSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class NotificationSettingTest extends TestCase
@@ -150,6 +152,111 @@ class NotificationSettingTest extends TestCase
         $this->assertEquals('shop@test.com', $value['smtp']['from_email']);
         $this->assertEquals('Shop Name', $value['smtp']['from_name']);
         $this->assertEquals('boss@test.com', $value['smtp']['owner_email']);
+    }
+
+    public function test_several_owner_emails_are_saved_as_one_clean_list(): void
+    {
+        $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
+            'smtp' => $this->smtpFields(['owner_email' => "boss@test.com;  sales@test.com\nboss@test.com"]),
+        ])->assertRedirect('/vi/admin/notification-settings')->assertSessionHas('success');
+
+        $value = ProjectSetting::where('setting_key', 'notification_settings')->first()->setting_value;
+        $this->assertSame('boss@test.com, sales@test.com', $value['smtp']['owner_email']);
+    }
+
+    public function test_owner_emails_are_edited_as_chips_over_one_hidden_field(): void
+    {
+        ProjectSetting::query()->create([
+            'setting_key' => 'notification_settings',
+            'setting_value' => ['smtp' => ['owner_email' => 'boss@test.com, sales@test.com']],
+        ]);
+
+        $this->actingAs($this->adminUser)->get('/vi/admin/notification-settings')
+            ->assertOk()
+            ->assertSee('id="smtp_owner_email_box" data-max="5"', false)
+            ->assertSee('id="smtp_owner_email_entry"', false)
+            ->assertSee('<input type="hidden" id="smtp_owner_email" name="smtp[owner_email]" data-focus="smtp_owner_email_entry"', false)
+            ->assertSee('value="boss@test.com, sales@test.com"', false);
+    }
+
+    public function test_an_invalid_or_excess_owner_email_is_refused(): void
+    {
+        $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
+            'smtp' => $this->smtpFields(['owner_email' => 'boss@test.com, not-an-email']),
+        ])->assertSessionHasErrors(['smtp.owner_email' => 'Email nhận thông báo "not-an-email" không hợp lệ.']);
+
+        $this->actingAs($this->adminUser)->post('/vi/admin/notification-settings', [
+            'smtp' => $this->smtpFields(['owner_email' => 'a@t.vn, b@t.vn, c@t.vn, d@t.vn, e@t.vn, f@t.vn']),
+        ])->assertSessionHasErrors(['smtp.owner_email' => 'Chỉ nhập tối đa 5 email nhận thông báo.']);
+
+        $this->assertDatabaseMissing('project_settings', ['setting_key' => 'notification_settings']);
+    }
+
+    public function test_a_test_email_goes_to_every_recipient_on_the_form_without_saving(): void
+    {
+        config(['mail.default' => 'smtp']);
+        Mail::fake();
+
+        $this->actingAs($this->adminUser)->postJson('/vi/admin/notification-settings/test-email', [
+            'smtp' => ['enabled' => '0', 'owner_email' => 'boss@test.com; sales@test.com'],
+        ])->assertOk()->assertJson(['success' => true, 'message' => 'Đã gửi email thử tới boss@test.com, sales@test.com. Kiểm tra cả hộp thư Spam nếu chưa thấy.']);
+
+        Mail::assertSent(MailSettingsTestMail::class, fn ($mail) => $mail->hasTo('boss@test.com') && $mail->hasTo('sales@test.com'));
+        $this->assertDatabaseMissing('project_settings', ['setting_key' => 'notification_settings']);
+    }
+
+    public function test_a_test_email_without_recipients_goes_to_the_admin_themself(): void
+    {
+        config(['mail.default' => 'smtp']);
+        Mail::fake();
+
+        $this->actingAs($this->adminUser)->postJson('/vi/admin/notification-settings/test-email', ['smtp' => ['enabled' => '0']])->assertOk();
+
+        Mail::assertSent(MailSettingsTestMail::class, fn ($mail) => $mail->hasTo($this->adminUser->email));
+    }
+
+    public function test_a_test_email_is_refused_when_the_server_only_logs_mail(): void
+    {
+        config(['mail.default' => 'log']);
+
+        $this->actingAs($this->adminUser)->postJson('/vi/admin/notification-settings/test-email', [
+            'smtp' => ['enabled' => '0', 'owner_email' => 'boss@test.com'],
+        ])->assertStatus(422)->assertJsonPath('success', false)->assertJsonPath('message', fn ($message) => str_contains($message, 'chỉ ghi email vào log'));
+    }
+
+    public function test_a_failing_smtp_account_reports_the_error(): void
+    {
+        // Nothing listens on port 1: the connection is refused at once.
+        $this->actingAs($this->adminUser)->postJson('/vi/admin/notification-settings/test-email', [
+            'smtp' => $this->smtpFields(['host' => '127.0.0.1', 'port' => '1', 'encryption' => 'none', 'owner_email' => 'boss@test.com']),
+        ])->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', fn ($message) => str_starts_with($message, 'Gửi email thử không thành công: ') && ! str_contains($message, 'testpass'));
+    }
+
+    public function test_the_test_email_checks_the_form_and_the_permission(): void
+    {
+        $this->actingAs($this->adminUser)->postJson('/vi/admin/notification-settings/test-email', [
+            'smtp' => $this->smtpFields(['host' => '', 'owner_email' => 'boss@test.com']),
+        ])->assertStatus(422)->assertJsonValidationErrors('smtp.host');
+
+        $this->actingAs($this->guestUser)->postJson('/vi/admin/notification-settings/test-email', [
+            'smtp' => ['enabled' => '0', 'owner_email' => 'boss@test.com'],
+        ])->assertForbidden();
+    }
+
+    private function smtpFields(array $overrides): array
+    {
+        return array_merge([
+            'enabled' => '1',
+            'host' => 'smtp.test.com',
+            'port' => '587',
+            'encryption' => 'tls',
+            'username' => 'testuser',
+            'password' => 'testpass',
+            'from_email' => 'shop@test.com',
+            'from_name' => 'Shop Name',
+        ], $overrides);
     }
 
     public function test_validation_fails_when_enabled_channel_has_missing_fields(): void

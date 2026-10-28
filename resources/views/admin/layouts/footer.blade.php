@@ -5,26 +5,26 @@
       <div class="offcanvas customizer offcanvas-end" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
         <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
           <h4 class="offcanvas-title fw-semibold" id="offcanvasExampleLabel">
-            Settings
+            {{ __('admin.customizer.title') }}
           </h4>
-          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ __('admin.header.close') }}"></button>
         </div>
         <div class="offcanvas-body" data-simplebar="" style="height: calc(100vh - 80px)">
-          <h6 class="fw-semibold fs-4 mb-2">Theme</h6>
+          <h6 class="fw-semibold fs-4 mb-2">{{ __('admin.customizer.theme') }}</h6>
 
           <div class="d-flex flex-row gap-3 customizer-box" role="group">
             <input type="radio" class="btn-check light-layout" name="theme-layout" id="light-layout" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="light-layout">
-              <i class="icon ti ti-brightness-up fs-7 me-2"></i>Light
+              <i class="icon ti ti-brightness-up fs-7 me-2"></i>{{ __('admin.customizer.light') }}
             </label>
 
             <input type="radio" class="btn-check dark-layout" name="theme-layout" id="dark-layout" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="dark-layout">
-              <i class="icon ti ti-moon fs-7 me-2"></i>Dark
+              <i class="icon ti ti-moon fs-7 me-2"></i>{{ __('admin.customizer.dark') }}
             </label>
           </div>
 
-          <h6 class="mt-5 fw-semibold fs-4 mb-2">Theme Direction</h6>
+          <h6 class="mt-5 fw-semibold fs-4 mb-2">{{ __('admin.customizer.direction') }}</h6>
           <div class="d-flex flex-row gap-3 customizer-box" role="group">
             <input type="radio" class="btn-check" name="direction-l" id="ltr-layout" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="ltr-layout">
@@ -37,7 +37,7 @@
             </label>
           </div>
 
-          <h6 class="mt-5 fw-semibold fs-4 mb-2">Theme Colors</h6>
+          <h6 class="mt-5 fw-semibold fs-4 mb-2">{{ __('admin.customizer.colors') }}</h6>
 
           <div class="d-flex flex-row flex-wrap gap-3 customizer-box color-pallete" role="group">
             <input type="radio" class="btn-check" name="color-theme-layout" id="Blue_Theme" autocomplete="off">
@@ -83,63 +83,63 @@
             </label>
           </div>
 
-          <h6 class="mt-5 fw-semibold fs-4 mb-2">Layout Type</h6>
+          <h6 class="mt-5 fw-semibold fs-4 mb-2">{{ __('admin.customizer.layout_type') }}</h6>
           <div class="d-flex flex-row gap-3 customizer-box" role="group">
             <div>
               <input type="radio" class="btn-check" name="page-layout" id="vertical-layout" autocomplete="off">
               <label class="btn p-9 btn-outline-primary rounded-2" for="vertical-layout">
-                <i class="icon ti ti-layout-sidebar-right fs-7 me-2"></i>Vertical
+                <i class="icon ti ti-layout-sidebar-right fs-7 me-2"></i>{{ __('admin.customizer.vertical') }}
               </label>
             </div>
             <div>
               <input type="radio" class="btn-check" name="page-layout" id="horizontal-layout" autocomplete="off">
               <label class="btn p-9 btn-outline-primary rounded-2" for="horizontal-layout">
-                <i class="icon ti ti-layout-navbar fs-7 me-2"></i>Horizontal
+                <i class="icon ti ti-layout-navbar fs-7 me-2"></i>{{ __('admin.customizer.horizontal') }}
               </label>
             </div>
           </div>
 
-          <h6 class="mt-5 fw-semibold fs-4 mb-2">Container Option</h6>
+          <h6 class="mt-5 fw-semibold fs-4 mb-2">{{ __('admin.customizer.container') }}</h6>
 
           <div class="d-flex flex-row gap-3 customizer-box" role="group">
             <input type="radio" class="btn-check" name="layout" id="boxed-layout" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="boxed-layout">
-              <i class="icon ti ti-layout-distribute-vertical fs-7 me-2"></i>Boxed
+              <i class="icon ti ti-layout-distribute-vertical fs-7 me-2"></i>{{ __('admin.customizer.boxed') }}
             </label>
 
             <input type="radio" class="btn-check" name="layout" id="full-layout" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="full-layout">
-              <i class="icon ti ti-layout-distribute-horizontal fs-7 me-2"></i>Full
+              <i class="icon ti ti-layout-distribute-horizontal fs-7 me-2"></i>{{ __('admin.customizer.full_width') }}
             </label>
           </div>
 
-          <h6 class="fw-semibold fs-4 mb-2 mt-5">Sidebar Type</h6>
+          <h6 class="fw-semibold fs-4 mb-2 mt-5">{{ __('admin.customizer.sidebar_type') }}</h6>
           <div class="d-flex flex-row gap-3 customizer-box" role="group">
             <a href="javascript:void(0)" class="fullsidebar">
               <input type="radio" class="btn-check" name="sidebar-type" id="full-sidebar" autocomplete="off">
               <label class="btn p-9 btn-outline-primary rounded-2" for="full-sidebar">
-                <i class="icon ti ti-layout-sidebar-right fs-7 me-2"></i>Full
+                <i class="icon ti ti-layout-sidebar-right fs-7 me-2"></i>{{ __('admin.customizer.sidebar_full') }}
               </label>
             </a>
             <div>
               <input type="radio" class="btn-check" name="sidebar-type" id="mini-sidebar" autocomplete="off">
               <label class="btn p-9 btn-outline-primary rounded-2" for="mini-sidebar">
-                <i class="icon ti ti-layout-sidebar fs-7 me-2"></i>Collapse
+                <i class="icon ti ti-layout-sidebar fs-7 me-2"></i>{{ __('admin.customizer.sidebar_collapse') }}
               </label>
             </div>
           </div>
 
-          <h6 class="mt-5 fw-semibold fs-4 mb-2">Card With</h6>
+          <h6 class="mt-5 fw-semibold fs-4 mb-2">{{ __('admin.customizer.card') }}</h6>
 
           <div class="d-flex flex-row gap-3 customizer-box" role="group">
             <input type="radio" class="btn-check" name="card-layout" id="card-with-border" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="card-with-border">
-              <i class="icon ti ti-border-outer fs-7 me-2"></i>Border
+              <i class="icon ti ti-border-outer fs-7 me-2"></i>{{ __('admin.customizer.border') }}
             </label>
 
             <input type="radio" class="btn-check" name="card-layout" id="card-without-border" autocomplete="off">
             <label class="btn p-9 btn-outline-primary rounded-2" for="card-without-border">
-              <i class="icon ti ti-border-none fs-7 me-2"></i>Shadow
+              <i class="icon ti ti-border-none fs-7 me-2"></i>{{ __('admin.customizer.shadow') }}
             </label>
           </div>
         </div>

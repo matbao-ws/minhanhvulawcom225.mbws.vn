@@ -19,8 +19,8 @@ trait HandlesBulkActions
             'ids.*' => ['required', 'integer', 'distinct', Rule::exists($table, 'id')],
             'action' => ['required', Rule::in(['activate', 'deactivate', 'delete'])],
         ], [
-            'ids.required' => 'Hãy chọn ít nhất một mục để thao tác.',
-            'ids.max' => 'Mỗi lần chỉ có thể thao tác tối đa 100 mục.',
+            'ids.required' => __('admin.bulk.validation.required'),
+            'ids.max' => __('admin.bulk.validation.max'),
         ]);
 
         // The route only demands `<module>.update`, because activate and

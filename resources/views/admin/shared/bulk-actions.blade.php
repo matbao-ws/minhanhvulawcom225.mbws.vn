@@ -1,7 +1,7 @@
 @php
     $bulkFormId = $bulkFormId ?? 'bulk-actions-form';
     $bulkActionUrl = $bulkActionUrl ?? '#';
-    $bulkItemLabel = $bulkItemLabel ?? 'mục';
+    $bulkItemLabel = $bulkItemLabel ?? __('admin.bulk.items');
     // A list whose records have no shown/hidden state offers only what applies to it.
     $bulkActions = $bulkActions ?? ['activate', 'deactivate', 'delete'];
 @endphp
@@ -13,23 +13,23 @@
 </form>
 
 <div class="d-none flex-wrap align-items-center gap-2 px-4 py-3 border-bottom bg-light-subtle" data-bulk-toolbar="{{ $bulkFormId }}">
-    <span class="fw-semibold text-dark me-1"><span data-bulk-count>0</span> {{ $bulkItemLabel }} đã chọn</span>
+    <span class="fw-semibold text-dark me-1"><span data-bulk-count>0</span> {{ __('admin.bulk.selected', ['label' => $bulkItemLabel]) }}</span>
     @if(in_array('activate', $bulkActions, true))
         <button type="button" class="btn btn-sm btn-outline-success" data-bulk-action="activate">
-            <i class="ti ti-circle-check me-1"></i>Hiển thị
+            <i class="ti ti-circle-check me-1"></i>{{ __('admin.bulk.activate') }}
         </button>
     @endif
     @if(in_array('deactivate', $bulkActions, true))
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bulk-action="deactivate">
-            <i class="ti ti-eye-off me-1"></i>Tạm ẩn
+            <i class="ti ti-eye-off me-1"></i>{{ __('admin.bulk.deactivate') }}
         </button>
     @endif
     @if(in_array('delete', $bulkActions, true))
         <button type="button" class="btn btn-sm btn-outline-danger" data-bulk-action="delete">
-            <i class="ti ti-trash me-1"></i>Xóa đã chọn
+            <i class="ti ti-trash me-1"></i>{{ __('admin.bulk.delete') }}
         </button>
     @endif
-    <button type="button" class="btn btn-sm btn-link text-secondary ms-auto" data-bulk-clear>Bỏ chọn</button>
+    <button type="button" class="btn btn-sm btn-link text-secondary ms-auto" data-bulk-clear>{{ __('admin.bulk.clear') }}</button>
 </div>
 
 @once
@@ -91,7 +91,7 @@
                     };
 
                     if (action !== 'delete') return run();
-                    const message = 'Xóa vĩnh viễn ' + total + ' mục đã chọn? Hành động này không thể hoàn tác.';
+                    const message = @json(__('admin.bulk.delete_confirm')).replace(':count', String(total));
                     if (!window.Swal) {
                         if (window.confirm(message)) run();
                         return;

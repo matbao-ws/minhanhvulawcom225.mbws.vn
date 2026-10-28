@@ -172,25 +172,25 @@ class BannerController extends Controller
 
         if ($validated['action'] === 'delete') {
             Banner::query()->whereIn('id', $ids)->get()->each(fn (Banner $banner) => $this->deleteBanner($banner));
-            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt banner', [
+            ActivityLogger::log('bulk_deleted', null, __('admin.banners.log.bulk_deleted'), [
                 'model' => Banner::class,
                 'ids' => $ids,
                 'count' => count($ids),
             ]);
 
-            return back()->with('success', 'Đã xóa '.count($ids).' banner.');
+            return back()->with('success', __('admin.banners.messages.bulk_deleted', ['count' => count($ids)]));
         }
 
         $isActive = $validated['action'] === 'activate';
         $updated = Banner::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
-        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt banner', [
+        ActivityLogger::log('bulk_status_changed', null, __('admin.banners.log.bulk_status'), [
             'model' => Banner::class,
             'ids' => $ids,
             'count' => $updated,
             'is_active' => $isActive,
         ]);
 
-        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' banner.');
+        return back()->with('success', __($isActive ? 'admin.banners.messages.bulk_activated' : 'admin.banners.messages.bulk_deactivated', ['count' => $updated]));
     }
 
     private function deleteBanner(Banner $banner): void

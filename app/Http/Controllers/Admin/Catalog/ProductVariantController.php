@@ -84,6 +84,6 @@ class ProductVariantController extends Controller
 
         return redirect()
             ->route('admin.products.show', $product)
-            ->with('success', $created > 0 ? "Đã tạo {$created} SKU tổ hợp mới." : 'Mọi tổ hợp đang có đã tồn tại.');
+            ->with('success', $created > 0 ? __('catalog.variants.combinations_created', ['count' => $created]) : __('catalog.variants.combinations_exist'));
     }
 }

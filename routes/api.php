@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AiWebhookController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\PublicAuthController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\UserAddressController;
@@ -28,6 +29,9 @@ Route::prefix('public')->middleware('apiLocale')->group(function () {
     Route::middleware('feature:menu')->group(function () {
         Route::get('/menus/{key}', [PublicController::class, 'menu'])->where('key', '[a-z0-9-]+');
     });
+
+    // Partner / customer logos of one group (admin → Đối tác); same read as the Blade theme.
+    Route::get('/partners', [PartnerController::class, 'index'])->middleware('throttle:public-read');
 
     Route::middleware(['feature:cms_page', 'throttle:public-read'])->group(function () {
         Route::get('/post-categories', [PublicController::class, 'postCategories']);

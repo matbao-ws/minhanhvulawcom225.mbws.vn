@@ -65,7 +65,7 @@
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        let errMsg = 'Không thể kết nối đến máy chủ.';
+                        let errMsg = @json(__('admin.failed_to_connect'));
                         if (error.errors) {
                             errMsg = Object.values(error.errors).flat().join('\n');
                         } else if (error.message) {

@@ -88,13 +88,13 @@
         @include('admin.shared.bulk-actions', [
             'bulkFormId' => 'bulk-categories-form',
             'bulkActionUrl' => route('admin.categories.bulk'),
-            'bulkItemLabel' => 'danh mục',
+            'bulkItemLabel' => __('catalog.categories.bulk_item_label'),
         ])
         <div data-tour="categories.table" class="table-responsive">
             <table class="table text-nowrap mb-0 align-middle" id="category-table-sortable" data-start-order="{{ max(0, ($categories->firstItem() ?? 1) - 1) }}">
                 <thead class="text-dark fs-4">
                 <tr>
-                    <th data-tour="categories.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-categories-form" aria-label="Chọn tất cả danh mục"></th>
+                    <th data-tour="categories.select-all" class="ps-4" style="width: 44px;"><input type="checkbox" class="form-check-input" data-bulk-select-all="bulk-categories-form" aria-label="{{ __('catalog.categories.select_all') }}"></th>
                     <th>
                         <h6 class="fs-4 fw-semibold mb-0">{{ __('catalog.fields.category') }}</h6>
                     </th>
@@ -126,7 +126,7 @@
                         <tbody class="category-group-sortable" data-category-id="{{ $category->id }}">
                     @endif
                     <tr data-category-id="{{ $category->id }}" data-depth="{{ $category->depth ?? 0 }}">
-                        <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $category->id }}" form="bulk-categories-form" data-bulk-select="bulk-categories-form" aria-label="Chọn {{ $categoryName }}"></td>
+                        <td class="ps-4"><input type="checkbox" class="form-check-input" name="ids[]" value="{{ $category->id }}" form="bulk-categories-form" data-bulk-select="bulk-categories-form" aria-label="{{ __('catalog.actions.select_item', ['name' => $categoryName]) }}"></td>
                         <td>
                             <div class="d-flex align-items-center" style="padding-left: {{ ($category->depth ?? 0) * 32 }}px;">
                                 @if(($category->depth ?? 0) > 0)

@@ -226,7 +226,7 @@ class ShippingPartnerController extends Controller
 
             $realtimeTrackingEnabled = (bool) ($validated['realtime_tracking_enabled'] ?? false);
             if ($validated['api_token'] !== 'mock' && (! $validated['pickup_name'] || ! $validated['pickup_tel'] || ! $validated['pickup_province'] || ! $validated['pickup_district'] || ! $validated['pickup_ward'] || ! $validated['pickup_address'])) {
-                return back()->withInput()->withErrors(['pickup_name' => 'Vui lòng khai báo đầy đủ địa chỉ lấy hàng trước khi kết nối GHTK thật.']);
+                return back()->withInput()->withErrors(['pickup_name' => __('admin.shipping_partners.ghtk_pickup_required')]);
             }
             $webhookToken = $realtimeTrackingEnabled
                 ? ($validated['webhook_token'] ?: data_get($shipping_partner->settings, 'webhook_token') ?: Str::random(32))
@@ -344,7 +344,7 @@ class ShippingPartnerController extends Controller
         if (isset($ghnCheck) && ! $ghnCheck['ok']) {
             return redirect()
                 ->route('admin.shipping-partners.index')
-                ->with('warning', __('admin.shipping_partners.save_success').' '.$ghnCheck['message']);
+                ->with('warning', __('admin.shipping_partners.save_success_with_warning', ['warning' => $ghnCheck['message']]));
         }
 
         return redirect()

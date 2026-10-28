@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SiteBlockUpdateRequest;
+use App\Http\Requests\Admin\SiteListDuplicateRequest;
 use App\Http\Requests\Admin\SiteListItemRequest;
 use App\Http\Requests\Admin\SiteListReorderRequest;
 use App\Models\SiteBlock;
@@ -45,15 +46,16 @@ class SiteBlockController extends Controller
             $data['value'],
             $request->user()?->id,
             $data['format'] ?? null,
+            array_key_exists('align', $data) ? $data['align'] : false,
         );
 
-        ActivityLogger::log('updated', $block, "Sửa vùng nội dung {$data['key']}", [
+        ActivityLogger::log('updated', $block, __('admin.site_editor.log.block_updated', ['key' => $data['key']]), [
             'new' => ['key' => $data['key'], 'locale' => $data['content_locale']],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã lưu.',
+            'message' => __('admin.site_editor.saved'),
             'data' => [
                 'key' => $data['key'],
                 // The server's value, so the admin sees what sanitizing did.
@@ -62,6 +64,7 @@ class SiteBlockController extends Controller
                 // Echoed back so the editor can drop a heading class it applied
                 // optimistically if the server refused the format.
                 'format' => $this->site->format($data['key']),
+                'align' => $this->site->align($data['key']),
             ],
         ]);
     }
@@ -78,14 +81,55 @@ class SiteBlockController extends Controller
 
         $itemId = $this->lists->add($data['key'], $data['defaults'] ?? []);
 
-        ActivityLogger::log('created', null, "Thêm ô vào vùng {$data['key']}", [
+        ActivityLogger::log('created', null, __('admin.site_editor.log.item_added', ['key' => $data['key']]), [
             'model' => SiteBlock::class,
             'new' => ['key' => $data['key'], 'item' => $itemId],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã thêm ô nội dung.',
+            'message' => __('admin.site_editor.item_added'),
+            'data' => ['key' => $data['key'], 'item' => $itemId],
+        ]);
+    }
+
+    /**
+     * Copy one box of a repeatable region, right after it, with what its regions show now.
+     *
+     * Still a box of a list the template built (rendered by that list's Blade), never new layout.
+     * A picture slot needs the media permission, as editing it would; without it the copy keeps
+     * the template's picture.
+     */
+    public function duplicateListItem(SiteListDuplicateRequest $request, string $locale): JsonResponse
+    {
+        $data = $request->validated();
+        $user = $request->user();
+        $itemId = $this->lists->duplicate($data['key'], $data['item'] ?? null, $data['defaults'] ?? []);
+
+        foreach ($data['slots'] as $slot) {
+            if (in_array($slot['type'], SiteBlock::PICTURE_TYPES, true) && ! $user?->can('media.view')) {
+                continue;
+            }
+            $html = $slot['type'] === SiteBlock::TYPE_HTML;
+            $this->site->updateLocale(
+                $this->lists->itemKey($data['key'], $itemId, $slot['slot']),
+                $slot['type'],
+                $data['content_locale'],
+                $slot['value'],
+                $user?->id,
+                $html ? ($slot['format'] ?? null) : null,
+                $slot['align'] ?? null,
+            );
+        }
+
+        ActivityLogger::log('created', null, __('admin.site_editor.log.item_duplicated', ['key' => $data['key']]), [
+            'model' => SiteBlock::class,
+            'new' => ['key' => $data['key'], 'item' => $itemId, 'from' => $data['item'] ?? null],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('admin.site_editor.item_duplicated'),
             'data' => ['key' => $data['key'], 'item' => $itemId],
         ]);
     }
@@ -103,14 +147,14 @@ class SiteBlockController extends Controller
 
         $this->lists->reorder($data['key'], $data['order'], $data['defaults'] ?? []);
 
-        ActivityLogger::log('updated', null, "Sắp xếp lại vùng {$data['key']}", [
+        ActivityLogger::log('updated', null, __('admin.site_editor.log.reordered', ['key' => $data['key']]), [
             'model' => SiteBlock::class,
             'new' => ['key' => $data['key'], 'order' => $data['order']],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã đổi thứ tự.',
+            'message' => __('admin.site_editor.reordered'),
             'data' => ['key' => $data['key'], 'order' => $this->lists->items($data['key'])],
         ]);
     }
@@ -122,18 +166,18 @@ class SiteBlockController extends Controller
     {
         $data = $request->validated();
 
-        abort_if(blank($data['item'] ?? null), 422, 'Thiếu mã ô cần xóa.');
+        abort_if(blank($data['item'] ?? null), 422, __('admin.site_editor.item_missing'));
 
         $this->lists->remove($data['key'], $data['item'], $data['defaults'] ?? []);
 
-        ActivityLogger::log('deleted', null, "Xóa ô khỏi vùng {$data['key']}", [
+        ActivityLogger::log('deleted', null, __('admin.site_editor.log.item_removed', ['key' => $data['key']]), [
             'model' => SiteBlock::class,
             'old' => ['key' => $data['key'], 'item' => $data['item']],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã xóa ô nội dung.',
+            'message' => __('admin.site_editor.item_removed'),
             'data' => ['key' => $data['key'], 'item' => $data['item']],
         ]);
     }
@@ -173,13 +217,13 @@ class SiteBlockController extends Controller
         $this->authorizePicture($request, $revision->block?->type);
         $block = $this->site->restoreRevision($revision, $locale, $request->user()?->id);
 
-        ActivityLogger::log('restored', $block, "Khôi phục phiên bản vùng nội dung {$block?->key}", [
+        ActivityLogger::log('restored', $block, __('admin.site_editor.log.block_revision_restored', ['key' => (string) $block?->key]), [
             'new' => ['key' => $block?->key, 'locale' => $locale, 'revision_id' => $revision->id],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã khôi phục phiên bản.',
+            'message' => __('admin.site_editor.revision_restored'),
             'data' => [
                 'key' => $block?->key,
                 'value' => $block ? $this->site->value($block->key, $locale) : null,
@@ -200,14 +244,14 @@ class SiteBlockController extends Controller
 
         $this->site->restoreLocale($data['key'], $data['content_locale'], $request->user()?->id);
 
-        ActivityLogger::log('deleted', null, "Khôi phục vùng nội dung {$data['key']}", [
+        ActivityLogger::log('deleted', null, __('admin.site_editor.log.block_restored', ['key' => $data['key']]), [
             'model' => SiteBlock::class,
             'old' => ['key' => $data['key'], 'locale' => $data['content_locale']],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã khôi phục nội dung gốc.',
+            'message' => __('admin.site_editor.original_restored'),
             'data' => ['key' => $data['key']],
         ]);
     }

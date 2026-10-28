@@ -1,5 +1,3 @@
-
-
 ## Đọc skill trong `.agents/skills` trước khi làm
 
 Repository có sẵn skill mô tả chi tiết từng luồng công việc. **Đọc file này xong, đọc tiếp skill
@@ -15,7 +13,10 @@ và checklist kiểm chứng mà tài liệu này chỉ nêu ở mức nguyên t
     references/verification.md         chọn test và kiểm tra deploy
   connect-ecommerce-frontend/    dựng/cắt storefront và nối API
     SKILL.md
+    references/theme-cut-acceptance.md    cổng nghiệm thu cắt theme: inventory, checklist, lỗi hay gặp, smoke test, báo cáo
     references/static-first-workflow.md   xác định đang ở stage nào
+    references/theme-preflight.md         rà và chuẩn hoá theme/ trước khi cắt
+    references/theme-data-seeding.md      seed dữ liệu thật có sẵn trong theme
     references/laravel-blade-cutting.md   khi có thư mục theme/
     references/inline-admin-editing.md    layout client, CMS Page, inline editor
     references/editable-markup-standard.md  quy chuẩn đánh dấu vùng sửa khi cắt theme
@@ -24,10 +25,10 @@ và checklist kiểm chứng mà tài liệu này chỉ nêu ở mức nguyên t
 
 Định tuyến theo loại việc:
 
-| Việc đang làm                                                                                                                                                                                                                              | Skill                          | Reference bắt buộc đọc thêm                                                                                                                                                                                                  |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin Blade, API public/admin, auth, role/permission, feature, đa ngôn ngữ, catalog/variant, checkout, promotion, voucher, đơn hàng, tồn kho, review, payment/VNPAY, shipping, webhook, notification, migration, seeder, command, test | `maintain-ecommerce-core`    | `architecture.md`; thêm `domain-invariants.md` khi chạm auth/tiền/kho/đơn/payment/webhook/review/secret; thêm `verification.md` khi chọn test hoặc kiểm tra deploy                                                 |
-| Prototype giao diện, cắt`theme/` vào Blade, thay layout client, render CMS Page, inline editing, asset storefront, route/controller storefront, nối `/api/public`                                                                     | `connect-ecommerce-frontend` | `static-first-workflow.md`; thêm `laravel-blade-cutting.md` khi có `theme/`; thêm `inline-admin-editing.md` khi tạo/thay layout client hoặc render Page; **bắt buộc** `editable-markup-standard.md` khi cắt `theme/` hoặc đánh dấu vùng sửa; thêm `api-contracts.md` trước khi nối dữ liệu thật |
+| Việc đang làm                                                                                                                                                                                                                              | Skill                          | Reference bắt buộc đọc thêm                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin Blade, API public/admin, auth, role/permission, feature, đa ngôn ngữ, catalog/variant, checkout, promotion, voucher, đơn hàng, tồn kho, review, payment/VNPAY, shipping, webhook, notification, migration, seeder, command, test | `maintain-ecommerce-core`    | `architecture.md`; thêm `domain-invariants.md` khi chạm auth/tiền/kho/đơn/payment/webhook/review/secret; thêm `verification.md` khi chọn test hoặc kiểm tra deploy                                                                                                                                                        |
+| Prototype giao diện, cắt`theme/` vào Blade, thay layout client, render CMS Page, inline editing, asset storefront, route/controller storefront, nối `/api/public`                                                                     | `connect-ecommerce-frontend` | **bắt buộc** `theme-cut-acceptance.md` khi cắt/cắt lại theme hoặc sửa view client (đọc trước khi làm và trước khi báo cáo); `static-first-workflow.md`; thêm `theme-preflight.md`, `theme-data-seeding.md` và `laravel-blade-cutting.md` khi có `theme/`; thêm `inline-admin-editing.md` khi tạo/thay layout client hoặc render Page; **bắt buộc** `editable-markup-standard.md` khi cắt `theme/` hoặc đánh dấu vùng sửa; thêm `api-contracts.md` trước khi nối dữ liệu thật |
 
 Lưu ý:
 
@@ -42,7 +43,7 @@ Lưu ý:
 Đây là Laravel 12 Ecommerce Admin Core dùng để triển khai từng website bán hàng độc lập:
 
 ```text
-1 khách hàng = 1 Laravel project = 1 database riêng
+1 khách hàng = 1 Laravel project = 1 database
 ```
 
 Không phải hệ thống multi-tenant. Không tự thêm `shop_id`, tenant middleware, tenant database
@@ -158,7 +159,10 @@ Giữ controller mỏng khi thêm logic mới. Không thực hiện query hoặc
   `email_monthly` (chỉ đếm khi gửi qua SMTP dùng chung). Chặn ở model event `creating` nên form admin,
   import CSV và import WordPress đều bị áp; áp cả cho superadmin. Hạn mức **chỉ** lấy từ tool nội bộ, core không
   có chỗ sửa: nâng hạn mức = Sales nâng gói/ký lại hợp đồng → cập nhật tool → `package:sync`.
-  Không có snapshot gói thì không giới hạn.
+  Không có snapshot gói (chưa đặt `PACKAGE_INFO_DOMAIN` hoặc chưa sync thành công lần nào): production
+  (`packages.required`, mặc định theo `APP_ENV=production`) chặn `data_unit` = 0, admin hiện cảnh báo,
+  `content:import` từ chối; local/CI/test không giới hạn. `deploy.py` bắt nhập domain gói cho mỗi site
+  và kiểm với tool trước khi lưu. Hạn mức trống/0 trong một gói đã sync vẫn là không giới hạn.
 - Superadmin có cơ chế bypass feature hiện hành; không thay đổi ngầm.
 - Feature bị tắt phải trả đúng hành vi web/API hiện có.
 
@@ -249,6 +253,15 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 - Field dịch dùng pattern/model/service hiện có; không tự tạo cột ngôn ngữ rời rạc.
 - Slug đa ngôn ngữ đi qua `LocalizedSlugService`/`HasLocalizedSlugs`.
 - API success metadata phải giữ `meta.locale`.
+- Chữ giao diện admin (view, controller, FormRequest admin, JS) luôn qua `__()` với key có ở **cả**
+  `lang/vi` và `lang/en`; JS tĩnh nhận chữ từ Blade (`window.X = @json(__('…'))`). `AdminTranslationCoverageTest`
+  fail khi có chữ tiếng Việt viết cứng, key thiếu, hoặc hai file lang lệch key. Ghi log/lịch sử bằng `__()`
+  nghĩa là lưu theo ngôn ngữ của admin đang thao tác.
+- Tên website, SEO trang chủ, địa chỉ trụ sở và tên/địa chỉ chi nhánh (Cài đặt) nhập theo từng ngôn ngữ nội
+  dung qua `App\Support\LocalizedSiteSettings`: ngôn ngữ mặc định giữ chỗ cũ (`shop_name`, `seo.title`,
+  `contact.address`…), ngôn ngữ khác nằm trong `translations` (tên website: khoá riêng `shop_name_translations`,
+  vì `shop_name` là chuỗi). Tên website không đi qua nút Dịch. `SiteBranding` và `/api/public/settings` trả theo ngôn ngữ đang đọc, trống thì
+  dùng bản mặc định; lưu khi đa ngôn ngữ tắt không xoá bản dịch đã có.
 
 ### Catalog và biến thể
 
@@ -352,16 +365,24 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
   ngược lại.
   **Viết bài bằng AI** (`PostDraftService`, `admin.ai.post-drafts.*`): chỉ nhận brief có đủ thông tin doanh nghiệp
   + ý chính (hoặc ghi chú của chủ shop) — không viết từ một từ khoá; luôn tạo bài **chưa đăng**
-  (`is_active=false`), bỏ mọi link/ảnh AI tự thêm rồi qua `HtmlSanitizer`, đi qua `package.limit:data_unit` như tạo
-  bài thường. Trang sửa bài hiện "thông tin còn thiếu / câu cần kiểm chứng" tới khi bài được đăng. AI không bao giờ
-  tự đăng bài.
-  **FAQ** (`FaqService`) nối phần hỏi–đáp vào cuối nội dung, mọi chữ được escape. **Alt ảnh** (`AltTextService`) chỉ đọc
-  ảnh từ disk `public` của site hoặc Cloudinary của chính site rồi gửi bytes — không bao giờ tải URL lạ (SSRF); chặn
-  xung đột theo từng ảnh. **Sửa theo điểm SEO** (`SeoFixService`, chỉ bài viết): `PostSeoAnalyzer` quyết định quy tắc nào
-  trượt, điểm trước/sau do code tính lại; đoạn mở bài sửa không được đổi link/ảnh. **Mô tả sản phẩm**
-  (`ProductDescriptionService`) gửi tên, danh mục, thương hiệu, thuộc tính, mô tả ngắn — **không gửi giá/tồn kho**.
-  Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
-  meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
+    (`is_active=false`), bỏ mọi link/ảnh AI tự thêm rồi qua `HtmlSanitizer`, đi qua `package.limit:data_unit` như tạo
+    bài thường. Trang sửa bài hiện "thông tin còn thiếu / câu cần kiểm chứng" tới khi bài được đăng. AI không bao giờ
+    tự đăng bài.
+    **FAQ** (`FaqService`) nối phần hỏi–đáp vào cuối nội dung, mọi chữ được escape. **Alt ảnh** (`AltTextService`) chỉ đọc
+    ảnh từ disk `public` của site hoặc Cloudinary của chính site rồi gửi bytes — không bao giờ tải URL lạ (SSRF); chặn
+    xung đột theo từng ảnh. **Sửa theo điểm SEO** (`SeoFixService`, chỉ bài viết): `PostSeoAnalyzer` quyết định quy tắc nào
+    trượt, điểm trước/sau do code tính lại; đoạn mở bài sửa không được đổi link/ảnh. **Mô tả sản phẩm**
+    (`ProductDescriptionService`) gửi tên, danh mục, thương hiệu, thuộc tính, mô tả ngắn — **không gửi giá/tồn kho**.
+    Mọi luồng ghi qua `HandlesAiSuggestions::writeBody()` (Page: `PageContentService`). Form danh mục **cố ý không có** ô
+    meta (`CatalogCrudTest`), nên không có Gợi ý meta cho danh mục.
+    **Việc SEO tuần này** (`admin.ai.seo-tasks.*`): gateway xếp hạng việc từ Search Console; **AI khắc phục**
+    (`SeoTaskFixer`) chỉ ghép các công cụ có sẵn theo loại việc (`low_ctr` → meta có kèm truy vấn GSC thật;
+    `striking_distance` → `QueryGapService` viết thêm một đoạn + FAQ từ truy vấn dạng câu hỏi; `on_page` → meta/
+    đoạn bổ sung/alt theo lỗi), chạy **từng bước một request**, áp dụng qua `apply()` của từng công cụ (không luồng
+    ghi riêng) và chỉ khi admin bấm Áp dụng. `declining`/`intent_mismatch` không cho AI tự sửa. Áp dụng xong đánh dấu
+    việc `done` kèm `applied_by=ai` + `tools` để gateway đo **trước/sau 28 ngày so với phần còn lại của site**
+    (`v1/seo-tasks/outcomes`); "tự sửa" đánh dấu `applied_by=owner`. Đoạn bổ sung do website dựng HTML từ text
+    (escape), chèn trước FAQ.
 - Không trả `cost_price`, secret, token, SMTP password hoặc reviewer email qua public API.
 - Lỗi 500 (mã `ERR-…` trên trang lỗi) và extension lỗi (`EXT-…`) được gửi tóm tắt lên gateway qua
   `App\Support\ErrorReporting\GatewayErrorReporter` (`POST v1/errors`), để console nội bộ tra theo mã.
@@ -661,8 +682,8 @@ Kiểm kê toàn bộ theme/
     đại diện); JSON-LD theo `schema_type` (`Post::SCHEMA_TYPES`: Article, BlogPosting, NewsArticle) và
     `FAQPage` dựng từ mục "Câu hỏi thường gặp" có thật trong bài (`App\Support\Seo\FaqSchema`, tắt bằng
     `schema_faq`). Không bịa câu hỏi chỉ để có schema.
-  Trang không truyền `$seo` vẫn có thẻ, dựng từ hai section trên. Không tự viết canonical, hreflang
-  hay `robots` trong page Blade.
+    Trang không truyền `$seo` vẫn có thẻ, dựng từ hai section trên. Không tự viết canonical, hreflang
+    hay `robots` trong page Blade.
 - Route chi tiết của theme đặt tên `client.products.show` / `client.posts.show` với tham số `{slug}`:
   khi đó chúng có canonical/hreflang đúng và tự vào `sitemap.xml`. Đặt tên khác thì trang vẫn có thẻ
   (canonical là URL đang mở) nhưng không vào sitemap.
@@ -674,8 +695,7 @@ Kiểm kê toàn bộ theme/
   hreflang và sitemap bỏ ngôn ngữ chưa dịch; mở bản ghi ở ngôn ngữ chưa dịch thì canonical trỏ về ngôn
   ngữ fallback đang hiển thị.
 - Chỉ **production** được index (`SeoMetaFactory::indexable()`): staging/local trả `noindex` trong
-  meta và `Disallow: /` trong `robots.txt`. Trang được index còn kèm `max-snippet:-1,
-  max-image-preview:large, max-video-preview:-1` (`SeoMeta::robots()`), để Google hiện ảnh lớn ở Search và
+  meta và `Disallow: /` trong `robots.txt`. Trang được index còn kèm `max-snippet:-1, max-image-preview:large, max-video-preview:-1` (`SeoMeta::robots()`), để Google hiện ảnh lớn ở Search và
   Discover; thẻ X là `summary_large_image` khi trang có ảnh.
 - **Khung SEO admin dùng chung** cho bài viết, sản phẩm và trang chính sách: partial
   `admin.shared.seo-box` (+ `admin-assets/js/forms/seo-box.js`, `admin-assets/css/seo-box.css`), cấu hình
@@ -738,15 +758,20 @@ Mọi ô nội dung HTML trong admin (bài viết, sản phẩm, trang chính s�
 chuyên mục, kể cả modal sửa nhanh) dùng **một** trình soạn thảo: Jodit (MIT, vendor tĩnh trong
 `public/admin-assets/libs/jodit/`, bản dịch tiếng Việt nằm trong `admin-assets/js/forms/rich-editor.js`).
 
-- Form chỉ khai báo: một field ẩn được submit và `<div class="rich-editor" data-target="{id field}"
-  data-preset="full|page|basic">` chứa HTML đã lọc, rồi `@include('admin.shared.rich-editor-assets')`.
+- Form chỉ khai báo: một field ẩn được submit và `<div class="rich-editor" data-target="{id field}" data-preset="full|page|basic">` chứa HTML đã lọc, rồi `@include('admin.shared.rich-editor-assets')`.
   Không tự gọi `Jodit.make`, không nạp thư viện editor khác.
 - Script khác chạm vào editor qua `AdminRichEditor.forTarget(id)` (`getHTML`/`setHTML`/`getText`) và
   sự kiện `rich-editor:change`; không đọc DOM bên trong Jodit.
 - Ảnh chèn từ thư viện Media (nút ảnh mở `media-picker`), không upload hay base64 trong editor.
+- Mọi upload đi qua `CloudinaryService::uploadFile()`, nơi `Media\ImageOptimizer` xoay theo EXIF,
+  giới hạn cạnh dài (`media.optimize.max_dimension`), chuyển JPG/PNG/WebP sang WebP (PNG lossless) và
+  bỏ metadata; thư mục `settings` giữ định dạng gốc. Kết quả không nhỏ hơn thì giữ file gốc. Không
+  lưu file upload bằng đường khác để né bước này.
 - HTML từ editor lưu qua `HtmlSanitizer::cleanRichText()`: chỉ giữ CSS inline trong `RICH_TEXT_CSS`,
   iframe chỉ YouTube/Vimeo, `<figure>/<figcaption>` cho chú thích ảnh. `clean()` (không style inline)
-  vẫn dành cho site block storefront và import — không chuyển chúng sang `cleanRichText()`. Thêm định
+  vẫn dành cho import và chữ AI viết. Site block storefront lưu qua `cleanSiteBlock()`: như `clean()`
+  cộng đúng một style là `color` trên `<span>` (nút màu chữ của inline editor); mọi style khác vẫn bị
+  bỏ để vùng giữ font, cỡ chữ, khoảng cách của theme. Không chuyển site block sang `cleanRichText()`. Thêm định
   dạng mới thì mở rộng sanitizer kèm test, không nới bằng cách tắt lọc.
 
 ### Sửa trực tiếp trên storefront
@@ -774,7 +799,47 @@ Khi cắt hoặc thay layout client, phải giữ nguyên cơ chế này:
   đang mở, và bên đoán sai ghi đè DOM của bên kia.
 - Lệnh định dạng và "ẩn vùng" đi theo luồng chờ **Lưu** như một lần gõ phím. Chỉ ba thao tác cấu
   trúc gọi server ngay — khôi phục nội dung gốc, thêm ô, xoá ô — vì không cái nào diễn đạt được
-  bằng "HTML mà vùng này sẽ có sau khi Lưu".
+  bằng "HTML mà vùng này sẽ có sau khi Lưu". Thêm ô (`<x-client::list-add>`) tải lại trang để
+  Blade render ô mới, nên bị chặn khi còn thay đổi chờ Lưu (`clientBlocks.hasPending()`).
+- Toolbar còn có: nhãn vị trí ("Section › Ô › Tiêu đề “…”") làm tiêu đề menu "…", căn lề lưu **token**
+  (`site_blocks.align`: left/center/right/justify → class `client-align-*` trong `core.head`), ✨ **Sửa
+  với AI** (`admin.ai.rewrite` → gateway `content.rewrite`, chỉ trả chữ thuần; trình duyệt chèn bằng
+  `insertText` nên đi theo luồng chờ Lưu và Ctrl+Z được; chỉ hiện khi `AiAccess::check()` cho phép), và
+  menu "…". **Nhân bản thông minh** nhân bản đơn vị nhỏ nhất mà template đã lặp:
+  - Vùng nằm trong ô của vùng lặp (`<x-client::list-item>`): nhân bản **cả ô**, chèn ngay sau ô gốc
+    trong cùng thẻ cha, nên grid/flex của theme tự xuống hàng. Ô có thêm Chuyển lên / Chuyển xuống /
+    Xoá ô.
+  - Vùng chữ đứng riêng (mọi `<x-client::editable>`, trừ vùng nằm trong link/nút): "Nhân bản đoạn
+    này" thêm một bản sao vào danh sách `{key}.extra` của nó, render ngay sau vùng gốc với **đúng tag
+    và class** của vùng gốc (cùng cơ chế ô thêm). Bản sao là một mục của danh sách đó nên lại nhân bản,
+    chuyển, xoá được; vùng gốc thì chỉ ẩn/khôi phục.
+  - Cả hai đi qua `site-lists/items/duplicate` (không có `item` = bản sao của vùng gốc, đặt đầu danh
+    sách) và ghi nội dung đang hiển thị qua `updateLocale()` (cùng bộ lọc); bị chặn khi còn thay đổi
+    chờ Lưu. **Không tải lại trang** (sẽ thoát chế độ chỉnh sửa): trình duyệt chèn bản sao DOM của
+    nguồn với khoá đã chuyển sang mục mới — đúng thứ Blade sẽ render, vì nội dung nguồn là thứ vừa lưu.
+  - Không nhân bản/di chuyển một phần tử HTML bất kỳ (wrapper, section, card chưa đánh dấu
+    `list-item`), không ẩn theo màn hình, không cỡ chữ tự do, không inspector CSS — đó là page builder.
+    Muốn card nhân bản được thì khi cắt giao diện phải bọc từng card bằng `<x-client::list-item>`.
+  - Đây là **bước bắt buộc của việc cắt theme**, không phải việc làm thêm sau: mọi dãy đơn vị lặp do
+    template viết (card, bước, lợi ích, cột link footer…) là `@foreach` trên `$lists->items(…)` với
+    `<x-client::list-item>` là phần tử ngoài cùng. `php artisan client:editable-audit` (khối "Editor
+    structure", `App\Support\EditorStructureScanner`) FAIL khi layout thiếu `core.head`/`core.editor`,
+    khi dãy lặp chưa là list-item hoặc list-item nằm sâu hơn phần tử ngoài cùng. Dãy cố ý cố định ghi
+    `{{-- editor:fixed-run <lý do> --}}` ngay trước `@foreach`; thiếu lý do cũng FAIL.
+  - Theme cắt **trước** khi có các luật cấu trúc này giữ lỗi cũ trong
+    `resources/views/client/.editor-structure-baseline.json` (`client:editable-audit --baseline`,
+    `team.py` tự ghi một lần khi lấy core mới): lỗi cũ không chặn, lỗi mới vẫn chặn. Theme cắt mới
+    hoặc cắt lại **không bao giờ** dùng baseline.
+- **Dữ liệu lấy từ database không bao giờ là vùng sửa trực tiếp.** Sản phẩm, bài viết, danh mục,
+  thương hiệu, đối tác (module Partners, theo nhóm), menu, banner, tên/logo shop in thẳng từ service
+  của chúng và chỉ sửa ở màn admin. Bọc chúng trong `x-client::editable`/`editable-image` làm bản sửa
+  nằm trong `site_blocks` và che bản ghi: admin và API giữ giá trị cũ, trang hiện giá trị mới. Audit
+  FAIL khi key, src hay nội dung của một vùng sửa đọc thuộc tính model (`$product->name`). Khối dữ
+  liệu có quản lý mà chưa có module thì báo người dùng, không giả bằng vùng sửa. Bảng chủ sở hữu và
+  cổng nghiệm thu cắt theme: `connect-ecommerce-frontend/references/theme-cut-acceptance.md`.
+- Màu chữ: nút màu trên toolbar (bảng màu, màu vừa dùng, chọn màu tự do, bỏ màu) ghi
+  `<span style="color">`; vùng "chữ đơn" được định dạng màu hay xuống dòng (Shift+Enter) chuyển thành
+  HTML. Enter trong vùng chữ đơn vẫn là "xong".
 - Icon trong admin bar và toolbar phải là **SVG inline**, không dùng icon font. Storefront của một
   dự án bất kỳ có thể không nạp font nào, và glyph thiếu biến mọi nút thành ô trống.
 - Trang CMS do `Page` quản lý phải render qua contract hiện có với `$page`, `$title`, `$html`,

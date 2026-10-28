@@ -1,6 +1,8 @@
 @props([
     'list',
     'item',
+    // The theme's own element for one unit: `li` inside a list, `article` for a card.
+    'tag' => 'div',
 ])
 
 @php
@@ -18,7 +20,9 @@
      would give the same page a different flex/grid structure after login —
      exactly the layout break this whole component set exists to avoid. Only the
      admin-only control below is conditional. --}}
-<div
+{{-- Block containers only: the remove button inside must stay valid HTML (no <a>, no <tr>). --}}
+@php($tag = in_array($tag, ['div', 'li', 'article', 'section', 'figure'], true) ? $tag : 'div')
+<{{ $tag }}
     {{ $attributes->class($canEdit ? ['client-list-item'] : []) }}
     @if($canEdit)
         data-list-key="{{ $list }}"
@@ -32,4 +36,4 @@
         </button>
     @endif
     {{ $slot }}
-</div>
+</{{ $tag }}>

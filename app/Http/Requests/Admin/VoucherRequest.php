@@ -35,7 +35,7 @@ class VoucherRequest extends FormRequest
                 'min:0',
                 function ($attribute, $value, $fail) {
                     if ($this->input('type') === 'percentage' && $value > 100) {
-                        $fail('Giá trị giảm giá theo phần trăm không được lớn hơn 100%.');
+                        $fail(__('admin.vouchers.percentage_max'));
                     }
                 },
             ],

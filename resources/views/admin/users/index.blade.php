@@ -112,14 +112,14 @@
                                             @method('PATCH')
                                             @if ($userItem->is_active)
                                                 <button type="submit" class="btn btn-sm btn-outline-warning"
-                                                    title="Khóa tài khoản"
-                                                    onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?')">
+                                                    title="{{ __('admin.users.lock') }}"
+                                                    onclick="return confirm(@js(__('admin.users.confirm_lock')))">
                                                     <i class="ti ti-lock fs-4"></i>
                                                 </button>
                                             @else
                                                 <button type="submit" class="btn btn-sm btn-outline-success"
-                                                    title="Mở khóa tài khoản"
-                                                    onclick="return confirm('Bạn có chắc chắn muốn mở khóa tài khoản này?')">
+                                                    title="{{ __('admin.users.unlock') }}"
+                                                    onclick="return confirm(@js(__('admin.users.confirm_unlock')))">
                                                     <i class="ti ti-lock-open fs-4"></i>
                                                 </button>
                                             @endif
@@ -132,8 +132,8 @@
                                             class="d-inline" data-no-ajax>
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-info"
-                                                title="Đăng nhập nhanh"
-                                                onclick="return confirm('Bạn có muốn đăng nhập nhanh vào tài khoản này?')">
+                                                title="{{ __('admin.users.impersonate') }}"
+                                                onclick="return confirm(@js(__('admin.users.confirm_impersonate')))">
                                                 <i class="ti ti-login fs-4"></i>
                                             </button>
                                         </form>

@@ -49,13 +49,13 @@ class SiteSectionController extends Controller
         ActivityLogger::log(
             $stored === null ? 'restored' : 'updated',
             $stored,
-            ($stored === null ? 'Trả section về mặc định ' : 'Sửa hiển thị section ').$listKey.'.'.$section,
+            __($stored === null ? 'admin.site_editor.log.section_reset' : 'admin.site_editor.log.section_updated', ['key' => $listKey.'.'.$section]),
             ['new' => ['list_key' => $listKey, 'section' => $section]],
         );
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã lưu.',
+            'message' => __('admin.site_editor.saved'),
             'data' => $this->state($listKey, $section),
         ]);
     }
@@ -79,13 +79,13 @@ class SiteSectionController extends Controller
         ActivityLogger::log(
             'restored',
             null,
-            "Trả section về mặc định {$data['list_key']}.{$data['section']}",
+            __('admin.site_editor.log.section_reset', ['key' => $data['list_key'].'.'.$data['section']]),
             ['new' => ['list_key' => $data['list_key'], 'section' => $data['section']]],
         );
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã trả về mặc định.',
+            'message' => __('admin.site_editor.section_reset'),
             'data' => $this->state($data['list_key'], $data['section']),
         ]);
     }
@@ -117,13 +117,13 @@ class SiteSectionController extends Controller
 
         [$listKey, $section] = $this->split((string) $stored?->key);
 
-        ActivityLogger::log('restored', $stored, "Khôi phục phiên bản hiển thị section {$stored?->key}", [
+        ActivityLogger::log('restored', $stored, __('admin.site_editor.log.section_revision_restored', ['key' => (string) $stored?->key]), [
             'new' => ['key' => $stored?->key, 'revision_id' => $revision->id],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã khôi phục phiên bản.',
+            'message' => __('admin.site_editor.revision_restored'),
             'data' => $this->state($listKey, $section),
         ]);
     }

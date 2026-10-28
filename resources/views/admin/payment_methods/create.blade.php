@@ -22,12 +22,12 @@
                     <div data-tour="payment-method-form.name" class="col-md-12 mb-3">
                         <label class="form-label fw-semibold text-dark" for="name">{{ __('admin.payment_methods.name') }} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control text-dark" id="name" name="name" 
-                            value="{{ old('name') }}" placeholder="Ví dụ: Ví điện tử Zalopay, Chuyển khoản ví..." required>
+                            value="{{ old('name') }}" placeholder="{{ __('admin.payment_methods.name_placeholder') }}" required>
                     </div>
                     <div data-tour="payment-method-form.description" class="col-md-12 mb-3">
                         <label class="form-label fw-semibold text-dark" for="description">{{ __('admin.payment_methods.fee') }} <span class="text-danger">*</span></label>
                         <textarea class="form-control text-dark" id="description" name="description" rows="4" 
-                            placeholder="Nhập mô tả hướng dẫn khách hàng thanh toán..." required>{{ old('description') }}</textarea>
+                            placeholder="{{ __('admin.payment_methods.description_placeholder') }}" required>{{ old('description') }}</textarea>
                     </div>
                 </div>
 

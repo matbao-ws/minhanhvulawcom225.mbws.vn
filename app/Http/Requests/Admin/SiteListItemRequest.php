@@ -30,8 +30,8 @@ class SiteListItemRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'key.regex' => 'Mã vùng nội dung không hợp lệ.',
-            'item.regex' => 'Mã mục không hợp lệ.',
+            'key.regex' => __('admin.site_editor.validation.invalid_key'),
+            'item.regex' => __('admin.site_editor.validation.invalid_item'),
         ];
     }
 }

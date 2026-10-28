@@ -31,3 +31,8 @@ Thumbs.db
 
 # Python test helpers
 __pycache__/
+
+# Demo storefront theme for trying core changes locally (App\Support\DemoTheme): never in git,
+# so `team.py new` and core releases never carry it.
+/demo-theme
+/public/demo-theme-assets

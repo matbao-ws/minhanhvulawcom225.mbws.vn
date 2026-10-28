@@ -347,6 +347,37 @@ return [
         'revisions' => ['title' => 'Recent versions', 'description' => 'Earlier saved versions of the page, up to the latest 20. Click Restore to bring the page back to that version.'],
     ],
 
+    'partners_index' => [
+        'intro' => ['title' => 'Partners', 'description' => 'Customer and partner logos shown in the logo strips of the website. This is the one place to edit them.'],
+        'create' => ['title' => 'Add a partner', 'description' => 'Pick a logo, enter a name and choose a group to put a new logo on the website.'],
+        'groups' => ['title' => 'Partner groups', 'description' => 'Each group is one logo strip of the website. Create, rename or delete groups here.'],
+        'tabs' => ['title' => 'View by group', 'description' => 'Click a group to see only its logos. Inside a group, drag the handle at the start of a row to change the display order.'],
+        'filters' => ['title' => 'Search and filter', 'description' => 'Search by partner name, filter shown or hidden logos.'],
+        'select_all' => ['title' => 'Bulk actions', 'description' => 'Tick several partners to show, hide or delete them at once.'],
+        'table' => ['title' => 'Partner list', 'description' => 'Logo, name, group and status of each partner. The switch in the status column shows or hides a logo at once.'],
+    ],
+
+    'partners_form' => [
+        'intro' => ['title' => 'Partner details', 'description' => 'A partner is one logo in a logo strip of the website.'],
+        'logo' => ['title' => 'Logo', 'description' => 'Click to pick a picture from the Media library or upload a new one. A PNG with a transparent background looks best.'],
+        'name' => ['title' => 'Partner name', 'description' => 'Shown when the picture cannot load, and helps Google understand it.'],
+        'group' => ['title' => 'Group', 'description' => 'Choose the logo strip this partner belongs to.'],
+        'url' => ['title' => 'Link', 'description' => 'Optional. With an address, clicking the logo opens the partner site.'],
+        'status' => ['title' => 'Show on the website', 'description' => 'Turn off to hide the logo for a while without deleting it.'],
+    ],
+
+    'partner_groups_index' => [
+        'intro' => ['title' => 'Partner groups', 'description' => 'Each group is one logo strip of the website, e.g. Featured customers or Strategic partners.'],
+        'create' => ['title' => 'Add a group', 'description' => 'Create a new group. The website theme needs its key to show that logo strip.'],
+        'table' => ['title' => 'Group list', 'description' => 'Name, key and number of partners of each group. A group that still has partners cannot be deleted.'],
+    ],
+
+    'partner_groups_form' => [
+        'intro' => ['title' => 'Group details', 'description' => 'Give the group a name you will recognise in the admin.'],
+        'name' => ['title' => 'Group name', 'description' => 'Only shown in the admin.'],
+        'key' => ['title' => 'Group key', 'description' => 'The website theme fetches the logos with this key. Left empty, it is built from the name. It cannot change once saved.'],
+    ],
+
     'banners_index' => [
         'intro' => ['title' => 'Banners', 'description' => 'Promotional images shown in places on the website, such as the home page slider.'],
         'create' => ['title' => 'Add a banner', 'description' => 'Upload a banner image and choose where it appears.'],

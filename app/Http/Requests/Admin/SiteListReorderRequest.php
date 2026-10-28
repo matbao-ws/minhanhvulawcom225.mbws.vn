@@ -30,8 +30,8 @@ class SiteListReorderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'key.regex' => 'Mã vùng nội dung không hợp lệ.',
-            'order.required' => 'Thiếu thứ tự mới của danh sách.',
+            'key.regex' => __('admin.site_editor.validation.invalid_key'),
+            'order.required' => __('admin.site_editor.validation.order_required'),
         ];
     }
 }

@@ -17,6 +17,7 @@ use App\Http\Middleware\UseDefaultLocale;
 use App\Http\Middleware\ValidateLocalizedAdminPath;
 use App\Services\LanguageRegistry;
 use App\Services\Seo\RedirectService;
+use App\Support\DemoTheme;
 use App\Support\ErrorReference;
 use App\Support\ErrorReporting\GatewayErrorReporter;
 use App\Support\PackageManifestGuard;
@@ -58,9 +59,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
                     // A theme's own storefront routes (product or post detail, landing pages…).
                     // Theme-owned: a core update never ships or touches this file (CoreManifest).
-                    if (is_file(base_path('routes/theme.php'))) {
+                    // A demo theme on the core checkout takes its place (DemoTheme).
+                    if ($themeRoutes = DemoTheme::routes()) {
                         Route::middleware('defaultLocale.redirect')->name('client.')
-                            ->group(base_path('routes/theme.php'));
+                            ->group($themeRoutes);
                     }
 
                     Route::prefix('admin')
@@ -75,8 +77,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->name('root.')
                 ->group(function (): void {
                     Route::name('client.')->group(base_path('routes/client.php'));
-                    if (is_file(base_path('routes/theme.php'))) {
-                        Route::name('client.')->group(base_path('routes/theme.php'));
+                    if ($themeRoutes = DemoTheme::routes()) {
+                        Route::name('client.')->group($themeRoutes);
                     }
                 });
 

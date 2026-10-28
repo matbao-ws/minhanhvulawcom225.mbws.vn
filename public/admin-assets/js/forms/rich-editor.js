@@ -252,9 +252,9 @@
         "'Courier New', Courier, monospace": 'Courier New',
     };
 
-    // The page title is the H1, so the body starts at H2.
     const BLOCKS = {
         p: 'Normal',
+        h1: 'Heading 1',
         h2: 'Heading 2',
         h3: 'Heading 3',
         h4: 'Heading 4',
@@ -287,7 +287,7 @@
             'eraser', '|', 'undo', 'redo', 'fullsize',
         ],
         basic: [
-            'bold', 'italic', 'underline', '|', 'ul', 'ol', 'align', '|',
+            'paragraph', '|', 'bold', 'italic', 'underline', '|', 'ul', 'ol', 'align', '|',
             'link', MEDIA_IMAGE, '|', 'eraser', 'source', 'fullsize',
         ],
     };

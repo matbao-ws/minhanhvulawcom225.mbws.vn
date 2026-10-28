@@ -50,6 +50,19 @@ class ContactSpamTest extends TestCase
         Mail::assertSent(ContactInquiryMail::class, fn ($mail) => $mail->hasTo('chu-shop@example.com') && ! $mail->hasTo('fallback@example.com'));
     }
 
+    public function test_the_inquiry_goes_to_every_owner_email(): void
+    {
+        ProjectSetting::query()->updateOrCreate(
+            ['setting_key' => 'notification_settings'],
+            ['setting_value' => ['smtp' => ['owner_email' => 'chu-shop@example.com, ke-toan@example.com']]],
+        );
+        MailSettings::flush();
+
+        $this->send()->assertOk();
+
+        Mail::assertSent(ContactInquiryMail::class, fn ($mail) => $mail->hasTo('chu-shop@example.com') && $mail->hasTo('ke-toan@example.com'));
+    }
+
     #[DataProvider('spam')]
     public function test_spam_gets_the_same_answer_but_is_flagged_and_not_mailed(array $fields, string $reason): void
     {

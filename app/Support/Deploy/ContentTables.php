@@ -31,6 +31,8 @@ final class ContentTables
         'page_revisions',
         'localized_slugs',
         'banners',
+        'partner_groups',
+        'partners',
         'menus',
         'menu_items',
         'site_blocks',
@@ -46,6 +48,7 @@ final class ContentTables
     /** project_settings is shared with secrets and package state: only these keys travel. */
     public const SETTING_KEYS = [
         'shop_name',
+        'shop_name_translations',
         'logo_url',
         'favicon_url',
         'contact',

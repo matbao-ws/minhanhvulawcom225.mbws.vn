@@ -53,9 +53,9 @@ class PageController extends Controller
     public function store(PageRequest $request)
     {
         $page = $this->pages->create($request->validated());
-        ActivityLogger::log('created', $page, "Tạo trang {$page->slug}");
+        ActivityLogger::log('created', $page, __('admin.pages.log.created', ['slug' => $page->slug]));
 
-        return $this->redirectAfterCreate($request, 'admin.pages.edit', $page, redirect()->route('admin.pages.edit', $page)->with('success', 'Đã tạo trang.'));
+        return $this->redirectAfterCreate($request, 'admin.pages.edit', $page, redirect()->route('admin.pages.edit', $page)->with('success', __('admin.pages.flash.created')));
     }
 
     public function edit(string $locale, Page $page)
@@ -71,17 +71,17 @@ class PageController extends Controller
     public function update(PageRequest $request, string $locale, Page $page)
     {
         $page = $this->pages->update($page, $request->validated(), $request->user()?->id);
-        ActivityLogger::log('updated', $page, "Cập nhật trang {$page->slug}");
+        ActivityLogger::log('updated', $page, __('admin.pages.log.updated', ['slug' => $page->slug]));
 
-        return redirect()->route('admin.pages.edit', $page)->with('success', 'Đã lưu trang.');
+        return redirect()->route('admin.pages.edit', $page)->with('success', __('admin.pages.flash.saved'));
     }
 
     public function destroy(string $locale, Page $page)
     {
         $page->delete();
-        ActivityLogger::log('deleted', $page, "Xóa trang {$page->slug}");
+        ActivityLogger::log('deleted', $page, __('admin.pages.log.deleted', ['slug' => $page->slug]));
 
-        return redirect()->route('admin.pages.index')->with('success', 'Đã xóa trang.');
+        return redirect()->route('admin.pages.index')->with('success', __('admin.pages.flash.deleted'));
     }
 
     public function preview(Request $request, string $locale, Page $page)
@@ -100,13 +100,13 @@ class PageController extends Controller
         $validated = $request->validated();
         $contentLocale = $validated['content_locale'];
         $page = $this->pages->updateLocale($page, $contentLocale, $validated['published_html'], $request->user()?->id);
-        ActivityLogger::log('updated', $page, "Sửa trực tiếp trang {$page->slug}", [
+        ActivityLogger::log('updated', $page, __('admin.pages.log.inline_updated', ['slug' => $page->slug]), [
             'content_locale' => $contentLocale,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã lưu trang.',
+            'message' => __('admin.pages.flash.saved'),
             'data' => [
                 'html' => $page->getTranslation('published_html', $contentLocale, false),
                 'updated_at' => $page->updated_at?->toISOString(),
@@ -144,7 +144,7 @@ class PageController extends Controller
         $wantsJson = $request->expectsJson();
 
         $page = $this->pages->restore($page, $revision, $request->user()?->id, $wantsJson ? $locale : null);
-        ActivityLogger::log('restored', $page, "Khôi phục phiên bản trang {$page->slug}", [
+        ActivityLogger::log('restored', $page, __('admin.pages.log.restored', ['slug' => $page->slug]), [
             'revision_id' => $revision->id,
             'content_locale' => $wantsJson ? $locale : null,
         ]);
@@ -152,7 +152,7 @@ class PageController extends Controller
         if ($wantsJson) {
             return response()->json([
                 'success' => true,
-                'message' => 'Đã khôi phục phiên bản.',
+                'message' => __('admin.pages.flash.restored'),
                 'data' => [
                     'html' => $page->getTranslation('published_html', $locale, false),
                     'updated_at' => $page->updated_at?->toISOString(),
@@ -160,6 +160,6 @@ class PageController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.pages.edit', $page)->with('success', 'Đã khôi phục phiên bản.');
+        return redirect()->route('admin.pages.edit', $page)->with('success', __('admin.pages.flash.restored'));
     }
 }

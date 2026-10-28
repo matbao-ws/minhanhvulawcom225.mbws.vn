@@ -29,15 +29,15 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="adminMediaPickerLabel">Chọn ảnh từ thư viện</h5>
-                    <p class="text-muted fs-2 mb-0">Chọn một ảnh đã tải lên hoặc thêm ảnh mới.</p>
+                    <h5 class="modal-title" id="adminMediaPickerLabel">{{ __('admin.media_picker.title') }}</h5>
+                    <p class="text-muted fs-2 mb-0">{{ __('admin.media_picker.subtitle') }}</p>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('admin.media_picker.close') }}"></button>
             </div>
             <div class="modal-body">
                 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-                    <select class="form-select w-auto" id="adminMediaPickerFolder" aria-label="Thư mục ảnh">
-                        <option value="all">Tất cả thư mục</option>
+                    <select class="form-select w-auto" id="adminMediaPickerFolder" aria-label="{{ __('admin.media_picker.folder') }}">
+                        <option value="all">{{ __('catalog.media.all_folders') }}</option>
                         @foreach(app(\App\Services\CloudinaryService::class)->listFolders() as $folder)
                             <option value="{{ $folder }}">{{ ucfirst($folder) }}</option>
                         @endforeach
@@ -45,18 +45,18 @@
                     <div>
                         <input class="d-none" id="adminMediaPickerUpload" type="file" accept="image/*">
                         <button class="btn btn-primary" type="button" id="adminMediaPickerUploadButton">
-                            <i class="ti ti-upload me-1"></i>Thêm ảnh mới
+                            <i class="ti ti-upload me-1"></i>{{ __('admin.media_picker.upload') }}
                         </button>
                     </div>
                 </div>
                 <div class="alert alert-danger d-none mb-3" id="adminMediaPickerError" role="alert"></div>
                 <div class="row row-cols-3 row-cols-sm-4 row-cols-md-6 row-cols-xl-8 g-2" id="adminMediaPickerGrid"></div>
-                <div class="text-center text-muted py-5 d-none" id="adminMediaPickerEmpty">Chưa có ảnh trong thư viện.</div>
+                <div class="text-center text-muted py-5 d-none" id="adminMediaPickerEmpty">{{ __('admin.media_picker.empty') }}</div>
                 <div class="text-center py-5" id="adminMediaPickerLoading"><div class="spinner-border text-primary" role="status"></div></div>
                 <div class="d-flex justify-content-between align-items-center mt-4 d-none" id="adminMediaPickerPagination">
-                    <button class="btn btn-outline-secondary btn-sm" type="button" id="adminMediaPickerPrevious">← Trước</button>
-                    <span class="small text-muted" id="adminMediaPickerPage">Trang 1</span>
-                    <button class="btn btn-outline-secondary btn-sm" type="button" id="adminMediaPickerNext">Sau →</button>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" id="adminMediaPickerPrevious">{{ __('admin.media_picker.previous') }}</button>
+                    <span class="small text-muted" id="adminMediaPickerPage">{{ __('admin.media_picker.page', ['page' => 1]) }}</span>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" id="adminMediaPickerNext">{{ __('admin.media_picker.next') }}</button>
                 </div>
             </div>
         </div>
@@ -69,6 +69,7 @@
         if (!modalElement || typeof bootstrap === 'undefined') return;
 
         const modal = new bootstrap.Modal(modalElement);
+        const text = @json(__('admin.media_picker'));
         modalElement.addEventListener('show.bs.modal', function () {
             document.body.classList.add('admin-media-picker-open');
         });
@@ -107,14 +108,14 @@
             pagination.classList.toggle('d-none', resources.length === 0);
             previous.disabled = pageIndex === 0;
             next.disabled = !nextCursor;
-            pageLabel.textContent = 'Trang ' + (pageIndex + 1);
+            pageLabel.textContent = text.page.replace(':page', String(pageIndex + 1));
             resources.forEach(function (resource) {
                 const column = document.createElement('div');
                 column.className = 'col';
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'media-picker-card btn p-0 border rounded overflow-hidden w-100 text-start bg-white d-flex flex-column';
-                button.title = 'Chọn ' + resource.public_id;
+                button.title = text.select.replace(':name', resource.public_id);
                 const image = document.createElement('img');
                 image.src = resource.secure_url;
                 image.alt = resource.public_id;
@@ -146,7 +147,7 @@
                 cache: 'no-store',
                 headers: { Accept: 'application/json' },
             })
-                .then(function (response) { if (!response.ok) throw new Error('Không thể tải thư viện ảnh.'); return response.json(); })
+                .then(function (response) { if (!response.ok) throw new Error(text.load_failed); return response.json(); })
                 .then(function (data) { render(data.resources || [], data.next_cursor); })
                 .catch(function (exception) { showError(exception.message); })
                 .finally(function () { loading.classList.add('d-none'); });
@@ -259,12 +260,12 @@
                     const data = await response.json();
                     if (!response.ok) {
                         const validationError = data.errors ? Object.values(data.errors).flat()[0] : null;
-                        throw new Error(validationError || data.message || 'Tải ảnh lên không thành công.');
+                        throw new Error(validationError || data.message || text.upload_failed);
                     }
                     return data;
                 })
                 .then(function (data) {
-                    if (!data.success) throw new Error(data.message || 'Tải ảnh lên không thành công.');
+                    if (!data.success) throw new Error(data.message || text.upload_failed);
                     loadResources();
                 })
                 .catch(function (exception) { showError(exception.message); })

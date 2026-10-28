@@ -624,6 +624,7 @@
             // box in a repeatable region.
             const blockRestoreUrl = @json(route('admin.site-blocks.restore', ['locale' => app()->getLocale()]));
             const listItemsUrl = @json(route('admin.site-lists.items.store', ['locale' => app()->getLocale()]));
+            const listDuplicateUrl = @json(route('admin.site-lists.items.duplicate', ['locale' => app()->getLocale()]));
             const listReorderUrl = @json(route('admin.site-lists.items.reorder', ['locale' => app()->getLocale()]));
             // One URL for both verbs: PATCH queues through Lưu, DELETE is the
             // immediate "back to the template" the settings panel offers.
@@ -942,17 +943,7 @@
                 const format = element.getAttribute('data-block-format') || null;
                 const isImage = type === 'image';
                 const isBackground = type === 'background';
-                /*
-                 * A plain-text region sends its text, not its markup. innerHTML
-                 * encodes "&" and ">" as entities; the server only strips tags, so
-                 * the entities were stored verbatim and Blade escaped them again —
-                 * visitors read "&amp;gt;" after the next reload.
-                 */
-                const value = isBackground
-                    ? (element.getAttribute('data-client-background-src') || '')
-                    : isImage
-                        ? (element.getAttribute('src') || '')
-                        : (type === 'text' ? element.textContent : cleanEditedHtml(element));
+                const value = regionValue(element, type);
 
                 const response = await fetch(blockUrl, {
                     method: 'PATCH',
@@ -966,6 +957,8 @@
                         key: snapshot.key,
                         type: type,
                         format: format,
+                        // The alignment token the toolbar set; absent means the theme's own.
+                        align: isImage || isBackground ? undefined : (element.getAttribute('data-block-align') || null),
                         content_locale: contentLocale,
                         value: value,
                     }),
@@ -997,6 +990,20 @@
             }
 
             /*
+             * What a region stores: a plain-text region sends its text, not its markup.
+             * innerHTML encodes "&" and ">" as entities; the server only strips tags, so the
+             * entities were stored verbatim and Blade escaped them again — visitors read
+             * "&amp;gt;" after the next reload.
+             */
+            function regionValue(element, type) {
+                type = type || element.getAttribute('data-block-type') || 'text';
+                if (type === 'background') return element.getAttribute('data-client-background-src') || '';
+                if (type === 'image') return element.getAttribute('src') || '';
+
+                return type === 'text' ? element.textContent : cleanEditedHtml(element);
+            }
+
+            /*
              * The HTML a rich region will store, minus what the browser invented.
              *
              * Chrome wraps text in <span style="…"> whenever a delete or merge
@@ -1007,6 +1014,13 @@
              */
             function cleanEditedHtml(element) {
                 const copy = element.cloneNode(true);
+                // <font color> (a browser not writing CSS) is the same colour as a span.
+                copy.querySelectorAll('font[color]').forEach(function (node) {
+                    const span = document.createElement('span');
+                    span.style.color = node.getAttribute('color');
+                    span.append.apply(span, Array.from(node.childNodes));
+                    node.replaceWith(span);
+                });
                 /*
                  * Bold on a heading the theme already sets in bold *removes* the
                  * weight, and the browser expresses that as
@@ -1024,6 +1038,7 @@
 
                     const marker = document.createElement('span');
                     marker.className = classes.join(' ');
+                    if (style.color) marker.style.color = style.color;
                     marker.append.apply(marker, Array.from(node.childNodes));
                     node.replaceWith(marker);
                 });
@@ -1035,8 +1050,23 @@
                         if (node.classList.length === 0) node.replaceWith(only);
                     }
                 });
+                /*
+                 * The text colour the toolbar sets is the one style a region keeps
+                 * (HtmlSanitizer::cleanSiteBlock); "no colour" (inherit) and every other
+                 * property go. Only a span carries it, as the server expects.
+                 */
                 copy.querySelectorAll('[style]').forEach(function (node) {
+                    const color = node.style.color;
                     node.removeAttribute('style');
+                    if (!color || /^(inherit|initial|unset|currentcolor)$/i.test(color)) return;
+                    if (node.tagName.toLowerCase() === 'span') {
+                        node.style.color = color;
+                        return;
+                    }
+                    const span = document.createElement('span');
+                    span.style.color = color;
+                    span.append.apply(span, Array.from(node.childNodes));
+                    node.append(span);
                 });
                 Array.from(copy.querySelectorAll('span, font')).reverse().forEach(function (node) {
                     if (node.tagName.toLowerCase() === 'span' && node.attributes.length > 0) return;
@@ -1290,12 +1320,21 @@
                 refreshPending: function () {
                     syncControls();
                 },
+                /** What a region would store if saved now (text, cleaned HTML or a picture). */
+                regionValue: function (element) {
+                    return regionValue(element);
+                },
+                /** True while anything is waiting for Lưu (typing, panels, removals). */
+                hasPending: function () {
+                    return hasPending();
+                },
                 locale: contentLocale,
                 csrf: csrfToken,
                 urls: {
                     block: blockUrl,
                     restore: blockRestoreUrl,
                     listItems: listItemsUrl,
+                    duplicate: listDuplicateUrl,
                     reorder: listReorderUrl,
                     sections: sectionsUrl,
                     blockRevisions: blockRevisionsUrl,
@@ -1384,11 +1423,18 @@
                     return;
                 }
 
-                // A plain-text region is one line: Enter confirms it rather than
-                // inserting a break the sanitizer would strip anyway.
+                // A plain-text region is one line: Enter confirms it. Shift+Enter breaks
+                // the line, which turns the region into HTML so the <br> is kept.
                 const region = event.target.closest ? event.target.closest('[data-block-key]') : null;
                 if (event.key === 'Enter' && region && region.getAttribute('data-block-type') === 'text') {
                     event.preventDefault();
+                    if (event.shiftKey) {
+                        document.execCommand('insertLineBreak');
+                        region.setAttribute('data-block-type', 'html');
+                        markRegionDirty(region);
+
+                        return;
+                    }
                     closeRegion(region);
 
                     return;
@@ -1639,6 +1685,8 @@
                 // Media pickers by suffix: an admin without media.view must not even get their ids.
                 '#client-block-hint', '#client-region-hint', '#client-bg-handle', '[id$="media-picker"]',
                 '#client-outline', '#client-history', '#client-section-panel', '#client-viewport',
+                // Controls a template places in the page for repeatable regions.
+                '[data-client-list-add]',
             ].join(', ');
 
             function interceptClicks(onImage) {

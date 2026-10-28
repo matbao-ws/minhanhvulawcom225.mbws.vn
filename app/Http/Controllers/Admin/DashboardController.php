@@ -273,8 +273,12 @@ class DashboardController extends Controller
             $orders = $ordersQuery->limit(200)->get();
             foreach ($orders as $order) {
                 $notifications->push((object) [
-                    'title' => 'Đơn hàng mới #'.$order->order_number,
-                    'message' => 'Khách hàng: '.$order->customer_name.'. Tổng cộng: '.number_format($order->grand_total, 0, ',', '.').' ₫. Trạng thái: '.$order->status,
+                    'title' => __('admin.notifications_page.order_title', ['number' => $order->order_number]),
+                    'message' => __('admin.notifications_page.order_message', [
+                        'customer' => $order->customer_name,
+                        'total' => number_format($order->grand_total, 0, ',', '.'),
+                        'status' => $order->status,
+                    ]),
                     'time' => $order->created_at,
                     'icon' => 'solar:cart-3-line-duotone',
                     'bg_color' => 'bg-primary-subtle text-primary',
@@ -295,14 +299,18 @@ class DashboardController extends Controller
             }
             $reviews = $reviewsQuery->limit(200)->get();
             foreach ($reviews as $review) {
-                $prodName = 'Sản phẩm';
+                $prodName = __('admin.notifications_page.product');
                 if ($review->product) {
                     $name = $review->product->name;
-                    $prodName = is_array($name) ? ($name['vi'] ?? array_values($name)[0] ?? 'Sản phẩm') : $name;
+                    $prodName = is_array($name) ? ($name['vi'] ?? array_values($name)[0] ?? __('admin.notifications_page.product')) : $name;
                 }
                 $notifications->push((object) [
-                    'title' => 'Đánh giá mới từ '.($review->customer_name ?? 'Khách hàng'),
-                    'message' => 'Đánh giá '.$review->rating.' sao cho '.$prodName.': "'.Str::limit($review->comment, 80).'"',
+                    'title' => __('admin.notifications_page.review_title', ['name' => $review->customer_name ?? __('admin.dashboard_page.customer')]),
+                    'message' => __('admin.notifications_page.review_message', [
+                        'rating' => $review->rating,
+                        'product' => $prodName,
+                        'comment' => Str::limit($review->comment, 80),
+                    ]),
                     'time' => $review->created_at,
                     'icon' => 'solar:chat-round-line-line-duotone',
                     'bg_color' => 'bg-info-subtle text-info',
@@ -323,8 +331,8 @@ class DashboardController extends Controller
             $users = $usersQuery->limit(200)->get();
             foreach ($users as $user) {
                 $notifications->push((object) [
-                    'title' => 'Thành viên mới đăng ký',
-                    'message' => 'Họ tên: '.$user->name.' (Email: '.$user->email.')',
+                    'title' => __('admin.notifications_page.user_title'),
+                    'message' => __('admin.notifications_page.user_message', ['name' => $user->name, 'email' => $user->email]),
                     'time' => $user->created_at,
                     'icon' => 'solar:shield-user-line-duotone',
                     'bg_color' => 'bg-success-subtle text-success',

@@ -33,12 +33,12 @@
                     <div data-tour="shipping-partner-form.phone" class="col-md-6 mb-3">
                         <label class="form-label fw-semibold text-dark" for="phone">{{ __('admin.shipping_partners.phone') }}</label>
                         <input type="text" class="form-control text-dark" id="phone" name="phone" 
-                            value="{{ old('phone', $partner->phone) }}" placeholder="Số điện thoại tài xế hoặc hotline...">
+                            value="{{ old('phone', $partner->phone) }}" placeholder="{{ __('admin.shipping_partners.phone_placeholder') }}">
                     </div>
                     <div data-tour="shipping-partner-form.note" class="col-md-6 mb-3">
                         <label class="form-label fw-semibold text-dark" for="account_name">{{ __('admin.shipping_partners.description') }}</label>
                         <input type="text" class="form-control text-dark" id="account_name" name="account_name" 
-                            value="{{ old('account_name', $partner->account_name) }}" placeholder="Ghi chú thêm thông tin tài khoản hoặc khu vực...">
+                            value="{{ old('account_name', $partner->account_name) }}" placeholder="{{ __('admin.shipping_partners.account_note_placeholder') }}">
                     </div>
                 </div>
 

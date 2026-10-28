@@ -47,6 +47,7 @@ use App\Services\ShippingService;
 use App\Services\VNPAYService;
 use App\Support\ApiResponse;
 use App\Support\FeatureGate;
+use App\Support\LocalizedSiteSettings;
 use App\Support\NotificationHelper;
 use App\Support\SearchTerm;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -103,9 +104,23 @@ class PublicController extends Controller
                 'theme',
                 'seo',
                 'social_links',
+                LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS,
             ])
             ->pluck('setting_value', 'setting_key')
             ->all();
+
+        // In the request's language (meta.locale), falling back to the default language.
+        $shopNames = $settings[LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS] ?? null;
+        unset($settings[LocalizedSiteSettings::SHOP_NAME_TRANSLATIONS]);
+        if (is_string($settings['shop_name'] ?? null)) {
+            $settings['shop_name'] = LocalizedSiteSettings::shopName($settings['shop_name'], $shopNames, app()->getLocale());
+        }
+        if (array_key_exists('seo', $settings)) {
+            $settings['seo'] = LocalizedSiteSettings::seo($settings['seo'], app()->getLocale());
+        }
+        if (array_key_exists('contact', $settings)) {
+            $settings['contact'] = LocalizedSiteSettings::contact($settings['contact'], app()->getLocale());
+        }
 
         $settings['multilingual'] = $this->multilingual->publicConfig();
         $featureStates = FeatureSetting::query()

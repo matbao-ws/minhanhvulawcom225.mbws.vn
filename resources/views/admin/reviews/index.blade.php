@@ -171,7 +171,7 @@
             <div class="modal-content">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-semibold text-dark" id="editReviewModalLabel">{{ __('admin.reviews.edit') }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('catalog.actions.close') }}"></button>
                 </div>
                 <form id="editReviewForm" method="POST">
                     @csrf
@@ -282,7 +282,7 @@
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        let errMsg = 'Không thể kết nối đến máy chủ.';
+                        let errMsg = @json(__('admin.failed_to_connect'));
                         if (error.errors) {
                             errMsg = Object.values(error.errors).flat().join('\n');
                         } else if (error.message) {
@@ -338,7 +338,7 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: "{{ __('admin.settings.error') }}",
-                                text: data.message || 'Có lỗi xảy ra.'
+                                text: data.message || @json(__('admin.reviews.error_occurred'))
                             });
                         }
                     })

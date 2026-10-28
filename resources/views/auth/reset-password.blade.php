@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="{{ $siteBranding['favicon_url'] }}">
+    <link rel="icon" href="{{ $siteBranding['admin_favicon_url'] }}">
     <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/styles.css') }}">
     <link rel="stylesheet" href="{{ \App\Support\AssetVersion::url('admin-assets/css/core-controls.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.css') }}">
@@ -25,7 +25,7 @@
 </head>
 <body>
 <div class="preloader">
-    <img src="{{ $siteBranding['favicon_url'] }}" alt="{{ $siteBranding['name'] }}" class="lds-ripple img-fluid">
+        <img src="{{ $siteBranding['admin_favicon_url'] }}" alt="MatBaoWS" class="lds-ripple img-fluid">
 </div>
 
 <div id="main-wrapper">

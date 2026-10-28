@@ -27,7 +27,10 @@ class PackageLimitExceeded extends RuntimeException
         public readonly string $metric,
         public readonly int $limit,
     ) {
-        parent::__construct(__('admin.package.limit_exceeded.'.$metric, ['limit' => number_format($limit)]));
+        // A limit of 0 only comes from a website with no package linked yet.
+        parent::__construct($limit === 0
+            ? __('admin.package.limit_exceeded.no_package')
+            : __('admin.package.limit_exceeded.'.$metric, ['limit' => number_format($limit)]));
     }
 
     public function render(Request $request): JsonResponse|RedirectResponse

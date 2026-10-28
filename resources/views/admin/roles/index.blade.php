@@ -17,7 +17,7 @@
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('admin.header.close') }}"></button>
         </div>
     @endif
 
@@ -64,7 +64,7 @@
                                         <div class="d-flex flex-wrap gap-1">
                                             @foreach($held as $module => $parts)
                                                 <span class="badge bg-primary-subtle text-primary fw-semibold fs-2">
-                                                    {{ $modules[$module]['label'] ?? $module }}:
+                                                    {{ Lang::has('admin.roles.modules.'.$module) ? __('admin.roles.modules.'.$module) : ($modules[$module]['label'] ?? $module) }}:
                                                     {{ collect($parts)->map(fn (array $p): string => $modules[$module]['action_labels'][$p[1]] ?? __('admin.roles.actions.'.$p[1]))->implode(', ') }}
                                                 </span>
                                             @endforeach

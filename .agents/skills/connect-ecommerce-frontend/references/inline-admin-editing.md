@@ -160,15 +160,15 @@ is wider; they create misleading empty gutters and do not represent the current 
 
 ### Keep the text toolbar content-only
 
-Do not expose controls that create new content boxes unless the project explicitly requires
-repeatable content. The default editable text/image component must not be appendable, and the
-toolbar must not render a floating green plus button. Structural creation belongs to an explicit
-domain/list workflow, not ordinary text editing.
+The default editable text/image component is not appendable, and the toolbar must not render a
+floating green plus button. The one creation the core toolbar offers is "Nhân bản" in its "…" menu:
+a card marked with `<x-client::list-item>` is copied whole, beside its source; a lone text region
+gets a sibling copy carrying its own tag and classes (`{key}.extra`). Nothing else is copied, so a
+theme gets card duplication only by wrapping its repeated cards in `list-item`.
 
-Do not put a permanent-delete/trash action in the text-formatting toolbar. An authored region may
-be hidden and restored; it is part of the theme contract and is not deletable. If a separately
-approved repeatable-list UI can delete an added item, keep that operation on the list item itself,
-outside the text toolbar.
+An authored region may be hidden and restored; it is part of the theme contract and is never
+deleted. "Xoá" in the "…" menu exists only for a `list-item` card or a copy an editor made, and
+removes that item from its list (`site_lists`) with its content.
 
 Undo/redo must cover both typing and toolbar mutations. Do not rely solely on deprecated browser
 `execCommand('undo'/'redo')`: keep editor-owned, per-region before-change snapshots, clear the redo
@@ -229,7 +229,10 @@ endpoint merely to make the UI appear editable.
 - Image URLs in saved page content are relative, not pinned to the current host.
 - Jumping to content or opening a row tool keeps the outline open; only its explicit minimize/close
   control hides it.
-- The ordinary text toolbar has no add-content plus or permanent-delete trash control.
+- The ordinary text toolbar has no floating add-content plus. Its "…" menu offers Nhân bản for a
+  lone region or a `list-item` card, and Xoá only for cards and copies; an authored region is
+  hidden/restored, never deleted.
+- The full toolkit smoke test is `theme-cut-acceptance.md` §5; run it after every cut.
 - Typing, formatting and changing `p`/`h1`–`h6` can be undone and redone before save; saving and
   reloading preserve the chosen semantic tag.
 - Heading levels are visibly distinct even under a utility-class theme, and Cancel restores the

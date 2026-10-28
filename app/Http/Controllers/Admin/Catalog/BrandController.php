@@ -77,7 +77,7 @@ class BrandController extends Controller
     public function destroy(string $locale, Brand $brand)
     {
         if ($brand->products()->exists()) {
-            return back()->with('error', 'Không thể xóa thương hiệu đang được gán cho sản phẩm.');
+            return back()->with('error', __('catalog.brands.delete_in_use'));
         }
 
         $this->brands->delete($brand);
@@ -95,7 +95,7 @@ class BrandController extends Controller
         if ($validated['action'] === 'delete') {
             $usedCount = Brand::query()->whereIn('id', $ids)->has('products')->count();
             if ($usedCount > 0) {
-                return back()->with('error', "Không thể xóa {$usedCount} thương hiệu đang được gán cho sản phẩm.");
+                return back()->with('error', __('catalog.brands.bulk_delete_in_use', ['count' => $usedCount]));
             }
 
             DB::transaction(function () use ($ids): void {
@@ -103,25 +103,25 @@ class BrandController extends Controller
                     ->each(fn (Brand $brand) => $this->brands->delete($brand));
             });
 
-            ActivityLogger::log('bulk_deleted', null, 'Xóa hàng loạt thương hiệu', [
+            ActivityLogger::log('bulk_deleted', null, __('catalog.brands.log_bulk_deleted'), [
                 'model' => Brand::class,
                 'ids' => $ids,
                 'count' => count($ids),
             ]);
 
-            return back()->with('success', 'Đã xóa '.count($ids).' thương hiệu.');
+            return back()->with('success', __('catalog.brands.bulk_deleted', ['count' => count($ids)]));
         }
 
         $isActive = $validated['action'] === 'activate';
         $updated = Brand::query()->whereIn('id', $ids)->update(['is_active' => $isActive]);
-        ActivityLogger::log('bulk_status_changed', null, 'Cập nhật trạng thái hàng loạt thương hiệu', [
+        ActivityLogger::log('bulk_status_changed', null, __('catalog.brands.log_bulk_status'), [
             'model' => Brand::class,
             'ids' => $ids,
             'count' => $updated,
             'is_active' => $isActive,
         ]);
 
-        return back()->with('success', 'Đã '.($isActive ? 'kích hoạt' : 'tạm ẩn').' '.$updated.' thương hiệu.');
+        return back()->with('success', __($isActive ? 'catalog.brands.bulk_activated' : 'catalog.brands.bulk_deactivated', ['count' => $updated]));
     }
 
     public function quickUpdate(BrandRequest $request, string $locale, Brand $brand)

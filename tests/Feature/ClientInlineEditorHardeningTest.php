@@ -101,7 +101,7 @@ class ClientInlineEditorHardeningTest extends TestCase
 
         // innerHTML of a text region carries &amp;/&gt;, which the server stores
         // verbatim and Blade escapes again on the next render.
-        $this->assertStringContainsString("(type === 'text' ? element.textContent : cleanEditedHtml(element))", $html);
+        $this->assertStringContainsString("return type === 'text' ? element.textContent : cleanEditedHtml(element);", $html);
         $this->assertStringContainsString('element.textContent = payload.data.value', $html);
         // Chrome's style-preserving <span>s survive the sanitizer as empty spans; an
         // un-bold must become a class or it reverts on reload.
@@ -264,6 +264,49 @@ class ClientInlineEditorHardeningTest extends TestCase
         // Cancel puts back exactly what the theme printed.
         $this->assertStringContainsString('snapshot.srcset', $html);
         $this->assertStringContainsString('snapshot.sources', $html);
+    }
+
+    /** "Ẩn vùng" left an empty dashed box on the page, before Lưu and after it. */
+    public function test_a_hidden_region_leaves_the_page_at_once_and_stays_gone_after_saving(): void
+    {
+        $html = $this->editorHtml();
+
+        // After Lưu the bar marks the region client-block-empty; that class must hide it while editing.
+        $this->assertMatchesRegularExpression('/body\.client-edit-active \.client-block-empty\s*\{\s*display: none !important;/', $html);
+        // Before Lưu: the clear action hides it the same way instead of only emptying it.
+        $clear = substr($html, (int) strpos($html, "if (action === 'clear')"), 900);
+        $this->assertStringContainsString("region.classList.add('client-block-empty')", $clear);
+    }
+
+    /** A reload ended edit mode after every copy. */
+    public function test_duplicating_puts_the_copy_on_the_page_without_a_reload(): void
+    {
+        $html = $this->editorHtml();
+
+        foreach (['async function duplicateRegion()', "if (action === 'duplicate') {"] as $start) {
+            $body = substr($html, (int) strpos($html, $start), 2200);
+            $this->assertStringContainsString('insertCopy(', $body, $start);
+            $this->assertStringNotContainsString('location.reload', $body, $start);
+        }
+    }
+
+    /** A copy of a span in a heading ran on after the original on the same line. */
+    public function test_a_copy_of_an_inline_region_starts_its_own_line(): void
+    {
+        $html = $this->editorHtml();
+
+        $this->assertStringContainsString('.client-copy-line{display:block!important}', $html);
+        $this->assertStringContainsString("copy.classList.add('client-copy-line')", $html);
+    }
+
+    /** A theme's `<strong class="text-slate-800">` kept its own colour inside a coloured selection. */
+    public function test_a_colour_reaches_bold_words_that_carry_the_theme_colour(): void
+    {
+        $html = $this->editorHtml();
+        $apply = substr($html, (int) strpos($html, 'function applyColor(value)'), 1200);
+
+        $this->assertStringContainsString('function enforceColor(region, value)', $html);
+        $this->assertStringContainsString('if (value) enforceColor(active, value);', $apply);
     }
 
     public function test_an_admin_without_media_permission_gets_no_background_handle(): void

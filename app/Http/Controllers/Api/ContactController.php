@@ -67,7 +67,7 @@ class ContactController extends Controller
 
         try {
             // The shop owner's address set in the admin (Cài đặt thông báo), else MAIL_SELLER.
-            Mail::to(app(MailSettings::class)->ownerEmail())->send(new ContactInquiryMail($inquiry));
+            Mail::to(app(MailSettings::class)->ownerEmails())->send(new ContactInquiryMail($inquiry));
         } catch (Exception $e) {
             Log::error('Contact form email failed: '.$e->getMessage());
 

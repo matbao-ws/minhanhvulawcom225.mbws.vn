@@ -61,6 +61,9 @@ class CoreManifest
         // is drift and blocks the next update, so a glob would turn any note a developer drops
         // at the root into a stuck site. Project notes belong outside these paths.
         '.agents/skills/**',
+        // The read-only reviewer every theme cut must pass (Claude Code subagent). One file, not
+        // `.claude/**`: a site's own agents and settings live beside it.
+        '.claude/agents/theme-cut-reviewer.md',
         'AGENTS.md',
         'AI_BUILD_PROMPT.md',
         'CLAUDE.md',
