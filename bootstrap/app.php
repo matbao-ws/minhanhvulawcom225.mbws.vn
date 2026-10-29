@@ -82,8 +82,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     }
                 });
 
-            // After the storefront: a theme's home page owns /, otherwise it opens the admin.
-            Route::redirect('/', '/admin');
+            // After the storefront: a theme's home page owns /, otherwise it opens the admin. Only
+            // when nothing claimed / yet: a route registered later replaces the earlier one, and
+            // this redirect used to replace every theme's home with the admin login.
+            if (! array_key_exists('/', Route::getRoutes()->get('GET'))) {
+                Route::redirect('/', '/admin');
+            }
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
