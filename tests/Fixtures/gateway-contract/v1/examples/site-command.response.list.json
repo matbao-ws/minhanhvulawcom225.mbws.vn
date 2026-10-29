@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "superadmins": [
+    { "id": 1, "name": "Chủ shop", "email": "owner@shop.example", "active": true, "role": "Superadmin", "last_login_at": "2026-10-28T09:12:44+07:00" },
+    { "id": 7, "name": "Kỹ thuật MatBao", "email": "support@shop.example", "active": false, "role": "Superadmin", "last_login_at": null }
+  ]
+}

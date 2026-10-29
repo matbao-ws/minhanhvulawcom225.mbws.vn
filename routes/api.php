@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AiWebhookController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\GatewayCommandController;
 use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\PublicAuthController;
 use App\Http\Controllers\Api\PublicController;
@@ -92,6 +93,9 @@ Route::prefix('admin')->group(function () {
 
 // MatBao AI gateway: a signed signal that a job finished (AiWebhookController).
 Route::post('/ai/webhook', AiWebhookController::class)->middleware('throttle:webhook');
+
+// MatBao console: signed commands such as listing superadmins and resetting a password (GatewayCommandController).
+Route::post('/gateway/command', GatewayCommandController::class)->middleware('throttle:webhook');
 
 Route::post('/webhooks/ghtk', [WebhookController::class, 'handleGHTK'])->middleware('throttle:webhook');
 Route::post('/webhooks/ghn', [WebhookController::class, 'handleGHN'])->middleware('throttle:webhook');

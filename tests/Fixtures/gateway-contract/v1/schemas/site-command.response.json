@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/site-command.response.json",
+  "title": "The website's answer to a console command",
+  "type": "object",
+  "required": ["ok"],
+  "oneOf": [
+    {
+      "required": ["ok", "superadmins"],
+      "properties": {
+        "ok": { "const": true },
+        "superadmins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "email", "active", "role", "last_login_at"],
+            "properties": {
+              "id": { "type": "integer", "minimum": 1 },
+              "name": { "type": "string" },
+              "email": { "type": "string" },
+              "active": { "type": "boolean" },
+              "role": { "type": "string" },
+              "last_login_at": { "type": ["string", "null"] }
+            },
+            "not": { "anyOf": [{ "required": ["password"] }, { "required": ["password_hash"] }] }
+          }
+        }
+      }
+    },
+    {
+      "required": ["ok", "id"],
+      "properties": { "ok": { "const": true }, "id": { "type": "integer", "minimum": 1 } }
+    },
+    {
+      "required": ["ok", "error"],
+      "properties": {
+        "ok": { "const": false },
+        "error": { "enum": ["bad_signature", "invalid_input", "replayed", "unknown_action", "not_superadmin"] }
+      }
+    }
+  ]
+}
