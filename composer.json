@@ -57,7 +57,7 @@
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",
-            "@php .claude/hooks/core-guard.php install"
+            "@php -r \"is_file('.claude/hooks/core-guard.php') && passthru(escapeshellarg(PHP_BINARY).' .claude/hooks/core-guard.php install');\""
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

@@ -168,7 +168,21 @@ class CoreGuardTest extends TestCase
         $this->assertStringContainsString('core-guard.php" claude', $hook['hooks'][0]['command']);
 
         $this->assertStringContainsString('core-guard.php" pre-commit', File::get(base_path('.githooks/pre-commit')));
-        $this->assertContains('@php .claude/hooks/core-guard.php install', json_decode(File::get(base_path('composer.json')), true)['scripts']['post-autoload-dump']);
+        $script = collect(json_decode(File::get(base_path('composer.json')), true)['scripts']['post-autoload-dump'])
+            ->first(fn (string $line) => str_contains($line, 'core-guard.php install'));
+        $this->assertNotNull($script, 'composer turns the git hook on');
+
+        // What composer runs. Where the guard is absent (a Docker image built without .claude/),
+        // it must not fail the build; in a customer project it turns the hook on.
+        $run = fn (string $dir) => tap(Process::fromShellCommandline(PHP_BINARY.' '.substr($script, strlen('@php ')), $dir))->run();
+        $bare = sys_get_temp_dir().'/core-guard-bare-'.uniqid();
+        File::ensureDirectoryExists($bare);
+        $this->assertSame(0, $run($bare)->getExitCode());
+        File::deleteDirectory($bare);
+
+        $this->git('remote', 'add', 'core', 'https://github.com/M-t-Bao-WS/matbaows-core-admin.git');
+        $this->assertSame(0, $run($this->project)->getExitCode());
+        $this->assertSame('.githooks', trim($this->git('config', '--local', '--get', 'core.hooksPath')->getOutput()));
 
         $manifest = new CoreManifest(base_path());
         foreach (['.claude/hooks/core-guard.php', '.claude/settings.json', '.githooks/pre-commit'] as $file) {
