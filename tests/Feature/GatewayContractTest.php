@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AiSuggestion;
 use App\Models\FeatureSetting;
 use App\Models\Product;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AiGateway\GatewayClient;
@@ -78,6 +79,25 @@ class GatewayContractTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_the_update_check_carries_the_shops_own_logo_only(): void
+    {
+        Http::fake([self::GATEWAY.'/v1/core/update*' => Http::response($this->example('core-update.none'))]);
+        $service = $this->updateService(new ReleaseDownloader);
+
+        $service->offer();
+        ProjectSetting::query()->create(['setting_key' => 'logo_url', 'setting_value' => 'https://res.cloudinary.com/shop/logo.png']);
+        $service->offer();
+
+        $queries = Http::recorded()->map(function (array $pair) {
+            parse_str((string) parse_url($pair[0]->url(), PHP_URL_QUERY), $query);
+            $this->assertValid('core-update.query.json', (object) $query, 'GET v1/core/update query');
+
+            return $query;
+        });
+        $this->assertArrayNotHasKey('logo', $queries[0], 'the default MatBao logo is not the shop\'s');
+        $this->assertSame('https://res.cloudinary.com/shop/logo.png', $queries[1]['logo']);
     }
 
     public function test_a_failed_update_reports_what_the_contract_expects(): void

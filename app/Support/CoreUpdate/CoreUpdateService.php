@@ -4,6 +4,7 @@ namespace App\Support\CoreUpdate;
 
 use App\Services\AiGateway\GatewayClient;
 use App\Services\AiGateway\GatewayUnavailable;
+use App\Services\SiteBranding;
 use App\Support\CoreManifest;
 use Illuminate\Support\Facades\File;
 use Throwable;
@@ -40,7 +41,9 @@ class CoreUpdateService
      */
     public function offer(): ?array
     {
-        $update = $this->gateway->get('v1/core/update', ['version' => $this->manifest->version(), 'php' => PHP_VERSION])['update'] ?? null;
+        // The shop's logo rides along so the console can show it next to the website.
+        $query = array_filter(['version' => $this->manifest->version(), 'php' => PHP_VERSION, 'logo' => app(SiteBranding::class)->ownLogoUrl()]);
+        $update = $this->gateway->get('v1/core/update', $query)['update'] ?? null;
         $this->write('available.json', ['checked_at' => now()->toIso8601String(), 'for_version' => $this->manifest->version(), 'update' => $update]);
 
         return is_array($update) ? $update : null;
