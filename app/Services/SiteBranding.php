@@ -54,6 +54,23 @@ class SiteBranding
         ];
     }
 
+    /**
+     * The shop's own logo as an absolute https URL, for the MatBao console; null while the shop
+     * still shows the default logo or the site is not served over https.
+     */
+    public function ownLogoUrl(): ?string
+    {
+        try {
+            $value = $this->textValue(ProjectSetting::query()->where('setting_key', 'logo_url')->value('setting_value'));
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $url = MediaUrl::resolve($value);
+
+        return $url !== null && str_starts_with($url, 'https://') && strlen($url) <= 500 ? $url : null;
+    }
+
     private function textValue(mixed $value): ?string
     {
         if (! is_string($value)) {

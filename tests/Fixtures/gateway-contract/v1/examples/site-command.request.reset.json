@@ -1,0 +1,4 @@
+{
+  "headers": { "X-MB-Timestamp": "1761715200", "X-MB-Signature": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "body": { "action": "superadmins.reset_password", "user_id": 1, "password": "Gw!7xQ2mPz9#Lk4vRt8e", "nonce": "Hn5rT1xKq7Wm3Zp9Lb2Vc8Ys4Df6Gj0u" }
+}

@@ -194,6 +194,12 @@ app(\App\Support\FeatureGate::class)->require('voucher');
   giữ nguyên — upsert từng đưa tên shop, logo, liên hệ, SEO về mặc định mỗi lần deploy có seed.
 - Khi vô hiệu hóa user hoặc thay đổi quyền nhạy cảm, xem xét thu hồi token/session qua
   `UserAccessService`.
+- Console MatBao (gateway) đọc danh sách superadmin và đặt lại mật khẩu superadmin qua
+  `POST /api/gateway/command` (`GatewayCommandController` → `App\Services\SuperadminAccounts`). Ký như
+  webhook AI (`App\Services\AiGateway\GatewaySignature`, secret `MATBAO_AI_WEBHOOK_SECRET`), kèm
+  `nonce` dùng một lần. Chỉ chạm tài khoản có role `is_superadmin`; danh sách không bao giờ trả dữ liệu
+  mật khẩu; đặt lại thì thu hồi mọi session/token qua `UserAccessService` và ghi `ActivityLogger`.
+  Hợp đồng nằm trong `tests/Fixtures/gateway-contract` (`site-command.*`).
 
 Mã quyền là `<module>.<action>` (`products.view`, `orders.update`, `roles.delete`), khai báo **duy
 nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là hình chiếu của registry qua

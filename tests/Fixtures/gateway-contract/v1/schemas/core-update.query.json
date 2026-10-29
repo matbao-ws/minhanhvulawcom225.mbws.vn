@@ -6,7 +6,8 @@
   "required": ["version"],
   "properties": {
     "version": { "type": "string", "maxLength": 50, "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$" },
-    "php": { "type": ["string", "null"], "maxLength": 20, "pattern": "^\\d+\\.\\d+(\\.\\d+)?" }
+    "php": { "type": ["string", "null"], "maxLength": 20, "pattern": "^\\d+\\.\\d+(\\.\\d+)?" },
+    "logo": { "type": "string", "maxLength": 500, "pattern": "^https://", "description": "the shop's own logo, absolute; absent while the shop keeps the default logo" }
   },
   "additionalProperties": false
 }

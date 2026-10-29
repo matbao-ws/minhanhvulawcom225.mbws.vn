@@ -13,7 +13,13 @@
     "current_meta_title": { "type": ["string", "null"], "maxLength": 300 },
     "current_meta_description": { "type": ["string", "null"], "maxLength": 1000 },
     "site_name": { "type": ["string", "null"], "maxLength": 120 },
-    "focus_keyword": { "type": ["string", "null"], "maxLength": 120 }
+    "focus_keyword": { "type": ["string", "null"], "maxLength": 120 },
+    "search_queries": {
+      "description": "Real Google searches that show this page, most seen first (Search Console).",
+      "type": ["array", "null"],
+      "maxItems": 10,
+      "items": { "type": ["string", "null"], "maxLength": 300 }
+    }
   },
   "additionalProperties": false
 }

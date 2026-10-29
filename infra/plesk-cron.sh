@@ -27,6 +27,7 @@
 #   JOBS=4                   websites run in parallel
 #   LOAD_MAX=                skip the minute above this 1-minute load average; empty = CPU count x 2
 #   LOG=/var/log/matbaows-cron.log   failures and skipped minutes only
+#   MAX_DEPTH=6              how deep under VHOSTS to look for artisan
 set -u
 
 [ -r /etc/matbaows-cron.conf ] && . /etc/matbaows-cron.conf
@@ -52,11 +53,15 @@ pick_php() {
 }
 
 # Directories holding artisan and the core manifest. Plesk keeps a domain in <vhost>/httpdocs and
-# subdomains or extra sites in other folders of the same <vhost>.
+# subdomains or extra sites in other folders of the same <vhost>; our sites also sit deeper, e.g.
+# <vhost>/httpdocs/backend/public/artisan (depth 5). MAX_DEPTH 6 leaves one level to spare.
+# Heavy or foreign trees are pruned, not filtered: a filter still walks every vendor/ folder.
+MAX_DEPTH="${MAX_DEPTH:-6}"
 find_core_roots() {
-    find "$VHOSTS" -mindepth 2 -maxdepth 4 -name artisan -type f \
-        -not -path "$VHOSTS/system/*" -not -path "$VHOSTS/chroot/*" -not -path '*/.skel/*' \
-        -not -path '*/vendor/*' -not -path '*/node_modules/*' 2>/dev/null |
+    find "$VHOSTS" -maxdepth "$MAX_DEPTH" \
+        \( -path "$VHOSTS/system" -o -path "$VHOSTS/chroot" -o -name .skel -o -name vendor \
+           -o -name node_modules -o -name storage -o -name .git \) -prune \
+        -o -name artisan -type f -print 2>/dev/null |
     while read -r artisan; do
         root="${artisan%/artisan}"
         [ -f "$root/app/Support/CoreManifest.php" ] && echo "$root"
@@ -65,13 +70,18 @@ find_core_roots() {
 
 owner_of() { stat -c %U "$1/artisan" 2>/dev/null; }
 
+# A user that can run the website: not empty, not root, and an account that exists. stat prints
+# UNKNOWN for a uid with no account (a Plesk subscription removed or recreated); runuser then failed
+# every minute and filled the log.
+runnable_owner() { [ -n "$1" ] && [ "$1" != root ] && [ "$1" != UNKNOWN ] && id -u "$1" >/dev/null 2>&1; }
+
 # Empty when the website is included, otherwise why not.
 exclusion() {
     local root="$1" owner
     owner="$(owner_of "$root")"
     [ -f "$root/storage/app/core/installed.json" ] || { echo 'chưa có mốc core (installed.json): dự án cũ hoặc chưa deploy bằng deploy.py mới'; return; }
     [ -f "$root/storage/app/core/no-shared-cron" ] && { echo 'có file no-shared-cron'; return; }
-    [ -n "$owner" ] && [ "$owner" != root ] || { echo "chủ sở hữu '$owner'"; return; }
+    runnable_owner "$owner" || { echo "chủ sở hữu '$owner' không chạy được (root, trống, hoặc tài khoản không còn — uid $(stat -c %u "$root/artisan" 2>/dev/null))"; return; }
     if crontab -l -u "$owner" 2>/dev/null | grep -v '^\s*#' | grep -F "$root" | grep -q 'schedule:run'; then
         echo "đã có cron riêng của $owner"
         return
@@ -93,7 +103,7 @@ included_sites() {
 run_site() {
     local root="$1" php="$2" owner output code
     owner="$(owner_of "$root")"
-    [ -n "$owner" ] && [ "$owner" != root ] || return
+    runnable_owner "$owner" || return
     # This website's previous run still going (an update takes minutes): skip it this minute.
     exec 9>"$LOCK_DIR/$(echo "$root" | md5sum | cut -c1-16).lock"
     flock -n 9 || return
@@ -181,9 +191,10 @@ main() {
         exit 1
     fi
 
-    export -f run_site owner_of log
+    export -f run_site owner_of runnable_owner log
     export LOG LOCK_DIR
     included_sites | xargs -r -P "$JOBS" -I{} bash -c 'run_site "$1" "$2"' _ {} "$php"
 }
 
-main "$@"
+# Sourced (tests/python/test_plesk_cron.py): define the functions, run nothing.
+[ "${BASH_SOURCE[0]}" = "$0" ] && main "$@"

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AiSuggestion;
 use App\Models\FeatureSetting;
 use App\Models\Product;
+use App\Models\ProjectSetting;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AiGateway\GatewayClient;
@@ -78,6 +79,25 @@ class GatewayContractTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_the_update_check_carries_the_shops_own_logo_only(): void
+    {
+        Http::fake([self::GATEWAY.'/v1/core/update*' => Http::response($this->example('core-update.none'))]);
+        $service = $this->updateService(new ReleaseDownloader);
+
+        $service->offer();
+        ProjectSetting::query()->create(['setting_key' => 'logo_url', 'setting_value' => 'https://res.cloudinary.com/shop/logo.png']);
+        $service->offer();
+
+        $queries = Http::recorded()->map(function (array $pair) {
+            parse_str((string) parse_url($pair[0]->url(), PHP_URL_QUERY), $query);
+            $this->assertValid('core-update.query.json', (object) $query, 'GET v1/core/update query');
+
+            return $query;
+        });
+        $this->assertArrayNotHasKey('logo', $queries[0], 'the default MatBao logo is not the shop\'s');
+        $this->assertSame('https://res.cloudinary.com/shop/logo.png', $queries[1]['logo']);
     }
 
     public function test_a_failed_update_reports_what_the_contract_expects(): void
@@ -178,6 +198,31 @@ class GatewayContractTest extends TestCase
         $old = (string) (time() - 301);
         $this->webhook($body, $old, hash_hmac('sha256', $old.'.'.$body, $secret))->assertUnauthorized();
         $this->webhook($body.' ', $now, hash_hmac('sha256', $now.'.'.$body, $secret))->assertUnauthorized(); // body changed after signing
+    }
+
+    public function test_console_commands_are_accepted_as_the_gateway_sends_them_and_answered_per_contract(): void
+    {
+        $secret = 'contract-webhook-secret';
+        config(['ai_gateway.webhook_secret' => $secret]);
+        $role = Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_superadmin' => true, 'is_system' => true]);
+        User::factory()->create(['id' => 1, 'role_id' => $role->id]);
+
+        foreach (['list' => 'superadmins', 'reset' => 'id'] as $name => $field) {
+            $body = json_encode($this->example("site-command.request.{$name}")['body'], JSON_UNESCAPED_SLASHES);
+            $now = (string) time();
+
+            $response = $this->call('POST', '/api/gateway/command', server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_MB_TIMESTAMP' => $now,
+                'HTTP_X_MB_SIGNATURE' => hash_hmac('sha256', $now.'.'.$body, $secret),
+            ], content: $body)->assertOk();
+
+            $this->assertNotNull($response->json($field), "{$name} answers {$field}");
+            $this->assertValid('site-command.response.json', json_decode((string) $response->getContent()), "POST /api/gateway/command {$name}");
+        }
+
+        $refused = $this->call('POST', '/api/gateway/command', server: ['CONTENT_TYPE' => 'application/json'], content: '{}')->assertUnauthorized();
+        $this->assertValid('site-command.response.json', json_decode((string) $refused->getContent()), 'unsigned command');
     }
 
     public function test_the_copy_matches_its_checksums(): void

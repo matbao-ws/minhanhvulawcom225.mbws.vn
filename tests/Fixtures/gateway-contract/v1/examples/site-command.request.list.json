@@ -1,0 +1,4 @@
+{
+  "headers": { "X-MB-Timestamp": "1761715200", "X-MB-Signature": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "body": { "action": "superadmins.list", "nonce": "q8Zk2mWv7xR4tLp9sN3cB6hJ1dF5gY0a" }
+}
