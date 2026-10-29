@@ -366,6 +366,31 @@ class ProductUploadAndMediaTest extends TestCase
         ]);
     }
 
+    public function test_gallery_images_picked_from_the_media_library_are_accepted_as_stored_paths(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $category = Category::query()->create([
+            'name' => ['vi' => 'Điện thoại'],
+            'slug' => 'dien-thoai-gallery',
+            'is_active' => true,
+        ]);
+
+        // The library hands back portable "/storage/..." paths, never absolute URLs.
+        $this->post('/vi/admin/products', [
+            'name' => 'Gallery product',
+            'slug' => 'gallery-product',
+            'sku' => 'GALLERY-1',
+            'price' => 1200,
+            'category_id' => $category->id,
+            'gallery_images' => ['/storage/products/one.webp', 'https://cdn.example.test/two.jpg'],
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $product = Product::query()->where('sku', 'GALLERY-1')->firstOrFail();
+        $this->assertCount(2, $product->images()->get());
+    }
+
     public function test_can_save_product_as_draft_inactive(): void
     {
         $this->actingAs(User::factory()->create());
