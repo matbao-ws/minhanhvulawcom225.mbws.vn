@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use App\Services\AiGateway\GatewaySignature;
 use App\Services\SuperadminAccounts;
+use App\Support\CoreUpdate\CoreUpdateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -19,10 +21,13 @@ use Illuminate\Validation\Rules\Password;
  * - `superadmins.list`: the superadmin accounts, without any password data.
  * - `superadmins.reset_password`: a new password the console generated, for one superadmin; every
  *   session and token of that account is revoked.
+ * - `core.restore`: put hand-edited core files back from this website's own release (CoreRestorer).
+ *   Queued for `core:run-requested`, which reports the outcome; the website's admin has no button
+ *   for it on purpose.
  */
 class GatewayCommandController extends Controller
 {
-    public function __invoke(Request $request, SuperadminAccounts $accounts): JsonResponse
+    public function __invoke(Request $request, SuperadminAccounts $accounts, CoreUpdateService $updates): JsonResponse
     {
         if (! GatewaySignature::valid($request)) {
             return $this->error('bad_signature', 401);
@@ -39,8 +44,21 @@ class GatewayCommandController extends Controller
         return match ($request->json('action')) {
             'superadmins.list' => response()->json(['ok' => true, 'superadmins' => $accounts->list()]),
             'superadmins.reset_password' => $this->resetPassword($request, $accounts),
+            'core.restore' => $this->restoreCore($updates),
             default => $this->error('unknown_action', 422),
         };
+    }
+
+    private function restoreCore(CoreUpdateService $updates): JsonResponse
+    {
+        $queued = $updates->requestRestore();
+        if (! $queued['ok']) {
+            return $this->error($queued['error'], $queued['error'] === 'busy' ? 409 : 422);
+        }
+
+        ActivityLogger::log('core.restore_requested_by_gateway', null, "Console MatBao yêu cầu khôi phục {$queued['files']} file core về bản gốc.");
+
+        return response()->json(['ok' => true, 'queued' => true, 'files' => $queued['files']]);
     }
 
     private function resetPassword(Request $request, SuperadminAccounts $accounts): JsonResponse

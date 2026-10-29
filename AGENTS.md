@@ -19,6 +19,15 @@ thật nằm trong `AI_BUILD_PROMPT.md` và các skill.
 `.agents/skills/build-inline-storefront-editing/` là tài liệu nội bộ của tính năng đã có sẵn trong core.
 Không dùng nó để cắt theme, và không dựng hệ thống chỉnh sửa thứ hai.
 
+## Dự án khách không sửa file core
+
+Trong dự án khách (repo có remote `core`), file thuộc `CoreManifest::CORE` (app/, config/, routes của core,
+views admin/core…, docs, các file hướng dẫn này) **không được sửa, thêm hay xoá**. Git pre-commit
+(`.githooks/pre-commit`) từ chối commit có file core, và gateway MatBao phát hiện file sửa lén rồi khôi
+phục về bản gốc. Thay đổi riêng của website: giao diện vào `resources/views/client/**`,
+`public/client-assets/css/**`, `routes/theme.php`; tính năng vào `extensions/<id>/`. Không vượt hook
+(`--no-verify`, sửa hook). Cần đổi core thì báo trưởng nhóm. Chi tiết: `AI_BUILD_PROMPT.md` mục 7.
+
 ## Cắt theme và đánh dấu vùng sửa
 
 Làm theo `connect-ecommerce-frontend/SKILL.md`, **bắt đầu bằng `references/theme-cut-acceptance.md`**

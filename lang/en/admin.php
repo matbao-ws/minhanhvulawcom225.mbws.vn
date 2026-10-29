@@ -2244,6 +2244,7 @@ return [
         'progress' => [
             'title' => 'Updating to :version',
             'title_rollback' => 'Rolling back',
+            'title_restore' => 'Putting edited core files back (asked by MatBao support)',
             'hint' => 'You can reload or close this page: the update keeps running on the server and shows again when you come back.',
             'elapsed' => 'elapsed',
             'waiting' => 'Waiting for the server to start...',

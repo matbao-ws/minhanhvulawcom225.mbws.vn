@@ -1,0 +1,4 @@
+{
+  "headers": { "X-MB-Timestamp": "1761715200", "X-MB-Signature": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "body": { "action": "core.restore", "nonce": "Rk4tW9xQm2Zp7Lb3Vc8Ys1Df6Gj0uHn5" }
+}

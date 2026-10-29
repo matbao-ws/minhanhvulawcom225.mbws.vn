@@ -32,10 +32,21 @@
       "properties": { "ok": { "const": true }, "id": { "type": "integer", "minimum": 1 } }
     },
     {
+      "required": ["ok", "queued"],
+      "properties": {
+        "ok": { "const": true },
+        "queued": { "const": true },
+        "files": { "type": "integer", "minimum": 0, "description": "core files that differ now and will be put back" }
+      }
+    },
+    {
       "required": ["ok", "error"],
       "properties": {
         "ok": { "const": false },
-        "error": { "enum": ["bad_signature", "invalid_input", "replayed", "unknown_action", "not_superadmin"] }
+        "error": {
+          "enum": ["bad_signature", "invalid_input", "replayed", "unknown_action", "not_superadmin", "busy", "nothing_to_restore", "no_record"],
+          "description": "busy: an update or restore is running; nothing_to_restore: no core file differs; no_record: the website never recorded its installed release"
+        }
       }
     }
   ]

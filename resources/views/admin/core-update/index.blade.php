@@ -121,7 +121,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                 <div>
                     <h5 class="fw-bold mb-1" data-progress-title>
-                        {{ $progress['action'] === 'rollback' ? __('admin.core_update.progress.title_rollback') : __('admin.core_update.progress.title', ['version' => $progress['target'] ?? '']) }}
+                        {{ match ($progress['action']) { 'rollback' => __('admin.core_update.progress.title_rollback'), 'restore' => __('admin.core_update.progress.title_restore'), default => __('admin.core_update.progress.title', ['version' => $progress['target'] ?? '']) } }}
                     </h5>
                     <div class="small text-muted" data-progress-hint>{{ __('admin.core_update.progress.hint') }}</div>
                 </div>
