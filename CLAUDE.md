@@ -25,6 +25,8 @@ và đánh dấu vùng sửa dùng `connect-ecommerce-frontend`; không dựng h
 
 ## Vài điều dễ sai nhất
 
+- **Dự án khách không sửa file core** (`CoreManifest::CORE`): hook Claude Code và git pre-commit chặn,
+  gateway phát hiện file sửa lén. Thay đổi riêng vào theme hoặc `extensions/`; xem `AI_BUILD_PROMPT.md` mục 7.
 - Không multi-tenant. Không thêm React/Vue/Inertia/Livewire/Vite khi chưa được yêu cầu rõ.
 - **Không có page builder.** GrapesJS và `PageBuilderService` đã bị gỡ; sửa chữ dùng
   `contenteditable` thuần, không thư viện. Đừng dựng lại.

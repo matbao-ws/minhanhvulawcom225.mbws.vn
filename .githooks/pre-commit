@@ -1,0 +1,4 @@
+#!/bin/sh
+# Core files are not committed in a customer project (.claude/hooks/core-guard.php).
+command -v php >/dev/null 2>&1 || { echo "core-guard: php not found, core files are not checked" >&2; exit 0; }
+exec php "$(git rev-parse --show-toplevel)/.claude/hooks/core-guard.php" pre-commit

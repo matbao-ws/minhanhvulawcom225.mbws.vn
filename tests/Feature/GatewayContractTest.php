@@ -100,6 +100,44 @@ class GatewayContractTest extends TestCase
         $this->assertSame('https://res.cloudinary.com/shop/logo.png', $queries[1]['logo']);
     }
 
+    public function test_edited_core_files_and_the_restore_command_follow_the_contract(): void
+    {
+        Http::fake([self::GATEWAY.'/v1/core/update*' => Http::response($this->example('core-update.none'))]);
+        File::ensureDirectoryExists($this->site.'/app');
+        File::put($this->site.'/app/A.php', 'shipped');
+        File::put($this->site.'/app/B.php', 'shipped');
+        (new CoreManifest($this->site))->recordInstalled();
+        File::put($this->site.'/app/A.php', 'edited');
+        File::delete($this->site.'/app/B.php');
+        File::put($this->site.'/app/C.php', 'added');
+
+        $this->updateService(new ReleaseDownloader)->offer();
+
+        Http::assertSent(function (Request $request) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $this->assertSame('3', $query['drift']);
+            $this->assertValid('core-update.query.json', (object) $query, 'GET v1/core/update query with drift');
+
+            return true;
+        });
+
+        $this->assertValid('core-report.request.json', (object) ['event' => 'restored', 'version' => '1.4.0-beta.3', 'from' => '1.4.0-beta.3', 'to' => '1.4.0-beta.3', 'error' => 'backup: storage/app/core/drift-backups/20261029-101500'], 'restored report');
+        $this->assertValid('core-report.request.json', (object) ['event' => 'failed', 'version' => '1.4.0-beta.3', 'from' => '1.4.0-beta.3', 'step' => 'restore', 'error' => 'download: timeout'], 'failed restore report');
+
+        // This website (the test app) never recorded a release: the command is refused per contract.
+        $secret = 'contract-webhook-secret';
+        config(['ai_gateway.webhook_secret' => $secret]);
+        $body = json_encode($this->example('site-command.request.restore')['body'], JSON_UNESCAPED_SLASHES);
+        $now = (string) time();
+        $answer = $this->call('POST', '/api/gateway/command', server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_MB_TIMESTAMP' => $now,
+            'HTTP_X_MB_SIGNATURE' => hash_hmac('sha256', $now.'.'.$body, $secret),
+        ], content: $body);
+        $this->assertContains($answer->status(), [200, 409, 422]);
+        $this->assertValid('site-command.response.json', json_decode((string) $answer->getContent()), 'POST /api/gateway/command core.restore');
+    }
+
     public function test_a_failed_update_reports_what_the_contract_expects(): void
     {
         $reports = [];

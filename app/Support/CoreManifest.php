@@ -64,6 +64,12 @@ class CoreManifest
         // The read-only reviewer every theme cut must pass (Claude Code subagent). One file, not
         // `.claude/**`: a site's own agents and settings live beside it.
         '.claude/agents/theme-cut-reviewer.md',
+        // The guard that keeps people and agents from editing core in a customer project: the
+        // Claude Code hook and its settings, and the git pre-commit hook (composer points git at
+        // .githooks). A project's own Claude settings go in .claude/settings.local.json.
+        '.claude/hooks/core-guard.php',
+        '.claude/settings.json',
+        '.githooks/pre-commit',
         'AGENTS.md',
         'AI_BUILD_PROMPT.md',
         'CLAUDE.md',

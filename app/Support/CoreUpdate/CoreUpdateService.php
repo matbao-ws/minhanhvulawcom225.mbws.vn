@@ -27,6 +27,7 @@ class CoreUpdateService
         private readonly CoreUpdater $updater,
         private readonly ReleaseDownloader $downloader,
         private readonly CoreManifest $manifest,
+        private readonly ?CoreRestorer $restorer = null,
     ) {}
 
     public function enabled(): bool
@@ -41,12 +42,52 @@ class CoreUpdateService
      */
     public function offer(): ?array
     {
-        // The shop's logo rides along so the console can show it next to the website.
+        // The shop's logo and any hand-edited core files ride along, for the console.
         $query = array_filter(['version' => $this->manifest->version(), 'php' => PHP_VERSION, 'logo' => app(SiteBranding::class)->ownLogoUrl()]);
-        $update = $this->gateway->get('v1/core/update', $query)['update'] ?? null;
+        $update = $this->gateway->get('v1/core/update', $query + $this->driftQuery())['update'] ?? null;
         $this->write('available.json', ['checked_at' => now()->toIso8601String(), 'for_version' => $this->manifest->version(), 'update' => $update]);
 
         return is_array($update) ? $update : null;
+    }
+
+    /**
+     * Core files that differ from the installed release, as `drift` (how many) and `drift_files`
+     * ("m:path|d:path|a:path", the first ones that fit in 4000 characters); nothing when the
+     * website never recorded its release, so the console cannot tell.
+     *
+     * @return array{drift?: string, drift_files?: string}
+     */
+    public function driftQuery(): array
+    {
+        try {
+            $drift = $this->manifest->drift();
+        } catch (Throwable) {
+            return [];
+        }
+        if ($drift === null) {
+            return [];
+        }
+
+        $entries = [];
+        foreach (['m' => 'modified', 'd' => 'missing', 'a' => 'added'] as $type => $key) {
+            foreach ($drift[$key] as $path) {
+                if (! str_contains($path, '|')) {
+                    $entries[] = $type.':'.$path;
+                }
+            }
+        }
+
+        $files = '';
+        foreach (array_slice($entries, 0, 50) as $entry) {
+            if (strlen($files) + strlen($entry) + 1 > 4000) {
+                break;
+            }
+            $files .= ($files === '' ? '' : '|').$entry;
+        }
+
+        $count = count($drift['modified']) + count($drift['missing']) + count($drift['added']);
+
+        return array_filter(['drift' => (string) $count, 'drift_files' => $files], fn ($value) => $value !== '');
     }
 
     /** @return array{checked_at?: string, update?: ?array} the last answer, if it is still about this version */
@@ -66,6 +107,32 @@ class CoreUpdateService
     public function requested(): ?array
     {
         return $this->read('requested.json') ?: null;
+    }
+
+    /**
+     * Queue putting the edited core files back (the MatBao console asks; CoreRestorer does it on
+     * the next `core:run-requested`). Refused while anything else is queued or running.
+     *
+     * @return array{ok: true, files: int}|array{ok: false, error: 'busy'|'nothing_to_restore'|'no_record'}
+     */
+    public function requestRestore(): array
+    {
+        if ($this->requested() !== null || $this->read('running.json') !== [] || ($this->updater->state()['status'] ?? null) === 'running') {
+            return ['ok' => false, 'error' => 'busy'];
+        }
+
+        $drift = $this->manifest->drift();
+        if ($drift === null) {
+            return ['ok' => false, 'error' => 'no_record'];
+        }
+        $files = count($drift['modified']) + count($drift['missing']) + count($drift['added']);
+        if ($files === 0) {
+            return ['ok' => false, 'error' => 'nothing_to_restore'];
+        }
+
+        $this->request(['action' => 'restore', 'by' => 'gateway']);
+
+        return ['ok' => true, 'files' => $files];
     }
 
     /**
@@ -143,6 +210,10 @@ class CoreUpdateService
             return $result;
         }
 
+        if (($request['action'] ?? null) === 'restore') {
+            return $this->restore();
+        }
+
         // Ask again: the release may have been paused since the click.
         $from = $this->manifest->version();
         try {
@@ -196,6 +267,42 @@ class CoreUpdateService
             $report['ref'] = $ref;
         }
         $this->report($report);
+
+        return $result;
+    }
+
+    /**
+     * Download the release this website runs, put its edited core files back, report, and tell
+     * the gateway at once that nothing differs any more.
+     *
+     * @return array<string, mixed>
+     */
+    private function restore(): array
+    {
+        $version = $this->manifest->version();
+        $dir = $this->manifest->base().'/storage/app/core/downloads/restore-'.preg_replace('/[^0-9A-Za-z.-]/', '', $version);
+
+        try {
+            $lock = $this->manifest->base().'/composer.lock';
+            $this->downloader->download($this->packageUrl(rtrim((string) config('ai_gateway.url'), '/').'/v1/core/releases/'.rawurlencode($version)),
+                $dir, (string) config('ai_gateway.token'), is_file($lock) ? hash_file('sha256', $lock) : null);
+            $result = ($this->restorer ?? app(CoreRestorer::class))->restore($dir);
+        } catch (Throwable $e) {
+            $result = ['ok' => false, 'error' => 'download: '.$e->getMessage()];
+        } finally {
+            File::deleteDirectory($dir);
+        }
+
+        $this->report($result['ok']
+            ? ['event' => 'restored', 'from' => $version, 'to' => $version, 'error' => isset($result['backup']) ? 'backup: '.$result['backup'] : null]
+            // No `to`: the gateway pauses a release that keeps failing, and this is not its fault.
+            : ['event' => 'failed', 'from' => $version, 'step' => 'restore', 'error' => $result['error'] ?? null]);
+
+        try {
+            $this->offer();
+        } catch (GatewayUnavailable) {
+            // The hourly poll reports it.
+        }
 
         return $result;
     }
