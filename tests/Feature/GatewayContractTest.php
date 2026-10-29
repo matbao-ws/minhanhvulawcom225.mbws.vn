@@ -180,6 +180,31 @@ class GatewayContractTest extends TestCase
         $this->webhook($body.' ', $now, hash_hmac('sha256', $now.'.'.$body, $secret))->assertUnauthorized(); // body changed after signing
     }
 
+    public function test_console_commands_are_accepted_as_the_gateway_sends_them_and_answered_per_contract(): void
+    {
+        $secret = 'contract-webhook-secret';
+        config(['ai_gateway.webhook_secret' => $secret]);
+        $role = Role::query()->create(['name' => 'Superadmin', 'permissions' => ['*'], 'is_superadmin' => true, 'is_system' => true]);
+        User::factory()->create(['id' => 1, 'role_id' => $role->id]);
+
+        foreach (['list' => 'superadmins', 'reset' => 'id'] as $name => $field) {
+            $body = json_encode($this->example("site-command.request.{$name}")['body'], JSON_UNESCAPED_SLASHES);
+            $now = (string) time();
+
+            $response = $this->call('POST', '/api/gateway/command', server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_MB_TIMESTAMP' => $now,
+                'HTTP_X_MB_SIGNATURE' => hash_hmac('sha256', $now.'.'.$body, $secret),
+            ], content: $body)->assertOk();
+
+            $this->assertNotNull($response->json($field), "{$name} answers {$field}");
+            $this->assertValid('site-command.response.json', json_decode((string) $response->getContent()), "POST /api/gateway/command {$name}");
+        }
+
+        $refused = $this->call('POST', '/api/gateway/command', server: ['CONTENT_TYPE' => 'application/json'], content: '{}')->assertUnauthorized();
+        $this->assertValid('site-command.response.json', json_decode((string) $refused->getContent()), 'unsigned command');
+    }
+
     public function test_the_copy_matches_its_checksums(): void
     {
         $dir = base_path('tests/Fixtures/gateway-contract');

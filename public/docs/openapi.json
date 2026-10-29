@@ -1298,6 +1298,20 @@
         "responses": { "200": { "description": "Đã nhận" }, "401": { "description": "Chữ ký không hợp lệ" } }
       }
     },
+    "/gateway/command": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Lệnh từ console MatBao: liệt kê superadmin, đặt lại mật khẩu superadmin",
+        "description": "Ký HMAC trên timestamp + body như `/ai/webhook`, lệch tối đa 300 giây. Body có `nonce` dùng một lần. `action`: `superadmins.list` trả id, tên, email, trạng thái, vai trò, lần đăng nhập cuối (không có dữ liệu mật khẩu); `superadmins.reset_password` nhận `user_id` và `password` (≥12 ký tự, hoa, thường, số, ký hiệu), đặt mật khẩu và thu hồi mọi phiên, token của tài khoản đó.",
+        "responses": {
+          "200": { "description": "Đã thực hiện" },
+          "401": { "description": "Chữ ký không hợp lệ" },
+          "404": { "description": "Không phải superadmin" },
+          "409": { "description": "Nonce đã dùng" },
+          "422": { "description": "Dữ liệu hoặc action không hợp lệ" }
+        }
+      }
+    },
     "/webhooks/ghtk": {
       "post": {
         "tags": ["Webhooks"],

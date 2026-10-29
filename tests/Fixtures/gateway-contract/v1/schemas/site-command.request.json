@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gateway.matbaows/contracts/v1/site-command.request.json",
+  "title": "POST {website}/api/gateway/command: what the console asks a website to do",
+  "type": "object",
+  "required": ["headers", "body"],
+  "properties": {
+    "headers": {
+      "type": "object",
+      "required": ["X-MB-Timestamp", "X-MB-Signature"],
+      "properties": {
+        "X-MB-Timestamp": { "type": "string", "pattern": "^\\d{10}$" },
+        "X-MB-Signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "hex HMAC-SHA256 of timestamp + '.' + the raw body, keyed with the project's webhook secret (as webhook.request.json)"
+        }
+      }
+    },
+    "body": {
+      "type": "object",
+      "required": ["action", "nonce"],
+      "properties": {
+        "action": { "enum": ["superadmins.list", "superadmins.reset_password"] },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9]{32,64}$", "description": "used once; the website refuses it a second time" }
+      },
+      "oneOf": [
+        { "properties": { "action": { "const": "superadmins.list" } } },
+        {
+          "required": ["user_id", "password"],
+          "properties": {
+            "action": { "const": "superadmins.reset_password" },
+            "user_id": { "type": "integer", "minimum": 1 },
+            "password": { "type": "string", "minLength": 12, "maxLength": 255, "description": "upper and lower case letters, a digit and a symbol" }
+          }
+        }
+      ]
+    }
+  }
+}
