@@ -64,6 +64,16 @@ class FindCoreRootsTest(unittest.TestCase):
         self.assertEqual('sourced', result.stdout.strip())
         self.assertFalse(os.path.exists(os.path.join(self.vhosts, 'lock')))
 
+    def test_only_an_existing_non_root_account_runs_a_website(self):
+        # stat prints UNKNOWN for a uid with no account; runuser -u UNKNOWN failed every minute on s252.
+        def runnable(owner):
+            return subprocess.run(['bash', '-c', 'source "$1"; runnable_owner "$2"', '_', SCRIPT, owner]).returncode == 0
+
+        import getpass
+        self.assertTrue(runnable(getpass.getuser()) or getpass.getuser() == 'root')
+        for owner in ['', 'root', 'UNKNOWN', 'no-such-user-matbaows']:
+            self.assertFalse(runnable(owner), owner)
+
 
 if __name__ == '__main__':
     unittest.main()
