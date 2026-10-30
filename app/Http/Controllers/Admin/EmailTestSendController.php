@@ -42,7 +42,7 @@ class EmailTestSendController extends Controller
         ]);
         $to = MailSettings::splitEmails($data['to']);
         if ($to === [] || count($to) > 5) {
-            return back()->withInput()->withErrors(['to' => 'Nhập 1 đến 5 email hợp lệ, cách nhau bằng dấu phẩy.']);
+            return back()->withInput()->withErrors(['to' => __('admin.email_test_send.to_invalid')]);
         }
 
         $shop = app(EmailAppearance::class)->look()['shop'];
@@ -67,7 +67,7 @@ class EmailTestSendController extends Controller
     {
         if ($email === 'reset_password') {
             $message = (new QueuedResetPassword('thu-email'))->toMail($request->user());
-            Mail::send($message->view, $message->viewData, fn ($mail) => $mail->to($to)->subject('[THỬ] '.$message->subject));
+            Mail::send($message->view, $message->viewData, fn ($mail) => $mail->to($to)->subject(__('admin.email_test_send.subject_prefix').' '.$message->subject));
 
             return (string) $message->subject;
         }
@@ -79,7 +79,7 @@ class EmailTestSendController extends Controller
             default => new MailSettingsTestMail($shop, null, null, ['via' => app(MailSettings::class)->usesAdminSettings() ? 'own_smtp' : 'relay', 'to' => $to]),
         };
         $subject = (string) $mail->envelope()->subject;
-        $mail->withSymfonyMessage(fn ($message) => $message->subject('[THỬ] '.$subject));
+        $mail->withSymfonyMessage(fn ($message) => $message->subject(__('admin.email_test_send.subject_prefix').' '.$subject));
         Mail::to($to)->sendNow($mail);
 
         return $subject;
