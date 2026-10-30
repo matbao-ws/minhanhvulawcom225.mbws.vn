@@ -49,8 +49,7 @@ class EmailTestSendController extends Controller
         $results = [];
         foreach ($data['emails'] as $email) {
             try {
-                [$subject, $html] = $this->render($email, $to, $shop, $request);
-                Mail::html($html, fn ($message) => $message->to($to)->subject('[THỬ] '.$subject));
+                $subject = $this->deliver($email, $to, $shop, $request);
                 $results[] = [$email, true, $subject];
             } catch (Throwable $e) {
                 $results[] = [$email, false, class_basename($e).': '.mb_substr($e->getMessage(), 0, 300)];
@@ -60,36 +59,29 @@ class EmailTestSendController extends Controller
         return back()->withInput()->with('results', $results);
     }
 
-    /** @return array{0: string, 1: string} subject and HTML */
-    private function render(string $email, array $to, string $shop, Request $request): array
+    /**
+     * Sends the real mailable (not pre-rendered HTML), so the logo is embedded exactly as in a
+     * live mail. Returns the subject.
+     */
+    private function deliver(string $email, array $to, string $shop, Request $request): string
     {
-        if (str_starts_with($email, 'order_')) {
-            $mail = new OrderStatusMail(EmailPreviewSamples::order($email), $email);
+        if ($email === 'reset_password') {
+            $message = (new QueuedResetPassword('thu-email'))->toMail($request->user());
+            Mail::send($message->view, $message->viewData, fn ($mail) => $mail->to($to)->subject('[THỬ] '.$message->subject));
 
-            return [$mail->envelope()->subject, $mail->render()];
+            return (string) $message->subject;
         }
 
-        return match ($email) {
-            'owner_new_order' => (function () {
-                $mail = new OwnerNewOrderMail(EmailPreviewSamples::order('order_placed'));
-
-                return [$mail->envelope()->subject, $mail->render()];
-            })(),
-            'contact' => (function () {
-                $mail = new ContactInquiryMail(EmailPreviewSamples::contact());
-
-                return [$mail->envelope()->subject, $mail->render()];
-            })(),
-            'reset_password' => (function () use ($request) {
-                $message = (new QueuedResetPassword('thu-email'))->toMail($request->user());
-
-                return [(string) $message->subject, (string) $message->render()];
-            })(),
-            default => (function () use ($to, $shop) {
-                $mail = new MailSettingsTestMail($shop, null, null, ['via' => app(MailSettings::class)->usesAdminSettings() ? 'own_smtp' : 'relay', 'to' => $to]);
-
-                return [$mail->envelope()->subject, $mail->render()];
-            })(),
+        $mail = match (true) {
+            str_starts_with($email, 'order_') => new OrderStatusMail(EmailPreviewSamples::order($email), $email),
+            $email === 'owner_new_order' => new OwnerNewOrderMail(EmailPreviewSamples::order('order_placed')),
+            $email === 'contact' => new ContactInquiryMail(EmailPreviewSamples::contact()),
+            default => new MailSettingsTestMail($shop, null, null, ['via' => app(MailSettings::class)->usesAdminSettings() ? 'own_smtp' : 'relay', 'to' => $to]),
         };
+        $subject = (string) $mail->envelope()->subject;
+        $mail->withSymfonyMessage(fn ($message) => $message->subject('[THỬ] '.$subject));
+        Mail::to($to)->sendNow($mail);
+
+        return $subject;
     }
 }
