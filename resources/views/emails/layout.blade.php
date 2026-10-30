@@ -1,156 +1,105 @@
+{{--
+    The frame of every email the shop sends (App\Services\EmailAppearance::look()):
+    $look (layout, colours, logo, contact), $preheader (the inbox preview line), $footer (why the
+    reader got it). Tables and inline styles only, so Gmail, Outlook and phone apps agree; the
+    <style> block holds just the phone-width tweaks, which clients that drop it can live without.
+--}}
+@php
+    $font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+    $accent = $look['accent'];
+    $minimal = $look['layout'] === 'minimal';
+    $banner = $look['layout'] === 'banner';
+    $align = $look['logo_align'] === 'left' ? 'left' : 'center';
+
+    // A logo on this server's own disk, from a local or private address no inbox can reach, is
+    // attached instead (cid:). Public https logos (Cloudinary, the live site) stay links.
+    $logoUrl = $look['logo_url'];
+    if ($logoUrl !== null && isset($message) && str_starts_with($logoUrl, rtrim(url('/'), '/').'/') && ! str_starts_with($logoUrl, 'https://')) {
+        $logoPath = public_path(ltrim(substr($logoUrl, strlen(rtrim(url('/'), '/'))), '/'));
+        if (is_file($logoPath)) {
+            $logoUrl = $message->embed($logoPath);
+        }
+    }
+    $initials = mb_strtoupper(collect(preg_split('/\s+/u', trim($look['shop'])))->filter()->take(2)->map(fn ($w) => mb_substr($w, 0, 1))->implode('')) ?: 'S';
+    $socialLabels = ['facebook' => 'Facebook', 'zalo' => 'Zalo', 'instagram' => 'Instagram', 'tiktok' => 'TikTok', 'youtube' => 'YouTube'];
+@endphp
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', $siteBranding['name'])</title>
+    <meta name="x-apple-disable-message-reformatting">
+    <title>{{ $look['shop'] }}</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-            background-color: #f6f9fc;
-            margin: 0;
-            padding: 0;
-            -webkit-font-smoothing: antialiased;
+        body { margin: 0; padding: 0; }
+        a { color: {{ $accent }}; }
+        @media (max-width: 620px) {
+            .px { padding-left: 20px !important; padding-right: 20px !important; }
+            .stack td.col { display: block !important; width: 100% !important; padding: 0 0 16px !important; }
+            .h1 { font-size: 22px !important; }
         }
-        .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            border: 1px solid #eef2f6;
-        }
-        .header {
-            background: linear-gradient(135deg, #5d87ff, #39b3d7);
-            color: #ffffff;
-            padding: 32px;
-            text-align: center;
-        }
-        .header-logo {
-            display: block;
-            width: auto;
-            height: 42px;
-            max-width: 180px;
-            margin: 0 auto 14px;
-            object-fit: contain;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .header p {
-            margin: 8px 0 0;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 32px;
-            color: #475569;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-        .content p {
-            margin-top: 0;
-        }
-        .section-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1e293b;
-            margin-top: 24px;
-            margin-bottom: 12px;
-            border-left: 4px solid #5d87ff;
-            padding-left: 8px;
-        }
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .info-table td {
-            padding: 8px 0;
-            font-size: 14px;
-            vertical-align: top;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .info-table td.label {
-            color: #64748b;
-            width: 35%;
-            font-weight: 500;
-        }
-        .info-table td.value {
-            color: #1e293b;
-            font-weight: 600;
-        }
-        .message-box {
-            background-color: #f8fafc;
-            border-left: 4px solid #5d87ff;
-            padding: 15px;
-            border-radius: 0 4px 4px 0;
-            color: #334155;
-            white-space: pre-line;
-        }
-        .badge {
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 50px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .badge-success { background-color: #d1fae5; color: #065f46; }
-        .badge-warning { background-color: #fef3c7; color: #92400e; }
-        .badge-info { background-color: #dbeafe; color: #1e40af; }
-        .badge-danger { background-color: #fee2e2; color: #991b1b; }
-        .footer {
-            background-color: #f8fafc;
-            padding: 24px;
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-            border-top: 1px solid #eef2f6;
-            clear: both;
-        }
-        @yield('styles')
     </style>
 </head>
-@php
-    // The default fallback logo is a local public/ file, served from APP_URL.
-    // In local/dev environments APP_URL is typically unreachable from outside
-    // (e.g. http://localhost:8000), so a plain <img src> would show broken in
-    // a real inbox. Embed it as an inline (CID) attachment in that case. A
-    // real project logo (uploaded via Settings) is stored on Cloudinary and is
-    // already a public https URL, so it's left untouched.
-    $logoUrl = $siteBranding['logo_url'];
-    $appBaseUrl = rtrim(url('/'), '/');
-    if (isset($message) && str_starts_with($logoUrl, $appBaseUrl.'/')) {
-        $logoLocalPath = public_path(ltrim(substr($logoUrl, strlen($appBaseUrl)), '/'));
-        if (is_file($logoLocalPath)) {
-            $logoUrl = $message->embed($logoLocalPath);
-        }
-    }
-@endphp
-<body>
-    <div class="container">
-        <div class="header">
-            <img class="header-logo" src="{{ $logoUrl }}" alt="{{ $siteBranding['name'] }}">
-            <h1>{{ $siteBranding['name'] }}</h1>
-            @hasSection('header-subtitle')
-                <p>@yield('header-subtitle')</p>
-            @endif
-        </div>
-        <div class="content">
-            @yield('content')
-        </div>
-        <div class="footer">
-            <p>{{ $siteBranding['name'] }} &copy; {{ date('Y') }}</p>
-            @if(filled(data_get($siteBranding, 'contact.email')))
-                <p>Liên hệ hỗ trợ: {{ data_get($siteBranding, 'contact.email') }}</p>
-            @endif
-            <p>Email này được gửi tự động, vui lòng không phản hồi.</p>
-        </div>
-    </div>
+<body style="margin:0;padding:0;background:{{ $minimal ? '#ffffff' : '#f3f4f6' }}">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">{{ $preheader }}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{ $minimal ? '#ffffff' : '#f3f4f6' }}">
+    <tr>
+        <td align="center" style="padding:{{ $minimal ? '20px 12px' : '28px 12px' }}">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
+                {{-- Logo above the card (classic, minimal) --}}
+                @unless($banner)
+                    <tr>
+                        <td align="{{ $align }}" class="{{ $minimal ? 'px' : '' }}" style="padding:{{ $minimal ? '4px 32px 18px' : '4px 0 20px' }}{{ $minimal ? ';border-bottom:2px solid '.$accent : '' }}">
+                            @include('emails.partials.logo')
+                        </td>
+                    </tr>
+                @endunless
+
+                <tr>
+                    <td style="background:#ffffff;{{ $minimal ? '' : 'border-radius:14px;border:1px solid #e5e7eb;overflow:hidden' }}">
+                        {{-- Banner: the shop's cover image, or an accent band, with the logo under it --}}
+                        @if($banner)
+                            @if($look['banner_url'])
+                                <img src="{{ $look['banner_url'] }}" width="600" alt="" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:14px 14px 0 0">
+                            @else
+                                <div style="height:10px;background:{{ $accent }};border-radius:14px 14px 0 0;font-size:0;line-height:0">&nbsp;</div>
+                            @endif
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr><td align="{{ $align }}" class="px" style="padding:22px 32px 0">@include('emails.partials.logo')</td></tr>
+                            </table>
+                        @endif
+
+                        @yield('content')
+                    </td>
+                </tr>
+
+                {{-- Footer: signature, social links, the shop's contact details --}}
+                <tr>
+                    <td class="px" align="{{ $minimal ? 'left' : 'center' }}" style="padding:22px {{ $minimal ? '32px' : '28px' }} 8px;font:13px/1.6 {!! $font !!};color:#6b7280{{ $minimal ? ';border-top:1px solid #e5e7eb' : '' }}">
+                        @if($look['signature'] !== '')
+                            <div style="margin-bottom:12px;color:#374151;font-size:14px">{!! nl2br(e($look['signature'])) !!}</div>
+                        @endif
+                        <b style="color:#374151">{{ $look['shop'] }}</b>
+                        @if($look['address'])<br>{{ $look['address'] }}@endif
+                        @if($look['phone'] || $look['email'])
+                            <br>
+                            @if($look['phone']){{ __('emails.ui.hotline') }} <a href="tel:{{ preg_replace('/[^0-9+]/', '', $look['phone']) }}" style="color:#374151;text-decoration:none;font-weight:600">{{ $look['phone'] }}</a>@endif
+                            @if($look['phone'] && $look['email']) · @endif
+                            @if($look['email'])<a href="mailto:{{ $look['email'] }}" style="color:#374151;text-decoration:none">{{ $look['email'] }}</a>@endif
+                        @endif
+                        @if($look['socials'] !== [])
+                            <div style="margin-top:10px">
+                                @foreach($look['socials'] as $network => $url)
+                                    <a href="{{ $url }}" style="display:inline-block;margin:0 4px;padding:4px 10px;border-radius:999px;background:#ffffff;border:1px solid #e5e7eb;color:#374151;text-decoration:none;font-weight:600;font-size:12px">{{ $socialLabels[$network] ?? $network }}</a>
+                                @endforeach
+                            </div>
+                        @endif
+                        <div style="margin-top:12px;color:#9ca3af;font-size:12px">{{ $footer }}</div>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
 </html>

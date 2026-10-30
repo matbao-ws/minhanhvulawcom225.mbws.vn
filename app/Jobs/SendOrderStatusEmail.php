@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Mail\OrderEmailData;
 use App\Mail\OrderStatusMail;
 use App\Models\Order;
+use App\Services\EmailAppearance;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,7 +43,14 @@ class SendOrderStatusEmail implements ShouldQueue
             return;
         }
 
-        Mail::to($this->recipient)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order));
+        // Which of the customer emails this status is, and whether the shop sends it
+        // (Quản trị › Giao diện email). Decided when sending, from the order as it is now.
+        $email = OrderEmailData::emailFor($order);
+        if ($email === null || ! app(EmailAppearance::class)->enabled($email)) {
+            return;
+        }
+
+        Mail::to($this->recipient)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order, $email));
     }
 
     public function failed(Throwable $exception): void
