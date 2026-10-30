@@ -46,7 +46,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::get('/admin', fn () => redirect('/'.app(LanguageRegistry::class)->adminLocale(null).'/admin'));
+            Route::middleware('web')->get('/admin', fn (Request $request) => redirect('/'.app(LanguageRegistry::class)->adminEntryLocale(
+                $request->session()->get('admin_locale') ?? $request->user()?->preferred_locale
+            ).'/admin'));
 
             Route::middleware(['web', 'setLocale'])
                 ->prefix('{locale}')
