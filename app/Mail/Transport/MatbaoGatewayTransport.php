@@ -39,10 +39,12 @@ class MatbaoGatewayTransport extends AbstractTransport
             'subject' => (string) $email->getSubject(),
             'html' => $email->getHtmlBody() !== null ? (string) $email->getHtmlBody() : null,
             'text' => $email->getTextBody() !== null ? (string) $email->getTextBody() : null,
-            'attachments' => array_map(fn ($part) => [
+            // An inline part (the logo, <img src="cid:…">) keeps its content id, or it arrives as a file.
+            'attachments' => array_map(fn ($part) => array_filter([
                 'filename' => $part->getFilename() ?: 'attachment',
                 'content' => base64_encode($part->getBody()),
-            ], $email->getAttachments()),
+                'content_id' => $part->getDisposition() === 'inline' ? $part->getContentId() : null,
+            ], fn ($value) => $value !== null), $email->getAttachments()),
         ], fn ($value) => $value !== null && $value !== []);
 
         try {

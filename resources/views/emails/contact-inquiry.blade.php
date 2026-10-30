@@ -6,7 +6,7 @@
 @section('content')
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
-            <td class="px" style="padding:30px 32px 6px">
+            <td class="px" style="padding:30px 24px 6px">
                 <div style="font:600 12px/1.4 {!! $font !!};letter-spacing:.08em;text-transform:uppercase;color:{{ $look['accent'] }}">{{ $eyebrow }}</div>
                 <h1 class="h1" style="margin:8px 0 6px;font:600 25px/1.25 {!! $font !!};color:#111827">{{ $heading }}</h1>
                 <p style="margin:0;font:14px/1.6 {!! $font !!};color:#6b7280">{{ __('emails.ui.sent_at', ['time' => $sentAt]) }}</p>
@@ -14,7 +14,7 @@
         </tr>
         @if(filled($inquiry['message'] ?? null))
             <tr>
-                <td class="px" style="padding:20px 32px 0">
+                <td class="px" style="padding:20px 24px 0">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:3px solid {{ $look['accent'] }};background:#f9fafb;border-radius:0 10px 10px 0">
                         <tr><td style="padding:16px 18px;font:15px/1.65 {!! $font !!};color:#1f2937">{!! nl2br(e($inquiry['message'])) !!}</td></tr>
                     </table>
@@ -22,7 +22,7 @@
             </tr>
         @endif
         <tr>
-            <td class="px" style="padding:22px 32px 0">
+            <td class="px" style="padding:22px 24px 0">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font:14px/1.5 {!! $font !!}">
                     <tr>
                         <td width="34%" style="padding:9px 0;color:#6b7280;border-bottom:1px solid #f0f1f3">{{ __('emails.ui.name') }}</td>
@@ -50,7 +50,7 @@
             </td>
         </tr>
         <tr>
-            <td class="px" style="padding:24px 32px 30px">
+            <td class="px" style="padding:24px 24px 30px">
                 @if($tel)
                     @include('emails.partials.button', ['label' => __('emails.ui.call_back'), 'href' => $tel])
                 @endif
