@@ -3,9 +3,10 @@
 namespace App\Support;
 
 use App\Jobs\SendStoreOrderNotification;
-use App\Mail\OrderStatusMail;
+use App\Mail\OwnerNewOrderMail;
 use App\Models\Order;
 use App\Models\ProjectSetting;
+use App\Services\EmailAppearance;
 use App\Services\MailSettings;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -67,11 +68,11 @@ class NotificationHelper
             // is resolved. The toggle below stays a notification switch, not a
             // transport switch, so turning it off silences this mail without
             // affecting how the rest of the application sends.
-            if (data_get($settings, 'smtp.enabled')) {
+            if (data_get($settings, 'smtp.enabled') && app(EmailAppearance::class)->enabled('owner_new_order')) {
                 $ownerEmails = app(MailSettings::class)->ownerEmails();
                 if ($ownerEmails) {
-                    // Send email to the owner from the queue worker.
-                    Mail::to($ownerEmails)->locale($order->locale ?: 'vi')->send(new OrderStatusMail($order));
+                    // The owner's own "Đơn mới" email, in the admin's language, not a copy of the customer's.
+                    Mail::to($ownerEmails)->send(new OwnerNewOrderMail($order));
                 }
             }
 

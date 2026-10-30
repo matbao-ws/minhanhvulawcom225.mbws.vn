@@ -237,6 +237,25 @@ class MailSettingsTest extends TestCase
         });
     }
 
+    public function test_an_embedded_logo_reaches_the_relay_with_its_content_id(): void
+    {
+        $this->useRelay();
+        $this->resolveMailer();
+
+        Mail::send([], [], function ($message) {
+            $cid = $message->embedData('png-bytes', 'logo.png', 'image/png');
+            $message->to('khach@example.com')->subject('Logo')->html('<img src="'.$cid.'">');
+        });
+
+        Http::assertSent(function (Request $request) {
+            $logo = $request['attachments'][0] ?? [];
+
+            return ($logo['filename'] ?? null) === 'logo.png'
+                && filled($logo['content_id'] ?? null)
+                && str_contains($request['html'], 'cid:'.$logo['content_id']);
+        });
+    }
+
     public function test_a_relay_refusal_is_a_transport_failure_so_the_queue_retries(): void
     {
         $this->useRelay(Http::response(['ok' => false, 'reason' => 'provider_unavailable'], 503));

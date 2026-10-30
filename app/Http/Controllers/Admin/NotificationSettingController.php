@@ -294,6 +294,14 @@ class NotificationSettingController extends Controller
                 (string) app(SiteBranding::class)->current()['name'],
                 $ownSmtp ? $smtp['from_email'] : null,
                 $ownSmtp ? $smtp['from_name'] : null,
+                // How it went out, for the admin to check against the form; never the password.
+                [
+                    'via' => $ownSmtp ? 'own_smtp' : (app(MailSettings::class)->source() === MailSettings::SOURCE_REMOTE ? 'relay' : 'default'),
+                    'host' => $ownSmtp ? $smtp['host'] : null,
+                    'port' => $ownSmtp ? $smtp['port'] : null,
+                    'encryption' => $ownSmtp ? $smtp['encryption'] : null,
+                    'to' => $recipients,
+                ],
             ));
         } catch (\Throwable $e) {
             // The SMTP server's own words ("535 Authentication failed") are what the admin needs; the

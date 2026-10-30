@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CoreUpdateController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EmailDesignController;
 use App\Http\Controllers\Admin\ExtensionController;
 use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\GhnLookupController;
@@ -358,6 +359,10 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::post('notification-settings', [NotificationSettingController::class, 'update'])->middleware('can:settings.update')->name('notification-settings.update');
     Route::post('notification-settings/test-email', [NotificationSettingController::class, 'sendTestEmail'])->middleware(['can:settings.update', 'throttle:5,1'])->name('notification-settings.test-email');
     Route::post('notification-settings/get-zalo-chat-id', [NotificationSettingController::class, 'getZaloChatId'])->middleware('can:settings.update')->name('notification-settings.get-chat-id');
+
+    Route::get('email-design', [EmailDesignController::class, 'index'])->middleware('can:settings.view')->name('email-design.index');
+    Route::post('email-design', [EmailDesignController::class, 'update'])->middleware('can:settings.update')->name('email-design.update');
+    Route::post('email-design/preview', [EmailDesignController::class, 'preview'])->middleware(['can:settings.view', 'throttle:60,1'])->name('email-design.preview');
 
     Route::middleware('feature:shipping')->group(function () {
         Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->middleware('can:shipping.update')->name('shipping-partners.toggle-status');
