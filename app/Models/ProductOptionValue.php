@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasMediaUrls;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Translatable\HasTranslations;
 
 class ProductOptionValue extends Model
@@ -27,7 +28,8 @@ class ProductOptionValue extends Model
         'is_active' => 'boolean',
     ];
 
-    public function optionGroup()
+    /** @return BelongsTo<ProductOptionGroup, $this> */
+    public function optionGroup(): BelongsTo
     {
         return $this->belongsTo(ProductOptionGroup::class, 'product_option_group_id');
     }

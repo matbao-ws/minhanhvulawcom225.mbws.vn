@@ -481,6 +481,7 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
         Route::get('products/template/{type}', [ProductController::class, 'downloadTemplate'])->middleware('can:products.view')->name('products.template');
         Route::post('products/import', [ProductController::class, 'import'])->middleware(['can:products.create', 'throttle:admin-heavy'])->name('products.import');
         Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware(['can:products.create', 'package.limit:data_unit']);
+        Route::post('products/{product}/duplicate', [ProductController::class, 'duplicate'])->middleware(['can:products.create', 'package.limit:data_unit'])->name('products.duplicate');
         Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('can:products.view');
         Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('can:products.update');
         Route::resource('products', ProductController::class)->only(['destroy'])->middleware('can:products.delete');

@@ -4,6 +4,8 @@ namespace App\Services\Catalog;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
+use App\Models\ProductOptionGroup;
 use App\Models\ProductOptionValue;
 use App\Models\ProductVariant;
 use App\Services\LanguageRegistry;
@@ -69,6 +71,67 @@ class ProductService
                 'price' => [$before['price'], $locked->price],
                 'stock_quantity' => [$before['stock_quantity'], $locked->stock_quantity],
             ];
+        });
+    }
+
+    /**
+     * A copy to start a similar product from: same words, SEO, category, prices, images, options and
+     * variants. It starts hidden and out of stock (stock only moves through the inventory ledger),
+     * with "(copy)" on its name, its own slugs and SKUs, and no canonical pointing at the original.
+     * Reviews and stock history stay with the original. Counts against the data_unit limit.
+     */
+    public function duplicate(Product $product): Product
+    {
+        return DB::transaction(function () use ($product) {
+            $names = [];
+            foreach ($product->getTranslations('name') as $locale => $name) {
+                $names[$locale] = Str::limit(trim($name).' '.__('catalog.products.copy_suffix', [], $locale), 250, '');
+            }
+
+            $copy = $product->replicate(['slug', 'sku', 'seo_score', 'canonical_url', 'stock_quantity', 'is_active', 'is_featured', 'published_at']);
+            $copy->fill([
+                'name' => $names,
+                'slug' => $this->uniqueProductSlug((string) ($names[$this->languages->defaultLocale()] ?? reset($names))),
+                'sku' => $product->sku ? $this->copySku($product->sku, fn (string $sku) => Product::query()->where('sku', $sku)->exists()) : null,
+                'canonical_url' => null,
+                'stock_quantity' => 0,
+                'is_active' => false,
+                'is_featured' => false,
+                'published_at' => null,
+            ])->save();
+            $this->localizedSlugs->sync($copy, [], $names);
+
+            // Media columns are copied as stored (relative paths), not as the absolute URLs models read out.
+
+            $copy->images()->createMany(ProductImage::query()->where('product_id', $product->id)->orderBy('sort_order')->orderBy('id')->get()->map(fn ($image) => ['image_url' => $image->getRawOriginal('image_url'), 'sort_order' => $image->sort_order])->all());
+
+            $valueIds = [];
+            $groups = ProductOptionGroup::query()->with('values')->where('product_id', $product->id)->orderBy('sort_order')->orderBy('id')->get();
+            foreach ($groups as $group) {
+                $newGroup = $copy->optionGroups()->create(['name' => $group->getTranslations('name')] + $group->only(['code', 'display_type', 'sort_order']));
+                foreach ($group->values as $value) {
+                    $valueIds[$value->id] = $newGroup->values()->create(['label' => $value->getTranslations('label'), 'image_url' => $value->getRawOriginal('image_url')] + $value->only(['code', 'color_hex', 'sort_order', 'is_active']))->id;
+                }
+            }
+
+            $variants = ProductVariant::query()->with('optionValues')->where('product_id', $product->id)->orderBy('sort_order')->orderBy('id')->get();
+            foreach ($variants as $variant) {
+                $ids = $variant->optionValues->map(fn ($value) => $valueIds[$value->id] ?? null)->filter()->values()->all();
+                $newVariant = $copy->variants()->create([
+                    'name' => $variant->getTranslations('name'),
+                    'image_url' => $variant->getRawOriginal('image_url'),
+                    ...$variant->only(['price', 'compare_at_price', 'cost_price', 'weight_grams', 'is_active', 'is_default', 'sort_order']),
+                    'sku' => $this->copySku($variant->sku, fn (string $sku) => ProductVariant::query()->where('sku', $sku)->exists()),
+                    'barcode' => null,
+                    'option_signature' => $ids === [] ? $variant->option_signature : ProductVariant::signatureForOptionValueIds($ids),
+                    'stock_quantity' => 0,
+                ]);
+                $newVariant->optionValues()->sync($ids);
+            }
+
+            $this->seoBox->refreshScore($copy);
+
+            return $copy->refresh();
         });
     }
 
@@ -310,6 +373,19 @@ class ProductService
         }
 
         return $sku;
+    }
+
+    /** "ABC" → "ABC-COPY", then "ABC-COPY-2"… while $taken says the SKU is in use. */
+    private function copySku(string $sku, callable $taken): string
+    {
+        $base = substr($sku, 0, 240).'-COPY';
+        $candidate = $base;
+        $counter = 2;
+        while ($taken($candidate)) {
+            $candidate = $base.'-'.$counter++;
+        }
+
+        return $candidate;
     }
 
     private function variantName($optionValues): string

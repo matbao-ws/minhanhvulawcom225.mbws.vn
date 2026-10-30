@@ -190,6 +190,19 @@ class ProductController extends Controller
                 : __('catalog.products.updated'));
     }
 
+    public function duplicate(string $locale, Product $product)
+    {
+        try {
+            $copy = $this->products->duplicate($product);
+        } catch (RuntimeException|DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        ActivityLogger::log('created', $copy, __('catalog.products.log_duplicated'), ['from_product_id' => $product->id]);
+
+        return redirect()->route('admin.products.edit', $copy)->with('success', __('catalog.products.duplicated'));
+    }
+
     public function destroy(string $locale, Product $product)
     {
         $this->products->delete($product);
