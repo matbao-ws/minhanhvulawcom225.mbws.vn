@@ -40,7 +40,7 @@ class OwnerNewOrderMail extends Mailable
                 'mail' => $this->data(),
                 'preheader' => $this->data()['customer'].($this->data()['phone'] ? ' · '.$this->data()['phone'] : '').' · '.$this->data()['grand_total'].' · '.$this->data()['payment'],
                 'footer' => __('emails.ui.footer_owner', ['shop' => $look['shop']]),
-                'adminUrl' => route('admin.orders.show', ['locale' => app(LanguageRegistry::class)->adminLocale(null), 'order' => $this->order->id]),
+                'adminUrl' => route('admin.orders.show', ['locale' => app(LanguageRegistry::class)->adminEntryLocale(), 'order' => $this->order->id]),
             ],
         );
     }
