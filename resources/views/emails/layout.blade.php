@@ -15,7 +15,12 @@
     // attached instead (cid:). Public https logos (Cloudinary, the live site) stay links.
     $logoUrl = $look['logo_url'];
     if ($logoUrl !== null && isset($message) && str_starts_with($logoUrl, rtrim(url('/'), '/').'/') && ! str_starts_with($logoUrl, 'https://')) {
-        $logoPath = public_path(ltrim(substr($logoUrl, strlen(rtrim(url('/'), '/'))), '/'));
+        $logoRelative = ltrim(substr($logoUrl, strlen(rtrim(url('/'), '/'))), '/');
+        $logoPath = public_path($logoRelative);
+        // An upload lives in storage/app/public; public/storage is only a link to it, and may be missing.
+        if (! is_file($logoPath) && str_starts_with($logoRelative, 'storage/')) {
+            $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->path(urldecode(substr($logoRelative, 8)));
+        }
         if (is_file($logoPath)) {
             $logoUrl = $message->embed($logoPath);
         }
