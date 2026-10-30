@@ -39,9 +39,11 @@
         body, table, td, p, a, div, span { font-family: {!! $font !!}; }
         a { color: {{ $accent }}; }
         @media (max-width: 620px) {
-            .px { padding-left: 20px !important; padding-right: 20px !important; }
+            .outer { padding-left: 6px !important; padding-right: 6px !important; }
+            .px { padding-left: 18px !important; padding-right: 18px !important; }
             .stack td.col { display: block !important; width: 100% !important; padding: 0 0 16px !important; }
             .h1 { font-size: 22px !important; }
+            .btn { display: table !important; width: 100% !important; margin: 0 0 10px !important; }
         }
     </style>
 </head>
@@ -49,12 +51,12 @@
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">{{ $preheader }}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{ $minimal ? '#ffffff' : '#f3f4f6' }}">
     <tr>
-        <td align="center" style="padding:{{ $minimal ? '20px 12px' : '28px 12px' }}">
+        <td align="center" class="outer" style="padding:{{ $minimal ? '20px 12px' : '28px 12px' }}">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
                 {{-- Logo above the card (classic, minimal) --}}
                 @unless($banner)
                     <tr>
-                        <td align="{{ $align }}" class="{{ $minimal ? 'px' : '' }}" style="padding:{{ $minimal ? '4px 32px 18px' : '4px 0 20px' }}{{ $minimal ? ';border-bottom:2px solid '.$accent : '' }}">
+                        <td align="{{ $align }}" class="{{ $minimal ? 'px' : '' }}" style="padding:{{ $minimal ? '4px 24px 18px' : '4px 0 20px' }}{{ $minimal ? ';border-bottom:2px solid '.$accent : '' }}">
                             @include('emails.partials.logo')
                         </td>
                     </tr>
@@ -70,7 +72,7 @@
                                 <div style="height:10px;background:{{ $accent }};border-radius:14px 14px 0 0;font-size:0;line-height:0">&nbsp;</div>
                             @endif
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                <tr><td align="{{ $align }}" class="px" style="padding:22px 32px 0">@include('emails.partials.logo')</td></tr>
+                                <tr><td align="{{ $align }}" class="px" style="padding:22px 24px 0">@include('emails.partials.logo')</td></tr>
                             </table>
                         @endif
 
@@ -80,7 +82,7 @@
 
                 {{-- Footer: signature, social links, the shop's contact details --}}
                 <tr>
-                    <td class="px" align="{{ $minimal ? 'left' : 'center' }}" style="padding:22px {{ $minimal ? '32px' : '28px' }} 8px;font:13px/1.6 {!! $font !!};color:#6b7280{{ $minimal ? ';border-top:1px solid #e5e7eb' : '' }}">
+                    <td class="px" align="{{ $minimal ? 'left' : 'center' }}" style="padding:22px {{ $minimal ? '24px' : '28px' }} 8px;font:13px/1.6 {!! $font !!};color:#6b7280{{ $minimal ? ';border-top:1px solid #e5e7eb' : '' }}">
                         @if($look['signature'] !== '')
                             <div style="margin-bottom:12px;color:#374151;font-size:14px">{!! nl2br(e($look['signature'])) !!}</div>
                         @endif

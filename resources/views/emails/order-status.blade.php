@@ -6,14 +6,14 @@
 @section('content')
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
-            <td class="px" style="padding:30px 32px 6px">
+            <td class="px" style="padding:30px 24px 6px">
                 <div style="font:600 12px/1.4 {!! $font !!};letter-spacing:.08em;text-transform:uppercase;color:{{ $mail['tone'] }}">{{ $mail['eyebrow'] }}</div>
                 <h1 class="h1" style="margin:8px 0 10px;font:600 25px/1.25 {!! $font !!};color:#111827">{{ $mail['heading'] }}</h1>
                 <p style="margin:0;font:15px/1.6 {!! $font !!};color:#4b5563">{!! nl2br(e($mail['intro'])) !!}</p>
             </td>
         </tr>
         <tr>
-            <td class="px" style="padding:18px 32px 0">
+            <td class="px" style="padding:18px 24px 0">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:10px">
                     <tr>
                         <td style="padding:12px 16px;font:13px/1.4 {!! $font !!};color:#6b7280">{{ __('emails.ui.order_number') }}<br><b style="font-weight:600;font:600 15px/1.5 Consolas,monospace;color:#111827">#{{ $mail['number'] }}</b></td>
@@ -25,21 +25,22 @@
 
         @if($mail['step'] !== null)
             <tr>
-                <td class="px" style="padding:24px 32px 4px">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <td class="px" style="padding:24px 24px 4px">
+                    {{-- Four equal columns, each a dot on its line with its label centred under it, so the labels stay under their dots at any width. --}}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed">
                         <tr>
                             @foreach(__('emails.ui.steps') as $i => $stepLabel)
-                                @if($i > 0)
-                                    <td valign="middle" style="padding:0 4px"><div style="height:2px;background:{{ $i <= $mail['step'] ? $look['accent'] : '#e5e7eb' }};font-size:0;line-height:0">&nbsp;</div></td>
-                                @endif
-                                <td width="30" align="center"><div style="width:28px;height:28px;border-radius:50%;background:{{ $i <= $mail['step'] ? $look['accent'] : '#e5e7eb' }};color:{{ $i <= $mail['step'] ? $look['on_accent'] : '#6b7280' }};font:600 13px/28px {!! $font !!};text-align:center">{!! $i < $mail['step'] ? '&#10003;' : $i + 1 !!}</div></td>
-                            @endforeach
-                        </tr>
-                    </table>
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                        <tr>
-                            @foreach(__('emails.ui.steps') as $i => $stepLabel)
-                                <td width="25%" align="{{ $i === 0 ? 'left' : ($i === 3 ? 'right' : 'center') }}" style="padding-top:8px;font:{{ $i === $mail['step'] ? '600' : '400' }} 12px/1.3 {!! $font !!};color:{{ $i <= $mail['step'] ? '#111827' : '#9ca3af' }}">{{ $stepLabel }}</td>
+                                @php($done = $i <= $mail['step'])
+                                <td width="25%" valign="top" align="center">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td valign="middle"><div style="height:2px;background:{{ $i === 0 ? 'transparent' : ($done ? $look['accent'] : '#e5e7eb') }};font-size:0;line-height:0">&nbsp;</div></td>
+                                            <td width="28" align="center"><div style="width:28px;height:28px;border-radius:50%;background:{{ $done ? $look['accent'] : '#e5e7eb' }};color:{{ $done ? $look['on_accent'] : '#6b7280' }};font:600 13px/28px {!! $font !!};text-align:center">{!! $i < $mail['step'] ? '&#10003;' : $i + 1 !!}</div></td>
+                                            <td valign="middle"><div style="height:2px;background:{{ $i === 3 ? 'transparent' : ($i < $mail['step'] ? $look['accent'] : '#e5e7eb') }};font-size:0;line-height:0">&nbsp;</div></td>
+                                        </tr>
+                                    </table>
+                                    <div style="padding:8px 2px 0;font:{{ $i === $mail['step'] ? '600' : '400' }} 12px/1.3 {!! $font !!};color:{{ $done ? '#111827' : '#9ca3af' }};text-align:center">{{ $stepLabel }}</div>
+                                </td>
                             @endforeach
                         </tr>
                     </table>
@@ -49,7 +50,7 @@
 
         @if($mail['notice'])
             <tr>
-                <td class="px" style="padding:20px 32px 0">
+                <td class="px" style="padding:20px 24px 0">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{ $mail['notice']['background'] }};border-radius:10px">
                         <tr><td style="padding:14px 16px;font:14px/1.55 {!! $font !!};color:{{ $mail['notice']['color'] }}">@if($mail['notice']['title'])<b style="font-weight:600">{{ $mail['notice']['title'] }}</b> @endif{!! nl2br(e($mail['notice']['text'])) !!}</td></tr>
                     </table>
@@ -58,12 +59,12 @@
         @endif
 
         @if($mail['cta'])
-            <tr><td class="px" style="padding:24px 32px 4px">@include('emails.partials.button', $mail['cta'])</td></tr>
+            <tr><td class="px" style="padding:24px 24px 4px">@include('emails.partials.button', $mail['cta'])</td></tr>
         @endif
 
-        <tr><td class="px" style="padding:26px 32px 0"><div style="font:600 16px/1.4 {!! $font !!};color:#111827">{{ __('emails.ui.items') }}</div></td></tr>
+        <tr><td class="px" style="padding:26px 24px 0"><div style="font:600 16px/1.4 {!! $font !!};color:#111827">{{ __('emails.ui.items') }}</div></td></tr>
         <tr>
-            <td class="px" style="padding:4px 32px 0">
+            <td class="px" style="padding:4px 24px 0">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                     @foreach($mail['lines'] as $line)
                         <tr>
@@ -97,7 +98,7 @@
         </tr>
 
         <tr>
-            <td class="px" style="padding:24px 32px 28px">
+            <td class="px" style="padding:24px 24px 28px">
                 <div style="border-top:1px solid #e5e7eb;padding-top:22px">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="stack">
                         <tr>
@@ -126,7 +127,7 @@
             </td>
         </tr>
         <tr>
-            <td class="px" style="padding:18px 32px;background:#f9fafb;border-top:1px solid #eef0f2;font:14px/1.6 {!! $font !!};color:#4b5563">
+            <td class="px" style="padding:18px 24px;background:#f9fafb;border-top:1px solid #eef0f2;font:14px/1.6 {!! $font !!};color:#4b5563">
                 @if($look['phone'])
                     {!! __('emails.ui.help', ['phone' => '<a href="tel:'.e(preg_replace('/[^0-9+]/', '', $look['phone'])).'" style="font-weight:600;text-decoration:none;color:'.e($look['accent']).'">'.e($look['phone']).'</a>']) !!}
                 @else

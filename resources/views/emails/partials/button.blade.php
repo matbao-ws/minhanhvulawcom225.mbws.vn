@@ -1,6 +1,6 @@
 {{-- A link that looks like a button in every client: $label, $href, $secondary (outlined). --}}
 @php($font = $look['font_stack'])
-<table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-table">
+<table role="presentation" cellpadding="0" cellspacing="0" class="btn" style="display:inline-table">
     <tr>
         @if($secondary ?? false)
             <td align="center" style="border-radius:10px;border:1px solid #d1d5db">
