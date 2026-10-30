@@ -596,6 +596,11 @@
                                           <span class="icon-small"></span>{{ __('admin.sidebar.notification_settings') }}
                                       </a>
                                   </li>
+                                  <li class="sidebar-item">
+                                      <a class="sidebar-link" href="{{ route('admin.email-design.index') }}">
+                                          <span class="icon-small"></span>{{ __('admin.sidebar.email_design') }}
+                                      </a>
+                                  </li>
                                   @endcan
                                   @if($sidebarFeatures->availableTo($sidebarUser, 'multilingual') && $sidebarUser?->can('languages.view'))
                                   <li class="sidebar-item">

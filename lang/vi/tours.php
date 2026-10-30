@@ -279,6 +279,14 @@ return [
         'list' => ['title' => 'Danh sách thông báo', 'description' => 'Mới nhất ở trên. Bấm một thông báo để mở đơn, đánh giá hoặc thành viên đó. Bạn chỉ thấy loại mình có quyền xem.'],
     ],
 
+    'email_design' => [
+        'intro' => ['title' => 'Giao diện email', 'description' => 'Chỉnh cách mọi email của shop trông và viết: email đơn hàng gửi khách, đơn mới và liên hệ gửi bạn, đặt lại mật khẩu.'],
+        'layout' => ['title' => 'Kiểu bố cục', 'description' => 'Chọn một trong ba bố cục. Cả bộ email dùng chung bố cục này.'],
+        'brand' => ['title' => 'Màu và logo', 'description' => 'Màu nhấn tô nút, thanh tiến trình và tổng tiền. Logo mặc định là logo của shop; chọn logo riêng nếu email cần bản khác.'],
+        'footer' => ['title' => 'Chân email', 'description' => 'Lời chào, mạng xã hội, chính sách đổi trả và câu hoàn tiền. Địa chỉ và hotline lấy từ Cài đặt chung.'],
+        'emails' => ['title' => 'Từng email', 'description' => 'Bật tắt từng email và viết lại tiêu đề, lời mở đầu. Bấm các ô {biến} để chèn tên khách, mã đơn, tổng tiền.'],
+        'preview' => ['title' => 'Xem trước', 'description' => 'Email hiện ngay khi bạn sửa, bằng một đơn hàng mẫu. Đổi Máy tính / Điện thoại để xem hai khổ.'],
+    ],
     'notification_settings' => [
         'intro' => ['title' => 'Cấu hình thông báo', 'description' => 'Chọn kênh báo cho bạn khi có đơn mới. Trang tự lưu khi bạn đổi một ô hoặc gạt công tắc, không có nút lưu.'],
         'zalo_oa' => ['title' => 'Zalo Official Account', 'description' => 'Nơi lưu thông tin kết nối Zalo OA: App ID, Template ID, Secret Key và token.'],

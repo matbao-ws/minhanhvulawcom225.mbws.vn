@@ -51,6 +51,19 @@ return [
         ],
     ],
 
+    // The design preview's example order and enquiry (App\Mail\EmailPreviewSamples); never sent.
+    'sample' => [
+        'customer' => 'Nguyễn Minh Anh',
+        'address' => '27/4 Lê Văn Sỹ, P.13, Q. Phú Nhuận, TP. Hồ Chí Minh',
+        'notes' => 'Gọi trước khi giao, giờ hành chính.',
+        'item_a' => 'Sản phẩm mẫu A', 'variant_a' => 'Hộp 100 cây',
+        'item_b' => 'Sản phẩm mẫu B', 'variant_b' => 'Size M',
+        'item_c' => 'Sản phẩm mẫu C',
+        'contact_name' => 'Trần Quốc Bảo',
+        'contact_message' => "Chào shop, mình muốn đặt 20 sản phẩm làm quà tặng khách hàng cuối năm.\nShop báo giá sỉ giúp mình nhé.",
+        'carrier' => 'Giao Hàng Nhanh',
+    ],
+
     // Fixed wording inside the templates.
     'ui' => [
         'eyebrow' => [

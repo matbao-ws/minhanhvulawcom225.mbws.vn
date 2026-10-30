@@ -51,6 +51,19 @@ return [
         ],
     ],
 
+    // The design preview's example order and enquiry (App\Mail\EmailPreviewSamples); never sent.
+    'sample' => [
+        'customer' => 'Minh Anh Nguyen',
+        'address' => '27/4 Le Van Sy, Ward 13, Phu Nhuan, Ho Chi Minh City',
+        'notes' => 'Please call before delivering, office hours.',
+        'item_a' => 'Sample product A', 'variant_a' => 'Box of 100',
+        'item_b' => 'Sample product B', 'variant_b' => 'Size M',
+        'item_c' => 'Sample product C',
+        'contact_name' => 'Bao Tran',
+        'contact_message' => "Hello, I would like 20 items as year-end gifts for our clients.\nCould you send a wholesale price?",
+        'carrier' => 'Giao Hang Nhanh',
+    ],
+
     'ui' => [
         'eyebrow' => [
             'order_placed' => 'Order received', 'order_preparing' => 'Confirmed', 'order_shipping' => 'On its way',
