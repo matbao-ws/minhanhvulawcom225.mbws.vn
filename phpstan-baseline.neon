@@ -121,12 +121,6 @@ parameters:
 			path: app/Http/Controllers/Admin/Catalog/ProductVariantController.php
 
 		-
-			message: '#^Relation ''optionValues'' is not found in App\\Models\\ProductVariant model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Http/Controllers/Admin/Catalog/ProductVariantController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Product\:\:\$optionGroups\.$#'
 			identifier: property.notFound
 			count: 1
@@ -679,12 +673,6 @@ parameters:
 			path: app/Http/Resources/PublicProductVariantResource.php
 
 		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductVariantResource\:\:\$optionValues\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/PublicProductVariantResource.php
-
-		-
 			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
 			identifier: larastan.relationExistence
 			count: 1
@@ -1027,12 +1015,6 @@ parameters:
 			path: app/Services/Catalog/ProductImportService.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\ProductOptionGroup\:\:\$values\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Catalog/ProductOptionService.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\ProductOptionValue\:\:\$variants\.$#'
 			identifier: property.notFound
 			count: 2
@@ -1072,12 +1054,6 @@ parameters:
 			message: '#^Access to an undefined property App\\Models\\ProductVariant\:\:\$product\.$#'
 			identifier: property.notFound
 			count: 3
-			path: app/Services/Catalog/ProductService.php
-
-		-
-			message: '#^Relation ''optionGroup'' is not found in App\\Models\\ProductOptionValue model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
 			path: app/Services/Catalog/ProductService.php
 
 		-

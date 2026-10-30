@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
 class ProductOptionGroup extends Model
@@ -28,7 +29,8 @@ class ProductOptionGroup extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function values()
+    /** @return HasMany<ProductOptionValue, $this> */
+    public function values(): HasMany
     {
         return $this->hasMany(ProductOptionValue::class)->orderBy('sort_order')->orderBy('id');
     }

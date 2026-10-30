@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasMediaUrls;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\Translatable\HasTranslations;
 
 class ProductVariant extends Model
@@ -52,7 +53,8 @@ class ProductVariant extends Model
         return $this->hasMany(InventoryMovement::class);
     }
 
-    public function optionValues()
+    /** @return BelongsToMany<ProductOptionValue, $this> */
+    public function optionValues(): BelongsToMany
     {
         return $this->belongsToMany(ProductOptionValue::class, 'product_variant_option_values')->withTimestamps();
     }
