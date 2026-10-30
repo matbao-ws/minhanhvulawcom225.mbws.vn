@@ -21,11 +21,15 @@
       "type": "object",
       "required": ["action", "nonce"],
       "properties": {
-        "action": { "enum": ["superadmins.list", "superadmins.reset_password"] },
+        "action": { "enum": ["superadmins.list", "superadmins.reset_password", "core.restore"] },
         "nonce": { "type": "string", "pattern": "^[A-Za-z0-9]{32,64}$", "description": "used once; the website refuses it a second time" }
       },
       "oneOf": [
         { "properties": { "action": { "const": "superadmins.list" } } },
+        {
+          "properties": { "action": { "const": "core.restore" } },
+          "description": "put the website's edited core files back from its own release; queued, run within a minute, reported with POST v1/core/report"
+        },
         {
           "required": ["user_id", "password"],
           "properties": {

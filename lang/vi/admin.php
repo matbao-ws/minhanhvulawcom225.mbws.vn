@@ -2244,6 +2244,7 @@ return [
         'progress' => [
             'title' => 'Đang cập nhật lên bản :version',
             'title_rollback' => 'Đang quay lại bản trước',
+            'title_restore' => 'Đang khôi phục file core bị sửa (theo yêu cầu của hỗ trợ MatBao)',
             'hint' => 'Có thể tải lại hoặc đóng trang: tiến trình vẫn chạy trên máy chủ và hiện lại khi mở trang.',
             'elapsed' => 'đã trôi qua',
             'waiting' => 'Đang chờ máy chủ bắt đầu...',

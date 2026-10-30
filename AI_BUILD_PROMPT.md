@@ -554,6 +554,18 @@ website, không đụng phần của website. Phiên bản nằm trong file `VER
   `storage/app/core/installed.json`); `--baseline` ghi mốc lần đầu hoặc sau khi đã gỡ chỗ lệch.
   Website lệch thì bản cập nhật dừng, không ghi đè. `php artisan core:manifest` in danh sách file core
   kèm sha256 (dùng khi build bản phát hành; `--owner=path` cho biết một file thuộc bên nào).
+- **Chặn sửa core trong dự án khách bằng công cụ, không chỉ bằng lời dặn** (`.claude/hooks/core-guard.php`,
+  đọc cùng `CoreManifest`; chỉ tác dụng trong clone có remote `core`, repo core thì sửa bình thường):
+  hook `PreToolUse` của Claude Code (`.claude/settings.json`) từ chối Edit/Write vào file core;
+  `.githooks/pre-commit` từ chối commit có file core, trừ khi đang merge một bản core và file đúng nội
+  dung bản đó; `composer install` tự trỏ `core.hooksPath` về `.githooks`. Cấu hình Claude riêng của dự án
+  đặt ở `.claude/settings.local.json`. Bị chặn thì đưa thay đổi vào theme/extension, **không** tìm cách
+  vượt (`--no-verify`, sửa hook) — file sửa lén vẫn bị gateway phát hiện.
+- Website báo số file core bị sửa và tên file kèm lần hỏi bản mới mỗi giờ (`drift`, `drift_files` trên
+  `GET v1/core/update`); console MatBao hiện tình trạng "Sửa core". Chỉ **console MatBao** khôi phục được
+  (`core.restore` qua `POST /api/gateway/command` → `core:run-requested` → `CoreRestorer`): tải lại đúng bản
+  website đang chạy, kiểm chữ ký, sao lưu file bị sửa vào `storage/app/core/drift-backups/<thời điểm>/`
+  rồi đặt lại bản gốc, báo `restored`. Admin của website **cố ý không có** nút khôi phục.
 - **Migration expand/contract.** Cập nhật hỏng thì chỉ trả **code** về bản cũ, không bao giờ
   `migrate:rollback` trên website khách; vậy schema mới phải chạy được với code bản trước. Trong `up()`
   chỉ thêm bảng, cột nullable/có default, index, dữ liệu. Không xóa/đổi tên cột hoặc bảng, không
