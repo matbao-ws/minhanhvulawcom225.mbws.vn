@@ -51,12 +51,24 @@
 
                                 <div class="mb-3">
                                     <label for="password" class="form-label">{{ __('auth.reset.password') }}</label>
-                                    <input type="password" name="password" class="form-control" id="password" autocomplete="new-password">
+                                    <div class="position-relative">
+                                        <input type="password" name="password" class="form-control pe-5" id="password" autocomplete="new-password">
+                                        <button type="button" class="btn btn-link text-muted position-absolute end-0 top-50 translate-middle-y pe-3 text-decoration-none border-0 shadow-none d-flex align-items-center"
+                                                data-toggle-password="password" aria-label="{{ __('auth.reset.show_password') }}" aria-pressed="false">
+                                            <iconify-icon icon="solar:eye-closed-line-duotone" class="fs-6"></iconify-icon>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div class="mb-4">
                                     <label for="password_confirmation" class="form-label">{{ __('auth.reset.password_confirmation') }}</label>
-                                    <input type="password" name="password_confirmation" class="form-control" id="password_confirmation" autocomplete="new-password">
+                                    <div class="position-relative">
+                                        <input type="password" name="password_confirmation" class="form-control pe-5" id="password_confirmation" autocomplete="new-password">
+                                        <button type="button" class="btn btn-link text-muted position-absolute end-0 top-50 translate-middle-y pe-3 text-decoration-none border-0 shadow-none d-flex align-items-center"
+                                                data-toggle-password="password_confirmation" aria-label="{{ __('auth.reset.show_password') }}" aria-pressed="false">
+                                            <iconify-icon icon="solar:eye-closed-line-duotone" class="fs-6"></iconify-icon>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <button type="submit" class="btn btn-primary w-100 py-8 mb-4 rounded-1">
@@ -79,6 +91,20 @@
 <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/theme/theme.js') }}"></script>
 <script src="{{ \App\Support\AssetVersion::url('admin-assets/js/theme/app.min.js') }}"></script>
 <script src="{{ asset('admin-assets/libs/sweetalert2/dist/sweetalert2.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+<script>
+    // The eye beside each password field shows or hides what was typed.
+    document.querySelectorAll('[data-toggle-password]').forEach(function (button) {
+        const input = document.getElementById(button.dataset.togglePassword);
+        const icon = button.querySelector('iconify-icon');
+        button.addEventListener('click', function () {
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            icon.setAttribute('icon', show ? 'solar:eye-line-duotone' : 'solar:eye-closed-line-duotone');
+            button.setAttribute('aria-pressed', show ? 'true' : 'false');
+        });
+    });
+</script>
 @include('admin.layouts.toast')
 </body>
 </html>
