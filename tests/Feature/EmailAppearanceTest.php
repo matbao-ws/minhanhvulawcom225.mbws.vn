@@ -21,6 +21,7 @@ use App\Support\NotificationHelper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /** The shop's email design (Quản trị › Giao diện email): looks, texts and which emails go out. */
@@ -112,6 +113,20 @@ class EmailAppearanceTest extends TestCase
 
         $done = (new OrderStatusMail($this->order->forceFill(['status' => 'completed'])))->render();
         $this->assertStringContainsString('Đổi trả trong 7 ngày nếu hàng lỗi.', $done);
+    }
+
+    public function test_a_logo_on_this_server_is_embedded_even_without_the_public_storage_link(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('settings/logo-phu-quy.png', 'png-bytes');
+        $this->design(['logo' => 'storage/settings/logo-phu-quy.png']);
+        config(['mail.default' => 'array']);
+
+        Mail::to('anh@example.test')->sendNow(new OrderStatusMail($this->order));
+
+        $sent = app('mail.manager')->mailer('array')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+        $this->assertMatchesRegularExpression('/<img src="cid:[^"]+" alt="Trầm Hương Phú Quý"/u', (string) $sent->getHtmlBody());
+        $this->assertSame([['logo-phu-quy.png', 'inline']], array_map(fn ($part) => [$part->getFilename(), $part->getDisposition()], $sent->getAttachments()));
     }
 
     public function test_the_shops_words_are_for_its_default_language_only(): void
