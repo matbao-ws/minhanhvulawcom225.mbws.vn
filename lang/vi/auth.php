@@ -56,6 +56,7 @@ return [
         'password' => 'Mật khẩu mới',
         'password_confirmation' => 'Nhập lại mật khẩu',
         'submit' => 'Cập nhật mật khẩu',
+        'show_password' => 'Hiện mật khẩu',
     ],
     'logout' => [
         'success' => 'Đăng xuất thành công.',
