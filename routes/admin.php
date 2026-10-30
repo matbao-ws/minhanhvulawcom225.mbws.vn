@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\CoreUpdateController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmailDesignController;
+use App\Http\Controllers\Admin\EmailTestSendController;
 use App\Http\Controllers\Admin\ExtensionController;
 use App\Http\Controllers\Admin\FeatureController;
 use App\Http\Controllers\Admin\GhnLookupController;
@@ -363,6 +364,9 @@ Route::middleware(['auth', 'admin', 'package.sync'])->group(function () {
     Route::get('email-design', [EmailDesignController::class, 'index'])->middleware('can:settings.view')->name('email-design.index');
     Route::post('email-design', [EmailDesignController::class, 'update'])->middleware('can:settings.update')->name('email-design.update');
     Route::post('email-design/preview', [EmailDesignController::class, 'preview'])->middleware(['can:settings.view', 'throttle:60,1'])->name('email-design.preview');
+    // TEMPORARY (branch test/email-send-page): delete these two routes with EmailTestSendController.
+    Route::get('email-test-send', [EmailTestSendController::class, 'index'])->middleware('can:settings.update')->name('email-test-send.index');
+    Route::post('email-test-send', [EmailTestSendController::class, 'send'])->middleware(['can:settings.update', 'throttle:5,1'])->name('email-test-send.send');
 
     Route::middleware('feature:shipping')->group(function () {
         Route::post('shipping-partners/{shipping_partner}/toggle-status', [ShippingPartnerController::class, 'toggleStatus'])->middleware('can:shipping.update')->name('shipping-partners.toggle-status');

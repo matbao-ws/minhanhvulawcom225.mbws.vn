@@ -2299,6 +2299,23 @@ return [
         ],
     ],
     // Quản trị › Giao diện email (EmailDesignController, App\Services\EmailAppearance).
+    // TEMPORARY: the test send page (branch test/email-send-page); delete with EmailTestSendController.
+    'email_test_send' => [
+        'title' => 'Gửi thử email',
+        'heading' => 'Gửi thử email (trang tạm)',
+        'intro' => 'Trang tạm để thử mẫu email. Email đi bằng đường gửi thật của website này (<b>:route</b>), dữ liệu là đơn hàng mẫu, tiêu đề có <b>[THỬ]</b>. Giao diện lấy theo trang <a href=":url">Giao diện email</a> đã lưu.',
+        'routes_admin' => 'SMTP riêng trong Cấu hình thông báo',
+        'routes_remote' => 'mail relay MatBao',
+        'routes_env' => 'cấu hình .env của máy chủ',
+        'results' => 'Kết quả',
+        'sent' => 'Đã gửi',
+        'failed' => 'Lỗi',
+        'to' => 'Gửi tới (tối đa 5, cách nhau bằng dấu phẩy)',
+        'to_invalid' => 'Nhập 1 đến 5 email hợp lệ, cách nhau bằng dấu phẩy.',
+        'templates' => 'Mẫu email',
+        'submit' => 'Gửi thử',
+        'subject_prefix' => '[THỬ]',
+    ],
     'email_design' => [
         'title' => 'Giao diện email',
         'subtitle' => 'Chỉnh cách email của shop trông và viết. Khung bên phải xem trước ngay khi bạn sửa; bấm Lưu để áp dụng cho email gửi đi.',
