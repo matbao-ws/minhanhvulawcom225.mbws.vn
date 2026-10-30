@@ -2310,7 +2310,12 @@ return [
             'banner' => ['name' => 'Ảnh bìa', 'desc' => 'Ảnh bìa hoặc dải màu ở đầu email, logo nằm ngay dưới.'],
         ],
         'brand' => [
-            'title' => 'Màu và logo',
+            'title' => 'Font, màu và logo',
+            'font' => 'Font chữ',
+            'font_system' => 'Font của thiết bị',
+            'font_help' => 'Mọi lựa chọn đều đủ dấu tiếng Việt. Apple Mail, iPhone và Samsung Mail hiện đúng font đã chọn; Gmail và Outlook luôn dùng font của thiết bị (SF Pro, Segoe UI, Roboto), vẫn rõ ràng.',
+            'font_sample_title' => 'Đơn hàng đã giao',
+            'font_sample_body' => 'Cảm ơn bạn đã tin chọn shop',
             'accent' => 'Màu nhấn',
             'accent_help' => 'Dùng cho nút, thanh tiến trình đơn hàng và số tổng tiền. Màu sáng thì chữ trên nút tự chuyển sang màu tối.',
             'logo' => 'Logo trong email',

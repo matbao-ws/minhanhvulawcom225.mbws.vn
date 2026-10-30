@@ -210,6 +210,25 @@ class EmailAppearanceTest extends TestCase
         }
     }
 
+    public function test_the_font_is_the_shops_choice_ending_in_system_fonts(): void
+    {
+        $html = (new OrderStatusMail($this->order))->render();
+        $this->assertStringContainsString('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&amp;display=swap', $html);
+        $this->assertStringContainsString("'Be Vietnam Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto", $html);
+        $this->assertDoesNotMatchRegularExpression('/font:(700|800) |font-weight:(700|800)/', $html, 'nothing heavier than semi-bold');
+
+        $this->design(['font' => 'nunito_sans']);
+        $this->assertStringContainsString("'Nunito Sans',-apple-system", (new OrderStatusMail($this->order))->render());
+
+        // The device font: no web font to load (Gmail and Outlook would ignore it anyway).
+        $this->design(['font' => 'system']);
+        $html = (new OrderStatusMail($this->order))->render();
+        $this->assertStringNotContainsString('fonts.googleapis.com', $html);
+        $this->assertStringContainsString('font-family: -apple-system,BlinkMacSystemFont', $html);
+
+        $this->assertSame(EmailAppearance::DEFAULT_FONT, app(EmailAppearance::class)->sanitize(['font' => 'comic_sans'])['font']);
+    }
+
     public function test_bad_settings_are_cleaned_before_they_are_stored(): void
     {
         $clean = app(EmailAppearance::class)->sanitize([

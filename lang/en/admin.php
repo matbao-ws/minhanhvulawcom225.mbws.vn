@@ -2310,7 +2310,12 @@ return [
             'banner' => ['name' => 'Cover', 'desc' => 'A cover image or colour band at the top, logo just below.'],
         ],
         'brand' => [
-            'title' => 'Colour and logo',
+            'title' => 'Font, colour and logo',
+            'font' => 'Font',
+            'font_system' => 'Device font',
+            'font_help' => 'Every choice has full Vietnamese. Apple Mail, iPhone and Samsung Mail show the chosen font; Gmail and Outlook always use the device font (SF Pro, Segoe UI, Roboto), which still reads well.',
+            'font_sample_title' => 'Đơn hàng đã giao',
+            'font_sample_body' => 'Cảm ơn bạn đã tin chọn shop',
             'accent' => 'Accent colour',
             'accent_help' => 'Used for buttons, the order progress bar and the total. On a light colour the button text turns dark.',
             'logo' => 'Logo in emails',

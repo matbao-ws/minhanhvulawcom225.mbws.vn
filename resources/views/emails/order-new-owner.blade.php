@@ -1,15 +1,15 @@
 {{-- "Đơn mới" to the shop owner (App\Mail\OwnerNewOrderMail; values from App\Mail\OrderEmailData). --}}
 @extends('emails.layout')
 
-@php($font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif")
+@php($font = $look['font_stack'])
 @php($tel = $mail['phone'] ? 'tel:'.preg_replace('/[^0-9+]/', '', $mail['phone']) : null)
 
 @section('content')
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
             <td class="px" style="padding:30px 32px 6px">
-                <div style="font:700 12px/1.4 {!! $font !!};letter-spacing:.08em;text-transform:uppercase;color:{{ $look['accent'] }}">{{ $mail['eyebrow'] }}</div>
-                <h1 class="h1" style="margin:8px 0 6px;font:800 25px/1.25 {!! $font !!};color:#111827">{{ $mail['heading'] }}</h1>
+                <div style="font:600 12px/1.4 {!! $font !!};letter-spacing:.08em;text-transform:uppercase;color:{{ $look['accent'] }}">{{ $mail['eyebrow'] }}</div>
+                <h1 class="h1" style="margin:8px 0 6px;font:600 25px/1.25 {!! $font !!};color:#111827">{{ $mail['heading'] }}</h1>
                 <p style="margin:0;font:14px/1.6 {!! $font !!};color:#6b7280">#{{ $mail['number'] }} · {{ $mail['placed_at'] }} · {{ $mail['payment'] }}</p>
             </td>
         </tr>
@@ -18,7 +18,7 @@
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:10px">
                     <tr>
                         <td style="padding:14px 16px;font:14px/1.6 {!! $font !!};color:#111827">
-                            <b>{{ $mail['customer'] }}</b>@if($tel) · <a href="{{ $tel }}" style="font-weight:700;text-decoration:none;color:{{ $look['accent'] }}">{{ $mail['phone'] }}</a>@endif<br>
+                            <b style="font-weight:600">{{ $mail['customer'] }}</b>@if($tel) · <a href="{{ $tel }}" style="font-weight:600;text-decoration:none;color:{{ $look['accent'] }}">{{ $mail['phone'] }}</a>@endif<br>
                             <span style="color:#4b5563">{{ $mail['address'] }}</span>
                             @if($mail['notes'])<br><span style="color:#6b7280">{{ __('emails.ui.notes') }}: {{ $mail['notes'] }}</span>@endif
                         </td>
@@ -45,8 +45,8 @@
                         </tr>
                     @endforeach
                     <tr>
-                        <td style="padding:8px 0 0;font-weight:700;color:#111827;font-size:16px">{{ __('emails.ui.customer_pays') }}</td>
-                        <td align="right" style="padding:8px 0 0;font-weight:800;color:{{ $look['accent'] }};font-size:18px">{{ $mail['grand_total'] }}</td>
+                        <td style="padding:8px 0 0;font-weight:600;color:#111827;font-size:16px">{{ __('emails.ui.customer_pays') }}</td>
+                        <td align="right" style="padding:8px 0 0;font-weight:600;color:{{ $look['accent'] }};font-size:18px">{{ $mail['grand_total'] }}</td>
                     </tr>
                 </table>
             </td>

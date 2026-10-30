@@ -73,6 +73,7 @@ class EmailDesignController extends Controller
     {
         return [
             'layout' => ['nullable', Rule::in(EmailAppearance::LAYOUTS)],
+            'font' => ['nullable', Rule::in(array_keys(EmailAppearance::FONTS))],
             'accent' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'logo' => ['nullable', 'string', 'max:500'],
             'logo_align' => ['nullable', Rule::in(EmailAppearance::ALIGNS)],
@@ -93,7 +94,7 @@ class EmailDesignController extends Controller
     /** @return array<string, mixed> the design fields only, for EmailAppearance::sanitize() */
     private function input(Request $request): array
     {
-        return $request->only(['layout', 'accent', 'logo', 'logo_align', 'banner', 'signature', 'return_policy', 'refund_note', 'socials', 'emails']);
+        return $request->only(['layout', 'font', 'accent', 'logo', 'logo_align', 'banner', 'signature', 'return_policy', 'refund_note', 'socials', 'emails']);
     }
 
     private function settingsTest(): string

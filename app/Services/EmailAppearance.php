@@ -26,6 +26,23 @@ class EmailAppearance
 
     public const DEFAULT_ACCENT = '#1f2937';
 
+    /**
+     * Fonts a shop can pick, all with full Vietnamese. Apple Mail, iOS Mail and Samsung Mail load the
+     * Google font; Gmail, Outlook and Yahoo never load web fonts, so every choice ends in the system
+     * fonts that set Vietnamese well there: SF Pro (Apple), Segoe UI (Windows), Roboto (Android).
+     */
+    public const FONTS = [
+        'be_vietnam_pro' => ['label' => 'Be Vietnam Pro', 'google' => 'Be+Vietnam+Pro'],
+        'inter' => ['label' => 'Inter', 'google' => 'Inter'],
+        'nunito_sans' => ['label' => 'Nunito Sans', 'google' => 'Nunito+Sans'],
+        'roboto' => ['label' => 'Roboto', 'google' => 'Roboto'],
+        'system' => ['label' => null, 'google' => null],
+    ];
+
+    public const DEFAULT_FONT = 'be_vietnam_pro';
+
+    private const SYSTEM_FONTS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif";
+
     public const TEXT_FIELDS = ['subject', 'heading', 'intro'];
 
     /**
@@ -111,6 +128,7 @@ class EmailAppearance
 
         return [
             'layout' => in_array($input['layout'] ?? null, self::LAYOUTS, true) ? $input['layout'] : 'classic',
+            'font' => array_key_exists((string) ($input['font'] ?? ''), self::FONTS) ? (string) $input['font'] : self::DEFAULT_FONT,
             'accent' => $accent,
             'logo' => $image($input['logo'] ?? null),
             'logo_align' => in_array($input['logo_align'] ?? null, self::ALIGNS, true) ? $input['logo_align'] : 'center',
@@ -149,7 +167,7 @@ class EmailAppearance
      * What every email's frame needs: layout, colour, logo, the shop's name and contact details,
      * signature and social links.
      *
-     * @return array{layout: string, accent: string, on_accent: string, logo_url: ?string, logo_align: string, banner_url: ?string, shop: string, address: ?string, phone: ?string, email: ?string, signature: string, socials: array<string, string>}
+     * @return array{layout: string, font_stack: string, font_url: ?string, accent: string, on_accent: string, logo_url: ?string, logo_align: string, banner_url: ?string, shop: string, address: ?string, phone: ?string, email: ?string, signature: string, socials: array<string, string>}
      */
     public function look(): array
     {
@@ -161,8 +179,12 @@ class EmailAppearance
         [$r, $g, $b] = array_map('hexdec', str_split(substr($settings['accent'], 1), 2));
         $onAccent = (0.299 * $r + 0.587 * $g + 0.114 * $b) / 255 > 0.62 ? '#111827' : '#ffffff';
 
+        $font = self::FONTS[$settings['font']];
+
         return [
             'layout' => $settings['layout'],
+            'font_stack' => ($font['label'] !== null ? "'{$font['label']}'," : '').self::SYSTEM_FONTS,
+            'font_url' => $font['google'] !== null ? 'https://fonts.googleapis.com/css2?family='.$font['google'].':wght@400;600&display=swap' : null,
             'accent' => $settings['accent'],
             'on_accent' => $onAccent,
             'logo_url' => $settings['logo'] !== null ? MediaUrl::resolve($settings['logo']) : $shopLogo,

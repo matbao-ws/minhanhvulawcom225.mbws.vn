@@ -1,14 +1,14 @@
 {{-- A contact form message to the shop owner (App\Mail\ContactInquiryMail). --}}
 @extends('emails.layout')
 
-@php($font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif")
+@php($font = $look['font_stack'])
 
 @section('content')
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
             <td class="px" style="padding:30px 32px 6px">
-                <div style="font:700 12px/1.4 {!! $font !!};letter-spacing:.08em;text-transform:uppercase;color:{{ $look['accent'] }}">{{ $eyebrow }}</div>
-                <h1 class="h1" style="margin:8px 0 6px;font:800 25px/1.25 {!! $font !!};color:#111827">{{ $heading }}</h1>
+                <div style="font:600 12px/1.4 {!! $font !!};letter-spacing:.08em;text-transform:uppercase;color:{{ $look['accent'] }}">{{ $eyebrow }}</div>
+                <h1 class="h1" style="margin:8px 0 6px;font:600 25px/1.25 {!! $font !!};color:#111827">{{ $heading }}</h1>
                 <p style="margin:0;font:14px/1.6 {!! $font !!};color:#6b7280">{{ __('emails.ui.sent_at', ['time' => $sentAt]) }}</p>
             </td>
         </tr>

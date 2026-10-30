@@ -5,7 +5,7 @@
     <style> block holds just the phone-width tweaks, which clients that drop it can live without.
 --}}
 @php
-    $font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+    $font = $look['font_stack'];
     $accent = $look['accent'];
     $minimal = $look['layout'] === 'minimal';
     $banner = $look['layout'] === 'banner';
@@ -30,8 +30,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="x-apple-disable-message-reformatting">
     <title>{{ $look['shop'] }}</title>
+    {{-- Loaded by Apple Mail, iOS Mail and Samsung Mail; the rest use the system fonts in the stack. --}}
+    @if($look['font_url'])
+        <link href="{{ $look['font_url'] }}" rel="stylesheet" type="text/css">
+    @endif
     <style>
         body { margin: 0; padding: 0; }
+        body, table, td, p, a, div, span { font-family: {!! $font !!}; }
         a { color: {{ $accent }}; }
         @media (max-width: 620px) {
             .px { padding-left: 20px !important; padding-right: 20px !important; }
@@ -79,7 +84,7 @@
                         @if($look['signature'] !== '')
                             <div style="margin-bottom:12px;color:#374151;font-size:14px">{!! nl2br(e($look['signature'])) !!}</div>
                         @endif
-                        <b style="color:#374151">{{ $look['shop'] }}</b>
+                        <b style="font-weight:600;color:#374151">{{ $look['shop'] }}</b>
                         @if($look['address'])<br>{{ $look['address'] }}@endif
                         @if($look['phone'] || $look['email'])
                             <br>

@@ -15,6 +15,8 @@
 @endphp
 
 @push('styles')
+    {{-- The font choices, so each one shows in its own face. --}}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?{{ collect(\App\Services\EmailAppearance::FONTS)->pluck('google')->filter()->map(fn ($family) => 'family='.$family.':wght@400;600')->implode('&') }}&display=swap">
     <style>
         .email-layout-option { cursor: pointer; }
         .email-layout-option .card { transition: border-color .15s ease, box-shadow .15s ease; }
@@ -69,10 +71,30 @@
                     </div>
                 </div>
 
-                {{-- Colour and logo --}}
+                {{-- Font, colour and logo --}}
                 <div class="card shadow-sm mb-4" data-tour="email-design.brand">
                     <div class="card-body">
                         <h5 class="fw-semibold mb-3">{{ $t('brand.title') }}</h5>
+
+                        <span class="form-label fw-semibold text-dark d-block">{{ $t('brand.font') }}</span>
+                        <div class="row g-2 mb-1" role="radiogroup" aria-label="{{ $t('brand.font') }}">
+                            @foreach(\App\Services\EmailAppearance::FONTS as $fontKey => $fontMeta)
+                                @php($family = $fontMeta['label'] ? "'".$fontMeta['label']."', " : '')
+                                <div class="col-sm-6 col-lg-4">
+                                    <label class="email-layout-option d-block h-100">
+                                        <input type="radio" class="visually-hidden" name="font" value="{{ $fontKey }}" id="font_{{ $fontKey }}" @checked(old('font', $settings['font']) === $fontKey)>
+                                        <span class="card h-100 border mb-0">
+                                            <span class="card-body p-3 d-block">
+                                                <span class="d-block text-dark" style="font-family: {{ $family }}-apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 17px; font-weight: 600; line-height: 1.3">{{ $t('brand.font_sample_title') }}</span>
+                                                <span class="d-block text-muted" style="font-family: {{ $family }}-apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 13px; line-height: 1.4">{{ $t('brand.font_sample_body') }}</span>
+                                                <span class="d-block small mt-1 fw-semibold">{{ $fontMeta['label'] ?? $t('brand.font_system') }}</span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="form-text mb-4">{{ $t('brand.font_help') }}</div>
 
                         <label class="form-label fw-semibold text-dark" for="accent">{{ $t('brand.accent') }}</label>
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">

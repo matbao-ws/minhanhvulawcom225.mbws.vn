@@ -282,7 +282,7 @@ return [
     'email_design' => [
         'intro' => ['title' => 'Email design', 'description' => 'Set how every email your shop sends looks and reads: order emails to customers, new orders and enquiries to you, password resets.'],
         'layout' => ['title' => 'Layout', 'description' => 'Pick one of three layouts. All emails share it.'],
-        'brand' => ['title' => 'Colour and logo', 'description' => 'The accent colours buttons, the progress bar and the total. The logo is the shop logo unless you choose one just for emails.'],
+        'brand' => ['title' => 'Font, colour and logo', 'description' => 'Pick a font (all have full Vietnamese). The accent colours buttons, the progress bar and the total. The logo is the shop logo unless you choose one just for emails.'],
         'footer' => ['title' => 'Email footer', 'description' => 'Sign-off, social links, return policy and refund note. Address and hotline come from General settings.'],
         'emails' => ['title' => 'Each email', 'description' => 'Turn each email on or off and rewrite its subject and opening. Click a {variable} to insert the customer name, order number or total.'],
         'preview' => ['title' => 'Preview', 'description' => 'The email updates as you edit, with a sample order. Switch Desktop / Phone to see both sizes.'],
