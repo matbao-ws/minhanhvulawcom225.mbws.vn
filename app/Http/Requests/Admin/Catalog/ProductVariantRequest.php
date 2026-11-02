@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Catalog;
 
 use App\Http\Requests\Concerns\NormalizesLocalizedInput;
+use App\Support\Shipping\ShippingProfileResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,7 +30,7 @@ class ProductVariantRequest extends FormRequest
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'cost_price' => ['nullable', 'numeric', 'min:0'],
             'image_url' => ['nullable', 'url', 'max:2048'],
-            'weight_grams' => ['nullable', 'integer', 'min:0'],
+            'weight_grams' => ShippingProfileResolver::weightRules(),
             'stock_quantity' => ['required', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],

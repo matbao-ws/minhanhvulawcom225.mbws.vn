@@ -184,6 +184,20 @@
             </div>
         </div>
 
+        <div data-tour="product-form.shipping" class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-7">{{ __('catalog.products.sections.shipping') }}</h4>
+                <div class="row">
+                    @include('admin.shared.shipping-fields', [
+                        'entity' => $product,
+                        'help' => $product->exists && $product->variants()->exists()
+                            ? __('catalog.products.help.weight_with_variants')
+                            : __('catalog.products.help.weight'),
+                    ])
+                </div>
+            </div>
+        </div>
+
         @include('admin.shared.seo-box', [
             'record' => $product,
             'entityType' => 'product',
