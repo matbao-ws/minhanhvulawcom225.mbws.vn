@@ -2299,23 +2299,6 @@ return [
         ],
     ],
     // Admin › Email design (EmailDesignController, App\Services\EmailAppearance).
-    // TEMPORARY: the test send page (branch test/email-send-page); delete with EmailTestSendController.
-    'email_test_send' => [
-        'title' => 'Send test emails',
-        'heading' => 'Send test emails (temporary page)',
-        'intro' => 'A temporary page to try the email templates. Mail goes out the way this website really sends it (<b>:route</b>), with a sample order, and the subject starts with <b>[TEST]</b>. The design is the one saved on <a href=":url">Email design</a>.',
-        'routes_admin' => 'own SMTP from Notification settings',
-        'routes_remote' => 'MatBao mail relay',
-        'routes_env' => 'the server .env settings',
-        'results' => 'Results',
-        'sent' => 'Sent',
-        'failed' => 'Failed',
-        'to' => 'Send to (up to 5, comma separated)',
-        'to_invalid' => 'Enter 1 to 5 valid emails, separated by commas.',
-        'templates' => 'Templates',
-        'submit' => 'Send test',
-        'subject_prefix' => '[TEST]',
-    ],
     'email_design' => [
         'title' => 'Email design',
         'subtitle' => 'Set how your shop’s emails look and read. The preview on the right updates as you edit; press Save to apply it to emails sent out.',
