@@ -46,6 +46,15 @@
                     <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-light text-primary">
                         <i class="ti ti-edit me-1" aria-hidden="true"></i>{{ __('catalog.actions.edit') }}
                     </a>
+                    @can('products.create')
+                        <form method="POST" action="{{ route('admin.products.duplicate', $product) }}" class="d-inline"
+                              onsubmit="return confirm(@js(__('catalog.products.duplicate_confirm')))">
+                            @csrf
+                            <button type="submit" class="btn btn-light text-info">
+                                <i class="ti ti-copy me-1" aria-hidden="true"></i>{{ __('catalog.products.duplicate') }}
+                            </button>
+                        </form>
+                    @endcan
                 </div>
             </div>
         </div>

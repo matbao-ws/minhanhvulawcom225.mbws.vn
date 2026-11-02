@@ -6,6 +6,7 @@ use App\Http\Requests\Concerns\NormalizesLocalizedInput;
 use App\Services\LanguageRegistry;
 use App\Support\FeatureGate;
 use App\Support\Seo\SeoBox;
+use App\Support\Shipping\ShippingProfileResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -43,6 +44,7 @@ class ProductRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'cost_price' => ['nullable', 'numeric', 'min:0'],
+            'weight_grams' => ShippingProfileResolver::weightRules(),
             'stock_quantity' => ['nullable', 'integer', 'min:0'],
             'manage_stock' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],

@@ -86,6 +86,27 @@ class AdminLocaleTest extends TestCase
         $this->get('/ja/admin')->assertRedirect(url('/vi/admin'));
     }
 
+    public function test_a_bare_admin_link_opens_in_the_last_admin_language_else_the_shop_default(): void
+    {
+        // Nothing chosen yet: the shop's default language (vi), not admin_fallback_locale (en).
+        $this->get('/admin')->assertRedirect('/vi/admin');
+
+        $this->get('/en/admin/login')->assertOk();
+        $this->get('/admin')->assertRedirect('/en/admin');
+
+        // A storefront-only language never becomes the admin's.
+        $this->get('/ja/admin/login');
+        $this->get('/admin')->assertRedirect('/en/admin');
+
+        $this->flushSession();
+        $this->get('/vi/admin/login')->assertOk();
+        $this->get('/admin')->assertRedirect('/vi/admin');
+
+        $this->assertSame('vi', app(LanguageRegistry::class)->adminEntryLocale());
+        $this->assertSame('en', app(LanguageRegistry::class)->adminEntryLocale('en'));
+        $this->assertSame('vi', app(LanguageRegistry::class)->adminEntryLocale('ja'));
+    }
+
     public function test_an_unknown_locale_is_still_not_found(): void
     {
         $this->get('/fr/admin')->assertNotFound();

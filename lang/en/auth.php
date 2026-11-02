@@ -56,6 +56,7 @@ return [
         'password' => 'New Password',
         'password_confirmation' => 'Confirm Password',
         'submit' => 'Update Password',
+        'show_password' => 'Show password',
     ],
     'logout' => [
         'success' => 'Logout successful.',

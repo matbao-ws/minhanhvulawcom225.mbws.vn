@@ -121,12 +121,6 @@ parameters:
 			path: app/Http/Controllers/Admin/Catalog/ProductVariantController.php
 
 		-
-			message: '#^Relation ''optionValues'' is not found in App\\Models\\ProductVariant model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Http/Controllers/Admin/Catalog/ProductVariantController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Product\:\:\$optionGroups\.$#'
 			identifier: property.notFound
 			count: 1
@@ -229,12 +223,6 @@ parameters:
 			path: app/Http/Controllers/Admin/NotificationSettingController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Admin/OrderController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\User\:\:\$addresses\.$#'
 			identifier: property.notFound
 			count: 1
@@ -250,12 +238,6 @@ parameters:
 			message: '#^Relation ''historyEntries'' is not found in App\\Models\\Order model\.$#'
 			identifier: larastan.relationExistence
 			count: 1
-			path: app/Http/Controllers/Admin/OrderController.php
-
-		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 2
 			path: app/Http/Controllers/Admin/OrderController.php
 
 		-
@@ -427,22 +409,10 @@ parameters:
 			path: app/Http/Controllers/Api/PublicController.php
 
 		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 6
-			path: app/Http/Controllers/Api/PublicController.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Http/Controllers/Api/PublicController.php
-
-		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 2
-			path: app/Http/Controllers/Api/WebhookController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$image_url\.$#'
@@ -571,12 +541,6 @@ parameters:
 			path: app/Http/Resources/PublicCategoryResource.php
 
 		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\PublicOrderResource\:\:\$items\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/PublicOrderResource.php
-
-		-
 			message: '#^Access to an undefined property App\\Http\\Resources\\PublicPageResource\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -677,18 +641,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Resources/PublicProductVariantResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\PublicProductVariantResource\:\:\$optionValues\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/PublicProductVariantResource.php
-
-		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Jobs/SendOrderStatusEmail.php
 
 		-
 			message: '#^Parameter \#1 \$message of static method Symfony\\Component\\Mime\\MessageConverter\:\:toEmail\(\) expects Symfony\\Component\\Mime\\Message, Symfony\\Component\\Mime\\RawMessage given\.$#'
@@ -1027,12 +979,6 @@ parameters:
 			path: app/Services/Catalog/ProductImportService.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\ProductOptionGroup\:\:\$values\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Catalog/ProductOptionService.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\ProductOptionValue\:\:\$variants\.$#'
 			identifier: property.notFound
 			count: 2
@@ -1072,12 +1018,6 @@ parameters:
 			message: '#^Access to an undefined property App\\Models\\ProductVariant\:\:\$product\.$#'
 			identifier: property.notFound
 			count: 3
-			path: app/Services/Catalog/ProductService.php
-
-		-
-			message: '#^Relation ''optionGroup'' is not found in App\\Models\\ProductOptionValue model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
 			path: app/Services/Catalog/ProductService.php
 
 		-
@@ -1157,30 +1097,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Services/MultilingualSettings.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Services/OrderStockService.php
-
-		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 2
-			path: app/Services/OrderStockService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Orders/OrderCancellationService.php
-
-		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Services/Orders/OrderCancellationService.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\ProjectSetting\:\:\$setting_value\.$#'
@@ -1301,30 +1217,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: app/Services/Seo/SitemapService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Shipping/ShipmentDispatcher.php
-
-		-
-			message: '#^Relation ''items'' is not found in App\\Models\\Order model\.$#'
-			identifier: larastan.relationExistence
-			count: 2
-			path: app/Services/Shipping/ShipmentDispatcher.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>weight_grams" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Shipping/ShipmentDispatcher.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$items\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Services/ShippingService.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'

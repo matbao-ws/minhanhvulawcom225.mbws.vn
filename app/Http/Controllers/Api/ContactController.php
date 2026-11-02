@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\ContactInquiryMail;
 use App\Models\ContactSubmission;
 use App\Services\Contact\ContactSpamGuard;
+use App\Services\EmailAppearance;
 use App\Services\MailSettings;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -65,9 +66,14 @@ class ContactController extends Controller
             return response()->json(['success' => true, 'message' => self::SENT]);
         }
 
+        // Saved above either way; the shop may switch the email off (Quản trị › Giao diện email).
+        if (! app(EmailAppearance::class)->enabled('contact')) {
+            return response()->json(['success' => true, 'message' => self::SENT]);
+        }
+
         try {
             // The shop owner's address set in the admin (Cài đặt thông báo), else MAIL_SELLER.
-            Mail::to(app(MailSettings::class)->ownerEmails())->send(new ContactInquiryMail($inquiry));
+            Mail::to(app(MailSettings::class)->ownerEmails())->send(new ContactInquiryMail($inquiry, $meta));
         } catch (Exception $e) {
             Log::error('Contact form email failed: '.$e->getMessage());
 

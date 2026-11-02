@@ -8,6 +8,7 @@ use App\Services\ActivityLogger;
 use App\Services\OrderStateTransitionService;
 use App\Services\ShippingService;
 use App\Support\FeatureGate;
+use App\Support\Shipping\ShippingProfileResolver;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,6 +22,7 @@ class ShipmentDispatcher
     public function __construct(
         private readonly ShippingService $shipping,
         private readonly OrderStateTransitionService $transitions,
+        private readonly ShippingProfileResolver $profiles,
     ) {}
 
     /**
@@ -133,19 +135,9 @@ class ShipmentDispatcher
         ], $actorId, 'Tự tạo vận đơn GHN khi xác nhận đơn');
     }
 
-    /** Grams: the variants' weights when every line has one, otherwise the shop's default. */
+    /** Grams of the parcel: see ShippingProfileResolver::parcelWeight (variant weight, else product weight, else the default). */
     public function weight(Order $order, int $default): int
     {
-        $order->loadMissing('items.variant');
-        $total = 0;
-        foreach ($order->items as $item) {
-            $grams = (int) ($item->variant?->weight_grams ?? 0);
-            if ($grams < 1) {
-                return max(1, $default);
-            }
-            $total += $grams * (int) $item->quantity;
-        }
-
-        return max(1, min(50000, $total ?: $default));
+        return $this->profiles->parcelWeight($order, $default);
     }
 }

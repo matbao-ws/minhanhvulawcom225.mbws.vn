@@ -340,6 +340,15 @@ nhất** trong `App\Support\PermissionRegistry`. Bảng `permissions` chỉ là 
 ### Dữ liệu nhạy cảm và nội dung
 
 - Settings tích hợp và payment payload nhạy cảm phải dùng encrypted cast/persistence hiện có.
+- **Giao diện email** (Quản trị › Giao diện email, `EmailDesignController`, quyền `settings.view`/`settings.update`):
+  `App\Services\EmailAppearance` lưu một setting `email_appearance` gồm bố cục (`classic`/`minimal`/`banner`),
+  màu nhấn, logo/ảnh bìa (path tương đối qua `MediaUrl`), chân email, và cho từng email trong
+  `EmailAppearance::EMAILS` việc bật/tắt cùng tiêu đề, dòng tiêu đề, lời mở đầu riêng. Chữ của shop là văn
+  bản thuần (escape khi render, biến dạng `{ten_khach}`), chỉ dùng cho ngôn ngữ mặc định; ô trống dùng câu trong
+  `lang/{locale}/emails.php`. Đặt lại mật khẩu và email thử luôn gửi. Mọi email kế thừa `emails.layout` (bảng
+  + inline style, không flex/float); dữ liệu email đơn hàng dựng sẵn ở `App\Mail\OrderEmailData` từ số tiền đã
+  lưu của đơn, không tính lại trong Blade. Chủ shop nhận `OwnerNewOrderMail`, không phải bản sao email của khách.
+  Bản xem trước dùng `App\Mail\EmailPreviewSamples` (đơn trong bộ nhớ, không bao giờ lưu).
 - Cấu hình mail resolve ở `App\Services\MailSettings` theo thứ tự: admin (`notification_settings.smtp`)
   khi đã bật và điền đủ → **mail relay MatBao** trên gateway khi có `MATBAO_AI_URL` + `MATBAO_AI_TOKEN`
   (mailer `matbao`, transport `App\Mail\Transport\MatbaoGatewayTransport` gửi `POST v1/mail/send`;

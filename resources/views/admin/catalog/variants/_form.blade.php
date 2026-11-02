@@ -78,10 +78,12 @@
                     <label class="form-label" for="stock_quantity">{{ __('catalog.variants.stock') }}</label>
                     <input type="number" min="0" class="form-control" id="stock_quantity" name="stock_quantity" value="{{ old('stock_quantity', $variant->stock_quantity ?? 0) }}" required>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label class="form-label" for="weight_grams">{{ __('catalog.variants.weight') }}</label>
-                    <input type="number" min="0" class="form-control" id="weight_grams" name="weight_grams" value="{{ old('weight_grams', $variant->weight_grams) }}">
-                </div>
+                @include('admin.shared.shipping-fields', [
+                    'entity' => $variant,
+                    'columns' => 'col-md-4',
+                    'placeholder' => $product->weight_grams ? __('catalog.variants.weight_inherited', ['grams' => $product->weight_grams]) : '',
+                    'help' => __('catalog.variants.weight_help'),
+                ])
                 <div data-tour="variant-form.image" class="col-md-8 mb-3">
                     <label class="form-label" for="image_url">{{ __('catalog.variants.image_url') }}</label>
                     <input type="url" class="form-control" id="image_url" name="image_url" value="{{ old('image_url', $variant->image_url) }}">

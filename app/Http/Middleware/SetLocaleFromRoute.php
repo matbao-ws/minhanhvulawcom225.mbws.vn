@@ -24,6 +24,10 @@ class SetLocaleFromRoute
         config()->set('app.fallback_locale', $this->languages->fallbackLocale());
         URL::defaults(['locale' => $locale]);
         $request->session()->put('locale', $locale);
+        if ($request->segment(2) === 'admin' && $this->languages->supportsAdmin($locale)) {
+            // Where a bare /admin link lands next time (LanguageRegistry::adminEntryLocale).
+            $request->session()->put('admin_locale', $locale);
+        }
 
         if ($request->user() && Schema::hasColumn('users', 'preferred_locale') && $request->user()->preferred_locale !== $locale) {
             $request->user()->forceFill(['preferred_locale' => $locale])->saveQuietly();

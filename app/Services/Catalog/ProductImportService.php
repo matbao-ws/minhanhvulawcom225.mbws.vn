@@ -5,6 +5,7 @@ namespace App\Services\Catalog;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\Shipping\ShippingProfileResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -152,7 +153,7 @@ class ProductImportService
                 'en' => $data['description_en'] ?? '',
             ],
             'image_url' => $data['image_url'] ?? null,
-        ];
+        ] + $this->weightPayload($data, 'weight_grams', 1);
     }
 
     private function mapWordPressPayload(array $data): ?array
@@ -223,7 +224,38 @@ class ProductImportService
                 'en' => $desc,
             ],
             'image_url' => $imageUrl,
-        ];
+        ] + $this->weightPayload($data, 'weight (kg)', 1000);
+    }
+
+    /**
+     * The weight of a row, in grams, only when the file has that column: a file without it must not wipe the
+     * weights already saved (ProductService keeps a field whose key is absent). A blank cell clears the weight.
+     *
+     * @param  int  $unitGrams  grams in one unit of the column (1 for grams, 1000 for kilograms)
+     * @return array{weight_grams?: int|null}
+     */
+    private function weightPayload(array $data, string $column, int $unitGrams): array
+    {
+        if (! array_key_exists($column, $data)) {
+            return [];
+        }
+
+        $raw = trim((string) $data[$column]);
+        if ($raw === '') {
+            return ['weight_grams' => null];
+        }
+
+        $number = str_replace(',', '.', $raw);
+        if (! is_numeric($number) || (float) $number < 0) {
+            throw new RuntimeException(__('catalog.products.import_invalid_weight', ['value' => $raw]));
+        }
+
+        $grams = (int) round((float) $number * $unitGrams);
+        if ($grams > ShippingProfileResolver::MAX_PARCEL_GRAMS) {
+            throw new RuntimeException(__('catalog.products.import_invalid_weight', ['value' => $raw]));
+        }
+
+        return ['weight_grams' => $grams];
     }
 
     private function findOrCreateCategory(string $categoryString): ?int

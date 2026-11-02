@@ -23,6 +23,7 @@ final class ArchitectureRules
     /** Orders are created in one place: Orders\OrderCreationService (CLAUDE.md). */
     public const ORDER_CREATION_ALLOWED = [
         'App\\Services\\Orders\\OrderCreationService::create' => 'the single place an order and its items are written',
+        'App\\Mail\\EmailPreviewSamples::order' => 'an in-memory sample for the email design preview; never saved (EmailDesignAdminTest checks no order row)',
     ];
 
     /** Controllers that serve the storefront (the public API and the client Blade pages). */

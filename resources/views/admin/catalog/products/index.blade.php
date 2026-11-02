@@ -204,6 +204,15 @@
                                         <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" title="{{ __('catalog.actions.edit') }}">
                                             <i class="ti ti-edit fs-4"></i>
                                         </a>
+                                        @can('products.create')
+                                            <form method="POST" action="{{ route('admin.products.duplicate', $product) }}" class="d-inline" data-no-ajax
+                                                  onsubmit="return confirm(@js(__('catalog.products.duplicate_confirm')))">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-info" title="{{ __('catalog.products.duplicate') }}" aria-label="{{ __('catalog.products.duplicate') }}">
+                                                    <i class="ti ti-copy fs-4"></i>
+                                                </button>
+                                            </form>
+                                        @endcan
                                         <!-- Delete Link -->
                                         <form method="POST" action="{{ route('admin.products.destroy', $product) }}" class="d-inline js-delete-form">
                                             @csrf

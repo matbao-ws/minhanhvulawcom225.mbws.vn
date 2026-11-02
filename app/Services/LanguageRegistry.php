@@ -110,6 +110,22 @@ class LanguageRegistry
         return $this->adminCodes()[0] ?? $this->defaultLocale();
     }
 
+    /**
+     * The admin locale for a link that carries none (/admin, the owner's new order mail): the one
+     * the admin last worked in, else the shop's default language, and only then
+     * admin_fallback_locale. Without this, /admin always opened in English.
+     */
+    public function adminEntryLocale(?string $remembered = null): string
+    {
+        foreach ([$remembered, $this->defaultLocale()] as $candidate) {
+            if ($this->supportsAdmin($candidate)) {
+                return $this->normalize((string) $candidate);
+            }
+        }
+
+        return $this->adminLocale(null);
+    }
+
     public function supports(?string $locale): bool
     {
         return is_string($locale) && in_array($this->normalize($locale), $this->codes(), true);
