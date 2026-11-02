@@ -270,6 +270,10 @@ class ProductService
             'price' => $data['price'] ?? 0,
             'compare_at_price' => $data['compare_at_price'] ?? null,
             'cost_price' => $data['cost_price'] ?? null,
+            // Not sent (an older CSV, a partial update) keeps what is stored; sent empty clears it.
+            'weight_grams' => array_key_exists('weight_grams', $data)
+                ? (filled($data['weight_grams']) ? (int) $data['weight_grams'] : null)
+                : $product?->weight_grams,
             'stock_quantity' => (int) ($data['stock_quantity'] ?? 0),
             'manage_stock' => (bool) ($data['manage_stock'] ?? false),
             'is_active' => (bool) ($data['is_active'] ?? false),

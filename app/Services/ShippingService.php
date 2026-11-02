@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\ShippingPartner;
+use App\Support\Shipping\ShippingProfileResolver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -276,12 +277,15 @@ class ShippingService
         }
 
         try {
-            // Prepare products list for GHTK API
+            // Prepare products list for GHTK API: every line carries its real unit weight in kg (variant, else
+            // product); lines without one share what is left of the parcel weight, so the list adds up to total_weight.
+            $parcelGrams = max(1, (int) ($params['weight'] ?? 500));
+            $unitKilograms = app(ShippingProfileResolver::class)->unitKilograms($order, $parcelGrams);
             $products = [];
             foreach ($order->items as $item) {
                 $products[] = [
                     'name' => $item->product_name,
-                    'weight' => 0.2, // default 200g
+                    'weight' => $unitKilograms[$item->id],
                     'quantity' => $item->quantity,
                     'price' => (int) $item->price,
                 ];
@@ -307,7 +311,7 @@ class ShippingService
                     'ward' => $params['ward'] ?? 'Phường Bến Nghé',
                     'is_freeship' => 0,
                     'weight_option' => 'gram',
-                    'total_weight' => $params['weight'] ?? 500, // weight in grams
+                    'total_weight' => $parcelGrams, // weight in grams
                     'value' => (int) $order->grand_total,
                 ],
             ];
