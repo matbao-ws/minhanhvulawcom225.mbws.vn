@@ -9,7 +9,9 @@
     @section('meta_description', $seo->description)
 @endif
 
-@php($editing = \App\Support\ClientEditorChrome::editorActive())
+@php
+  $editing = \App\Support\ClientEditorChrome::editorActive();
+@endphp
 
 @section('content')
     {{-- data-client-editable-root is what the inline editor looks for. A theme

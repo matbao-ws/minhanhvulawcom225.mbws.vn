@@ -1,57 +1,68 @@
 @extends('client.layouts.app')
 
-{{-- $seo (SeoMetaFactory) holds the cleaned title and description the search tags use too. --}}
-@section('title', $seo->title)
+@section('title', $seo->title ?? 'Học Tập & Nghiên Cứu Pháp Lý | MAV Law - CÔNG TY LUẬT TNHH MTV MINH ANH VŨ')
 
-@if($seo->description)
-    @section('meta_description', $seo->description)
+@if(!empty($seo->description))
+  @section('meta_description', $seo->description)
 @endif
 
 @section('content')
-    <section class="client-shell client-page-head">
-        {{-- Owned by the post category record; edited on its admin screen. --}}
-        <h1>{{ $title }}</h1>
-        @if($description)
-            <p>{!! $description !!}</p>
-        @endif
-    </section>
+  @php
+    $canEdit = \App\Support\ClientEditorChrome::editorActive();
+    $bannerTitle = $title ?? 'Học Tập & Nghiên Cứu Pháp Lý';
+  @endphp
 
-    @if($posts->isEmpty())
-        <div class="client-shell client-empty">
-            <x-client::editable key="blog.category.empty" tag="p">
-                Chuyên mục này chưa có bài viết nào.
-            </x-client::editable>
-        </div>
-    @else
-        <div class="client-shell client-grid">
-            @foreach($posts as $post)
-                @php
-                    $fallback = app(\App\Services\LanguageRegistry::class)->fallbackLocale();
-                    $postTitle = $post->getTranslation('title', app()->getLocale(), false)
-                        ?: $post->getTranslation('title', $fallback, false);
-                    $summary = $post->getTranslation('summary', app()->getLocale(), false)
-                        ?: $post->getTranslation('summary', $fallback, false);
-                @endphp
-                <article class="client-card">
-                    <img class="client-card__media"
-                         src="{{ \App\Support\MediaUrl::resolve($post->image_url) ?: asset('images/placeholder.png') }}"
-                         alt="{{ $postTitle }}"
-                         loading="lazy">
-                    <div class="client-card__body">
-                        <h2 class="client-card__title">{{ $postTitle }}</h2>
-                        @if($summary)
-                            <p class="client-card__meta">{{ \Illuminate\Support\Str::limit(strip_tags($summary), 110) }}</p>
-                        @endif
-                        @if($post->published_at)
-                            <p class="client-card__meta">{{ $post->published_at->format('d/m/Y') }}</p>
-                        @endif
-                    </div>
-                </article>
-            @endforeach
+  @include('client.partials.page-banner', [
+    'title' => $bannerTitle,
+    'titleKey' => null,
+    'bgKey' => 'blog.category.banner_bg',
+    'breadcrumbs' => [
+      ['label' => $bannerTitle, 'url' => null],
+    ],
+  ])
+
+  <main class="py-16 sm:py-20 bg-slate-50 flex-1" @if($canEdit) data-outline-section="blog-category-main" data-outline-label="Học tập & Nghiên cứu" @endif>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+        <div class="lg:col-span-8 space-y-8" @if($canEdit) data-outline-group="blog-category-content" data-outline-kind="column" data-outline-group-label="Danh sách bài viết" @endif>
+          <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm space-y-4" @if($canEdit) data-outline-group="blog-category-intro" data-outline-kind="card" data-outline-group-label="Giới thiệu chuyên mục" @endif>
+            <x-client::editable key="blog.category.eyebrow" tag="span" class="text-brand-red font-bold text-sm uppercase tracking-wider">Góc nghiên cứu</x-client::editable>
+            <x-client::editable key="blog.category.heading" tag="h2" class="text-2xl sm:text-3xl font-bold text-navy-900">Kiến Thức Pháp Luật, Án Lệ &amp; Hỏi Đáp</x-client::editable>
+            @if(!empty($description))
+              <div class="text-slate-600 leading-relaxed text-base text-justify">{!! $description !!}</div>
+            @else
+              <x-client::editable key="blog.category.desc" tag="p" class="text-slate-600 leading-relaxed text-base text-justify">Các bài viết phân tích tình huống pháp lý thực tiễn, bình luận án lệ và giải đáp vướng mắc pháp luật thường gặp do đội ngũ Luật sư Minh Anh Vũ trực tiếp nghiên cứu và chia sẻ.</x-client::editable>
+            @endif
+          </div>
+
+          @if($posts->isEmpty())
+            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center">
+              <x-client::editable key="blog.category.empty" tag="p" class="text-slate-600">Chuyên mục này chưa có bài viết nào.</x-client::editable>
+            </div>
+          @else
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              @foreach($posts as $post)
+                @include('client.partials.post-card', [
+                  'post' => $post,
+                  'imageHeight' => 'h-56',
+                  'titleClass' => 'text-xl font-bold text-navy-900 group-hover:text-brand-red transition',
+                  'metaLabel' => 'Nghiên cứu & Án lệ',
+                ])
+              @endforeach
+            </div>
+
+            @if($posts->hasPages())
+              <div class="pt-6">{{ $posts->links() }}</div>
+            @endif
+          @endif
         </div>
 
-        @if($posts->hasPages())
-            <div class="client-shell client-pagination">{{ $posts->links() }}</div>
-        @endif
-    @endif
+        <div class="lg:col-span-4">
+          @include('client.partials.news-sidebar')
+        </div>
+
+      </div>
+    </div>
+  </main>
 @endsection
